@@ -1,0 +1,111 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# IDEs and editors
+.vscode/
+.idea/
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+_ReSharper.*/
+*.ncrunch*
+*.userprefs
+*.code-workspace
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Node / Next.js / Tailwind
+node_modules/
+.next/
+.next/cache/
+out/
+.vercel/
+.turbo/
+.cache/
+dist/
+build/
+coverage/
+.nyc_output/
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Yarn v2+ (Berry)
+.pnp.*
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+
+# Environment files (frontend/backend)
+.env
+.env.*
+!.env.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.envrc
+.direnv
+
+# .NET / ASP.NET Core
+[Bb]in/
+[Oo]bj/
+artifacts/
+TestResult*/
+*.pidb
+*.svclog
+*.dbmdl
+*.opendb
+*.pubxml.user
+*.publishsettings
+*.csproj.user
+*.vbproj.user
+*.sqlproj.user
+*.vsp
+*.psess
+*.vspx
+appsettings.*.local.json
+
+# NuGet (legacy packages folder)
+packages/
+
+# JetBrains Rider
+*.sln.iml
+
+# Azure Developer CLI (keep azure.yaml if present)
+.azure/**
+!azure.yaml
+
+# Project-specific: torrent cache and downloads
+Haas.Media.Downloader.Api/cache/
+Haas.Media.Downloader.Api/downloads/
+
+# Misc
+*.orig
+*.rej
+*.bak
+*.tmp
+~$*
+*.swp
+*.swo
