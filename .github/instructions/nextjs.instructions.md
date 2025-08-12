@@ -26,7 +26,7 @@ applyTo: '**/*.tsx,**/*.ts'
   - `route.ts` for API routes
 
 ### Folders Structure
-- app/ — Used if you’re on the App Router (Next.js 13+). For older Pages Router, replace with pages/.
+- app/ — Used for App Router (Next.js 13+).
 - features/ — Keeps related logic together (components, hooks, services).
 - lib/ — Utilities, configs, constants, and API clients.
 - types/ — Shared types/interfaces for TypeScript safety.

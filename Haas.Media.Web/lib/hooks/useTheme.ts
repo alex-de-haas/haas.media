@@ -6,26 +6,9 @@ import type { ThemeMode, UseThemeReturn } from '../../types';
 export const useTheme = (): UseThemeReturn => {
   const mediaQueryRef = useRef<MediaQueryList | null>(null);
 
-  // Initialize from storage or default to system, and resolve immediately to avoid flicker
-  const [mode, setMode] = useState<ThemeMode>(() => {
-    try {
-      const stored = localStorage.getItem('theme') as ThemeMode | null;
-      return stored ?? 'system';
-    } catch {
-      return 'system';
-    }
-  });
-  
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(() => {
-    try {
-      const stored = localStorage.getItem('theme') as ThemeMode | null;
-      const initialMode: ThemeMode = stored ?? 'system';
-      const prefersDark = typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      return initialMode === 'system' ? (prefersDark ? 'dark' : 'light') : initialMode;
-    } catch {
-      return 'light';
-    }
-  });
+  // SSR-safe initial state: always start as 'system' and 'light' to match server markup
+  const [mode, setMode] = useState<ThemeMode>('system');
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
 
   const applyTheme = useCallback((nextMode: ThemeMode) => {
     const root = window.document.documentElement;
@@ -40,9 +23,15 @@ export const useTheme = (): UseThemeReturn => {
     setResolvedTheme(nextResolved);
   }, []);
 
-  // Apply current mode on mount and when system preference changes while in system mode
+  // On mount, read stored preference and apply; also react to system changes when in system mode
   useEffect(() => {
-    applyTheme(mode);
+    try {
+      const stored = (localStorage.getItem('theme') as ThemeMode | null) ?? 'system';
+      setMode(stored);
+      applyTheme(stored);
+    } catch {
+      applyTheme('system');
+    }
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     mediaQueryRef.current = media;
     const onChange = () => {
@@ -52,7 +41,9 @@ export const useTheme = (): UseThemeReturn => {
     };
     media.addEventListener?.('change', onChange);
     return () => media.removeEventListener?.('change', onChange);
-  }, [applyTheme, mode]);
+    // It's intentional that we don't include `mode` here to avoid re-reading localStorage
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [applyTheme]);
 
   // Set explicit theme mode
   const setThemeMode = useCallback((nextMode: ThemeMode) => {

@@ -3,6 +3,7 @@ import Script from "next/script";
 import ClientLayout from "../components/layout/client-layout";
 import Header from "../components/layout/header";
 import "./globals.css";
+import { UserProvider } from '@auth0/nextjs-auth0/client';
 
 export const metadata: Metadata = {
   title: "Haas Media Server",
@@ -39,12 +40,14 @@ export default function RootLayout({ children }: RootLayoutProps) {
         />
       </head>
       <body>
-        <ClientLayout>
-          <Header />
-          <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-            {children}
-          </main>
-        </ClientLayout>
+        <UserProvider>
+          <ClientLayout>
+            <Header />
+            <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+              {children}
+            </main>
+          </ClientLayout>
+        </UserProvider>
       </body>
     </html>
   );

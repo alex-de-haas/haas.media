@@ -11,10 +11,13 @@ export interface UseBrowserNotifications {
 }
 
 export function useBrowserNotifications(): UseBrowserNotifications {
+  // Initialize SSR-safe defaults so server and first client render match
+  const [supported, setSupported] = useState<boolean>(false);
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("unsupported");
-  const supported = isSupported();
 
   useEffect(() => {
+    // Compute browser-dependent values after mount to avoid hydration mismatch
+    setSupported(isSupported());
     setPermission(getPermission());
   }, []);
 

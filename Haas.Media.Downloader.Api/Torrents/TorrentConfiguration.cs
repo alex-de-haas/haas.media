@@ -21,7 +21,8 @@ public static class TorrentConfiguration
                     return Results.Ok();
                 }
             )
-            .WithName("UploadTorrent");
+            .WithName("UploadTorrent")
+            .RequireAuthorization();
 
         app.MapGet(
                 "api/torrents",
@@ -30,7 +31,8 @@ public static class TorrentConfiguration
                     return Results.Ok(torrentService.GetUploadedTorrents());
                 }
             )
-            .WithName("GetTorrents");
+            .WithName("GetTorrents")
+            .RequireAuthorization();
 
         app.MapPost(
                 "api/torrents/{hash}/start",
@@ -39,7 +41,8 @@ public static class TorrentConfiguration
                     return await torrentService.StartAsync(hash) ? Results.Ok() : Results.NotFound();
                 }
             )
-            .WithName("StartTorrent");
+            .WithName("StartTorrent")
+            .RequireAuthorization();
 
         app.MapPost(
                 "api/torrents/{hash}/stop",
@@ -48,7 +51,8 @@ public static class TorrentConfiguration
                     return await torrentService.StopAsync(hash) ? Results.Ok() : Results.NotFound();
                 }
             )
-            .WithName("StopTorrent");
+            .WithName("StopTorrent")
+            .RequireAuthorization();
 
         app.MapDelete(
                 "api/torrents/{hash}",
@@ -58,9 +62,10 @@ public static class TorrentConfiguration
                     return await torrentService.DeleteAsync(hash, delete) ? Results.Ok() : Results.NotFound();
                 }
             )
-            .WithName("DeleteTorrent");
+            .WithName("DeleteTorrent")
+            .RequireAuthorization();
 
-        app.MapHub<TorrentHub>("/hub/torrents");
+    app.MapHub<TorrentHub>("/hub/torrents").RequireAuthorization();
 
         return app;
     }

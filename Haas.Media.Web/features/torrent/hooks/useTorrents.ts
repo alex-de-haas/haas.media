@@ -4,29 +4,48 @@ import { useEffect, useState } from "react";
 import { HubConnectionBuilder, HubConnection } from "@microsoft/signalr";
 import type { TorrentInfo } from "../../../types";
 
-const API_BASE = "http://localhost:5255";
+const API_BASE = process.env.NEXT_PUBLIC_DOWNLOADER_URL;
 
 export function useTorrents() {
   const [torrents, setTorrents] = useState<TorrentInfo[]>([]);
   const [connection, setConnection] = useState<HubConnection | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+
+  async function getValidToken(): Promise<string | null> {
+    if (token) return token;
+    try {
+      const res = await fetch("/api/token");
+      if (res.ok) {
+        const data = await res.json();
+        setToken(data.accessToken ?? null);
+        return data.accessToken ?? null;
+      }
+    } catch {}
+    return null;
+  }
 
   useEffect(() => {
     async function fetchTorrents() {
       try {
-        const res = await fetch(`${API_BASE}/api/torrents`);
+        const t = await getValidToken();
+        const headers = new Headers();
+        if (t) headers.set("Authorization", `Bearer ${t}`);
+        const res = await fetch(`${API_BASE}/api/torrents`, { headers });
         if (res.ok) {
           const data = await res.json();
           setTorrents(data);
         }
       } catch (error) {
-        console.error('Failed to fetch torrents:', error);
+        console.error("Failed to fetch torrents:", error);
       }
     }
 
     fetchTorrents();
 
     const hubConnection = new HubConnectionBuilder()
-      .withUrl(`${API_BASE}/hub/torrents`)
+      .withUrl(`${API_BASE}/hub/torrents`, {
+        accessTokenFactory: async () => (await getValidToken()) ?? "",
+      })
       .withAutomaticReconnect()
       .build();
 
@@ -51,14 +70,20 @@ export function useTorrents() {
     };
   }, []);
 
-  const uploadTorrent = async (file: File): Promise<{ success: boolean; message: string }> => {
+  const uploadTorrent = async (
+    file: File
+  ): Promise<{ success: boolean; message: string }> => {
     const formData = new FormData();
     formData.append("file", file);
 
     try {
+      const t = await getValidToken();
+      const headers = new Headers();
+      if (t) headers.set("Authorization", `Bearer ${t}`);
       const res = await fetch(`${API_BASE}/api/torrents/upload`, {
         method: "POST",
         body: formData,
+        headers,
       });
 
       if (res.ok) {
@@ -72,10 +97,16 @@ export function useTorrents() {
     }
   };
 
-  const deleteTorrent = async (hash: string): Promise<{ success: boolean; message: string }> => {
+  const deleteTorrent = async (
+    hash: string
+  ): Promise<{ success: boolean; message: string }> => {
     try {
+      const t = await getValidToken();
+      const headers = new Headers();
+      if (t) headers.set("Authorization", `Bearer ${t}`);
       const res = await fetch(`${API_BASE}/api/torrents/${hash}`, {
         method: "DELETE",
+        headers,
       });
 
       if (res.ok) {
@@ -89,10 +120,16 @@ export function useTorrents() {
     }
   };
 
-  const startTorrent = async (hash: string): Promise<{ success: boolean; message: string }> => {
+  const startTorrent = async (
+    hash: string
+  ): Promise<{ success: boolean; message: string }> => {
     try {
+      const t = await getValidToken();
+      const headers = new Headers();
+      if (t) headers.set("Authorization", `Bearer ${t}`);
       const res = await fetch(`${API_BASE}/api/torrents/${hash}/start`, {
         method: "POST",
+        headers,
       });
 
       if (res.ok) {
@@ -106,10 +143,16 @@ export function useTorrents() {
     }
   };
 
-  const stopTorrent = async (hash: string): Promise<{ success: boolean; message: string }> => {
+  const stopTorrent = async (
+    hash: string
+  ): Promise<{ success: boolean; message: string }> => {
     try {
+      const t = await getValidToken();
+      const headers = new Headers();
+      if (t) headers.set("Authorization", `Bearer ${t}`);
       const res = await fetch(`${API_BASE}/api/torrents/${hash}/stop`, {
         method: "POST",
+        headers,
       });
 
       if (res.ok) {

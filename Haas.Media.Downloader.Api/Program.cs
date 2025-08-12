@@ -1,5 +1,7 @@
 using Haas.Media.Downloader.Api.Torrents;
 using Haas.Media.ServiceDefaults;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +14,44 @@ builder.AddTorrent();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSignalR();
+
+// Auth0 Authentication
+var auth0Domain = builder.Configuration["AUTH0_DOMAIN"];
+var auth0Audience = builder.Configuration["AUTH0_AUDIENCE"];
+
+if (!string.IsNullOrWhiteSpace(auth0Domain) && !string.IsNullOrWhiteSpace(auth0Audience))
+{
+    builder.Services
+        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.Authority = $"https://{auth0Domain}";
+            options.Audience = auth0Audience;
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+            };
+            // Allow tokens via query string for WebSockets/SignalR
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"]; 
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hub"))
+                    {
+                        context.Token = accessToken!;
+                    }
+                    return Task.CompletedTask;
+                }
+            };
+        });
+
+    builder.Services.AddAuthorization();
+}
 
 builder.Services.AddCors(options =>
 {
@@ -36,6 +76,13 @@ if (app.Environment.IsDevelopment())
 // app.UseHttpsRedirection();
 
 app.UseCors();
+
+// Auth
+if (!string.IsNullOrWhiteSpace(auth0Domain) && !string.IsNullOrWhiteSpace(auth0Audience))
+{
+    app.UseAuthentication();
+    app.UseAuthorization();
+}
 
 app.MapDefaultEndpoints();
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useTheme } from "../../lib/hooks/useTheme";
 import { useBrowserNotifications } from "../../lib/hooks/useBrowserNotifications";
+import { useEffect, useState } from "react";
 
 interface HeaderProps {
   children?: React.ReactNode;
@@ -11,6 +12,23 @@ interface HeaderProps {
 export default function Header({ children }: HeaderProps) {
   const { theme, setThemeMode } = useTheme();
   const { supported, permission, request, notify } = useBrowserNotifications();
+  const [user, setUser] = useState<{
+    name?: string;
+    email?: string;
+    picture?: string;
+  } | null>(null);
+
+  async function loadUser() {
+    const res = await fetch("/api/auth/me");
+    if (res.ok) {
+      const data = await res.json();
+      setUser(data || null);
+    }
+  }
+
+  useEffect(() => {
+    loadUser();
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
@@ -38,9 +56,7 @@ export default function Header({ children }: HeaderProps) {
               />
               <path d="M10 8l6 4-6 4V8z" fill="currentColor" />
             </svg>
-            <span className="text-xl font-semibold">
-              Haas Media Server
-            </span>
+            <span className="text-xl font-semibold">Haas Media Server</span>
           </Link>
 
           {/* Search (optional placeholder) */}
@@ -81,12 +97,16 @@ export default function Header({ children }: HeaderProps) {
                   permission === "granted"
                     ? "Notifications are enabled"
                     : permission === "denied"
-                      ? "Notifications are blocked in your browser settings"
-                      : "Click to enable browser notifications"
+                    ? "Notifications are blocked in your browser settings"
+                    : "Click to enable browser notifications"
                 }
                 disabled={permission === "denied"}
               >
-                {permission === "granted" ? "Notifications On" : permission === "denied" ? "Notifications Blocked" : "Enable Notifications"}
+                {permission === "granted"
+                  ? "Notifications On"
+                  : permission === "denied"
+                  ? "Notifications Blocked"
+                  : "Enable Notifications"}
               </button>
             )}
             <div>
@@ -130,9 +150,38 @@ export default function Header({ children }: HeaderProps) {
                 </button>
               </div>
             </div>
-            <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700">
-              Login
-            </button>
+            {user ? (
+              <div className="flex items-center gap-3">
+                {user.picture && (
+                  <img
+                    src={user.picture}
+                    alt={user.name || user.email || "User avatar"}
+                    className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-700"
+                  />
+                )}
+                <div className="flex flex-col text-sm text-gray-700 dark:text-gray-200">
+                  <span className="font-medium">{user.name}</span>
+                  {user.email && (
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {user.email}
+                    </span>
+                  )}
+                </div>
+                <a
+                  href="/api/auth/logout"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700"
+                >
+                  Logout
+                </a>
+              </div>
+            ) : (
+              <a
+                href="/api/auth/login"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700"
+              >
+                Login
+              </a>
+            )}
           </div>
         </div>
       </div>
