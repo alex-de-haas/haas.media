@@ -3,32 +3,39 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Haas.Media.Downloader.Api", "Haas.Media.Downloader.Api\Haas.Media.Downloader.Api.csproj", "{E1C9333F-2089-444D-80A1-EC32A5AD72C8}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{CC5C5343-5B6D-48C1-8851-0E3214999DFC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Haas.Media.Aspire", "Haas.Media.Aspire\Haas.Media.Aspire.csproj", "{8EEFA662-46CF-44A5-AFD8-868A485EB2FB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Haas.Media.ServiceDefaults", "src\Haas.Media.ServiceDefaults\Haas.Media.ServiceDefaults.csproj", "{0E09D79C-1B9F-49DB-B9B5-D93E83748AE8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Haas.Media.ServiceDefaults", "Haas.Media.ServiceDefaults\Haas.Media.ServiceDefaults.csproj", "{EB89810D-921B-4B51-B17E-E21422F452BE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Haas.Media.Downloader.Api", "src\Haas.Media.Downloader.Api\Haas.Media.Downloader.Api.csproj", "{9496C00F-D03E-49F4-9057-0955CFD71893}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Haas.Media.Aspire", "src\Haas.Media.Aspire\Haas.Media.Aspire.csproj", "{E8238266-C3F1-453D-8AF9-DAC0CFF58A86}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{E1C9333F-2089-444D-80A1-EC32A5AD72C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E1C9333F-2089-444D-80A1-EC32A5AD72C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E1C9333F-2089-444D-80A1-EC32A5AD72C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E1C9333F-2089-444D-80A1-EC32A5AD72C8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8EEFA662-46CF-44A5-AFD8-868A485EB2FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8EEFA662-46CF-44A5-AFD8-868A485EB2FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8EEFA662-46CF-44A5-AFD8-868A485EB2FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8EEFA662-46CF-44A5-AFD8-868A485EB2FB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EB89810D-921B-4B51-B17E-E21422F452BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EB89810D-921B-4B51-B17E-E21422F452BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EB89810D-921B-4B51-B17E-E21422F452BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EB89810D-921B-4B51-B17E-E21422F452BE}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0E09D79C-1B9F-49DB-B9B5-D93E83748AE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E09D79C-1B9F-49DB-B9B5-D93E83748AE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E09D79C-1B9F-49DB-B9B5-D93E83748AE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E09D79C-1B9F-49DB-B9B5-D93E83748AE8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9496C00F-D03E-49F4-9057-0955CFD71893}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9496C00F-D03E-49F4-9057-0955CFD71893}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9496C00F-D03E-49F4-9057-0955CFD71893}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9496C00F-D03E-49F4-9057-0955CFD71893}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E8238266-C3F1-453D-8AF9-DAC0CFF58A86}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E8238266-C3F1-453D-8AF9-DAC0CFF58A86}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E8238266-C3F1-453D-8AF9-DAC0CFF58A86}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E8238266-C3F1-453D-8AF9-DAC0CFF58A86}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{0E09D79C-1B9F-49DB-B9B5-D93E83748AE8} = {CC5C5343-5B6D-48C1-8851-0E3214999DFC}
+		{9496C00F-D03E-49F4-9057-0955CFD71893} = {CC5C5343-5B6D-48C1-8851-0E3214999DFC}
+		{E8238266-C3F1-453D-8AF9-DAC0CFF58A86} = {CC5C5343-5B6D-48C1-8851-0E3214999DFC}
 	EndGlobalSection
 EndGlobal
