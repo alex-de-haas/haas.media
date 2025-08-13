@@ -118,6 +118,9 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
         // Remove from engine
         await _engine!.RemoveAsync(manager);
 
+        // Remove .torrent file
+        File.Delete(Path.Combine(_torrentsPath, $"{hash}.torrent"));
+
         if (deleteData)
         {
             foreach (var path in filePaths)
