@@ -97,9 +97,9 @@ packages/
 .azure/**
 !azure.yaml
 
-# Project-specific: torrent cache and downloads
+# Project-specific: torrent cache and data
 src/Haas.Media.Downloader.Api/cache/
-src/Haas.Media.Downloader.Api/downloads/
+src/Haas.Media.Downloader.Api/data/
 
 # Misc
 *.orig

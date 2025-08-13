@@ -1,44 +1,61 @@
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Hosting;
 using MonoTorrent;
 using MonoTorrent.Client;
 
 namespace Haas.Media.Downloader.Api.Torrents;
 
-public class TorrentService
+public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
 {
-    private readonly ClientEngine _engine;
+    private ClientEngine? _engine;
     private readonly string _downloadsPath;
+    private readonly string _torrentsPath;
     private readonly TorrentSettings _torrentSettings;
     private readonly IHubContext<TorrentHub> _hubContext;
-    private readonly Timer _broadcastTimer;
+    private Timer? _broadcastTimer;
 
     public TorrentService(IHubContext<TorrentHub> hubContext)
     {
-        _downloadsPath = Path.Combine(Environment.CurrentDirectory, "downloads");
+        _downloadsPath = Path.Combine(Environment.CurrentDirectory, "data", "downloads");
+        _torrentsPath = Path.Combine(Environment.CurrentDirectory, "data", "torrents");
+
+        // Ensure folders exist
+        Directory.CreateDirectory(_downloadsPath);
+        Directory.CreateDirectory(_torrentsPath);
 
         var settingsBuilder = new TorrentSettingsBuilder { MaximumConnections = 60 };
         _torrentSettings = settingsBuilder.ToSettings();
 
-        _engine = new();
         _hubContext = hubContext;
-
-        _broadcastTimer = new Timer(async _ => await BroadcastTorrentStatesAsync(), null, 0, 1000);
     }
 
     public async Task AddTorrent(Stream torrentFileData)
     {
+        EnsureStarted();
         using var memoryStream = new MemoryStream();
         await torrentFileData.CopyToAsync(memoryStream);
         memoryStream.Seek(0, SeekOrigin.Begin);
 
         var torrent = await Torrent.LoadAsync(memoryStream);
 
-        var manager = await _engine.AddAsync(torrent, _downloadsPath, _torrentSettings);
+        // Persist the original .torrent file using the info hash for uniqueness
+        var hashHex = torrent.InfoHashes.V1OrV2.ToHex();
+        var torrentFilePath = Path.Combine(_torrentsPath, $"{hashHex}.torrent");
+        memoryStream.Seek(0, SeekOrigin.Begin);
+        using (var fileStream = File.Open(torrentFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            await memoryStream.CopyToAsync(fileStream);
+        }
+
+        var manager = await _engine!.AddAsync(torrent, _downloadsPath, _torrentSettings);
         await manager.StartAsync();
     }
 
     public async Task BroadcastTorrentStatesAsync()
     {
+        if (_engine is null)
+            return;
+
         foreach (var manager in _engine.Torrents)
         {
             var info = CreateTorrentInfo(manager);
@@ -48,7 +65,8 @@ public class TorrentService
 
     public TorrentInfo[] GetUploadedTorrents()
     {
-        return _engine.Torrents.Select(CreateTorrentInfo).ToArray();
+        EnsureStarted();
+        return _engine!.Torrents.Select(CreateTorrentInfo).ToArray();
     }
 
     private TorrentInfo CreateTorrentInfo(TorrentManager manager)
@@ -67,6 +85,7 @@ public class TorrentService
 
     public async Task<bool> StartAsync(string hash)
     {
+        EnsureStarted();
         if (!TryGetManager(hash, out var manager))
             return false;
 
@@ -76,6 +95,7 @@ public class TorrentService
 
     public async Task<bool> StopAsync(string hash)
     {
+        EnsureStarted();
         if (!TryGetManager(hash, out var manager))
             return false;
 
@@ -85,6 +105,7 @@ public class TorrentService
 
     public async Task<bool> DeleteAsync(string hash, bool deleteData)
     {
+        EnsureStarted();
         if (!TryGetManager(hash, out var manager))
             return false;
 
@@ -95,7 +116,7 @@ public class TorrentService
         await manager.StopAsync();
 
         // Remove from engine
-        await _engine.RemoveAsync(manager);
+        await _engine!.RemoveAsync(manager);
 
         if (deleteData)
         {
@@ -150,20 +171,120 @@ public class TorrentService
 
     private bool TryGetManager(string hash, out TorrentManager? manager)
     {
-        manager = _engine.Torrents.FirstOrDefault(m =>
+        manager = _engine!.Torrents.FirstOrDefault(m =>
             string.Equals(m.InfoHashes.V1OrV2.ToHex(), hash, StringComparison.OrdinalIgnoreCase)
         );
         return manager != null;
     }
 
-    public record TorrentInfo(
-        string Hash,
-        string Name,
-        long? Size,
-        long? Downloaded,
-        double Progress,
-        long DownloadRate,
-        long UploadRate,
-        TorrentState State
-    );
+    // TorrentInfo record moved to separate file for reuse
+
+    // IHostedService implementation
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        // Initialize engine and start broadcast timer
+        _engine ??= new ClientEngine();
+        _broadcastTimer ??= new Timer(
+            async _ =>
+            {
+                try
+                {
+                    await BroadcastTorrentStatesAsync();
+                }
+                catch
+                {
+                    // swallow to avoid crashing the timer thread
+                }
+            },
+            null,
+            TimeSpan.Zero,
+            TimeSpan.FromSeconds(1)
+        );
+
+        // Ensure folders exist
+        Directory.CreateDirectory(_downloadsPath);
+        Directory.CreateDirectory(_torrentsPath);
+
+        // Load and start any pre-existing torrents from the torrents folder
+        try
+        {
+            var torrentFiles = Directory.Exists(_torrentsPath)
+                ? Directory.GetFiles(_torrentsPath, "*.torrent", SearchOption.TopDirectoryOnly)
+                : Array.Empty<string>();
+
+            foreach (var file in torrentFiles)
+            {
+                try
+                {
+                    var torrent = await Torrent.LoadAsync(file);
+                    var manager = await _engine.AddAsync(torrent, _downloadsPath, _torrentSettings);
+                    await manager.StartAsync();
+                }
+                catch
+                {
+                    // Ignore individual torrent load/start failures to avoid crashing startup
+                }
+            }
+        }
+        catch
+        {
+            // Ignore folder enumeration issues
+        }
+    }
+
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        // Stop timer first
+        _broadcastTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+        _broadcastTimer?.Dispose();
+        _broadcastTimer = null;
+
+        if (_engine is null)
+            return;
+
+        // Gracefully stop all torrents
+        foreach (var manager in _engine.Torrents.ToArray())
+        {
+            try
+            {
+                await manager.StopAsync();
+            }
+            catch
+            {
+                // ignore individual manager stop failures
+            }
+        }
+    }
+
+    private void EnsureStarted()
+    {
+        if (_engine is null)
+            throw new InvalidOperationException("TorrentService has not been started yet.");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await StopAsync(CancellationToken.None);
+        }
+        catch
+        { /* ignore */
+        }
+
+        if (_engine is not null)
+        {
+            try
+            {
+                _engine.Dispose();
+            }
+            catch
+            { /* ignore */
+            }
+            finally
+            {
+                _engine = null;
+            }
+        }
+    }
 }
