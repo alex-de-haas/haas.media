@@ -1,7 +1,7 @@
 "use client";
 
 import { useFileUpload } from "../hooks/useFileUpload";
-import { useBrowserNotifications } from "../../../lib/hooks/useBrowserNotifications";
+import { useNotifications } from "../../../lib/notifications";
 
 interface TorrentUploadProps {
   onUpload: (file: File) => Promise<{ success: boolean; message: string }>;
@@ -12,7 +12,7 @@ export default function TorrentUpload({
   onUpload,
   isUploading = false,
 }: TorrentUploadProps) {
-  const { notify } = useBrowserNotifications();
+  const { notify } = useNotifications();
   const {
     file,
     dragActive,
@@ -28,16 +28,16 @@ export default function TorrentUpload({
 
     const result = await onUpload(file);
 
-    if (result.success) {
-      notify("Upload Success", { body: result.message });
-      clearFile();
-    } else {
-      notify("Upload Failed", { body: result.message });
-    }
+    notify({
+      title: result.success ? "Upload Success" : "Upload Failed",
+      message: result.message,
+      type: result.success ? "success" : "error",
+    });
+    if (result.success) clearFile();
   };
 
   const handleInvalidFile = (message: string) => {
-    notify("Invalid file", { body: message });
+    notify({ title: "Invalid File", message, type: "warning" });
   };
 
   return (

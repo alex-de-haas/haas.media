@@ -1,13 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { TorrentUpload, TorrentList, useTorrents } from "../../features/torrent";
-import { useBrowserNotifications } from "../../lib/hooks/useBrowserNotifications";
+import {
+  TorrentUpload,
+  TorrentList,
+  useTorrents,
+} from "../../features/torrent";
+import { useNotifications } from "../../lib/notifications";
 
 export default function TorrentUploadPage() {
   const [isUploading, setIsUploading] = useState(false);
-  const { torrents, uploadTorrent, deleteTorrent, startTorrent, stopTorrent } = useTorrents();
-  const { notify } = useBrowserNotifications();
+  const { torrents, uploadTorrent, deleteTorrent, startTorrent, stopTorrent } =
+    useTorrents();
+  const { notify } = useNotifications();
 
   const handleUpload = async (file: File) => {
     setIsUploading(true);
@@ -22,11 +27,11 @@ export default function TorrentUploadPage() {
   const handleDelete = async (hash: string) => {
     const result = await deleteTorrent(hash);
 
-    if (result.success) {
-      notify("Delete Success", { body: result.message });
-    } else {
-      notify("Delete Failed", { body: result.message });
-    }
+    notify({
+      title: result.success ? "Delete Success" : "Delete Failed",
+      message: result.message,
+      type: result.success ? "success" : "error",
+    });
 
     return result;
   };
@@ -34,11 +39,11 @@ export default function TorrentUploadPage() {
   const handleStart = async (hash: string) => {
     const result = await startTorrent(hash);
 
-    if (result.success) {
-      notify("Torrent Started", { body: result.message });
-    } else {
-      notify("Start Failed", { body: result.message });
-    }
+    notify({
+      title: result.success ? "Torrent Started" : "Start Failed",
+      message: result.message,
+      type: result.success ? "success" : "error",
+    });
 
     return result;
   };
@@ -46,11 +51,11 @@ export default function TorrentUploadPage() {
   const handleStop = async (hash: string) => {
     const result = await stopTorrent(hash);
 
-    if (result.success) {
-      notify("Torrent Stopped", { body: result.message });
-    } else {
-      notify("Stop Failed", { body: result.message });
-    }
+    notify({
+      title: result.success ? "Torrent Stopped" : "Stop Failed",
+      message: result.message,
+      type: result.success ? "info" : "error",
+    });
 
     return result;
   };

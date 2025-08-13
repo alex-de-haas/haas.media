@@ -113,7 +113,8 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
         var filePaths = manager!.Files.Select(f => f.FullPath).ToArray();
 
         // Ensure torrent is stopped before removing
-        await manager.StopAsync();
+        if (manager!.State != TorrentState.Stopped)
+            await manager.StopAsync();
 
         // Remove from engine
         await _engine!.RemoveAsync(manager);

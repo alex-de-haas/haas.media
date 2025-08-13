@@ -3,6 +3,7 @@ import Script from "next/script";
 import Header from "../components/layout/header";
 import "./globals.css";
 import { UserProvider } from "@auth0/nextjs-auth0/client";
+import { NotificationsProvider } from "../lib/notifications";
 
 export const metadata: Metadata = {
   title: "Haas Media Server",
@@ -40,10 +41,12 @@ export default function RootLayout({ children }: RootLayoutProps) {
       </head>
       <body className="min-h-screen bg-white text-gray-900 antialiased transition-colors dark:bg-gray-950 dark:text-gray-100">
         <UserProvider>
-          <Header />
-          <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-            {children}
-          </main>
+          <NotificationsProvider>
+            <Header />
+            <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+              {children}
+            </main>
+          </NotificationsProvider>
         </UserProvider>
       </body>
     </html>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTheme } from "../../lib/hooks/useTheme";
-import { useBrowserNotifications } from "../../lib/hooks/useBrowserNotifications";
+import { useNotifications } from "../../lib/notifications";
 import { useEffect, useState } from "react";
 
 interface HeaderProps {
@@ -11,7 +11,7 @@ interface HeaderProps {
 
 export default function Header({ children }: HeaderProps) {
   const { theme, setThemeMode } = useTheme();
-  const { supported, permission, request, notify } = useBrowserNotifications();
+  const { notify } = useNotifications();
   const [user, setUser] = useState<{
     name?: string;
     email?: string;
@@ -59,56 +59,8 @@ export default function Header({ children }: HeaderProps) {
             <span className="text-xl font-semibold">Haas Media Server</span>
           </Link>
 
-          {/* Search (optional placeholder) */}
-          <div className="hidden md:flex flex-1 justify-center px-4">
-            <div className="w-full max-w-md">
-              <label htmlFor="search" className="sr-only">
-                Search
-              </label>
-              <div className="relative">
-                <input
-                  id="search"
-                  name="search"
-                  type="search"
-                  placeholder="Search…"
-                  className="block w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-2 pl-3 pr-3 text-sm placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-          </div>
-
           {/* Actions */}
           <div className="flex items-center gap-4">
-            {supported && (
-              <button
-                type="button"
-                onClick={async () => {
-                  const p = await request();
-                  if (p === "granted") {
-                    notify("Notifications enabled", {
-                      body: "You'll get updates even when this tab is in the background.",
-                      renotify: true,
-                    });
-                  }
-                }}
-                className="px-3 py-2 text-sm font-medium bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700"
-                aria-label="Enable browser notifications"
-                title={
-                  permission === "granted"
-                    ? "Notifications are enabled"
-                    : permission === "denied"
-                    ? "Notifications are blocked in your browser settings"
-                    : "Click to enable browser notifications"
-                }
-                disabled={permission === "denied"}
-              >
-                {permission === "granted"
-                  ? "Notifications On"
-                  : permission === "denied"
-                  ? "Notifications Blocked"
-                  : "Enable Notifications"}
-              </button>
-            )}
             <div>
               <div
                 className="inline-flex shadow-sm border border-gray-300 dark:border-gray-600 overflow-hidden"
