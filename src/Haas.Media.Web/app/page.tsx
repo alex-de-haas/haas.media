@@ -16,10 +16,10 @@ const HomePage: NextPage = () => {
           className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem] dark:opacity-20"
         />
       </div>
-      
+
       <div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-56">
         <div className="hidden sm:mb-8 sm:flex sm:justify-center">
-          <div className="relative rounded-full px-3 py-1 text-sm leading-6 text-gray-600 ring-1 ring-gray-900/10 hover:ring-gray-900/20 dark:text-gray-300 dark:ring-gray-100/10 dark:hover:ring-gray-100/20">
+          <div className="relative px-3 py-1 text-sm leading-6 text-gray-600 ring-1 ring-gray-900/10 hover:ring-gray-900/20 dark:text-gray-300 dark:ring-gray-100/10 dark:hover:ring-gray-100/20">
             Announcing our next round of funding.{" "}
             <Link
               href="#"
@@ -30,19 +30,19 @@ const HomePage: NextPage = () => {
             </Link>
           </div>
         </div>
-        
+
         <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
             Your Personal Media Server
           </h1>
           <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-            Download, manage, and stream your media content with ease. 
-            Upload torrents and track their progress in real-time.
+            Download, manage, and stream your media content with ease. Upload
+            torrents and track their progress in real-time.
           </p>
           <div className="mt-10 flex items-center justify-center gap-x-6">
             <Link
               href="/torrent-upload"
-              className="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors"
+              className="bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors"
             >
               Upload Torrent
             </Link>
@@ -55,7 +55,7 @@ const HomePage: NextPage = () => {
           </div>
         </div>
       </div>
-      
+
       <div
         aria-hidden="true"
         className="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]"

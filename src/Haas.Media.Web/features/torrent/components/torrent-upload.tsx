@@ -45,7 +45,7 @@ export default function TorrentUpload({
       <div className="flex items-center justify-center w-full">
         <label
           htmlFor="dropzone-file"
-          className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+          className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed cursor-pointer transition-colors ${
             dragActive
               ? "border-blue-500 bg-blue-50 dark:bg-gray-700"
               : "border-gray-300 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 hover:bg-gray-100 dark:hover:border-gray-500 dark:hover:bg-gray-600"
@@ -85,7 +85,7 @@ export default function TorrentUpload({
                     type="button"
                     onClick={handleUpload}
                     disabled={isUploading}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isUploading ? "Uploading..." : "Upload"}
                   </button>
@@ -93,7 +93,7 @@ export default function TorrentUpload({
                     type="button"
                     onClick={clearFile}
                     disabled={isUploading}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Clear
                   </button>
