@@ -38,7 +38,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           }}
         />
       </head>
-      <body>
+      <body className="min-h-screen bg-white text-gray-900 antialiased transition-colors dark:bg-gray-950 dark:text-gray-100">
         <UserProvider>
           <Header />
           <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
