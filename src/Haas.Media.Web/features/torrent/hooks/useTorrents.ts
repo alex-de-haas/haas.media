@@ -49,7 +49,7 @@ export function useTorrents() {
       .withAutomaticReconnect()
       .build();
 
-    hubConnection.on("ReceiveTorrentInfo", (info: TorrentInfo) => {
+    hubConnection.on("TorrentUpdated", (info: TorrentInfo) => {
       setTorrents((prev) => {
         const idx = prev.findIndex((t) => t.hash === info.hash);
         if (idx !== -1) {
@@ -60,6 +60,10 @@ export function useTorrents() {
           return [...prev, info];
         }
       });
+    });
+
+    hubConnection.on("TorrentDeleted", (hash: string) => {
+      setTorrents((prev) => prev.filter((t) => t.hash !== hash));
     });
 
     hubConnection.start().catch(console.error);

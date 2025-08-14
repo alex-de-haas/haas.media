@@ -16,4 +16,9 @@
     <ProjectReference Include="../Haas.Media.ServiceDefaults/Haas.Media.ServiceDefaults.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="data/downloads/" />
+    <Folder Include="data/torrents/" />
+  </ItemGroup>
+
 </Project>

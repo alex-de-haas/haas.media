@@ -1,6 +1,8 @@
 "use client";
 
+import React from "react"; // Add React import
 import { TorrentState, type TorrentInfo } from "../../../types";
+import { TorrentFile } from "../../../types/torrent"; // Import TorrentFile
 import {
   formatSize,
   formatRate,
@@ -104,6 +106,8 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
     torrent.state === TorrentState.Downloading ||
     torrent.state === TorrentState.Seeding;
 
+  const [showFiles, setShowFiles] = React.useState(false);
+
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
       <div className="flex items-start justify-between">
@@ -127,14 +131,6 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
             >
               {isRunning ? "Running" : "Stopped"}
             </span>
-            {isRunning && (
-              <>
-                <span>•</span>
-                <span>Download Rate: {formatRate(torrent.downloadRate)}</span>
-                <span>•</span>
-                <span>Upload Rate: {formatRate(torrent.uploadRate)}</span>
-              </>
-            )}
           </div>
         </div>
 
@@ -149,13 +145,7 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
                   aria-label={`Stop ${torrent.name}`}
                   title="Stop torrent"
                 >
-                  <svg
-                    className="h-4 w-4"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M6 6h12v12H6z" />
-                  </svg>
+                  Stop
                 </button>
               )}
             </>
@@ -167,13 +157,7 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
                 aria-label={`Start ${torrent.name}`}
                 title="Start torrent"
               >
-                <svg
-                  className="h-4 w-4"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M8 5v14l11-7z" />
-                </svg>
+                Start
               </button>
             )
           )}
@@ -186,19 +170,7 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
               aria-label={`Delete ${torrent.name}`}
               title="Delete torrent"
             >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
+              Delete
             </button>
           )}
         </div>
@@ -223,6 +195,29 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
         <div className="text-xs text-gray-500 dark:text-gray-400">
           Hash: <span className="font-mono">{torrent.hash}</span>
         </div>
+      </div>
+
+      {/* Files List */}
+      <div className="mt-3">
+        <button
+          onClick={() => setShowFiles(!showFiles)}
+          className="text-sm text-blue-600 dark:text-blue-400 hover:underline focus:outline-none"
+        >
+          {showFiles ? "Hide Files" : "Show Files"}
+        </button>
+
+        {showFiles && (
+          <ul className="mt-2 space-y-1 text-xs text-gray-700 dark:text-gray-300">
+            {torrent.files.map((file: TorrentFile) => (
+              <li key={file.path} className="flex justify-between">
+                <span className="truncate" title={file.path}>{file.path}</span>
+                <span>
+                  {formatSize(file.downloaded)} / {formatSize(file.size)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Hosting;
 using MonoTorrent;
 using MonoTorrent.Client;
 
@@ -59,7 +58,7 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
         foreach (var manager in _engine.Torrents)
         {
             var info = CreateTorrentInfo(manager);
-            await _hubContext.Clients.All.SendAsync("ReceiveTorrentInfo", info);
+            await _hubContext.Clients.All.SendAsync("TorrentUpdated", info);
         }
     }
 
@@ -79,7 +78,12 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
             manager.Progress,
             manager.Monitor.DownloadRate,
             manager.Monitor.UploadRate,
-            manager.State
+            manager.State,
+            manager.Files.Select(f => new TorrentFile(
+                f.FullPath,
+                f.Length,
+                f.BytesDownloaded()
+            )).ToArray()
         );
     }
 
@@ -148,6 +152,9 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
                 }
             }
         }
+
+        // Notify clients about the deleted torrent
+        await _hubContext.Clients.All.SendAsync("TorrentDeleted", hash);
 
         return true;
     }

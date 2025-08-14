@@ -2,6 +2,12 @@
  * Torrent-related type definitions
  */
 
+export interface TorrentFile {
+  path: string;
+  size: number;
+  downloaded: number;
+}
+
 export interface TorrentInfo {
   hash: string;
   name: string;
@@ -11,6 +17,7 @@ export interface TorrentInfo {
   downloadRate: number;
   uploadRate: number;
   state: TorrentState;
+  files: TorrentFile[];
 }
 
 export interface TorrentUploadResponse {
