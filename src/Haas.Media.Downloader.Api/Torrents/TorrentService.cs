@@ -41,7 +41,14 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
         var hashHex = torrent.InfoHashes.V1OrV2.ToHex();
         var torrentFilePath = Path.Combine(_torrentsPath, $"{hashHex}.torrent");
         memoryStream.Seek(0, SeekOrigin.Begin);
-        using (var fileStream = File.Open(torrentFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+        using (
+            var fileStream = File.Open(
+                torrentFilePath,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.None
+            )
+        )
         {
             await memoryStream.CopyToAsync(fileStream);
         }
@@ -79,11 +86,9 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
             manager.Monitor.DownloadRate,
             manager.Monitor.UploadRate,
             manager.State,
-            manager.Files.Select(f => new TorrentFile(
-                f.FullPath,
-                f.Length,
-                f.BytesDownloaded()
-            )).ToArray()
+            manager
+                .Files.Select(f => new TorrentFile(f.FullPath, f.Length, f.BytesDownloaded()))
+                .ToArray()
         );
     }
 
