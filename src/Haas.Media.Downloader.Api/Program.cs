@@ -1,3 +1,4 @@
+using Haas.Media.Downloader.Api.Convert;
 using Haas.Media.Downloader.Api.Torrents;
 using Haas.Media.ServiceDefaults;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -8,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add default service configurations.
 builder.AddServiceDefaults();
 
+builder.AddConvert();
 builder.AddTorrent();
 
 // Add services to the container.
@@ -86,6 +88,7 @@ if (!string.IsNullOrWhiteSpace(auth0Domain) && !string.IsNullOrWhiteSpace(auth0A
 
 app.MapDefaultEndpoints();
 
+app.UseConvert();
 app.UseTorrent();
 
 app.Run();

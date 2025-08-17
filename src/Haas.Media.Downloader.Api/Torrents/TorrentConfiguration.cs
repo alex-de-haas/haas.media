@@ -5,9 +5,9 @@ public static class TorrentConfiguration
     public static WebApplicationBuilder AddTorrent(this WebApplicationBuilder builder)
     {
         // Register the hosted service so Start/Stop are called by the host
-    builder.Services.AddSingleton<TorrentService>();
-    builder.Services.AddSingleton<ITorrentApi>(sp => sp.GetRequiredService<TorrentService>());
-    builder.Services.AddHostedService(sp => sp.GetRequiredService<TorrentService>());
+        builder.Services.AddSingleton<TorrentService>();
+        builder.Services.AddSingleton<ITorrentApi>(sp => sp.GetRequiredService<TorrentService>());
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<TorrentService>());
 
         return builder;
     }

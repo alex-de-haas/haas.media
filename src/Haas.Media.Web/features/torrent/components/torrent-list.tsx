@@ -107,6 +107,7 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
     torrent.state === TorrentState.Seeding;
 
   const [showFiles, setShowFiles] = React.useState(false);
+  // Media info now shown on dedicated page; keep only file toggle
 
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
@@ -135,6 +136,14 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
         </div>
 
         <div className="ml-4 flex items-center space-x-2">
+          <a
+            href={`/torrent/file?hash=${encodeURIComponent(torrent.hash)}`}
+            className="p-1 text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded text-xs"
+            aria-label={`View media info for ${torrent.name}`}
+            title="View media info"
+          >
+            Media Info
+          </a>
           {/* Start/Stop buttons */}
           {isRunning ? (
             <>
@@ -209,11 +218,15 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
         {showFiles && (
           <ul className="mt-2 space-y-1 text-xs text-gray-700 dark:text-gray-300">
             {torrent.files.map((file: TorrentFile) => (
-              <li key={file.path} className="flex justify-between">
-                <span className="truncate" title={file.path}>{file.path}</span>
-                <span>
-                  {formatSize(file.downloaded)} / {formatSize(file.size)}
-                </span>
+              <li key={file.path} className="flex justify-between items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <span className="truncate block" title={file.path}>
+                    {file.path}
+                  </span>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {formatSize(file.downloaded)} / {formatSize(file.size)}
+                  </div>
+                </div>
               </li>
             ))}
           </ul>

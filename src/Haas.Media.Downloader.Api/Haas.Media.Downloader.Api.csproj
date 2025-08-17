@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../Haas.Media.Core/Haas.Media.Core.csproj" />
     <ProjectReference Include="../Haas.Media.ServiceDefaults/Haas.Media.ServiceDefaults.csproj" />
   </ItemGroup>
 

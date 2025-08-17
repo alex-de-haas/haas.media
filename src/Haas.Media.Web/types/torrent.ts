@@ -6,6 +6,7 @@ export interface TorrentFile {
   path: string;
   size: number;
   downloaded: number;
+  isMedia: boolean;
 }
 
 export interface TorrentInfo {

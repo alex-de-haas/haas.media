@@ -53,7 +53,10 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
             await memoryStream.CopyToAsync(fileStream);
         }
 
-        var manager = await _engine!.AddAsync(torrent, _downloadsPath, _torrentSettings);
+    // Use a dedicated folder per torrent based on its hash to avoid collisions and separate payloads
+    var torrentDownloadPath = Path.Combine(_downloadsPath, hashHex);
+    Directory.CreateDirectory(torrentDownloadPath);
+    var manager = await _engine!.AddAsync(torrent, torrentDownloadPath, _torrentSettings);
         await manager.StartAsync();
     }
 
@@ -77,8 +80,11 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
 
     private TorrentInfo CreateTorrentInfo(TorrentManager manager)
     {
+        // Root folder for this torrent (hash-based); files will be reported relative to this root when possible
+        var hash = manager.InfoHashes.V1OrV2.ToHex();
+        var torrentRoot = Path.Combine(_downloadsPath, hash);
         return new TorrentInfo(
-            manager.InfoHashes.V1OrV2.ToHex(),
+            hash,
             manager.Name,
             manager.Torrent?.Size,
             (long?)(manager.Torrent?.Size * manager.Progress / 100),
@@ -87,7 +93,22 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
             manager.Monitor.UploadRate,
             manager.State,
             manager
-                .Files.Select(f => new TorrentFile(f.FullPath, f.Length, f.BytesDownloaded()))
+                .Files.Select(f =>
+                {
+                    // First, attempt to get path relative to the torrent's root hash folder for cleaner display
+                    string displayPath;
+                    if (!string.IsNullOrEmpty(f.FullPath) && f.FullPath.StartsWith(torrentRoot, StringComparison.OrdinalIgnoreCase))
+                    {
+                        displayPath = Path.GetRelativePath(torrentRoot, f.FullPath);
+                    }
+                    else
+                    {
+                        var rel = Path.GetRelativePath(_downloadsPath, f.FullPath);
+                        displayPath = rel.StartsWith("..") ? f.FullPath : rel;
+                    }
+                    var isMedia = IsMediaFile(displayPath);
+                    return new TorrentFile(displayPath, f.Length, f.BytesDownloaded(), isMedia);
+                })
                 .ToArray()
         );
     }
@@ -135,25 +156,52 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
         {
             foreach (var path in filePaths)
             {
-                if (File.Exists(path))
+                try
                 {
-                    File.Delete(path);
-                }
-                else if (Directory.Exists(path))
-                {
-                    Directory.Delete(path, true);
-                }
-                else
-                {
+                    // If the path is under the downloads folder, operate on that path.
+                    var rel = Path.GetRelativePath(_downloadsPath, path);
+                    if (!string.IsNullOrWhiteSpace(rel) && !rel.StartsWith(".."))
+                    {
+                        var candidatePath = Path.Combine(_downloadsPath, rel);
+                        if (File.Exists(candidatePath))
+                        {
+                            File.Delete(candidatePath);
+                            continue;
+                        }
+                        if (Directory.Exists(candidatePath))
+                        {
+                            Directory.Delete(candidatePath, true);
+                            continue;
+                        }
+                    }
+
+                    // Fall back to the original absolute path
+                    if (File.Exists(path))
+                    {
+                        File.Delete(path);
+                        continue;
+                    }
+                    if (Directory.Exists(path))
+                    {
+                        Directory.Delete(path, true);
+                        continue;
+                    }
+
                     // Sometimes torrents create a folder at the root named after the torrent
-                    // Attempt to delete the folder under downloads if it matches the file's top directory
                     var topDir = GetTopDirectory(path);
                     if (!string.IsNullOrWhiteSpace(topDir))
                     {
                         var candidate = Path.Combine(_downloadsPath, topDir);
                         if (Directory.Exists(candidate))
+                        {
                             Directory.Delete(candidate, true);
+                            continue;
+                        }
                     }
+                }
+                catch
+                {
+                    // ignore individual delete failures
                 }
             }
         }
@@ -164,25 +212,34 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
         return true;
     }
 
-    private static string? GetTopDirectory(string fullPath)
+    private string? GetTopDirectory(string fullPath)
     {
         try
         {
-            var relative = fullPath;
-            // Normalize separators
-            relative = relative
-                .Replace('\\', Path.DirectorySeparatorChar)
+            // Compute path relative to downloads folder. If the file is not under downloads, return null.
+            var rel = Path.GetRelativePath(_downloadsPath, fullPath);
+            if (string.IsNullOrWhiteSpace(rel) || rel.StartsWith(".."))
+                return null;
+
+            // Normalize separators and take the first segment
+            rel = rel.Replace('\\', Path.DirectorySeparatorChar)
                 .Replace('/', Path.DirectorySeparatorChar);
-            var parts = relative.Split(
+            var parts = rel.Split(
                 Path.DirectorySeparatorChar,
                 StringSplitOptions.RemoveEmptyEntries
             );
-            return parts.Length > 1 ? parts[0] : null;
+            return parts.Length > 0 ? parts[0] : null;
         }
         catch
         {
             return null;
         }
+    }
+
+    private static bool IsMediaFile(string path)
+    {
+        var ext = Path.GetExtension(path);
+    return !string.IsNullOrEmpty(ext) && InternalConstants.MediaExtensions.Contains(ext);
     }
 
     private bool TryGetManager(string hash, out TorrentManager? manager)
@@ -233,7 +290,10 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
                 try
                 {
                     var torrent = await Torrent.LoadAsync(file);
-                    var manager = await _engine.AddAsync(torrent, _downloadsPath, _torrentSettings);
+                    var hash = torrent.InfoHashes.V1OrV2.ToHex();
+                    var torrentDownloadPath = Path.Combine(_downloadsPath, hash);
+                    Directory.CreateDirectory(torrentDownloadPath);
+                    var manager = await _engine.AddAsync(torrent, torrentDownloadPath, _torrentSettings);
                     await manager.StartAsync();
                 }
                 catch

@@ -19,6 +19,7 @@ builder
     .WithEnvironment("AUTH0_CLIENT_ID", env["AUTH0_CLIENT_ID"])
     .WithEnvironment("AUTH0_CLIENT_SECRET", env["AUTH0_CLIENT_SECRET"])
     .WithEnvironment("AUTH0_ISSUER_BASE_URL", $"https://{env["AUTH0_DOMAIN"]}") // derived from domain
+    .WithEnvironment("FFMPEG_BINARY", env["FFMPEG_BINARY"])
     .PublishAsDockerFile();
 
 builder.Build().Run();

@@ -3,26 +3,13 @@
 import { useEffect, useState } from "react";
 import { HubConnectionBuilder, HubConnection } from "@microsoft/signalr";
 import type { TorrentInfo } from "../../../types";
+import { getValidToken } from "@/lib/auth/token";
 
 const API_BASE = process.env.NEXT_PUBLIC_DOWNLOADER_URL;
 
 export function useTorrents() {
   const [torrents, setTorrents] = useState<TorrentInfo[]>([]);
   const [connection, setConnection] = useState<HubConnection | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-
-  async function getValidToken(): Promise<string | null> {
-    if (token) return token;
-    try {
-      const res = await fetch("/api/token");
-      if (res.ok) {
-        const data = await res.json();
-        setToken(data.accessToken ?? null);
-        return data.accessToken ?? null;
-      }
-    } catch {}
-    return null;
-  }
 
   useEffect(() => {
     async function fetchTorrents() {
