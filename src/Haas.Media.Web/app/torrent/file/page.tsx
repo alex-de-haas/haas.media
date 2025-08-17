@@ -104,7 +104,7 @@ export default function MediaInfoPage() {
                         <div className="flex items-center gap-2 flex-wrap text-xs font-medium">
                           {streamTypeIcon(s.type)}
                           {streamCodecIcon(s.codec)}
-                          <span>Stream {s.index}</span>
+                          <span>{s.title}</span>
                           {features.map((f: string) => (
                             <span key={f} className="px-1 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 text-[10px]">{f}</span>
                           ))}

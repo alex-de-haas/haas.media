@@ -98,6 +98,50 @@ function codecAbbreviation(
       return "DD+";
     case StreamCodec.DolbyTrueHD:
       return "TrueHD";
+    case StreamCodec.Mpeg2Video:
+      return "MPEG2";
+    case StreamCodec.Mpeg4Part2:
+      return "MPEG4";
+    case StreamCodec.VP8:
+      return "VP8";
+    case StreamCodec.VP9:
+      return "VP9";
+    case StreamCodec.AV1:
+      return "AV1";
+    case StreamCodec.ProRes:
+      return "ProRes";
+    case StreamCodec.Theora:
+      return "Theora";
+    case StreamCodec.MpegLayer3:
+      return "MP3";
+    case StreamCodec.Flac:
+      return "FLAC";
+    case StreamCodec.Opus:
+      return "OPUS";
+    case StreamCodec.Vorbis:
+      return "VORB";
+    case StreamCodec.DTS:
+      return "DTS";
+    case StreamCodec.ALAC:
+      return "ALAC";
+    case StreamCodec.PCM:
+      return "PCM";
+    case StreamCodec.SubRip:
+      return "SRT";
+    case StreamCodec.WebVTT:
+      return "VTT";
+    case StreamCodec.AdvancedSubStationAlpha:
+      return "ASS";
+    case StreamCodec.SubStationAlpha:
+      return "SSA";
+    case StreamCodec.PGS:
+      return "PGS";
+    case StreamCodec.DvdSubtitle:
+      return "DVD";
+    case StreamCodec.ClosedCaptionsEia608:
+      return "CC608";
+    case StreamCodec.ClosedCaptionsEia708:
+      return "CC708";
     default:
       return "?";
   }
