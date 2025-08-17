@@ -34,6 +34,17 @@ public static class ConvertConfiguration
             .WithName("GetMediaInfo")
             .RequireAuthorization();
 
+        app.MapPost(
+                "api/convert/encode",
+                async (EncodeRequest request, IConvertApi convertApi, CancellationToken ct) =>
+                {
+                    var outputRelativePath = await convertApi.EncodeAsync(request, ct);
+                    return Results.Ok(new { output = outputRelativePath });
+                }
+            )
+            .WithName("EncodeMedia")
+            .RequireAuthorization();
+
         return app;
     }
 }

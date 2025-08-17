@@ -31,14 +31,13 @@ public class MediaEncodingBuilder
 
     public MediaEncodingBuilder WithVideoCodec(StreamCodec codec)
     {
-        // TODO: Check if codec is supported
         VideoCodec = codec;
         return this;
     }
 
-    public MediaEncodingBuilder WithStream(MediaInfo.Stream audioStream)
+    public MediaEncodingBuilder WithStream(MediaInfo.Stream stream)
     {
-        Streams.Add(audioStream);
+        Streams.Add(stream);
         return this;
     }
 
