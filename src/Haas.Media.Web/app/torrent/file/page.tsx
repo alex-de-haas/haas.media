@@ -9,6 +9,7 @@ import {
   streamCodecToString,
   streamFeaturesToStrings,
 } from "@/types/media-info";
+import type { StreamType } from "@/types/media-info";
 import { streamTypeIcon, streamCodecIcon } from "@/components/media/icons";
 import type { MediaFileInfo } from "@/types/media-file-info";
 
@@ -54,99 +55,58 @@ export default function MediaInfoPage() {
 
   const handleEncodeAll = React.useCallback(async () => {
     if (!mediaFiles) return;
-    // If no selections, nothing to do
     if (!hasAnySelection) return;
+    if (!hash) return;
+    if (encoding) return;
     setEncoding(true);
     setEncodeError(null);
     try {
-      // Encode files sequentially to avoid overwhelming the backend.
+      const aggregatedStreams: Array<{ inputFilePath: string; streamIndex: number; streamType: StreamType }> = [];
       for (const mf of mediaFiles) {
         const sel = selectedStreams[mf.relativePath];
         if (!sel || sel.size === 0) continue;
-        const t = await getValidToken();
-        const headers: HeadersInit = { "Content-Type": "application/json" };
-        if (t) (headers as any).Authorization = `Bearer ${t}`;
-        // Build new API payload with all selected streams for this file
-        const streams = Array.from(sel.values())
-          .map((idx) => {
-            const stream = mf.mediaInfo?.streams?.find((st: any) => st.index === idx);
-            if (!stream) return null;
-            return {
-              inputFilePath: mf.relativePath,
-              streamIndex: idx,
-              streamType: stream.type,
-            };
-          })
-          .filter(Boolean);
-        if (streams.length === 0) continue;
-        const res = await fetch(`${API_BASE}/api/convert/encode`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ streams }),
-        });
-        if (!res.ok) {
-          const body = await res.json().catch(() => null);
-            throw new Error(body?.error ?? res.statusText);
+        for (const idx of sel.values()) {
+          const stream = mf.mediaInfo?.streams?.find((st: any) => st.index === idx);
+          if (!stream) continue;
+          aggregatedStreams.push({
+            inputFilePath: mf.relativePath,
+            streamIndex: idx,
+            streamType: stream.type,
+          });
         }
-        const data = await res.json();
-        const outputs: string[] = data?.output ? [data.output] : [];
-        setEncodeResults((prev) => ({
-          ...prev,
-          [mf.relativePath]: (prev[mf.relativePath] ?? []).concat(outputs),
-        }));
+      }
+      if (aggregatedStreams.length === 0) return;
+      const t = await getValidToken();
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (t) (headers as any).Authorization = `Bearer ${t}`;
+      const res = await fetch(`${API_BASE}/api/files/${hash}/encode`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ streams: aggregatedStreams }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? res.statusText);
+      }
+      const data = await res.json();
+      const output: string | undefined = data?.output;
+      if (output) {
+        // Associate the single output with all files that had selections
+        const affected = mediaFiles.filter(mf => (selectedStreams[mf.relativePath]?.size ?? 0) > 0);
+        setEncodeResults(prev => {
+          const next = { ...prev };
+          for (const f of affected) {
+            next[f.relativePath] = (next[f.relativePath] ?? []).concat([output]);
+          }
+          return next;
+        });
       }
     } catch (err: any) {
       setEncodeError(err?.message ?? String(err));
     } finally {
       setEncoding(false);
     }
-  }, [mediaFiles, selectedStreams, hasAnySelection]);
-
-  const handleEncode = React.useCallback(
-    async (mf: MediaFileInfo) => {
-      const sel = selectedStreams[mf.relativePath];
-      if (!sel || sel.size === 0) return;
-      setEncoding(true);
-      setEncodeError(null);
-      try {
-        const t = await getValidToken();
-        const headers: HeadersInit = { "Content-Type": "application/json" };
-        if (t) (headers as any).Authorization = `Bearer ${t}`;
-        const streams = Array.from(sel.values())
-          .map((idx) => {
-            const stream = mf.mediaInfo?.streams?.find((st: any) => st.index === idx);
-            if (!stream) return null;
-            return {
-              inputFilePath: mf.relativePath,
-              streamIndex: idx,
-              streamType: stream.type,
-            };
-          })
-          .filter(Boolean);
-        if (streams.length === 0) return;
-        const res = await fetch(`${API_BASE}/api/convert/encode`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ streams }),
-        });
-        if (!res.ok) {
-          const body = await res.json().catch(() => null);
-          throw new Error(body?.error ?? res.statusText);
-        }
-        const data = await res.json();
-        const outputs: string[] = data?.output ? [data.output] : [];
-        setEncodeResults((prev) => ({
-          ...prev,
-          [mf.relativePath]: (prev[mf.relativePath] ?? []).concat(outputs),
-        }));
-      } catch (err: any) {
-        setEncodeError(err?.message ?? String(err));
-      } finally {
-        setEncoding(false);
-      }
-    },
-    [selectedStreams]
-  );
+  }, [mediaFiles, selectedStreams, hasAnySelection, hash, encoding]);
 
   React.useEffect(() => {
     if (!hash) return;
@@ -159,12 +119,8 @@ export default function MediaInfoPage() {
         const headers = new Headers();
         if (t) headers.set("Authorization", `Bearer ${t}`);
 
-        const res = await fetch(
-          `${API_BASE}/api/convert/media-infos?path=${encodeURIComponent(
-            hash
-          )}`,
-          { headers }
-        );
+        // Updated endpoint replacing /api/convert/media-infos
+        const res = await fetch(`${API_BASE}/api/files/${hash}`, { headers });
         if (!res.ok) {
           const body = await res.json().catch(() => null);
           throw new Error(body?.error ?? res.statusText);

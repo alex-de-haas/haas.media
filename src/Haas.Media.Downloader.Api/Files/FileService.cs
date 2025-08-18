@@ -2,18 +2,21 @@ using System.Collections.Concurrent;
 using Haas.Media.Core;
 using Instances;
 
-namespace Haas.Media.Downloader.Api.Convert;
+namespace Haas.Media.Downloader.Api.Files;
 
-public class ConvertService : IConvertApi, IHostedService
+public class FileService : IFileApi, IHostedService
 {
     private readonly string _downloadsPath;
+    private readonly string _outputPath;
     private readonly HashSet<string> _allowedExtensions = InternalConstants.MediaExtensions;
     private readonly ConcurrentDictionary<IProcessInstance, TimeSpan> _activeProcesses = new();
 
-    public ConvertService()
+    public FileService()
     {
         _downloadsPath = Path.Combine(Environment.CurrentDirectory, "data", "downloads");
+        _outputPath = Path.Combine(Environment.CurrentDirectory, "data", "output");
         Directory.CreateDirectory(_downloadsPath);
+        Directory.CreateDirectory(_outputPath);
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -32,22 +35,22 @@ public class ConvertService : IConvertApi, IHostedService
     {
         var path = Path.Combine(_downloadsPath, hash);
         if (!Directory.Exists(path))
-            return Array.Empty<MediaFileInfo>();
+            return [];
 
         var files = Directory
             .EnumerateFiles(path, "*.*", SearchOption.AllDirectories)
             .Where(f => _allowedExtensions.Contains(Path.GetExtension(f)))
             .Select(f =>
             {
-                var fi = new FileInfo(f);
-                var relative = Path.GetRelativePath(_downloadsPath, f);
+                var fileInfo = new FileInfo(f);
+                var relativePath = Path.GetRelativePath(path, f);
                 return new MediaFileInfo
                 {
-                    Name = fi.Name,
-                    RelativePath = relative,
-                    Size = fi.Length,
-                    LastModified = fi.LastWriteTimeUtc,
-                    Extension = fi.Extension,
+                    Name = fileInfo.Name,
+                    RelativePath = relativePath,
+                    Size = fileInfo.Length,
+                    LastModified = fileInfo.LastWriteTimeUtc,
+                    Extension = fileInfo.Extension,
                 };
             })
             .OrderByDescending(m => m.LastModified)
@@ -56,41 +59,51 @@ public class ConvertService : IConvertApi, IHostedService
         foreach (var file in files)
         {
             file.MediaInfo = await MediaManager.GetMediaInfoAsync(
-                Path.Combine(_downloadsPath, file.RelativePath)
+                Path.Combine(path, file.RelativePath)
             );
         }
 
         return files;
     }
 
-    public async Task<string> EncodeAsync(EncodeRequest request, CancellationToken ct = default)
+    public async Task<string> EncodeAsync(string hash, EncodeRequest request, CancellationToken ct = default)
     {
         if (request.Streams == null || request.Streams.Length == 0)
             throw new ArgumentException("At least one stream must be specified", nameof(request));
+
+        var path = Path.Combine(_downloadsPath, hash);
 
         // Group streams by their input file (relative paths)
         var streamsByFile = request.Streams.GroupBy(s => s.InputFilePath).ToArray();
 
         // Use first file to derive output naming
-        var primaryInputRelative = request.Streams.Where(x => x.StreamType == StreamType.Video)
+        var videoInputPath = request
+            .Streams.Where(x => x.StreamType == StreamType.Video)
             .Select(x => x.InputFilePath)
             .FirstOrDefault();
-        if (string.IsNullOrEmpty(primaryInputRelative))
-            throw new ArgumentException("At least one video stream must be specified", nameof(request));
+        if (string.IsNullOrEmpty(videoInputPath))
+            throw new ArgumentException(
+                "At least one video stream must be specified",
+                nameof(request)
+            );
 
-        var primaryInputFullPath = Path.Combine(_downloadsPath, primaryInputRelative);
-        if (!File.Exists(primaryInputFullPath))
-            throw new FileNotFoundException("Input file not found", primaryInputFullPath);
+        var videoInputFullPath = Path.Combine(path, videoInputPath);
+        if (!File.Exists(videoInputFullPath))
+            throw new FileNotFoundException("Input file not found", videoInputFullPath);
 
-        var inputDir = Path.GetDirectoryName(primaryInputFullPath)!;
-        var inputNameNoExt = Path.GetFileNameWithoutExtension(primaryInputFullPath);
-        var outputFile = Path.Combine(inputDir, $"{inputNameNoExt}.h265.mkv");
+        var inputDir = Path.GetDirectoryName(videoInputFullPath)!;
+        var inputNameNoExt = Path.GetFileNameWithoutExtension(videoInputFullPath);
+
+        var outputDir = Path.Combine(_outputPath, hash);
+        Directory.CreateDirectory(outputDir);
+
+        var outputFile = Path.Combine(outputDir, $"{inputNameNoExt}.h265.mkv");
         if (File.Exists(outputFile))
         {
             int i = 1;
             while (File.Exists(outputFile))
             {
-                outputFile = Path.Combine(inputDir, $"{inputNameNoExt}.h265.{i}.mkv");
+                outputFile = Path.Combine(outputDir, $"{inputNameNoExt}.h265.{i}.mkv");
                 i++;
             }
         }
@@ -101,7 +114,7 @@ public class ConvertService : IConvertApi, IHostedService
         {
             if (!mediaInfoCache.TryGetValue(relative, out var mi))
             {
-                var full = Path.Combine(_downloadsPath, relative);
+                var full = Path.Combine(path, relative);
                 if (!File.Exists(full))
                     throw new FileNotFoundException("Input file not found", full);
                 mi = await MediaManager.GetMediaInfoAsync(full);
@@ -115,7 +128,7 @@ public class ConvertService : IConvertApi, IHostedService
         // Add all distinct inputs
         foreach (var fileGroup in streamsByFile)
         {
-            var full = Path.Combine(_downloadsPath, fileGroup.Key);
+            var full = Path.Combine(path, fileGroup.Key);
             builder.FromFileInput(full);
         }
 
@@ -133,9 +146,13 @@ public class ConvertService : IConvertApi, IHostedService
         foreach (var sreq in request.Streams)
         {
             var mi = await GetMediaInfoAsync(sreq.InputFilePath);
-            var match = mi.Streams.FirstOrDefault(ms => ms.Index == sreq.StreamIndex && ms.Type == sreq.StreamType);
+            var match = mi.Streams.FirstOrDefault(ms =>
+                ms.Index == sreq.StreamIndex && ms.Type == sreq.StreamType
+            );
             if (match == null)
-                throw new InvalidOperationException($"{sreq.StreamType} stream with index {sreq.StreamIndex} not found in file {sreq.InputFilePath}");
+                throw new InvalidOperationException(
+                    $"{sreq.StreamType} stream with index {sreq.StreamIndex} not found in file {sreq.InputFilePath}"
+                );
 
             builder.WithStream(match);
             if (match.Type == StreamType.Video && match.Duration > representativeDuration)
@@ -145,7 +162,10 @@ public class ConvertService : IConvertApi, IHostedService
         if (representativeDuration == TimeSpan.Zero)
         {
             // Fallback to longest stream if no video selected (ensure cache populated first)
-            representativeDuration = mediaInfoCache.Values.SelectMany(v => v.Streams).DefaultIfEmpty().Max(s => s?.Duration ?? TimeSpan.Zero);
+            representativeDuration = mediaInfoCache
+                .Values.SelectMany(v => v.Streams)
+                .DefaultIfEmpty()
+                .Max(s => s?.Duration ?? TimeSpan.Zero);
         }
 
         var process = builder.Encode();

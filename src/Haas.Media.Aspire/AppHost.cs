@@ -1,6 +1,7 @@
 var env = DotNetEnv.Env.LoadMulti([".env.local"]).ToDictionary();
 
 var builder = DistributedApplication.CreateBuilder(args);
+builder.AddDockerComposeEnvironment("haas-media");
 
 var downloaderApi = builder
     .AddProject<Projects.Haas_Media_Downloader_Api>("downloader-api")
@@ -21,5 +22,6 @@ builder
     .WithEnvironment("AUTH0_ISSUER_BASE_URL", $"https://{env["AUTH0_DOMAIN"]}") // derived from domain
     .WithEnvironment("FFMPEG_BINARY", env["FFMPEG_BINARY"])
     .PublishAsDockerFile();
+
 
 builder.Build().Run();
