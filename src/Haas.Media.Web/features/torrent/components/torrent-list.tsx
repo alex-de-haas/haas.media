@@ -138,26 +138,45 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
         <div className="ml-4 flex items-center space-x-2">
           <a
             href={`/torrent/file?hash=${encodeURIComponent(torrent.hash)}`}
-            className="p-1 text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded text-xs"
+            className="p-1 text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
             aria-label={`View media info for ${torrent.name}`}
             title="View media info"
           >
-            Media Info
+            <span className="sr-only">Media Info</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"
+              />
+            </svg>
           </a>
-          {/* Start/Stop buttons */}
           {isRunning ? (
-            <>
-              {onStop && (
-                <button
-                  onClick={onStop}
-                  className="p-1 text-orange-600 hover:text-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded"
-                  aria-label={`Stop ${torrent.name}`}
-                  title="Stop torrent"
+            onStop && (
+              <button
+                onClick={onStop}
+                className="p-1 text-orange-600 hover:text-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded"
+                aria-label={`Stop ${torrent.name}`}
+                title="Stop torrent"
+              >
+                <span className="sr-only">Stop</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
                 >
-                  Stop
-                </button>
-              )}
-            </>
+                  <rect x="6" y="6" width="12" height="12" rx="1" />
+                </svg>
+              </button>
+            )
           ) : (
             onStart && (
               <button
@@ -166,12 +185,18 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
                 aria-label={`Start ${torrent.name}`}
                 title="Start torrent"
               >
-                Start
+                <span className="sr-only">Start</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M5 3.868a1 1 0 011.52-.853l12 8.132a1 1 0 010 1.706l-12 8.132A1 1 0 015 20.132V3.868z" />
+                </svg>
               </button>
             )
           )}
-
-          {/* Delete button */}
           {onDelete && (
             <button
               onClick={onDelete}
@@ -179,7 +204,21 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
               aria-label={`Delete ${torrent.name}`}
               title="Delete torrent"
             >
-              Delete
+              <span className="sr-only">Delete</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
             </button>
           )}
         </div>

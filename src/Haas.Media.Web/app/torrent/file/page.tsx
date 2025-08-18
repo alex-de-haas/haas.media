@@ -146,7 +146,7 @@ export default function MediaInfoPage() {
   return (
     <div className="p-6">
       <h1 className="text-xl font-semibold mb-4">Torrent Media Files</h1>
-      <div className="mb-4 text-sm text-gray-600">Torrent Hash: {hash}</div>
+      <div className="mb-4 text-sm text-gray-600">Torrent Hash: <span className="font-mono">{hash}</span></div>
 
       {loading && <div>Loading...</div>}
       {error && <div className="text-red-500">{error}</div>}
