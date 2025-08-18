@@ -23,5 +23,4 @@ builder
     .WithEnvironment("FFMPEG_BINARY", env["FFMPEG_BINARY"])
     .PublishAsDockerFile();
 
-
 builder.Build().Run();
