@@ -53,10 +53,10 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
             await memoryStream.CopyToAsync(fileStream);
         }
 
-    // Use a dedicated folder per torrent based on its hash to avoid collisions and separate payloads
-    var torrentDownloadPath = Path.Combine(_downloadsPath, hashHex);
-    Directory.CreateDirectory(torrentDownloadPath);
-    var manager = await _engine!.AddAsync(torrent, torrentDownloadPath, _torrentSettings);
+        // Use a dedicated folder per torrent based on its hash to avoid collisions and separate payloads
+        var torrentDownloadPath = Path.Combine(_downloadsPath, hashHex);
+        Directory.CreateDirectory(torrentDownloadPath);
+        var manager = await _engine!.AddAsync(torrent, torrentDownloadPath, _torrentSettings);
         await manager.StartAsync();
     }
 
@@ -97,7 +97,10 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
                 {
                     // First, attempt to get path relative to the torrent's root hash folder for cleaner display
                     string displayPath;
-                    if (!string.IsNullOrEmpty(f.FullPath) && f.FullPath.StartsWith(torrentRoot, StringComparison.OrdinalIgnoreCase))
+                    if (
+                        !string.IsNullOrEmpty(f.FullPath)
+                        && f.FullPath.StartsWith(torrentRoot, StringComparison.OrdinalIgnoreCase)
+                    )
                     {
                         displayPath = Path.GetRelativePath(torrentRoot, f.FullPath);
                     }
@@ -239,7 +242,7 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
     private static bool IsMediaFile(string path)
     {
         var ext = Path.GetExtension(path);
-    return !string.IsNullOrEmpty(ext) && InternalConstants.MediaExtensions.Contains(ext);
+        return !string.IsNullOrEmpty(ext) && InternalConstants.MediaExtensions.Contains(ext);
     }
 
     private bool TryGetManager(string hash, out TorrentManager? manager)
@@ -293,8 +296,15 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
                     var hash = torrent.InfoHashes.V1OrV2.ToHex();
                     var torrentDownloadPath = Path.Combine(_downloadsPath, hash);
                     Directory.CreateDirectory(torrentDownloadPath);
-                    var manager = await _engine.AddAsync(torrent, torrentDownloadPath, _torrentSettings);
-                    await manager.StartAsync();
+                    var manager = await _engine.AddAsync(
+                        torrent,
+                        torrentDownloadPath,
+                        _torrentSettings
+                    );
+                    if (!manager.Complete)
+                    {
+                        await manager.StartAsync();
+                    }
                 }
                 catch
                 {

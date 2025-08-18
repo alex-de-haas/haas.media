@@ -136,28 +136,30 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
         </div>
 
         <div className="ml-4 flex items-center space-x-2">
-          <a
-            href={`/torrent/file?hash=${encodeURIComponent(torrent.hash)}`}
-            className="p-1 text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
-            aria-label={`View media info for ${torrent.name}`}
-            title="View media info"
-          >
-            <span className="sr-only">Media Info</span>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
+          {torrent.progress >= 100 ? (
+            <a
+              href={`/torrent/file?hash=${encodeURIComponent(torrent.hash)}`}
+              className="p-1 text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+              aria-label={`View media info for ${torrent.name}`}
+              title="View media info"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"
-              />
-            </svg>
-          </a>
+              <span className="sr-only">Media Info</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"
+                />
+              </svg>
+            </a>
+          ) : null}
           {isRunning ? (
             onStop && (
               <button
