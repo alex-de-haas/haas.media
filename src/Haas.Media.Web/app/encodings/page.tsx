@@ -100,7 +100,7 @@ export default function EncodingsPage() {
                     {e.outputFileName}
                   </div>
                   <div className="font-mono text-xs text-gray-500 dark:text-gray-400">
-                    {e.hash.slice(0, 10)}
+                    {e.hash}
                   </div>
                 </div>
                 <div className="text-sm font-medium">
