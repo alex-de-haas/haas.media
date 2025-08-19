@@ -147,6 +147,13 @@ public class FileService : IFileApi, IHostedService
                     }
                 }
             };
+            process.Exited += async (sender, args) =>
+            {
+                if (_activeProcesses.TryRemove(process, out var info))
+                {
+                    await _hubContext.Clients.All.SendAsync("EncodingDeleted", info);
+                }
+            };
 
             var info = new EncodingInfo
             {

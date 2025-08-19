@@ -43,13 +43,20 @@ export default function EncodingsPage() {
         connection.on("EncodingUpdated", (info: EncodingInfo) => {
           setEncodings((prev) => {
             const existing = prev ?? [];
-            const idx = existing.findIndex((e) => e.hash === info.hash);
+            const idx = existing.findIndex((e) => e.hash === info.hash && e.outputFileName === info.outputFileName);
             if (idx === -1) {
               return [info, ...existing];
             }
             const copy = [...existing];
             copy[idx] = info;
             return copy;
+          });
+        });
+
+        connection.on("EncodingDeleted", (info: EncodingInfo) => {
+          setEncodings((prev) => {
+            const existing = prev ?? [];
+            return existing.filter((e) => e.hash !== info.hash && e.outputFileName !== info.outputFileName);
           });
         });
 
