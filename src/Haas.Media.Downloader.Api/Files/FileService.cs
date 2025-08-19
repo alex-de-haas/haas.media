@@ -4,15 +4,19 @@ using Instances;
 
 namespace Haas.Media.Downloader.Api.Files;
 
+using Microsoft.AspNetCore.SignalR;
+
 public class FileService : IFileApi, IHostedService
 {
     private readonly string _downloadsPath;
     private readonly string _outputPath;
     private readonly HashSet<string> _allowedExtensions = InternalConstants.MediaExtensions;
-    private readonly ConcurrentDictionary<IProcessInstance, TimeSpan> _activeProcesses = new();
+    private readonly ConcurrentDictionary<IProcessInstance, EncodingInfo> _activeProcesses = new();
+    private readonly IHubContext<EncodingHub> _hubContext;
 
-    public FileService()
+    public FileService(IHubContext<EncodingHub> hubContext)
     {
+        _hubContext = hubContext;
         _downloadsPath = Path.Combine(Environment.CurrentDirectory, "data", "downloads");
         _outputPath = Path.Combine(Environment.CurrentDirectory, "data", "output");
         Directory.CreateDirectory(_downloadsPath);
@@ -27,7 +31,19 @@ public class FileService : IFileApi, IHostedService
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        // HostedService stop hook - no cleanup required currently.
+        foreach (var process in _activeProcesses.Keys)
+        {
+            try
+            {
+                process.Kill();
+            }
+            catch (Exception ex)
+            {
+                // Log or handle the exception as needed
+                Console.WriteLine($"Error killing process: {ex.Message}");
+            }
+        }
+
         return Task.CompletedTask;
     }
 
@@ -66,111 +82,86 @@ public class FileService : IFileApi, IHostedService
         return files;
     }
 
-    public async Task<string> EncodeAsync(string hash, EncodeRequest request, CancellationToken ct = default)
+    public async Task EncodeAsync(
+        string hash,
+        EncodeRequest request,
+        CancellationToken ct = default
+    )
     {
         if (request.Streams == null || request.Streams.Length == 0)
             throw new ArgumentException("At least one stream must be specified", nameof(request));
 
         var path = Path.Combine(_downloadsPath, hash);
 
-        // Group streams by their input file (relative paths)
-        var streamsByFile = request.Streams.GroupBy(s => s.InputFilePath).ToArray();
-
-        // Use first file to derive output naming
-        var videoInputPath = request
+        var videoFiles = request
             .Streams.Where(x => x.StreamType == StreamType.Video)
             .Select(x => x.InputFilePath)
-            .FirstOrDefault();
-        if (string.IsNullOrEmpty(videoInputPath))
+            .ToArray();
+        if (videoFiles.Length == 0)
             throw new ArgumentException(
-                "At least one video stream must be specified",
+                "At least one video file must be specified",
                 nameof(request)
             );
 
-        var videoInputFullPath = Path.Combine(path, videoInputPath);
-        if (!File.Exists(videoInputFullPath))
-            throw new FileNotFoundException("Input file not found", videoInputFullPath);
+        var outputFolder = Path.Combine(_outputPath, hash);
+        Directory.CreateDirectory(outputFolder);
 
-        var inputDir = Path.GetDirectoryName(videoInputFullPath)!;
-        var inputNameNoExt = Path.GetFileNameWithoutExtension(videoInputFullPath);
-
-        var outputDir = Path.Combine(_outputPath, hash);
-        Directory.CreateDirectory(outputDir);
-
-        var outputFile = Path.Combine(outputDir, $"{inputNameNoExt}.h265.mkv");
-        if (File.Exists(outputFile))
+        foreach (var videoFile in videoFiles)
         {
-            int i = 1;
-            while (File.Exists(outputFile))
+            var inputFullPath = Path.Combine(path, videoFile);
+            var streamIndexes = request
+                .Streams.Where(x => x.InputFilePath == videoFile)
+                .Select(x => x.StreamIndex)
+                .ToArray();
+            var mediaInfo = await MediaManager.GetMediaInfoAsync(inputFullPath);
+            var outputFileName = Path.GetFileNameWithoutExtension(videoFile) + ".mkv";
+            var outputFullPath = Path.Combine(outputFolder, outputFileName);
+            File.Delete(outputFullPath);
+
+            var builder = MediaEncodingBuilder
+                .Create()
+                .FromFileInput(inputFullPath)
+                .ToFileOutput(outputFullPath)
+                .WithVideoCodec(StreamCodec.HEVC);
+
+            var streams = mediaInfo.Streams.Where(s => streamIndexes.Contains(s.Index)).ToArray();
+            foreach (var stream in streams)
             {
-                outputFile = Path.Combine(outputDir, $"{inputNameNoExt}.h265.{i}.mkv");
-                i++;
+                builder.WithStream(stream);
             }
-        }
 
-        // Cache media info per file to avoid redundant probes
-        var mediaInfoCache = new Dictionary<string, MediaInfo>(StringComparer.OrdinalIgnoreCase);
-        async Task<MediaInfo> GetMediaInfoAsync(string relative)
-        {
-            if (!mediaInfoCache.TryGetValue(relative, out var mi))
+            var videoStream = streams.First(s => s.Type == StreamType.Video);
+            var process = builder.Encode();
+
+            process.ErrorDataReceived += async (sender, data) =>
             {
-                var full = Path.Combine(path, relative);
-                if (!File.Exists(full))
-                    throw new FileNotFoundException("Input file not found", full);
-                mi = await MediaManager.GetMediaInfoAsync(full);
-                mediaInfoCache[relative] = mi;
-            }
-            return mi;
+                var currentTime = MediaHelper.ParseProgressTime(data);
+                if (currentTime.HasValue)
+                {
+                    var progress =
+                        currentTime.Value.TotalSeconds / videoStream.Duration.TotalSeconds * 100;
+                    if (_activeProcesses.TryGetValue(process, out var info))
+                    {
+                        info.Progress = progress;
+                        await _hubContext.Clients.All.SendAsync("EncodingUpdated", info);
+                    }
+                }
+            };
+
+            var info = new EncodingInfo
+            {
+                Hash = hash,
+                OutputFileName = outputFileName,
+                Progress = 0,
+            };
+            _activeProcesses.TryAdd(process, info);
+            // Broadcast initial state so clients see the encoding as soon as it starts
+            _ = _hubContext.Clients.All.SendAsync("EncodingUpdated", info);
         }
+    }
 
-        var builder = MediaEncodingBuilder.Create();
-
-        // Add all distinct inputs
-        foreach (var fileGroup in streamsByFile)
-        {
-            var full = Path.Combine(path, fileGroup.Key);
-            builder.FromFileInput(full);
-        }
-
-        builder.ToFileOutput(outputFile);
-
-        // Determine if we have at least one video stream to encode with HEVC
-        if (request.Streams.Any(s => s.StreamType == StreamType.Video))
-        {
-            builder.WithVideoCodec(StreamCodec.HEVC);
-        }
-
-        // Collect durations to estimate encoding tracking
-        TimeSpan representativeDuration = TimeSpan.Zero;
-
-        foreach (var sreq in request.Streams)
-        {
-            var mi = await GetMediaInfoAsync(sreq.InputFilePath);
-            var match = mi.Streams.FirstOrDefault(ms =>
-                ms.Index == sreq.StreamIndex && ms.Type == sreq.StreamType
-            );
-            if (match == null)
-                throw new InvalidOperationException(
-                    $"{sreq.StreamType} stream with index {sreq.StreamIndex} not found in file {sreq.InputFilePath}"
-                );
-
-            builder.WithStream(match);
-            if (match.Type == StreamType.Video && match.Duration > representativeDuration)
-                representativeDuration = match.Duration;
-        }
-
-        if (representativeDuration == TimeSpan.Zero)
-        {
-            // Fallback to longest stream if no video selected (ensure cache populated first)
-            representativeDuration = mediaInfoCache
-                .Values.SelectMany(v => v.Streams)
-                .DefaultIfEmpty()
-                .Max(s => s?.Duration ?? TimeSpan.Zero);
-        }
-
-        var process = builder.Encode();
-        _activeProcesses.TryAdd(process, representativeDuration);
-
-        return Path.GetRelativePath(_downloadsPath, outputFile);
+    public EncodingInfo[] GetEncodingsAsync()
+    {
+        return _activeProcesses.Values.ToArray();
     }
 }

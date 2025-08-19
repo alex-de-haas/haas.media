@@ -37,7 +37,8 @@ applyTo: '**/*.tsx,**/*.ts'
 - Define prop interfaces before component implementation
 - Use descriptive interface names (e.g., `UserProfileProps`, `NavigationBarProps`)
 - Export components as default exports from their files
-- Co-locate component-specific types in the same file
+- Use `NextPage` for page components
+- Use `NextPageWithLayout` for pages that require a layout
 
 ```typescript
 interface ButtonProps {

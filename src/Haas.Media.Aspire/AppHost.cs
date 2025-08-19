@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Hosting;
+
 var env = DotNetEnv.Env.LoadMulti([".env.local"]).ToDictionary();
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -8,8 +10,10 @@ var downloaderApi = builder
     .WithEnvironment("AUTH0_DOMAIN", env["AUTH0_DOMAIN"])
     .WithEnvironment("AUTH0_AUDIENCE", env["AUTH0_AUDIENCE"])
     .WithOtlpExporter();
+
+var webScriptName = builder.Environment.IsDevelopment() ? "dev" : "start";
 builder
-    .AddNpmApp("web", "../Haas.Media.Web", scriptName: "dev")
+    .AddNpmApp("web", "../Haas.Media.Web", scriptName: webScriptName)
     .WithExternalHttpEndpoints()
     .WithHttpEndpoint(port: 3000, targetPort: 3000, isProxied: false)
     .WithEnvironment("NEXT_PUBLIC_DOWNLOADER_URL", downloaderApi.GetEndpoint("http"))

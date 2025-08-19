@@ -138,7 +138,7 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
         <div className="ml-4 flex items-center space-x-2">
           {torrent.progress >= 100 ? (
             <a
-              href={`/torrent/file?hash=${encodeURIComponent(torrent.hash)}`}
+              href={`/torrent/${encodeURIComponent(torrent.hash)}`}
               className="p-1 text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
               aria-label={`View media info for ${torrent.name}`}
               title="View media info"

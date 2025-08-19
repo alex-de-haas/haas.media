@@ -144,10 +144,18 @@ export default function Header({ children }: HeaderProps) {
           <div className="flex h-12 items-center gap-6">
             <div className="relative group">
               <Link
-                href="/torrent-upload"
+                href="/torrent"
                 className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-300"
               >
-                Upload
+                Torrents
+              </Link>
+            </div>
+            <div className="relative group">
+              <Link
+                href="/encodings"
+                className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-300"
+              >
+                Encodings
               </Link>
             </div>
           </div>

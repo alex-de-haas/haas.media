@@ -18,7 +18,7 @@ public static class MediaManager
                 Features = GetStreamFeatures(x),
                 Language = GetStreamLanguage(x),
                 Title = GetStreamTitle(x),
-                Duration = MediaHelper.ParseDuration(x.Duration),
+                Duration = MediaHelper.ParseDuration(x),
                 Width = x.Width,
                 Height = x.Height,
                 BitRate = long.TryParse(x.BitRate, out var bitRate) ? bitRate : 0,

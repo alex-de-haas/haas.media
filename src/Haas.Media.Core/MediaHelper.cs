@@ -34,29 +34,39 @@ public static partial class MediaHelper
     [GeneratedRegex(@"time=(\d+:\d+:\d+\.\d+)", RegexOptions.Compiled)]
     private static partial Regex ProgressTimeRegex { get; }
 
-    public static TimeSpan ParseDuration(string duration)
+    public static TimeSpan ParseDuration(FFProbeStream stream)
     {
-        if (!string.IsNullOrEmpty(duration))
+        if (!string.IsNullOrEmpty(stream.Duration)) { }
+        else
         {
-            var match = DurationRegex.Match(duration);
-            if (match.Success)
+            var durationTag = stream.Tags?.FirstOrDefault(t => t.Key == "DURATION");
+            if (durationTag is not null)
             {
-                // ffmpeg may provide < 3-digit number of milliseconds (omitting trailing zeros), which won't simply parse correctly
-                // e.g. 00:12:02.11 -> 12 minutes 2 seconds and 110 milliseconds
-                var millisecondsPart = match.Groups[4].Value;
-                if (millisecondsPart.Length < 3)
-                {
-                    millisecondsPart = millisecondsPart.PadRight(3, '0');
-                }
-
-                var hours = int.Parse(match.Groups[1].Value);
-                var minutes = int.Parse(match.Groups[2].Value);
-                var seconds = int.Parse(match.Groups[3].Value);
-                var milliseconds = int.Parse(millisecondsPart);
-                return new TimeSpan(0, hours, minutes, seconds, milliseconds);
+                return ParseDuration(durationTag.Value.Value);
             }
         }
-        
+
+        return TimeSpan.Zero;
+    }
+
+    private static TimeSpan ParseDuration(string duration)
+    {
+        var match = DurationRegex.Match(duration);
+        if (match.Success)
+        {
+            var millisecondsPart = match.Groups[4].Value;
+            if (millisecondsPart.Length < 3)
+            {
+                millisecondsPart = millisecondsPart.PadRight(3, '0');
+            }
+
+            var hours = int.Parse(match.Groups[1].Value);
+            var minutes = int.Parse(match.Groups[2].Value);
+            var seconds = int.Parse(match.Groups[3].Value);
+            var milliseconds = int.Parse(millisecondsPart);
+            return new TimeSpan(0, hours, minutes, seconds, milliseconds);
+        }
+
         return TimeSpan.Zero;
     }
 
