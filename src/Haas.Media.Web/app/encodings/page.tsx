@@ -73,7 +73,7 @@ export default function EncodingsPage() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8">
+    <main className="mx-auto space-y-10">
       <h1 className="text-2xl font-semibold mb-4">Encodings</h1>
 
       {loading && !encodings && <p>Loading…</p>}

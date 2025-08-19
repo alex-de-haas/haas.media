@@ -8,6 +8,7 @@ import {
   formatRate,
   formatPercentage,
 } from "../../../lib/utils/format";
+import Link from "next/link";
 
 interface TorrentListProps {
   torrents: TorrentInfo[];
@@ -137,7 +138,8 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
 
         <div className="ml-4 flex items-center space-x-2">
           {torrent.progress >= 100 ? (
-            <a
+            <Link
+              prefetch={false}
               href={`/torrent/${encodeURIComponent(torrent.hash)}`}
               className="p-1 text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
               aria-label={`View media info for ${torrent.name}`}
@@ -158,47 +160,45 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
                   d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"
                 />
               </svg>
-            </a>
+            </Link>
           ) : null}
-          {isRunning ? (
-            onStop && (
-              <button
-                onClick={onStop}
-                className="p-1 text-orange-600 hover:text-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded"
-                aria-label={`Stop ${torrent.name}`}
-                title="Stop torrent"
-              >
-                <span className="sr-only">Stop</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
+          {isRunning
+            ? onStop && (
+                <button
+                  onClick={onStop}
+                  className="p-1 text-orange-600 hover:text-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded"
+                  aria-label={`Stop ${torrent.name}`}
+                  title="Stop torrent"
                 >
-                  <rect x="6" y="6" width="12" height="12" rx="1" />
-                </svg>
-              </button>
-            )
-          ) : (
-            onStart && (
-              <button
-                onClick={onStart}
-                className="p-1 text-green-600 hover:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 rounded"
-                aria-label={`Start ${torrent.name}`}
-                title="Start torrent"
-              >
-                <span className="sr-only">Start</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
+                  <span className="sr-only">Stop</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <rect x="6" y="6" width="12" height="12" rx="1" />
+                  </svg>
+                </button>
+              )
+            : onStart && (
+                <button
+                  onClick={onStart}
+                  className="p-1 text-green-600 hover:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 rounded"
+                  aria-label={`Start ${torrent.name}`}
+                  title="Start torrent"
                 >
-                  <path d="M5 3.868a1 1 0 011.52-.853l12 8.132a1 1 0 010 1.706l-12 8.132A1 1 0 015 20.132V3.868z" />
-                </svg>
-              </button>
-            )
-          )}
+                  <span className="sr-only">Start</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M5 3.868a1 1 0 011.52-.853l12 8.132a1 1 0 010 1.706l-12 8.132A1 1 0 015 20.132V3.868z" />
+                  </svg>
+                </button>
+              )}
           {onDelete && (
             <button
               onClick={onDelete}
@@ -259,7 +259,10 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
         {showFiles && (
           <ul className="mt-2 space-y-1 text-xs text-gray-700 dark:text-gray-300">
             {torrent.files.map((file: TorrentFile) => (
-              <li key={file.path} className="flex justify-between items-center gap-2">
+              <li
+                key={file.path}
+                className="flex justify-between items-center gap-2"
+              >
                 <div className="flex-1 min-w-0">
                   <span className="truncate block" title={file.path}>
                     {file.path}

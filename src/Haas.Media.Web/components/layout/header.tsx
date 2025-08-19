@@ -142,22 +142,20 @@ export default function Header({ children }: HeaderProps) {
       <div className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-12 items-center gap-6">
-            <div className="relative group">
-              <Link
-                href="/torrent"
-                className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-300"
-              >
-                Torrents
-              </Link>
-            </div>
-            <div className="relative group">
-              <Link
-                href="/encodings"
-                className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-300"
-              >
-                Encodings
-              </Link>
-            </div>
+            <Link
+              href="/torrent"
+              prefetch={false}
+              className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-300"
+            >
+              Torrents
+            </Link>
+            <Link
+              href="/encodings"
+              prefetch={false}
+              className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-300"
+            >
+              Encodings
+            </Link>
           </div>
         </div>
       </div>

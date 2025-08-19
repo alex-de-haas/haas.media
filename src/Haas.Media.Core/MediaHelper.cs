@@ -36,7 +36,10 @@ public static partial class MediaHelper
 
     public static TimeSpan ParseDuration(FFProbeStream stream)
     {
-        if (!string.IsNullOrEmpty(stream.Duration)) { }
+        if (!string.IsNullOrEmpty(stream.Duration))
+        {
+            return ParseDuration(stream.Duration);
+        }
         else
         {
             var durationTag = stream.Tags?.FirstOrDefault(t => t.Key == "DURATION");
