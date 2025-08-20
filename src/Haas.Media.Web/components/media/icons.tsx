@@ -162,3 +162,36 @@ export function streamCodecIcon(
     </span>
   );
 }
+
+function getResolutionLabel(width: number, height: number): { label: string; title: string } {
+  // 4K (Ultra HD) - 3840x2160 or similar
+  if (height >= 2000) {
+    return { label: "4K", title: `4K Ultra HD (${width}×${height})` };
+  }
+  // Full HD - 1920x1080 or similar
+  if (height >= 1000) {
+    return { label: "FHD", title: `Full HD (${width}×${height})` };
+  }
+  // HD - 1280x720 or similar
+  if (height >= 700) {
+    return { label: "HD", title: `HD (${width}×${height})` };
+  }
+  // SD - anything below HD
+  return { label: "SD", title: `Standard Definition (${width}×${height})` };
+}
+
+export function resolutionIcon(width: number | undefined, height: number | undefined) {
+  if (!width || !height) return null;
+  
+  const { label, title } = getResolutionLabel(width, height);
+  
+  return (
+    <span
+      title={title}
+      aria-label={title}
+      className="inline-flex items-center justify-center h-5 px-1.5 rounded bg-purple-200/60 dark:bg-purple-700/40 text-[10px] font-semibold text-purple-800 dark:text-purple-200"
+    >
+      {label}
+    </span>
+  );
+}

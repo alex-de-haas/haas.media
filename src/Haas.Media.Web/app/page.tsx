@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 export default function HomePage() {
   return (
     <section className="relative isolate px-6 pt-14 lg:px-8">
@@ -8,17 +6,8 @@ export default function HomePage() {
           Your Personal Media Server
         </h1>
         <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-          Download, manage, and stream your media content with ease. Upload torrents
-          and track their progress in real-time.
+          Download, manage, and encode your media content with ease.
         </p>
-        <div className="mt-10 flex items-center justify-center gap-x-6">
-          <Link
-            href="/torrent"
-            className="bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors"
-          >
-            Get Started
-          </Link>
-        </div>
       </div>
     </section>
   );

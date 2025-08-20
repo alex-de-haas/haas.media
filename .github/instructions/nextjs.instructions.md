@@ -20,10 +20,6 @@ applyTo: '**/*.tsx,**/*.ts'
 - Follow the file-based routing conventions:
   - `page.tsx` for route pages
   - `layout.tsx` for layouts
-  - `loading.tsx` for loading UI
-  - `error.tsx` for error boundaries
-  - `not-found.tsx` for 404 pages
-  - `route.ts` for API routes
 
 ### Folders Structure
 - app/ — Used for App Router (Next.js 13+).

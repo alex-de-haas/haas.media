@@ -1,3 +1,27 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Prevent theme flash on page load */
+:root {
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
+}
+
+/* Hide content briefly during theme application to prevent flash */
+html:not(.light):not(.dark) body {
+  visibility: hidden;
+}
+
+/* Ensure smooth theme transitions after initial load */
+@media (prefers-reduced-motion: no-preference) {
+  html.light body,
+  html.dark body {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+}

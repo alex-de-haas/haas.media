@@ -16,11 +16,9 @@ interface RootLayoutProps {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="light">
       <head>
-        <Script
-          id="theme-script"
-          strategy="beforeInteractive"
+        <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
@@ -29,17 +27,20 @@ export default function RootLayout({ children }: RootLayoutProps) {
                   const theme = stored || 'system';
                   const media = window.matchMedia('(prefers-color-scheme: dark)');
                   const resolved = theme === 'system' ? (media.matches ? 'dark' : 'light') : theme;
-                  document.documentElement.classList.remove('light', 'dark');
-                  document.documentElement.classList.add(resolved);
+                  const root = document.documentElement;
+                  root.classList.remove('light', 'dark');
+                  root.classList.add(resolved);
+                  root.style.colorScheme = resolved;
                 } catch (e) {
                   document.documentElement.classList.add('light');
+                  document.documentElement.style.colorScheme = 'light';
                 }
               })();
             `,
           }}
         />
       </head>
-      <body className="min-h-screen bg-white text-gray-900 antialiased transition-colors dark:bg-gray-950 dark:text-gray-100">
+      <body className="min-h-screen bg-white text-gray-900 antialiased transition-colors duration-0 dark:bg-gray-950 dark:text-gray-100">
         <UserProvider>
           <NotificationsProvider>
             <Header />

@@ -52,6 +52,24 @@ public static partial class MediaHelper
         return TimeSpan.Zero;
     }
 
+    public static long ParseBitRate(FFProbeStream stream)
+    {
+        if (long.TryParse(stream.BitRate, out var bitRate))
+        {
+            return bitRate;
+        }
+        if (stream.Tags is not null)
+        {
+            var bitRateTag = stream.Tags?.FirstOrDefault(t => t.Key == "BPS");
+            if (bitRateTag is not null && long.TryParse(bitRateTag.Value.Value, out bitRate))
+            {
+                return bitRate;
+            }
+        }
+
+        return 0;
+    }
+
     private static TimeSpan ParseDuration(string duration)
     {
         var match = DurationRegex.Match(duration);

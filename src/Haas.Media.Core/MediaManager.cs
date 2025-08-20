@@ -21,7 +21,7 @@ public static class MediaManager
                 Duration = MediaHelper.ParseDuration(x),
                 Width = x.Width,
                 Height = x.Height,
-                BitRate = long.TryParse(x.BitRate, out var bitRate) ? bitRate : 0,
+                BitRate = MediaHelper.ParseBitRate(x),
                 BitDepth = int.TryParse(x.BitsPerRawSample, out var bitDepth) ? bitDepth : 0,
                 Channels = x.Channels,
                 SampleRate = int.TryParse(x.SampleRate, out var sampleRate) ? sampleRate : 0,

@@ -20,6 +20,7 @@ export const useTheme = (): UseThemeReturn => {
 
     root.classList.remove('light', 'dark');
     root.classList.add(nextResolved);
+    root.style.colorScheme = nextResolved;
     setResolvedTheme(nextResolved);
   }, []);
 
