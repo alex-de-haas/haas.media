@@ -6,17 +6,20 @@ namespace Haas.Media.Downloader.Api.Files;
 
 using Microsoft.AspNetCore.SignalR;
 
-public class FileService : IFileApi, IHostedService
+public class FileService : IFileApi, IHostedService, IDisposable
 {
     private readonly string _downloadsPath;
     private readonly string _outputPath;
     private readonly HashSet<string> _allowedExtensions = InternalConstants.MediaExtensions;
     private readonly ConcurrentDictionary<IProcessInstance, EncodingInfo> _activeProcesses = new();
     private readonly IHubContext<EncodingHub> _hubContext;
+    private readonly IHostApplicationLifetime _applicationLifetime;
+    private bool _disposed = false;
 
-    public FileService(IHubContext<EncodingHub> hubContext)
+    public FileService(IHubContext<EncodingHub> hubContext, IHostApplicationLifetime applicationLifetime)
     {
         _hubContext = hubContext;
+        _applicationLifetime = applicationLifetime;
         _downloadsPath = Path.Combine(Environment.CurrentDirectory, "data", "downloads");
         _outputPath = Path.Combine(Environment.CurrentDirectory, "data", "output");
         Directory.CreateDirectory(_downloadsPath);
@@ -25,11 +28,32 @@ public class FileService : IFileApi, IHostedService
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
+        // Register for application shutdown events as an additional safety measure
+        _applicationLifetime.ApplicationStopping.Register(() =>
+        {
+            CleanupActiveProcesses();
+        });
+
         // HostedService start hook - no background work required currently.
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
+    {
+        CleanupActiveProcesses();
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            CleanupActiveProcesses();
+            _disposed = true;
+        }
+    }
+
+    private void CleanupActiveProcesses()
     {
         foreach (var process in _activeProcesses.Keys)
         {
@@ -44,7 +68,7 @@ public class FileService : IFileApi, IHostedService
             }
         }
 
-        return Task.CompletedTask;
+        _activeProcesses.Clear();
     }
 
     public async Task<IEnumerable<MediaFileInfo>> GetMediaFilesInfoAsync(string hash)

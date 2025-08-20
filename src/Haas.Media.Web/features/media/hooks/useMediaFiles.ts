@@ -3,8 +3,7 @@
 import React from "react";
 import type { MediaFileInfo } from "@/types/media-file-info";
 import { getValidToken } from "@/lib/auth/token";
-
-const API_BASE = process.env.NEXT_PUBLIC_DOWNLOADER_URL;
+import { API_DOWNLOADER_URL } from "@/lib/api";
 
 export function useMediaFiles(hash?: string) {
   const [loading, setLoading] = React.useState(false);
@@ -20,7 +19,7 @@ export function useMediaFiles(hash?: string) {
         const t = await getValidToken();
         const headers = new Headers();
         if (t) headers.set("Authorization", `Bearer ${t}`);
-        const res = await fetch(`${API_BASE}/api/files/${hash}`, { headers });
+        const res = await fetch(`${API_DOWNLOADER_URL}/api/files/${hash}`, { headers });
         if (!res.ok) {
           const body = await res.json().catch(() => null);
           throw new Error(body?.error ?? res.statusText);

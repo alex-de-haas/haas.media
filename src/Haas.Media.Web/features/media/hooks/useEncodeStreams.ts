@@ -3,6 +3,7 @@
 import React from "react";
 import { getValidToken } from "@/lib/auth/token";
 import type { MediaFileInfo } from "@/types/media-file-info";
+import { API_DOWNLOADER_URL } from "@/lib/api";
 
 export function useEncodeStreams(hash?: string, mediaFiles?: MediaFileInfo[] | null, selectedStreams?: Record<string, Set<number>>) {
   const [encoding, setEncoding] = React.useState(false);
@@ -30,7 +31,7 @@ export function useEncodeStreams(hash?: string, mediaFiles?: MediaFileInfo[] | n
       const t = await getValidToken();
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (t) (headers as any).Authorization = `Bearer ${t}`;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_DOWNLOADER_URL}/api/files/${hash}/encode`, {
+      const res = await fetch(`${API_DOWNLOADER_URL}/api/files/${hash}/encode`, {
         method: "POST",
         headers,
         body: JSON.stringify({ streams: aggregated }),

@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Hosting;
-
 var env = DotNetEnv.Env.LoadMulti([".env.local"]).ToDictionary();
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -11,12 +9,14 @@ var downloaderApi = builder
     .WithEnvironment("AUTH0_AUDIENCE", env["AUTH0_AUDIENCE"])
     .WithOtlpExporter();
 
-var webScriptName = builder.Environment.IsDevelopment() ? "dev" : "start";
 builder
-    .AddNpmApp("web", "../Haas.Media.Web", scriptName: webScriptName)
-    .WithExternalHttpEndpoints()
+    .AddNpmApp(
+        "web",
+        "../Haas.Media.Web",
+        scriptName: builder.ExecutionContext.IsPublishMode ? "start" : "dev"
+    )
     .WithHttpEndpoint(port: 3000, targetPort: 3000, isProxied: false)
-    .WithEnvironment("NEXT_PUBLIC_DOWNLOADER_URL", downloaderApi.GetEndpoint("http"))
+    .WithEnvironment("NEXT_PUBLIC_API_DOWNLOADER_URL", downloaderApi.GetEndpoint("http"))
     .WithEnvironment("AUTH0_DOMAIN", env["AUTH0_DOMAIN"])
     .WithEnvironment("AUTH0_AUDIENCE", env["AUTH0_AUDIENCE"])
     .WithEnvironment("AUTH0_SECRET", env["AUTH0_SECRET"])

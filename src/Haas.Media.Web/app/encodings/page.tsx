@@ -4,8 +4,7 @@ import React from "react";
 import { getValidToken } from "@/lib/auth/token";
 import type { EncodingInfo } from "@/types/encoding";
 import { HubConnection, HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
-
-const API_BASE = process.env.NEXT_PUBLIC_DOWNLOADER_URL ?? "";
+import { API_DOWNLOADER_URL } from "@/lib/api";
 
 export default function EncodingsPage() {
   const [encodings, setEncodings] = React.useState<EncodingInfo[] | null>(null);
@@ -25,7 +24,7 @@ export default function EncodingsPage() {
         // initial fetch to populate list
         const headers: HeadersInit = {};
         if (t) (headers as any).Authorization = `Bearer ${t}`;
-        const res = await fetch(`${API_BASE}/api/encodings`, { headers });
+        const res = await fetch(`${API_DOWNLOADER_URL}/api/encodings`, { headers });
         if (!res.ok) throw new Error(res.statusText);
         const data = await res.json();
         if (!mounted) return;
@@ -33,7 +32,7 @@ export default function EncodingsPage() {
 
         // setup SignalR connection
         connection = new HubConnectionBuilder()
-          .withUrl(`${API_BASE.replace(/\/$/, "")}/hub/encodings`, {
+          .withUrl(`${API_DOWNLOADER_URL}/hub/encodings`, {
             accessTokenFactory: () => t ?? "",
           })
           .configureLogging(LogLevel.Information)
