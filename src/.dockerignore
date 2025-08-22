@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+**/Haas.Media.Downloader.Api/cache
+**/Haas.Media.Downloader.Api/data
+Dockerfile*
+.dockerignore
+.git
+.gitignore
+README.md

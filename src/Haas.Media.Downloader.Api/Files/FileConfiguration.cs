@@ -9,9 +9,7 @@ public static class FileConfiguration
         GlobalFFOptions.Configure(options =>
             options.BinaryFolder =
                 builder.Configuration["FFMPEG_BINARY"]
-                ?? throw new InvalidOperationException(
-                    "FFMPEG_BINARY environment variable is not set."
-                )
+                ?? throw new InvalidOperationException("FFMPEG_BINARY configuration is required")
         );
 
         // Register FileService and expose as IFileApi. Also register it as a hosted service
@@ -25,7 +23,7 @@ public static class FileConfiguration
     public static WebApplication UseFiles(this WebApplication app)
     {
         app.MapGet(
-                "api/files/{hash}",
+                "api/torrent-files/{hash}",
                 async (string hash, IFileApi convertApi) =>
                 {
                     var mediaFiles = await convertApi.GetMediaFilesInfoAsync(hash);
@@ -36,7 +34,7 @@ public static class FileConfiguration
             .RequireAuthorization();
 
         app.MapPost(
-                "api/files/{hash}/encode",
+                "api/torrent-files/{hash}/encode",
                 async (
                     string hash,
                     EncodeRequest request,

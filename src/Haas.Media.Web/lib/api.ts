@@ -1,5 +1,3 @@
-export const API_DOWNLOADER_URL = process.env.NEXT_PUBLIC_API_DOWNLOADER_URL!;
-
 export async function getApiToken(): Promise<string | null> {
   try {
     const res = await fetch("/api/token");

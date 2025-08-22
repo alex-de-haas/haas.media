@@ -13,10 +13,16 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
     private readonly IHubContext<TorrentHub> _hubContext;
     private Timer? _broadcastTimer;
 
-    public TorrentService(IHubContext<TorrentHub> hubContext)
+    public TorrentService(IHubContext<TorrentHub> hubContext, ILogger<TorrentService> logger)
     {
         _downloadsPath = Path.Combine(Environment.CurrentDirectory, "data", "downloads");
         _torrentsPath = Path.Combine(Environment.CurrentDirectory, "data", "torrents");
+
+        logger.LogInformation(
+            "TorrentService initialized with downloads path: {DownloadsPath}, torrents path: {TorrentsPath}",
+            _downloadsPath,
+            _torrentsPath
+        );
 
         // Ensure folders exist
         Directory.CreateDirectory(_downloadsPath);

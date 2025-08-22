@@ -107,16 +107,17 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
     torrent.state === TorrentState.Downloading ||
     torrent.state === TorrentState.Seeding;
 
-  const [showFiles, setShowFiles] = React.useState(false);
   // Media info now shown on dedicated page; keep only file toggle
 
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-            {torrent.name}
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+              {torrent.name}
+            </h3>
+          </div>
           <div className="mt-1 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
             <span>
               {formatSize(torrent.downloaded)} from {formatSize(torrent.size)}
@@ -137,6 +138,26 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
         </div>
 
         <div className="ml-4 flex items-center space-x-2">
+          <span
+            className="p-1 text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+            title={torrent.hash}
+            aria-label={torrent.hash}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
+              />
+            </svg>
+          </span>
           {torrent.progress >= 100 ? (
             <Link
               prefetch={false}
@@ -240,42 +261,30 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
         </div>
       </div>
 
-      {/* Hash */}
-      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          Hash: <span className="font-mono">{torrent.hash}</span>
-        </div>
-      </div>
-
       {/* Files List */}
-      <div className="mt-3">
-        <button
-          onClick={() => setShowFiles(!showFiles)}
-          className="text-sm text-blue-600 dark:text-blue-400 hover:underline focus:outline-none"
-        >
-          {showFiles ? "Hide Files" : "Show Files"}
-        </button>
+      <details className="mt-3">
+        <summary className="text-sm text-blue-600 dark:text-blue-400 hover:underline focus:outline-none cursor-pointer">
+          Files
+        </summary>
 
-        {showFiles && (
-          <ul className="mt-2 space-y-1 text-xs text-gray-700 dark:text-gray-300">
-            {torrent.files.map((file: TorrentFile) => (
-              <li
-                key={file.path}
-                className="flex justify-between items-center gap-2"
-              >
-                <div className="flex-1 min-w-0">
-                  <span className="truncate block" title={file.path}>
-                    {file.path}
-                  </span>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {formatSize(file.downloaded)} / {formatSize(file.size)}
-                  </div>
+        <ul className="mt-2 space-y-1 text-xs text-gray-700 dark:text-gray-300">
+          {torrent.files.map((file: TorrentFile) => (
+            <li
+              key={file.path}
+              className="flex justify-between items-center gap-2"
+            >
+              <div className="flex-1 min-w-0">
+                <span className="truncate block" title={file.path}>
+                  {file.path}
+                </span>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {formatSize(file.downloaded)} from {formatSize(file.size)}
                 </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </details>
     </div>
   );
 }

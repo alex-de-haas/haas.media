@@ -118,9 +118,6 @@ export default function MediaFilesList({
 
             {streams.length > 0 && (
               <div className="mt-3 mb-2 flex flex-wrap gap-2 p-2 bg-gray-50 dark:bg-gray-900/20 rounded border border-gray-200 dark:border-gray-600">
-                <div className="text-xs font-medium text-gray-600 dark:text-gray-400 self-center mr-2">
-                  File Selection:
-                </div>
                 <label className="flex items-center gap-1.5 cursor-pointer">
                   <input
                     type="checkbox"

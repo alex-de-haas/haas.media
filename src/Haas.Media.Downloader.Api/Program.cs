@@ -1,3 +1,4 @@
+using Haas.Media.Core.FFMpeg;
 using Haas.Media.Downloader.Api.Files;
 using Haas.Media.Downloader.Api.Torrents;
 using Haas.Media.ServiceDefaults;
@@ -23,8 +24,8 @@ var auth0Audience = builder.Configuration["AUTH0_AUDIENCE"];
 
 if (!string.IsNullOrWhiteSpace(auth0Domain) && !string.IsNullOrWhiteSpace(auth0Audience))
 {
-    builder.Services
-        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    builder
+        .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
             options.Authority = $"https://{auth0Domain}";
@@ -41,26 +42,27 @@ if (!string.IsNullOrWhiteSpace(auth0Domain) && !string.IsNullOrWhiteSpace(auth0A
             {
                 OnMessageReceived = context =>
                 {
-                    var accessToken = context.Request.Query["access_token"]; 
+                    var accessToken = context.Request.Query["access_token"];
                     var path = context.HttpContext.Request.Path;
                     if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hub"))
                     {
                         context.Token = accessToken!;
                     }
                     return Task.CompletedTask;
-                }
+                },
             };
         });
 
     builder.Services.AddAuthorization();
 }
 
+var origins = builder.Configuration.GetSection("AllowedCorsOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
         policy
-            .WithOrigins("http://localhost:3000")
+            .WithOrigins(origins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -68,6 +70,10 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation(Environment.CurrentDirectory);
+logger.LogInformation(GlobalFFOptions.Current.BinaryFolder);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

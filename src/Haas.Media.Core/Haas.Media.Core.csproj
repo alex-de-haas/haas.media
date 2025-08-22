@@ -7,10 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Remove="/Users/haas/.nuget/packages/instances/3.0.1/contentFiles/any/netstandard2.0/README.md" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Instances" Version="3.0.1" />
   </ItemGroup>
 
