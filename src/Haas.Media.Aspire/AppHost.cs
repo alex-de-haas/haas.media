@@ -23,7 +23,7 @@ var web = builder
     .AddNpmApp(
         "web",
         "../Haas.Media.Web",
-        scriptName: builder.ExecutionContext.IsPublishMode ? "start" : "dev"
+        scriptName: builder.ExecutionContext.IsPublishMode ? "build" : "start"
     )
     .WithHttpEndpoint(port: 3000, targetPort: 3000, isProxied: false)
     .WithEnvironment("API_DOWNLOADER_URL", downloaderApi.GetEndpoint("http"))
