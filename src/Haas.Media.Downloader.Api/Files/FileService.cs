@@ -146,7 +146,8 @@ public class FileService : IFileApi, IHostedService, IDisposable
                 .Create()
                 .FromFileInput(inputFullPath)
                 .ToFileOutput(outputFullPath)
-                .WithVideoCodec(StreamCodec.HEVC);
+                .WithVideoCodec(StreamCodec.HEVC)
+                .WithAutoHardwareAcceleration();
 
             var streams = mediaInfo.Streams.Where(s => streamIndexes.Contains(s.Index)).ToArray();
             foreach (var stream in streams)
