@@ -2,6 +2,7 @@
 
 import React from "react";
 import { getValidToken } from "@/lib/auth/token";
+import { downloaderApi } from "@/lib/api";
 import type { MediaFileInfo } from "@/types/media-file-info";
 
 export function useEncodeStreams(hash?: string, mediaFiles?: MediaFileInfo[] | null, selectedStreams?: Record<string, Set<number>>) {
@@ -30,7 +31,7 @@ export function useEncodeStreams(hash?: string, mediaFiles?: MediaFileInfo[] | n
       const t = await getValidToken();
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (t) (headers as any).Authorization = `Bearer ${t}`;
-      const res = await fetch(`/api/downloader/api/torrent-files/${hash}/encode`, {
+      const res = await fetch(`${downloaderApi}/api/torrent-files/${hash}/encode`, {
         method: "POST",
         headers,
         body: JSON.stringify({ streams: aggregated }),

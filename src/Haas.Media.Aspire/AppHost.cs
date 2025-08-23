@@ -5,7 +5,7 @@ builder.AddDockerComposeEnvironment("haas-media");
 
 var downloaderApi = builder
     .AddProject<Projects.Haas_Media_Downloader_Api>("downloader-api")
-    .WithHttpEndpoint(port: 8080)
+    .WithHttpEndpoint(port: 8000)
     .WithEnvironment("AUTH0_DOMAIN", env["AUTH0_DOMAIN"])
     .WithEnvironment("AUTH0_AUDIENCE", env["AUTH0_AUDIENCE"])
     .WithEnvironment(
@@ -26,7 +26,7 @@ var web = builder
         scriptName: builder.ExecutionContext.IsPublishMode ? "start" : "dev"
     )
     .WithHttpEndpoint(port: 3000, targetPort: 3000, isProxied: false)
-    .WithEnvironment("API_DOWNLOADER_URL", downloaderApi.GetEndpoint("http"))
+    .WithEnvironment("NEXT_PUBLIC_API_DOWNLOADER_URL", downloaderApi.GetEndpoint("http"))
     .WithEnvironment("AUTH0_DOMAIN", env["AUTH0_DOMAIN"])
     .WithEnvironment("AUTH0_AUDIENCE", env["AUTH0_AUDIENCE"])
     .WithEnvironment("AUTH0_SECRET", env["AUTH0_SECRET"])

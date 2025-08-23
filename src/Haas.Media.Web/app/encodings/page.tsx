@@ -2,8 +2,14 @@
 
 import React from "react";
 import { getValidToken } from "@/lib/auth/token";
+import { downloaderApi } from "@/lib/api";
 import type { EncodingInfo } from "@/types/encoding";
-import { HubConnection, HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
+import {
+  HubConnection,
+  HubConnectionBuilder,
+  LogLevel,
+} from "@microsoft/signalr";
+import { PageHeader } from "@/components/layout";
 
 export default function EncodingsPage() {
   const [encodings, setEncodings] = React.useState<EncodingInfo[] | null>(null);
@@ -11,7 +17,7 @@ export default function EncodingsPage() {
   const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
-  let connection: HubConnection | null = null;
+    let connection: HubConnection | null = null;
     let mounted = true;
 
     async function init() {
@@ -23,7 +29,7 @@ export default function EncodingsPage() {
         // initial fetch to populate list
         const headers: HeadersInit = {};
         if (t) (headers as any).Authorization = `Bearer ${t}`;
-        const res = await fetch(`api/downloader/api/encodings`, { headers });
+        const res = await fetch(`${downloaderApi}/api/encodings`, { headers });
         if (!res.ok) throw new Error(res.statusText);
         const data = await res.json();
         if (!mounted) return;
@@ -31,7 +37,7 @@ export default function EncodingsPage() {
 
         // setup SignalR connection
         connection = new HubConnectionBuilder()
-          .withUrl(`/api/downloader/hub/encodings`, {
+          .withUrl(`${downloaderApi}/hub/encodings`, {
             accessTokenFactory: () => t ?? "",
           })
           .configureLogging(LogLevel.Information)
@@ -41,7 +47,10 @@ export default function EncodingsPage() {
         connection.on("EncodingUpdated", (info: EncodingInfo) => {
           setEncodings((prev) => {
             const existing = prev ?? [];
-            const idx = existing.findIndex((e) => e.hash === info.hash && e.outputFileName === info.outputFileName);
+            const idx = existing.findIndex(
+              (e) =>
+                e.hash === info.hash && e.outputFileName === info.outputFileName
+            );
             if (idx === -1) {
               return [info, ...existing];
             }
@@ -54,7 +63,10 @@ export default function EncodingsPage() {
         connection.on("EncodingDeleted", (info: EncodingInfo) => {
           setEncodings((prev) => {
             const existing = prev ?? [];
-            return existing.filter((e) => e.hash !== info.hash && e.outputFileName !== info.outputFileName);
+            return existing.filter(
+              (e) =>
+                e.hash !== info.hash && e.outputFileName !== info.outputFileName
+            );
           });
         });
 
@@ -79,7 +91,10 @@ export default function EncodingsPage() {
 
   return (
     <main className="mx-auto space-y-10">
-      <h1 className="text-2xl font-semibold mb-4">Encodings</h1>
+      <PageHeader
+        title="Encodings"
+        description="Monitor your encoding tasks."
+      />
 
       {loading && !encodings && <p>Loading…</p>}
       {error && (

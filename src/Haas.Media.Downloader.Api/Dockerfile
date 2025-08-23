@@ -27,10 +27,6 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Configure ASP.NET Core to listen on port 8080
-ENV ASPNETCORE_URLS=http://+:8080
-EXPOSE 8080
-
 # Copy published app
 COPY --from=build /app/publish .
 

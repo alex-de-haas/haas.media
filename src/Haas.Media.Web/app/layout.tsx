@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import Script from "next/script";
-import Header from "../components/layout/header";
+import ClientLayout from "../components/layout/client-layout";
 import "./globals.css";
-import { UserProvider } from "@auth0/nextjs-auth0/client";
-import { NotificationsProvider } from "../lib/notifications";
+import { PublicEnvScript } from "next-runtime-env";
 
 export const metadata: Metadata = {
   title: "Haas Media Server",
@@ -39,16 +37,12 @@ export default function RootLayout({ children }: RootLayoutProps) {
             `,
           }}
         />
+        <PublicEnvScript />
       </head>
-      <body className="min-h-screen bg-white text-gray-900 antialiased transition-colors duration-0 dark:bg-gray-950 dark:text-gray-100">
-        <UserProvider>
-          <NotificationsProvider>
-            <Header />
-            <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-              {children}
-            </main>
-          </NotificationsProvider>
-        </UserProvider>
+      <body className="min-h-screen">
+        <ClientLayout>
+          {children}
+        </ClientLayout>
       </body>
     </html>
   );
