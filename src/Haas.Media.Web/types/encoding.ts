@@ -1,8 +1,19 @@
-// Mirrors backend EncodingInfo (Files/EncodingInfo.cs)
+// Mirrors backend EncodingInfo (Encodings/EncodingInfo.cs)
 export interface EncodingInfo {
   hash: string;
   outputFileName: string;
   progress: number;
+}
+
+// Mirrors backend EncodeRequest (Encodings/EncodeRequest.cs)
+export interface EncodeRequest {
+  streams: EncodeRequestStream[];
+}
+
+export interface EncodeRequestStream {
+  inputFilePath: string;
+  streamIndex: number;
+  streamType: number;
 }
 
 export function isEncodingInfo(value: unknown): value is EncodingInfo {

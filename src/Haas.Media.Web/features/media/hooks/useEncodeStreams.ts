@@ -4,6 +4,7 @@ import React from "react";
 import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
 import type { MediaFileInfo } from "@/types/media-file-info";
+import type { EncodeRequest } from "@/types/encoding";
 
 export function useEncodeStreams(hash?: string, mediaFiles?: MediaFileInfo[] | null, selectedStreams?: Record<string, Set<number>>) {
   const [encoding, setEncoding] = React.useState(false);
@@ -16,32 +17,38 @@ export function useEncodeStreams(hash?: string, mediaFiles?: MediaFileInfo[] | n
     setEncoding(true);
     setEncodeError(null);
     try {
-      const aggregated: Array<{ inputFilePath: string; streamIndex: number; streamType: number }> = [];
+      const streams: EncodeRequest['streams'] = [];
       for (const mf of mediaFiles) {
         const sel = selectedStreams[mf.relativePath];
         if (!sel || sel.size === 0) continue;
         for (const idx of sel.values()) {
           const stream = (mf as any).mediaInfo?.streams?.find((st: any) => st.index === idx);
           if (!stream) continue;
-          aggregated.push({ inputFilePath: mf.relativePath, streamIndex: idx, streamType: stream.type });
+          streams.push({ 
+            inputFilePath: mf.relativePath, 
+            streamIndex: idx, 
+            streamType: stream.type 
+          });
         }
       }
-      if (aggregated.length === 0) return;
+      if (streams.length === 0) return;
+
+      const request: EncodeRequest = { streams };
 
       const t = await getValidToken();
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (t) (headers as any).Authorization = `Bearer ${t}`;
-      const res = await fetch(`${downloaderApi}/api/torrent-files/${hash}/encode`, {
+      const res = await fetch(`${downloaderApi}/api/encodings/${hash}`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ streams: aggregated }),
+        body: JSON.stringify(request),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? res.statusText);
       }
 
-      // Backend returns an empty 200/204 on success (see FileConfiguration.cs),
+      // Backend returns an empty 200/204 on success (see EncodingConfiguration.cs),
       // so don't attempt to parse JSON here. Return void to indicate success.
       return;
     } catch (err: any) {

@@ -4,6 +4,7 @@ import React from "react";
 import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
 import type { EncodingInfo } from "@/types/encoding";
+import { useEncodingActions } from "@/features/media/hooks";
 import {
   HubConnection,
   HubConnectionBuilder,
@@ -15,6 +16,16 @@ export default function EncodingsPage() {
   const [encodings, setEncodings] = React.useState<EncodingInfo[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const { stopEncoding, loading: actionLoading } = useEncodingActions();
+
+  const handleStopEncoding = React.useCallback(async (hash: string) => {
+    try {
+      await stopEncoding(hash);
+      // The encoding will be removed via SignalR
+    } catch (err) {
+      console.error("Failed to stop encoding:", err);
+    }
+  }, [stopEncoding]);
 
   React.useEffect(() => {
     let connection: HubConnection | null = null;
@@ -65,7 +76,17 @@ export default function EncodingsPage() {
             const existing = prev ?? [];
             return existing.filter(
               (e) =>
-                e.hash !== info.hash && e.outputFileName !== info.outputFileName
+                !(e.hash === info.hash && e.outputFileName === info.outputFileName)
+            );
+          });
+        });
+
+        connection.on("EncodingCompleted", (info: EncodingInfo) => {
+          setEncodings((prev) => {
+            const existing = prev ?? [];
+            return existing.filter(
+              (e) =>
+                !(e.hash === info.hash && e.outputFileName === info.outputFileName)
             );
           });
         });
@@ -111,7 +132,7 @@ export default function EncodingsPage() {
         <div className="space-y-3">
           {encodings.map((e) => (
             <div
-              key={e.hash}
+              key={`${e.hash}-${e.outputFileName}`}
               className="p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded"
             >
               <div className="flex items-center justify-between">
@@ -123,8 +144,17 @@ export default function EncodingsPage() {
                     {e.hash}
                   </div>
                 </div>
-                <div className="text-sm font-medium">
-                  {e.progress.toFixed(2)}%
+                <div className="flex items-center gap-3">
+                  <div className="text-sm font-medium">
+                    {e.progress.toFixed(2)}%
+                  </div>
+                  <button
+                    onClick={() => handleStopEncoding(e.hash)}
+                    disabled={actionLoading}
+                    className="px-3 py-1 text-xs text-red-600 border border-red-300 rounded hover:bg-red-50 dark:text-red-400 dark:border-red-600 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {actionLoading ? "Stopping..." : "Stop"}
+                  </button>
                 </div>
               </div>
               <div className="mt-3 h-3 w-full bg-gray-100 dark:bg-gray-700 rounded overflow-hidden">

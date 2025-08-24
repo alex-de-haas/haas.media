@@ -1,6 +1,6 @@
 import type { MediaInfo } from "./media-info";
 
-// Mirrors backend MediaFileInfo record (Convert/MediaFileInfo.cs)
+// Mirrors backend MediaFileInfo record (Files/MediaFileInfo.cs)
 export interface MediaFileInfo {
   name: string;
   relativePath: string;

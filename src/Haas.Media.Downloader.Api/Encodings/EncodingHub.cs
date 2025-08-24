@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
-namespace Haas.Media.Downloader.Api.Files;
+namespace Haas.Media.Downloader.Api.Encodings;
 
 [Authorize]
 public class EncodingHub : Hub

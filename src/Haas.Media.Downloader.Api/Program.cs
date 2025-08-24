@@ -1,5 +1,5 @@
 using Haas.Media.Core.FFMpeg;
-using Haas.Media.Downloader.Api.Files;
+using Haas.Media.Downloader.Api.Encodings;
 using Haas.Media.Downloader.Api.Torrents;
 using Haas.Media.ServiceDefaults;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add default service configurations.
 builder.AddServiceDefaults();
 
-builder.AddFiles();
+builder.AddEncoding();
 builder.AddTorrent();
 
 // Add services to the container.
@@ -94,7 +94,7 @@ if (!string.IsNullOrWhiteSpace(auth0Domain) && !string.IsNullOrWhiteSpace(auth0A
 
 app.MapDefaultEndpoints();
 
-app.UseFiles();
+app.UseEncoding();
 app.UseTorrent();
 
 app.Run();

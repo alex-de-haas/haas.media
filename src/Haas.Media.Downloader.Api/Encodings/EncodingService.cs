@@ -1,12 +1,12 @@
 using System.Collections.Concurrent;
 using Haas.Media.Core;
+using Haas.Media.Downloader.Api.Files;
 using Instances;
-
-namespace Haas.Media.Downloader.Api.Files;
-
 using Microsoft.AspNetCore.SignalR;
 
-public class FileService : IFileApi, IHostedService, IDisposable
+namespace Haas.Media.Downloader.Api.Encodings;
+
+public class EncodingService : IEncodingApi, IHostedService, IDisposable
 {
     private readonly string _downloadsPath;
     private readonly string _outputPath;
@@ -16,7 +16,10 @@ public class FileService : IFileApi, IHostedService, IDisposable
     private readonly IHostApplicationLifetime _applicationLifetime;
     private bool _disposed = false;
 
-    public FileService(IHubContext<EncodingHub> hubContext, IHostApplicationLifetime applicationLifetime)
+    public EncodingService(
+        IHubContext<EncodingHub> hubContext,
+        IHostApplicationLifetime applicationLifetime
+    )
     {
         _hubContext = hubContext;
         _applicationLifetime = applicationLifetime;
@@ -55,8 +58,12 @@ public class FileService : IFileApi, IHostedService, IDisposable
 
     private void CleanupActiveProcesses()
     {
-        foreach (var process in _activeProcesses.Keys)
+        // Capture current entries to avoid collection-modified issues and to allow cleanup of output files
+        var entries = _activeProcesses.ToArray();
+
+        foreach (var kvp in entries)
         {
+            var process = kvp.Key;
             try
             {
                 process.Kill();
@@ -65,6 +72,22 @@ public class FileService : IFileApi, IHostedService, IDisposable
             {
                 // Log or handle the exception as needed
                 Console.WriteLine($"Error killing process: {ex.Message}");
+            }
+        }
+
+        // Remove output files for any encodings that were active
+        foreach (var kvp in entries)
+        {
+            try
+            {
+                var info = kvp.Value;
+                var outputFullPath = Path.Combine(_outputPath, info.Hash, info.OutputFileName);
+                if (File.Exists(outputFullPath))
+                    File.Delete(outputFullPath);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting output file during cleanup: {ex.Message}");
             }
         }
 
@@ -106,7 +129,7 @@ public class FileService : IFileApi, IHostedService, IDisposable
         return files;
     }
 
-    public async Task EncodeAsync(
+    public async Task StartEncodingAsync(
         string hash,
         EncodeRequest request,
         CancellationToken ct = default
@@ -176,7 +199,7 @@ public class FileService : IFileApi, IHostedService, IDisposable
             {
                 if (_activeProcesses.TryRemove(process, out var info))
                 {
-                    await _hubContext.Clients.All.SendAsync("EncodingDeleted", info);
+                    await _hubContext.Clients.All.SendAsync("EncodingCompleted", info);
                 }
             };
 
@@ -195,5 +218,26 @@ public class FileService : IFileApi, IHostedService, IDisposable
     public EncodingInfo[] GetEncodingsAsync()
     {
         return _activeProcesses.Values.ToArray();
+    }
+
+    public async Task StopEncodingAsync(string hash)
+    {
+        var processToStop = _activeProcesses
+            .Where(kvp => kvp.Value.Hash == hash)
+            .Select(kvp => kvp.Key)
+            .FirstOrDefault();
+
+        if (processToStop != null)
+        {
+            processToStop.Kill();
+            if (_activeProcesses.TryRemove(processToStop, out var info))
+            {
+                var outputFullPath = Path.Combine(_outputPath, info.Hash, info.OutputFileName);
+                if (File.Exists(outputFullPath))
+                    File.Delete(outputFullPath);
+
+                await _hubContext.Clients.All.SendAsync("EncodingDeleted", info);
+            }
+        }
     }
 }
