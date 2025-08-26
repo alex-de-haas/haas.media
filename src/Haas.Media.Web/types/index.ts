@@ -5,3 +5,4 @@
 export * from './torrent';
 export * from './theme';
 export * from './encoding';
+export * from './file';

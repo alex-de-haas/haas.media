@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using Haas.Media.Core;
-using Haas.Media.Downloader.Api.Files;
 using Instances;
 using Microsoft.AspNetCore.SignalR;
 

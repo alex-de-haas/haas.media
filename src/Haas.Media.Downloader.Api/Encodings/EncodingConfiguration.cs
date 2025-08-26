@@ -2,7 +2,7 @@ using Haas.Media.Core.FFMpeg;
 
 namespace Haas.Media.Downloader.Api.Encodings;
 
-public static class FileConfiguration
+public static class EncodingConfiguration
 {
     public static WebApplicationBuilder AddEncoding(this WebApplicationBuilder builder)
     {

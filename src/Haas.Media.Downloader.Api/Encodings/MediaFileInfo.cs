@@ -1,6 +1,6 @@
 using Haas.Media.Core;
 
-namespace Haas.Media.Downloader.Api.Files;
+namespace Haas.Media.Downloader.Api.Encodings;
 
 public record MediaFileInfo
 {

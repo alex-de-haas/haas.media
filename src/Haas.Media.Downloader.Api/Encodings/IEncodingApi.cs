@@ -1,5 +1,3 @@
-using Haas.Media.Downloader.Api.Files;
-
 namespace Haas.Media.Downloader.Api.Encodings;
 
 public interface IEncodingApi
