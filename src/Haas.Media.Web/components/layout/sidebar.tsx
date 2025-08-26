@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLayout } from "./layout-provider";
+import { useAuth } from "../../lib/hooks/useAuth";
+import ThemeSwitch from "../ui/theme-switch";
 
 interface SidebarProps {
   children?: React.ReactNode;
@@ -50,6 +52,7 @@ const navigationItems = [
 export default function Sidebar({ children }: SidebarProps) {
   const pathname = usePathname();
   const { sidebarOpen, setSidebarOpen } = useLayout();
+  const { user } = useAuth();
 
   return (
     <>
@@ -124,6 +127,50 @@ export default function Sidebar({ children }: SidebarProps) {
               </li>
             </ul>
           </nav>
+          
+          {/* Bottom section with theme switch and user info */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-4">
+            {/* Theme Switch */}
+            <div className="flex justify-center">
+              <ThemeSwitch variant="buttons" size="sm" />
+            </div>
+            
+            {/* User Info */}
+            {user ? (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3 px-2">
+                  {user.picture && (
+                    <img
+                      src={user.picture}
+                      alt={user.name || user.email || "User avatar"}
+                      className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-700"
+                    />
+                  )}
+                  <div className="flex flex-col text-sm text-gray-700 dark:text-gray-200 min-w-0 flex-1">
+                    <span className="font-medium truncate">{user.name}</span>
+                    {user.email && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {user.email}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <a
+                  href="/api/auth/logout"
+                  className="w-full px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors text-center"
+                >
+                  Logout
+                </a>
+              </div>
+            ) : (
+              <a
+                href="/api/auth/login"
+                className="w-full px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors text-center"
+              >
+                Login
+              </a>
+            )}
+          </div>
         </div>
       </div>
 
@@ -188,6 +235,50 @@ export default function Sidebar({ children }: SidebarProps) {
               </li>
             </ul>
           </nav>
+          
+          {/* Bottom section with theme switch and user info for mobile */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-4 mt-4">
+            {/* Theme Switch */}
+            <div className="flex justify-center">
+              <ThemeSwitch variant="buttons" size="sm" />
+            </div>
+            
+            {/* User Info */}
+            {user ? (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3 px-2">
+                  {user.picture && (
+                    <img
+                      src={user.picture}
+                      alt={user.name || user.email || "User avatar"}
+                      className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-700"
+                    />
+                  )}
+                  <div className="flex flex-col text-sm text-gray-700 dark:text-gray-200 min-w-0 flex-1">
+                    <span className="font-medium truncate">{user.name}</span>
+                    {user.email && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {user.email}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <a
+                  href="/api/auth/logout"
+                  className="w-full px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors text-center"
+                >
+                  Logout
+                </a>
+              </div>
+            ) : (
+              <a
+                href="/api/auth/login"
+                className="w-full px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors text-center"
+              >
+                Login
+              </a>
+            )}
+          </div>
         </div>
       </div>
 

@@ -2,8 +2,6 @@
 
 import { ReactNode, useEffect } from "react";
 import { useLayout } from "./layout-provider";
-import { useAuth } from "../../lib/hooks/useAuth";
-import ThemeSwitch from "../ui/theme-switch";
 
 interface PageHeaderProps {
   title: string;
@@ -18,7 +16,6 @@ interface PageHeaderProps {
 
 export default function PageHeader({ title, description, actions, breadcrumbs }: PageHeaderProps) {
   const { setPageTitle } = useLayout();
-  const { user } = useAuth();
 
   // Update the page title in the layout context
   useEffect(() => {
@@ -26,7 +23,7 @@ export default function PageHeader({ title, description, actions, breadcrumbs }:
   }, [title, setPageTitle]);
 
   return (
-    <div className="border-b border-gray-200 pb-4 dark:border-gray-700">
+    <div className="pb-4">
       {/* Breadcrumbs */}
       {breadcrumbs && breadcrumbs.length > 0 && (
         <nav className="mb-4" aria-label="Breadcrumb">
@@ -80,43 +77,6 @@ export default function PageHeader({ title, description, actions, breadcrumbs }:
           )}
         </div>
         <div className="ml-4 flex shrink-0 items-center gap-x-4">
-          {/* Theme Switch */}
-          <ThemeSwitch variant="buttons" size="sm" />
-          
-          {/* User Info */}
-          {user ? (
-            <div className="flex items-center gap-3">
-              {user.picture && (
-                <img
-                  src={user.picture}
-                  alt={user.name || user.email || "User avatar"}
-                  className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-700"
-                />
-              )}
-              <div className="flex flex-col text-sm text-gray-700 dark:text-gray-200">
-                <span className="font-medium">{user.name}</span>
-                {user.email && (
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {user.email}
-                  </span>
-                )}
-              </div>
-              <a
-                href="/api/auth/logout"
-                className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors"
-              >
-                Logout
-              </a>
-            </div>
-          ) : (
-            <a
-              href="/api/auth/login"
-              className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors"
-            >
-              Login
-            </a>
-          )}
-          
           {/* Custom Actions */}
           {actions}
         </div>
