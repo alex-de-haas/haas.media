@@ -28,14 +28,6 @@ Get list of files and directories in a path.
 
 **Response:** Array of `MediaFileInfo` objects
 
-### GET /api/files/info
-Get detailed information about a specific file or directory.
-
-**Query Parameters:**
-- `path` (required): Relative path to the file or directory
-
-**Response:** `MediaFileInfo` object
-
 ### POST /api/files/copy
 Copy a file from source to destination.
 
@@ -116,11 +108,6 @@ GET /api/files
 ### List files in subdirectory
 ```http
 GET /api/files?path=subfolder
-```
-
-### Get file information
-```http
-GET /api/files/info?path=video.mp4
 ```
 
 ### Copy a file

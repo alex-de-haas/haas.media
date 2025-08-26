@@ -26,6 +26,3 @@
 ### SignalR
 
 - `hub/encodings` - SignalR hub for encoding updates
-
-## Files Management Feature
-

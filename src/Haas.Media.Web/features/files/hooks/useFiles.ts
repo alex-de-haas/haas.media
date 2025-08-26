@@ -175,26 +175,6 @@ export function useFiles(initialPath?: string) {
     }
   };
 
-  const getFileInfo = async (path: string): Promise<FileItem | null> => {
-    try {
-      const token = await getValidToken();
-      const headers = new Headers();
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
-      const url = new URL(`${downloaderApi}/api/files/info`);
-      url.searchParams.set("path", path);
-
-      const response = await fetch(url.toString(), { headers });
-      if (response.ok) {
-        return await response.json();
-      }
-      return null;
-    } catch (error) {
-      console.error("Failed to get file info:", error);
-      return null;
-    }
-  };
-
   return {
     files,
     currentPath,
@@ -206,7 +186,6 @@ export function useFiles(initialPath?: string) {
     deleteFile,
     deleteDirectory,
     createDirectory,
-    getFileInfo,
     refresh: () => fetchFiles(currentPath),
   };
 }

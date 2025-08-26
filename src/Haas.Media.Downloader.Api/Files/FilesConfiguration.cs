@@ -7,6 +7,7 @@ public static class FilesConfiguration
         // Register FilesService and expose as IFilesApi
         builder.Services.AddSingleton<FilesService>();
         builder.Services.AddSingleton<IFilesApi>(sp => sp.GetRequiredService<FilesService>());
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<FilesService>());
 
         return builder;
     }
@@ -15,24 +16,13 @@ public static class FilesConfiguration
     {
         app.MapGet(
                 "api/files",
-                async (string? path, IFilesApi filesApi) =>
+                (string? path, IFilesApi filesApi) =>
                 {
-                    var files = await filesApi.GetFilesAsync(path);
+                    var files = filesApi.GetFiles(path);
                     return Results.Ok(files);
                 }
             )
             .WithName("GetFiles")
-            .RequireAuthorization();
-
-        app.MapGet(
-                "api/files/info",
-                async (string path, IFilesApi filesApi) =>
-                {
-                    var fileInfo = await filesApi.GetFileInfoAsync(path);
-                    return Results.Ok(fileInfo);
-                }
-            )
-            .WithName("GetFileInfo")
             .RequireAuthorization();
 
         app.MapPost(
@@ -48,9 +38,9 @@ public static class FilesConfiguration
 
         app.MapPost(
                 "api/files/move",
-                async (MoveFileRequest request, IFilesApi filesApi) =>
+                (MoveFileRequest request, IFilesApi filesApi) =>
                 {
-                    await filesApi.MoveFileAsync(request.SourcePath, request.DestinationPath);
+                    filesApi.MoveFile(request.SourcePath, request.DestinationPath);
                     return Results.Ok();
                 }
             )
@@ -59,9 +49,9 @@ public static class FilesConfiguration
 
         app.MapDelete(
                 "api/files",
-                async (string path, IFilesApi filesApi) =>
+                (string path, IFilesApi filesApi) =>
                 {
-                    await filesApi.DeleteFileAsync(path);
+                    filesApi.DeleteFile(path);
                     return Results.Ok();
                 }
             )
@@ -70,9 +60,9 @@ public static class FilesConfiguration
 
         app.MapDelete(
                 "api/files/directory",
-                async (string path, IFilesApi filesApi) =>
+                (string path, IFilesApi filesApi) =>
                 {
-                    await filesApi.DeleteDirectoryAsync(path);
+                    filesApi.DeleteDirectory(path);
                     return Results.Ok();
                 }
             )
@@ -81,9 +71,9 @@ public static class FilesConfiguration
 
         app.MapPost(
                 "api/files/directory",
-                async (CreateDirectoryRequest request, IFilesApi filesApi) =>
+                (CreateDirectoryRequest request, IFilesApi filesApi) =>
                 {
-                    await filesApi.CreateDirectoryAsync(request.Path);
+                    filesApi.CreateDirectory(request.Path);
                     return Results.Ok();
                 }
             )

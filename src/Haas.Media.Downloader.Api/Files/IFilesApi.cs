@@ -4,11 +4,11 @@ namespace Haas.Media.Downloader.Api.Files;
 
 public interface IFilesApi
 {
-    Task<FileItem[]> GetFilesAsync(string? path = null);
-    Task<FileItem> GetFileInfoAsync(string relativePath);
+    FileItem[] GetFiles(string? path = null);
     Task CopyFileAsync(string sourcePath, string destinationPath);
-    Task MoveFileAsync(string sourcePath, string destinationPath);
-    Task DeleteFileAsync(string relativePath);
-    Task DeleteDirectoryAsync(string relativePath);
-    Task CreateDirectoryAsync(string relativePath);
+    void MoveFile(string sourcePath, string destinationPath);
+    void RenameFile(string relativePath, string newFileName);
+    void DeleteFile(string relativePath);
+    void CreateDirectory(string relativePath);
+    void DeleteDirectory(string relativePath);
 }
