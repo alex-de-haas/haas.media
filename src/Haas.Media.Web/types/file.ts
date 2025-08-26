@@ -22,3 +22,23 @@ export interface MoveFileRequest {
 export interface CreateDirectoryRequest {
   path: string;
 }
+
+export interface CopyOperationInfo {
+  id: string;
+  sourcePath: string;
+  destinationPath: string;
+  totalBytes: number;
+  copiedBytes: number;
+  progress: number;
+  state: CopyOperationState;
+  startTime: string;
+  completedTime?: string;
+  errorMessage?: string;
+}
+
+export enum CopyOperationState {
+  Running = 0,
+  Completed = 1,
+  Failed = 2,
+  Cancelled = 3,
+}

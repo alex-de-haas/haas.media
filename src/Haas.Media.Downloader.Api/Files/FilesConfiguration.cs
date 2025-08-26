@@ -14,6 +14,9 @@ public static class FilesConfiguration
 
     public static WebApplication UseFiles(this WebApplication app)
     {
+        // Map FileHub
+        app.MapHub<FileHub>("/hub/files");
+
         app.MapGet(
                 "api/files",
                 (string? path, IFilesApi filesApi) =>
@@ -25,15 +28,37 @@ public static class FilesConfiguration
             .WithName("GetFiles")
             .RequireAuthorization();
 
+        app.MapGet(
+                "api/files/copy-operations",
+                (IFilesApi filesApi) =>
+                {
+                    var operations = filesApi.GetCopyOperations();
+                    return Results.Ok(operations);
+                }
+            )
+            .WithName("GetCopyOperations")
+            .RequireAuthorization();
+
         app.MapPost(
                 "api/files/copy",
                 async (CopyFileRequest request, IFilesApi filesApi) =>
                 {
-                    await filesApi.CopyFileAsync(request.SourcePath, request.DestinationPath);
-                    return Results.Ok();
+                    var operationId = await filesApi.StartCopyFileAsync(request.SourcePath, request.DestinationPath);
+                    return Results.Ok(new { OperationId = operationId });
                 }
             )
-            .WithName("CopyFile")
+            .WithName("StartCopyFile")
+            .RequireAuthorization();
+
+        app.MapDelete(
+                "api/files/copy-operations/{operationId}",
+                async (string operationId, IFilesApi filesApi) =>
+                {
+                    var cancelled = await filesApi.CancelCopyOperationAsync(operationId);
+                    return cancelled ? Results.Ok() : Results.NotFound();
+                }
+            )
+            .WithName("CancelCopyOperation")
             .RequireAuthorization();
 
         app.MapPost(

@@ -28,7 +28,7 @@ function FileActions({ item, onDelete, onCopy, onMove }: FileActionsProps) {
     <div className="relative">
       <button
         onClick={() => setShowActions(!showActions)}
-        className="p-1 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+        className="p-1 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded dark:text-gray-400 dark:hover:text-gray-300"
         aria-label="File actions"
       >
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -37,14 +37,14 @@ function FileActions({ item, onDelete, onCopy, onMove }: FileActionsProps) {
       </button>
       
       {showActions && (
-        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10 dark:bg-gray-800 dark:border-gray-700">
           <div className="py-1">
             <button
               onClick={() => {
                 onCopy();
                 setShowActions(false);
               }}
-              className="block w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100"
+              className="block w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
             >
               Copy
             </button>
@@ -53,7 +53,7 @@ function FileActions({ item, onDelete, onCopy, onMove }: FileActionsProps) {
                 onMove();
                 setShowActions(false);
               }}
-              className="block w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100"
+              className="block w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
             >
               Move
             </button>
@@ -62,7 +62,7 @@ function FileActions({ item, onDelete, onCopy, onMove }: FileActionsProps) {
                 onDelete();
                 setShowActions(false);
               }}
-              className="block w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-50"
+              className="block w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
             >
               Delete
             </button>
@@ -135,28 +135,28 @@ export default function FileList({ files, currentPath, onNavigate, onDelete, onC
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="text-gray-500">Loading files...</div>
+        <div className="text-gray-500 dark:text-gray-400">Loading files...</div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+    <div className="bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
       {/* Breadcrumb */}
-      <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+      <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 rounded-t-lg dark:border-gray-700 dark:bg-gray-900">
         <div className="flex items-center space-x-2 text-sm">
           <button
             onClick={() => onNavigate("")}
-            className="text-blue-600 hover:text-blue-800 font-medium"
+            className="text-blue-600 hover:text-blue-800 font-medium dark:text-blue-400 dark:hover:text-blue-300"
           >
             Files
           </button>
           {pathParts.map((part, index) => (
             <div key={index} className="flex items-center space-x-2">
-              <span className="text-gray-400">/</span>
+              <span className="text-gray-400 dark:text-gray-600">/</span>
               <button
                 onClick={() => onNavigate(pathParts.slice(0, index + 1).join('/'))}
-                className="text-blue-600 hover:text-blue-800"
+                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
               >
                 {part}
               </button>
@@ -166,13 +166,13 @@ export default function FileList({ files, currentPath, onNavigate, onDelete, onC
       </div>
 
       {/* File listing */}
-      <div className="divide-y divide-gray-200">
+      <div className="divide-y divide-gray-200 dark:divide-gray-700">
         {/* Back button */}
         {currentPath && (
-          <div className="px-4 py-3 hover:bg-gray-50">
+          <div className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
             <button
               onClick={navigateUp}
-              className="flex items-center space-x-3 text-sm text-gray-600 hover:text-gray-900"
+              className="flex items-center space-x-3 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -184,14 +184,14 @@ export default function FileList({ files, currentPath, onNavigate, onDelete, onC
 
         {/* Files and directories */}
         {files.length === 0 ? (
-          <div className="px-4 py-8 text-center text-gray-500">
+          <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
             This directory is empty
           </div>
         ) : (
           files.map((item) => (
             <div
               key={item.relativePath}
-              className="px-4 py-3 hover:bg-gray-50 flex items-center justify-between"
+              className="px-4 py-3 hover:bg-gray-50 flex items-center justify-between dark:hover:bg-gray-700"
             >
               <div
                 className={`flex items-center space-x-3 flex-1 min-w-0 ${
@@ -201,10 +201,10 @@ export default function FileList({ files, currentPath, onNavigate, onDelete, onC
               >
                 <FileIcon item={item} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate">
+                  <div className="text-sm font-medium text-gray-900 truncate dark:text-gray-100">
                     {item.name}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-gray-500 mt-1 dark:text-gray-400">
                     {item.isDirectory ? (
                       'Directory'
                     ) : (

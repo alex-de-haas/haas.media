@@ -1,15 +1,65 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import type { FileItem, CopyFileRequest, MoveFileRequest, CreateDirectoryRequest } from "@/types/file";
+import { useState, useEffect, useRef } from "react";
+import * as signalR from "@microsoft/signalr";
+import type { FileItem, CopyFileRequest, MoveFileRequest, CreateDirectoryRequest, CopyOperationInfo } from "@/types/file";
 import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
 
 export function useFiles(initialPath?: string) {
   const [files, setFiles] = useState<FileItem[]>([]);
+  const [copyOperations, setCopyOperations] = useState<CopyOperationInfo[]>([]);
   const [currentPath, setCurrentPath] = useState<string>(initialPath || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const connectionRef = useRef<signalR.HubConnection | null>(null);
+
+  // Initialize SignalR connection
+  useEffect(() => {
+    const initializeConnection = async () => {
+      try {
+        const token = await getValidToken();
+        
+        const connection = new signalR.HubConnectionBuilder()
+          .withUrl(`${downloaderApi}/hub/files`, {
+            accessTokenFactory: () => token || "",
+          })
+          .withAutomaticReconnect()
+          .build();
+
+        connection.on("CopyOperationUpdated", (operation: CopyOperationInfo) => {
+          setCopyOperations(prev => {
+            const existingIndex = prev.findIndex(op => op.id === operation.id);
+            if (existingIndex >= 0) {
+              const updated = [...prev];
+              updated[existingIndex] = operation;
+              return updated;
+            } else {
+              return [...prev, operation];
+            }
+          });
+        });
+
+        connection.on("CopyOperationDeleted", (operationId: string) => {
+          setCopyOperations(prev => prev.filter(op => op.id !== operationId));
+        });
+
+        await connection.start();
+        connectionRef.current = connection;
+        
+        // Fetch initial copy operations
+        await fetchCopyOperations();
+      } catch (err) {
+        console.error("SignalR connection failed:", err);
+      }
+    };
+
+    initializeConnection();
+
+    return () => {
+      connectionRef.current?.stop();
+    };
+  }, []);
 
   const fetchFiles = async (path?: string) => {
     setLoading(true);
@@ -37,6 +87,22 @@ export function useFiles(initialPath?: string) {
     }
   };
 
+  const fetchCopyOperations = async () => {
+    try {
+      const token = await getValidToken();
+      const headers = new Headers();
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+      
+      const response = await fetch(`${downloaderApi}/api/files/copy-operations`, { headers });
+      if (response.ok) {
+        const operations = await response.json();
+        setCopyOperations(operations);
+      }
+    } catch (err) {
+      console.error("Failed to fetch copy operations:", err);
+    }
+  };
+
   useEffect(() => {
     fetchFiles(currentPath);
   }, [currentPath]);
@@ -60,11 +126,32 @@ export function useFiles(initialPath?: string) {
       });
 
       if (response.ok) {
-        await fetchFiles(currentPath); // Refresh the file list
-        return { success: true, message: "File copied successfully" };
+        const result = await response.json();
+        return { success: true, message: `Copy operation started with ID: ${result.operationId}` };
       } else {
         const errorText = await response.text();
         return { success: false, message: errorText || "Copy failed" };
+      }
+    } catch (error) {
+      return { success: false, message: "Network error occurred" };
+    }
+  };
+
+  const cancelCopyOperation = async (operationId: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const token = await getValidToken();
+      const headers = new Headers();
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+
+      const response = await fetch(`${downloaderApi}/api/files/copy-operations/${operationId}`, {
+        method: "DELETE",
+        headers,
+      });
+
+      if (response.ok) {
+        return { success: true, message: "Copy operation cancelled" };
+      } else {
+        return { success: false, message: "Failed to cancel operation" };
       }
     } catch (error) {
       return { success: false, message: "Network error occurred" };
@@ -177,11 +264,13 @@ export function useFiles(initialPath?: string) {
 
   return {
     files,
+    copyOperations,
     currentPath,
     loading,
     error,
     navigateToPath,
     copyFile,
+    cancelCopyOperation,
     moveFile,
     deleteFile,
     deleteDirectory,

@@ -4,17 +4,20 @@ import { useState } from "react";
 import { useFiles } from "@/features/files";
 import FileList from "@/features/files/components/file-list";
 import FileActionsModal from "@/features/files/components/file-actions-modal";
+import CopyOperationsList from "@/features/files/components/copy-operations-list";
 import type { FileItem } from "@/types/file";
 import { PageHeader } from "@/components/layout";
 
 export default function FilesPage() {
   const {
     files,
+    copyOperations,
     currentPath,
     loading,
     error,
     navigateToPath,
     copyFile,
+    cancelCopyOperation,
     moveFile,
     deleteFile,
     deleteDirectory,
@@ -88,7 +91,7 @@ export default function FilesPage() {
         actions={
           <button
             onClick={() => openModal("create-directory")}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-offset-gray-950"
           >
             Create Directory
           </button>
@@ -100,15 +103,15 @@ export default function FilesPage() {
         <div
           className={`mb-6 p-4 rounded-md ${
             notification.type === "success"
-              ? "bg-green-50 border border-green-200 text-green-800"
-              : "bg-red-50 border border-red-200 text-red-800"
+              ? "bg-green-50 border border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300"
+              : "bg-red-50 border border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300"
           }`}
         >
           <div className="flex">
             <div className="flex-shrink-0">
               {notification.type === "success" ? (
                 <svg
-                  className="w-5 h-5 text-green-400"
+                  className="w-5 h-5 text-green-400 dark:text-green-300"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -120,7 +123,7 @@ export default function FilesPage() {
                 </svg>
               ) : (
                 <svg
-                  className="w-5 h-5 text-red-400"
+                  className="w-5 h-5 text-red-400 dark:text-red-300"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -138,7 +141,7 @@ export default function FilesPage() {
             <div className="ml-auto pl-3">
               <button
                 onClick={() => setNotification(null)}
-                className="inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                className="inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 dark:text-gray-500 dark:hover:text-gray-300 dark:focus:ring-offset-gray-950"
               >
                 <span className="sr-only">Close</span>
                 <svg
@@ -196,6 +199,16 @@ export default function FilesPage() {
         onCopy={(item) => openModal("copy", item)}
         onMove={(item) => openModal("move", item)}
         loading={loading}
+      />
+
+      {/* Copy operations list */}
+      <CopyOperationsList
+        operations={copyOperations}
+        onCancel={async (operationId) => {
+          const result = await cancelCopyOperation(operationId);
+          showNotification(result.message, result.success ? "success" : "error");
+          return result;
+        }}
       />
 
       {/* Action modal */}
