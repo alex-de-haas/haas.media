@@ -7,6 +7,7 @@ namespace Haas.Media.Downloader.Api.Encodings;
 
 public class EncodingService : IEncodingApi, IHostedService, IDisposable
 {
+    private readonly string _dataPath;
     private readonly string _downloadsPath;
     private readonly string _outputPath;
     private readonly HashSet<string> _allowedExtensions = InternalConstants.MediaExtensions;
@@ -16,16 +17,24 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
     private bool _disposed = false;
 
     public EncodingService(
+        IConfiguration configuration,
         IHubContext<EncodingHub> hubContext,
         IHostApplicationLifetime applicationLifetime
     )
     {
-        _hubContext = hubContext;
-        _applicationLifetime = applicationLifetime;
-        _downloadsPath = Path.Combine(Environment.CurrentDirectory, "data", "downloads");
-        _outputPath = Path.Combine(Environment.CurrentDirectory, "data", "output");
+        _dataPath =
+            configuration["DATA_DIRECTORY"]
+            ?? throw new ArgumentException("DATA_DIRECTORY configuration is required.");
+
+        _downloadsPath = Path.Combine(_dataPath, "Downloads");
+        _outputPath = Path.Combine(_dataPath, "output");
+
+        // Ensure directories exist
         Directory.CreateDirectory(_downloadsPath);
         Directory.CreateDirectory(_outputPath);
+
+        _hubContext = hubContext;
+        _applicationLifetime = applicationLifetime;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)

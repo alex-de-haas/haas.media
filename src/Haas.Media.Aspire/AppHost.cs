@@ -8,6 +8,7 @@ var downloaderApi = builder
     .WithHttpEndpoint(port: 8000)
     .WithEnvironment("AUTH0_DOMAIN", env["AUTH0_DOMAIN"])
     .WithEnvironment("AUTH0_AUDIENCE", env["AUTH0_AUDIENCE"])
+    .WithEnvironment("DATA_DIRECTORY", env["DATA_DIRECTORY"])
     .WithEnvironment(
         "FFMPEG_BINARY",
         builder.ExecutionContext.IsPublishMode ? "/usr/bin" : env["FFMPEG_BINARY"]

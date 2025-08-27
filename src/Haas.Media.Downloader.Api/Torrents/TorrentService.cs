@@ -7,16 +7,27 @@ namespace Haas.Media.Downloader.Api.Torrents;
 public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
 {
     private ClientEngine? _engine;
+    private readonly string _dataPath;
     private readonly string _downloadsPath;
     private readonly string _torrentsPath;
+    private readonly string _cachePath;
     private readonly TorrentSettings _torrentSettings;
     private readonly IHubContext<TorrentHub> _hubContext;
     private Timer? _broadcastTimer;
 
-    public TorrentService(IHubContext<TorrentHub> hubContext, ILogger<TorrentService> logger)
+    public TorrentService(
+        IConfiguration configuration,
+        IHubContext<TorrentHub> hubContext,
+        ILogger<TorrentService> logger
+    )
     {
-        _downloadsPath = Path.Combine(Environment.CurrentDirectory, "data", "downloads");
-        _torrentsPath = Path.Combine(Environment.CurrentDirectory, "data", "torrents");
+        _dataPath =
+            configuration["DATA_DIRECTORY"]
+            ?? throw new ArgumentException("DATA_DIRECTORY configuration is required.");
+
+        _downloadsPath = Path.Combine(_dataPath, "Downloads");
+        _torrentsPath = Path.Combine(_dataPath, ".torrents");
+        _cachePath = Path.Combine(_dataPath, ".cache");
 
         logger.LogInformation(
             "TorrentService initialized with downloads path: {DownloadsPath}, torrents path: {TorrentsPath}",
@@ -265,7 +276,8 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         // Initialize engine and start broadcast timer
-        _engine ??= new ClientEngine();
+        var engineSettings = new EngineSettingsBuilder { CacheDirectory = _cachePath }.ToSettings();
+        _engine ??= new ClientEngine(engineSettings);
         _broadcastTimer ??= new Timer(
             async _ =>
             {

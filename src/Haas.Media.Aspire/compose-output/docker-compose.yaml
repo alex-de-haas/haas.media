@@ -1,0 +1,50 @@
+services:
+  haas-media-dashboard:
+    image: "mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest"
+    expose:
+      - "18888"
+      - "18889"
+    networks:
+      - "aspire"
+    restart: "always"
+  downloader-api:
+    image: "${DOWNLOADER_API_IMAGE}"
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      HTTP_PORTS: "8000"
+      AUTH0_DOMAIN: "dev-o1l0rjv003cd8mmq.us.auth0.com"
+      AUTH0_AUDIENCE: "https://dev-o1l0rjv003cd8mmq.us.auth0.com/api/v2/"
+      FFMPEG_BINARY: "/usr/bin"
+      AllowedCorsOrigins__0: "http://web:3000"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://haas-media-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "downloader-api"
+    ports:
+      - "8000:8000"
+    networks:
+      - "aspire"
+  web:
+    image: "${WEB_IMAGE}"
+    environment:
+      NODE_ENV: "production"
+      NEXT_PUBLIC_API_DOWNLOADER_URL: "http://downloader-api:8000"
+      AUTH0_DOMAIN: "dev-o1l0rjv003cd8mmq.us.auth0.com"
+      AUTH0_AUDIENCE: "https://dev-o1l0rjv003cd8mmq.us.auth0.com/api/v2/"
+      AUTH0_SECRET: "d638b4419ccc1c03bff4df5dfd4175c66c375d7a6dcd17179cbce3cc560d2054"
+      AUTH0_BASE_URL: "http://localhost:3000"
+      AUTH0_CLIENT_ID: "66tJK0DLub6MlvFMsRSvpR6UrLFU63G5"
+      AUTH0_CLIENT_SECRET: "3fagPcBKoH_6VCRikbvPbjgS9j3p7ZwMSZgco4GNqHgAApAEOhQ2JbF0ut8TLqJY"
+      AUTH0_ISSUER_BASE_URL: "https://dev-o1l0rjv003cd8mmq.us.auth0.com"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://haas-media-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "web"
+    ports:
+      - "3000:3000"
+    networks:
+      - "aspire"
+networks:
+  aspire:
+    driver: "bridge"

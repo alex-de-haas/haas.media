@@ -5,7 +5,7 @@ namespace Haas.Media.Downloader.Api.Files;
 
 public class FilesService : IFilesApi, IHostedService
 {
-    private readonly string _rootPath;
+    private readonly string _dataPath;
     private readonly ILogger<FilesService> _logger;
     private readonly IHubContext<FileHub> _hubContext;
     private readonly ConcurrentDictionary<string, CopyOperationInfo> _copyOperations;
@@ -18,24 +18,24 @@ public class FilesService : IFilesApi, IHostedService
         IHubContext<FileHub> hubContext
     )
     {
+        _dataPath =
+            configuration["DATA_DIRECTORY"]
+            ?? throw new ArgumentException("DATA_DIRECTORY configuration is required.");
+
         _logger = logger;
         _hubContext = hubContext;
         _copyOperations = new ConcurrentDictionary<string, CopyOperationInfo>();
         _cancellationTokens = new ConcurrentDictionary<string, CancellationTokenSource>();
 
-        // Get root directory from configuration, default to data/files
-        _rootPath =
-            configuration["FILES_ROOT_PATH"] ?? Path.Combine(Environment.CurrentDirectory, "data");
-
         // Ensure root directory exists
-        Directory.CreateDirectory(_rootPath);
+        Directory.CreateDirectory(_dataPath);
 
-        _logger.LogInformation("Files service initialized with root path: {RootPath}", _rootPath);
+        _logger.LogInformation("Files service initialized with root path: {RootPath}", _dataPath);
     }
 
     public FileItem[] GetFiles(string? path = null)
     {
-        var targetPath = string.IsNullOrEmpty(path) ? _rootPath : Path.Combine(_rootPath, path);
+        var targetPath = string.IsNullOrEmpty(path) ? _dataPath : Path.Combine(_dataPath, path);
 
         if (!Directory.Exists(targetPath))
         {
@@ -45,7 +45,7 @@ public class FilesService : IFilesApi, IHostedService
 
         // Ensure we're not accessing outside the root path
         var fullTargetPath = Path.GetFullPath(targetPath);
-        var fullRootPath = Path.GetFullPath(_rootPath);
+        var fullRootPath = Path.GetFullPath(_dataPath);
 
         if (!fullTargetPath.StartsWith(fullRootPath, StringComparison.OrdinalIgnoreCase))
         {
@@ -65,7 +65,7 @@ public class FilesService : IFilesApi, IHostedService
                 continue; // Skip hidden directories
             }
 
-            var relativePath = Path.GetRelativePath(_rootPath, directory);
+            var relativePath = Path.GetRelativePath(_dataPath, directory);
             files.Add(
                 new FileItem(dirInfo.Name, null, relativePath, null, dirInfo.LastWriteTimeUtc, true)
             );
@@ -80,7 +80,7 @@ public class FilesService : IFilesApi, IHostedService
                 continue; // Skip hidden files
             }
 
-            var relativePath = Path.GetRelativePath(_rootPath, file);
+            var relativePath = Path.GetRelativePath(_dataPath, file);
 
             files.Add(
                 new FileItem(
@@ -747,9 +747,9 @@ public class FilesService : IFilesApi, IHostedService
             throw new ArgumentException("Invalid path", nameof(relativePath));
         }
 
-        var fullPath = Path.Combine(_rootPath, relativePath);
+        var fullPath = Path.Combine(_dataPath, relativePath);
         var resolvedPath = Path.GetFullPath(fullPath);
-        var rootPath = Path.GetFullPath(_rootPath);
+        var rootPath = Path.GetFullPath(_dataPath);
 
         // Ensure the resolved path is within the root directory
         if (!resolvedPath.StartsWith(rootPath, StringComparison.OrdinalIgnoreCase))

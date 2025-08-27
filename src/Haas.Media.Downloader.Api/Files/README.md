@@ -4,13 +4,7 @@ This module provides file management capabilities for the Haas Media application
 
 ## Configuration
 
-The Files API uses a configurable root directory path that can be set via the `FILES_ROOT_PATH` configuration key. By default, it uses `data/files` relative to the application's current directory.
-
-```json
-{
-  "FILES_ROOT_PATH": "data/files"
-}
-```
+The Files API uses a configurable root directory path that can be set via the `DATA_DIRECTORY` configuration key.
 
 ## Security
 
