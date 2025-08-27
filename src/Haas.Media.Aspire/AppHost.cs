@@ -20,7 +20,7 @@ var downloaderApi = builder
     .WithOtlpExporter()
     .PublishAsDockerFile(config =>
     {
-        config.WithDockerfile("../", dockerfilePath: "Haas.Media.Downloader.Api/Dockerfile");
+        config.WithDockerfile("..", dockerfilePath: "Haas.Media.Downloader.Api/Dockerfile");
     });
 
 var web = builder
