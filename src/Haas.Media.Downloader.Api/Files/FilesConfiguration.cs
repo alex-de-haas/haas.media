@@ -43,11 +43,11 @@ public static class FilesConfiguration
                 "api/files/copy",
                 async (CopyFileRequest request, IFilesApi filesApi) =>
                 {
-                    var operationId = await filesApi.StartCopyFileAsync(request.SourcePath, request.DestinationPath);
+                    var operationId = await filesApi.StartCopyAsync(request.SourcePath, request.DestinationPath);
                     return Results.Ok(new { OperationId = operationId });
                 }
             )
-            .WithName("StartCopyFile")
+            .WithName("StartCopy")
             .RequireAuthorization();
 
         app.MapDelete(
@@ -65,33 +65,22 @@ public static class FilesConfiguration
                 "api/files/move",
                 (MoveFileRequest request, IFilesApi filesApi) =>
                 {
-                    filesApi.MoveFile(request.SourcePath, request.DestinationPath);
+                    filesApi.Move(request.SourcePath, request.DestinationPath);
                     return Results.Ok();
                 }
             )
-            .WithName("MoveFile")
+            .WithName("Move")
             .RequireAuthorization();
 
         app.MapDelete(
                 "api/files",
                 (string path, IFilesApi filesApi) =>
                 {
-                    filesApi.DeleteFile(path);
+                    filesApi.Delete(path);
                     return Results.Ok();
                 }
             )
-            .WithName("DeleteFile")
-            .RequireAuthorization();
-
-        app.MapDelete(
-                "api/files/directory",
-                (string path, IFilesApi filesApi) =>
-                {
-                    filesApi.DeleteDirectory(path);
-                    return Results.Ok();
-                }
-            )
-            .WithName("DeleteDirectory")
+            .WithName("Delete")
             .RequireAuthorization();
 
         app.MapPost(

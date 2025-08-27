@@ -17,11 +17,10 @@ export default function FilesPage() {
     loading,
     error,
     navigateToPath,
-    copyFile,
+    copy,
     cancelCopyOperation,
-    moveFile,
-    deleteFile,
-    deleteDirectory,
+    move,
+    deleteItem,
     createDirectory,
   } = useFiles();
 
@@ -53,17 +52,13 @@ export default function FilesPage() {
 
     switch (action) {
       case "copy":
-        result = await copyFile(data);
+        result = await copy(data);
         break;
       case "move":
-        result = await moveFile(data);
+        result = await move(data);
         break;
       case "delete":
-        if (item?.isDirectory) {
-          result = await deleteDirectory(data);
-        } else {
-          result = await deleteFile(data);
-        }
+        result = await deleteItem(data);
         break;
       case "create-directory":
         result = await createDirectory(data);

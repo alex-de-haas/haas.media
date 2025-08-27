@@ -84,26 +84,42 @@ public class FilesService : IFilesApi, IHostedService
         return files.OrderBy(f => f.IsDirectory ? 0 : 1).ThenBy(f => f.Name).ToArray();
     }
 
-    public async Task<string> StartCopyFileAsync(string sourcePath, string destinationPath)
+    public async Task<string> StartCopyAsync(string sourcePath, string destinationPath)
     {
         var sourceFullPath = GetValidatedFullPath(sourcePath);
         var destinationFullPath = GetValidatedFullPath(destinationPath);
 
-        if (!File.Exists(sourceFullPath))
+        bool isDirectory = Directory.Exists(sourceFullPath);
+        bool isFile = File.Exists(sourceFullPath);
+
+        if (!isDirectory && !isFile)
         {
-            throw new FileNotFoundException($"Source file not found: {sourcePath}");
+            throw new FileNotFoundException($"Source not found: {sourcePath}");
         }
 
         // Create destination directory if it doesn't exist
-        var destinationDir = Path.GetDirectoryName(destinationFullPath);
+        var destinationDir = isDirectory ? destinationFullPath : Path.GetDirectoryName(destinationFullPath);
         if (!string.IsNullOrEmpty(destinationDir))
         {
             Directory.CreateDirectory(destinationDir);
         }
 
         var operationId = Guid.NewGuid().ToString();
-        var fileInfo = new FileInfo(sourceFullPath);
-        var totalBytes = fileInfo.Length;
+        long totalBytes = 0;
+        int totalFiles = 0;
+
+        if (isDirectory)
+        {
+            var dirInfo = CalculateDirectorySize(sourceFullPath);
+            totalBytes = dirInfo.TotalBytes;
+            totalFiles = dirInfo.TotalFiles;
+        }
+        else
+        {
+            var fileInfo = new FileInfo(sourceFullPath);
+            totalBytes = fileInfo.Length;
+            totalFiles = 1;
+        }
         
         var copyOperation = new CopyOperationInfo(
             operationId,
@@ -113,7 +129,10 @@ public class FilesService : IFilesApi, IHostedService
             0,
             0.0,
             CopyOperationState.Running,
-            DateTime.UtcNow
+            DateTime.UtcNow,
+            IsDirectory: isDirectory,
+            TotalFiles: totalFiles,
+            CopiedFiles: 0
         );
 
         _copyOperations.TryAdd(operationId, copyOperation);
@@ -121,7 +140,14 @@ public class FilesService : IFilesApi, IHostedService
         _cancellationTokens.TryAdd(operationId, cancellationTokenSource);
 
         // Start the copy operation in the background
-        _ = Task.Run(async () => await PerformCopyOperationAsync(operationId, sourceFullPath, destinationFullPath, totalBytes, cancellationTokenSource.Token));
+        if (isDirectory)
+        {
+            _ = Task.Run(async () => await PerformDirectoryCopyOperationAsync(operationId, sourceFullPath, destinationFullPath, cancellationTokenSource.Token));
+        }
+        else
+        {
+            _ = Task.Run(async () => await PerformFileCopyOperationAsync(operationId, sourceFullPath, destinationFullPath, totalBytes, cancellationTokenSource.Token));
+        }
 
         // Broadcast initial operation state
         await _hubContext.Clients.All.SendAsync("CopyOperationUpdated", copyOperation);
@@ -164,7 +190,7 @@ public class FilesService : IFilesApi, IHostedService
         return false;
     }
 
-    private async Task PerformCopyOperationAsync(string operationId, string sourceFullPath, string destinationFullPath, long totalBytes, CancellationToken cancellationToken)
+    private async Task PerformFileCopyOperationAsync(string operationId, string sourceFullPath, string destinationFullPath, long totalBytes, CancellationToken cancellationToken)
     {
         try
         {
@@ -187,7 +213,8 @@ public class FilesService : IFilesApi, IHostedService
                     var updatedOperation = currentOperation with 
                     { 
                         CopiedBytes = totalCopied, 
-                        Progress = progress 
+                        Progress = progress,
+                        CopiedFiles = totalCopied == totalBytes ? 1 : 0
                     };
                     _copyOperations.TryUpdate(operationId, updatedOperation, currentOperation);
                 }
@@ -201,6 +228,7 @@ public class FilesService : IFilesApi, IHostedService
                     State = CopyOperationState.Completed, 
                     Progress = 100.0,
                     CopiedBytes = totalBytes,
+                    CopiedFiles = 1,
                     CompletedTime = DateTime.UtcNow 
                 };
                 _copyOperations.TryUpdate(operationId, completedOperation, operation);
@@ -277,24 +305,36 @@ public class FilesService : IFilesApi, IHostedService
         }
     }
 
-    public void MoveFile(string sourcePath, string destinationPath)
+    public void Move(string sourcePath, string destinationPath)
     {
         var sourceFullPath = GetValidatedFullPath(sourcePath);
         var destinationFullPath = GetValidatedFullPath(destinationPath);
 
-        if (!File.Exists(sourceFullPath))
+        bool isDirectory = Directory.Exists(sourceFullPath);
+        bool isFile = File.Exists(sourceFullPath);
+
+        if (!isDirectory && !isFile)
         {
-            throw new FileNotFoundException($"Source file not found: {sourcePath}");
+            throw new FileNotFoundException($"Source not found: {sourcePath}");
         }
 
         // Create destination directory if it doesn't exist
-        var destinationDir = Path.GetDirectoryName(destinationFullPath);
+        var destinationDir = isDirectory ? Path.GetDirectoryName(destinationFullPath) : Path.GetDirectoryName(destinationFullPath);
         if (!string.IsNullOrEmpty(destinationDir))
         {
             Directory.CreateDirectory(destinationDir);
         }
 
-        File.Move(sourceFullPath, destinationFullPath, overwrite: false);
+        if (isDirectory)
+        {
+            Directory.Move(sourceFullPath, destinationFullPath);
+            _logger.LogInformation("Directory moved from {Source} to {Destination}", sourcePath, destinationPath);
+        }
+        else
+        {
+            File.Move(sourceFullPath, destinationFullPath, overwrite: false);
+            _logger.LogInformation("File moved from {Source} to {Destination}", sourcePath, destinationPath);
+        }
     }
 
     public void RenameFile(string relativePath, string newFileName)
@@ -316,17 +356,28 @@ public class FilesService : IFilesApi, IHostedService
         );
     }
 
-    public void DeleteFile(string relativePath)
+    public void Delete(string relativePath)
     {
         var fullPath = GetValidatedFullPath(relativePath);
 
-        if (!File.Exists(fullPath))
+        bool isDirectory = Directory.Exists(fullPath);
+        bool isFile = File.Exists(fullPath);
+
+        if (!isDirectory && !isFile)
         {
-            throw new FileNotFoundException($"File not found: {relativePath}");
+            throw new FileNotFoundException($"Path not found: {relativePath}");
         }
 
-        File.Delete(fullPath);
-        _logger.LogInformation("File deleted: {Path}", relativePath);
+        if (isDirectory)
+        {
+            Directory.Delete(fullPath, recursive: true);
+            _logger.LogInformation("Directory deleted: {Path}", relativePath);
+        }
+        else
+        {
+            File.Delete(fullPath);
+            _logger.LogInformation("File deleted: {Path}", relativePath);
+        }
     }
 
     public void CreateDirectory(string relativePath)
@@ -337,17 +388,143 @@ public class FilesService : IFilesApi, IHostedService
         _logger.LogInformation("Directory created: {Path}", relativePath);
     }
 
-    public void DeleteDirectory(string relativePath)
+    private (long TotalBytes, int TotalFiles) CalculateDirectorySize(string directoryPath)
     {
-        var fullPath = GetValidatedFullPath(relativePath);
+        long totalBytes = 0;
+        int totalFiles = 0;
 
-        if (!Directory.Exists(fullPath))
+        try
         {
-            throw new DirectoryNotFoundException($"Directory not found: {relativePath}");
+            var files = Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories);
+            foreach (var file in files)
+            {
+                var fileInfo = new FileInfo(file);
+                totalBytes += fileInfo.Length;
+                totalFiles++;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error calculating directory size for {DirectoryPath}", directoryPath);
         }
 
-        Directory.Delete(fullPath, recursive: true);
-        _logger.LogInformation("Directory deleted: {Path}", relativePath);
+        return (totalBytes, totalFiles);
+    }
+
+    private async Task PerformDirectoryCopyOperationAsync(string operationId, string sourceFullPath, string destinationFullPath, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var files = Directory.GetFiles(sourceFullPath, "*", SearchOption.AllDirectories);
+            long totalCopied = 0;
+            int filesCopied = 0;
+
+            if (_copyOperations.TryGetValue(operationId, out var initialOperation))
+            {
+                foreach (var sourceFile in files)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var relativePath = Path.GetRelativePath(sourceFullPath, sourceFile);
+                    var destinationFile = Path.Combine(destinationFullPath, relativePath);
+                    var destinationDir = Path.GetDirectoryName(destinationFile);
+
+                    if (!string.IsNullOrEmpty(destinationDir))
+                    {
+                        Directory.CreateDirectory(destinationDir);
+                    }
+
+                    var fileInfo = new FileInfo(sourceFile);
+                    long fileCopied = 0;
+
+                    using var sourceStream = new FileStream(sourceFile, FileMode.Open, FileAccess.Read);
+                    using var destinationStream = new FileStream(destinationFile, FileMode.CreateNew, FileAccess.Write);
+                    
+                    var buffer = new byte[81920]; // 80KB buffer
+                    int bytesRead;
+
+                    while ((bytesRead = await sourceStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
+                    {
+                        await destinationStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+                        fileCopied += bytesRead;
+                        totalCopied += bytesRead;
+
+                        var progress = initialOperation.TotalBytes > 0 ? (double)totalCopied / initialOperation.TotalBytes * 100.0 : 0.0;
+                        
+                        if (_copyOperations.TryGetValue(operationId, out var currentOperation))
+                        {
+                            var updatedOperation = currentOperation with 
+                            { 
+                                CopiedBytes = totalCopied, 
+                                Progress = progress,
+                                CopiedFiles = filesCopied
+                            };
+                            _copyOperations.TryUpdate(operationId, updatedOperation, currentOperation);
+                        }
+                    }
+
+                    filesCopied++;
+                }
+
+                // Mark as completed
+                if (_copyOperations.TryGetValue(operationId, out var operation))
+                {
+                    var completedOperation = operation with 
+                    { 
+                        State = CopyOperationState.Completed, 
+                        Progress = 100.0,
+                        CopiedBytes = totalCopied,
+                        CopiedFiles = filesCopied,
+                        CompletedTime = DateTime.UtcNow 
+                    };
+                    _copyOperations.TryUpdate(operationId, completedOperation, operation);
+                    await _hubContext.Clients.All.SendAsync("CopyOperationUpdated", completedOperation);
+                    
+                    _logger.LogInformation("Directory copy completed: {OperationId} from {Source} to {Destination}", 
+                        operationId, sourceFullPath, destinationFullPath);
+
+                    // Remove the completed operation after a short delay
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(3000);
+                        _copyOperations.TryRemove(operationId, out _);
+                        await _hubContext.Clients.All.SendAsync("CopyOperationDeleted", operationId);
+                    });
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Directory copy cancelled: {OperationId}", operationId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error copying directory: {OperationId} from {Source} to {Destination}", 
+                operationId, sourceFullPath, destinationFullPath);
+            
+            if (_copyOperations.TryGetValue(operationId, out var operation))
+            {
+                var failedOperation = operation with 
+                { 
+                    State = CopyOperationState.Failed, 
+                    CompletedTime = DateTime.UtcNow,
+                    ErrorMessage = ex.Message
+                };
+                _copyOperations.TryUpdate(operationId, failedOperation, operation);
+                await _hubContext.Clients.All.SendAsync("CopyOperationUpdated", failedOperation);
+
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(10000);
+                    _copyOperations.TryRemove(operationId, out _);
+                    await _hubContext.Clients.All.SendAsync("CopyOperationDeleted", operationId);
+                });
+            }
+        }
+        finally
+        {
+            _cancellationTokens.TryRemove(operationId, out _);
+        }
     }
 
     public Task StartAsync(CancellationToken cancellationToken)

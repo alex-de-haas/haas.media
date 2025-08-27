@@ -82,6 +82,7 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
               <div className="space-y-1">
                 <div className="text-sm text-gray-900 dark:text-gray-100">
                   <span className="font-medium">From:</span> {operation.sourcePath}
+                  {operation.isDirectory && <span className="ml-1 text-xs text-blue-600 dark:text-blue-400">(Directory)</span>}
                 </div>
                 <div className="text-sm text-gray-900 dark:text-gray-100">
                   <span className="font-medium">To:</span> {operation.destinationPath}
@@ -93,6 +94,11 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
                   <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
                     <span>
                       {formatSize(operation.copiedBytes)} / {formatSize(operation.totalBytes)}
+                      {operation.isDirectory && operation.totalFiles && (
+                        <span className="ml-2">
+                          ({operation.copiedFiles || 0} / {operation.totalFiles} files)
+                        </span>
+                      )}
                     </span>
                     <span>{operation.progress.toFixed(1)}%</span>
                   </div>
@@ -107,13 +113,20 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
 
               {operation.state === CopyOperationState.Completed && (
                 <div className="text-sm text-green-600 dark:text-green-400">
-                  ✓ Completed {formatSize(operation.totalBytes)} in{" "}
-                  {operation.completedTime &&
-                    Math.round(
-                      (new Date(operation.completedTime).getTime() -
-                        new Date(operation.startTime).getTime()) /
-                        1000
-                    )}s
+                  ✓ Completed {formatSize(operation.totalBytes)}
+                  {operation.isDirectory && operation.totalFiles && (
+                    <span> ({operation.totalFiles} files)</span>
+                  )}
+                  {operation.completedTime && (
+                    <span>
+                      {" "}in{" "}
+                      {Math.round(
+                        (new Date(operation.completedTime).getTime() -
+                          new Date(operation.startTime).getTime()) /
+                          1000
+                      )}s
+                    </span>
+                  )}
                 </div>
               )}
 

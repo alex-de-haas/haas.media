@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import * as signalR from "@microsoft/signalr";
-import type { FileItem, CopyFileRequest, MoveFileRequest, CreateDirectoryRequest, CopyOperationInfo } from "@/types/file";
+import type { FileItem, CopyRequest, MoveRequest, CreateDirectoryRequest, CopyOperationInfo } from "@/types/file";
 import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
 
@@ -111,7 +111,7 @@ export function useFiles(initialPath?: string) {
     setCurrentPath(path);
   };
 
-  const copyFile = async (request: CopyFileRequest): Promise<{ success: boolean; message: string }> => {
+  const copy = async (request: CopyRequest): Promise<{ success: boolean; message: string }> => {
     try {
       const token = await getValidToken();
       const headers = new Headers({
@@ -158,7 +158,7 @@ export function useFiles(initialPath?: string) {
     }
   };
 
-  const moveFile = async (request: MoveFileRequest): Promise<{ success: boolean; message: string }> => {
+  const move = async (request: MoveRequest): Promise<{ success: boolean; message: string }> => {
     try {
       const token = await getValidToken();
       const headers = new Headers({
@@ -184,7 +184,7 @@ export function useFiles(initialPath?: string) {
     }
   };
 
-  const deleteFile = async (path: string): Promise<{ success: boolean; message: string }> => {
+  const deleteItem = async (path: string): Promise<{ success: boolean; message: string }> => {
     try {
       const token = await getValidToken();
       const headers = new Headers();
@@ -200,33 +200,7 @@ export function useFiles(initialPath?: string) {
 
       if (response.ok) {
         await fetchFiles(currentPath); // Refresh the file list
-        return { success: true, message: "File deleted successfully" };
-      } else {
-        const errorText = await response.text();
-        return { success: false, message: errorText || "Delete failed" };
-      }
-    } catch (error) {
-      return { success: false, message: "Network error occurred" };
-    }
-  };
-
-  const deleteDirectory = async (path: string): Promise<{ success: boolean; message: string }> => {
-    try {
-      const token = await getValidToken();
-      const headers = new Headers();
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
-      const url = new URL(`${downloaderApi}/api/files/directory`);
-      url.searchParams.set("path", path);
-
-      const response = await fetch(url.toString(), {
-        method: "DELETE",
-        headers,
-      });
-
-      if (response.ok) {
-        await fetchFiles(currentPath); // Refresh the file list
-        return { success: true, message: "Directory deleted successfully" };
+        return { success: true, message: "Item deleted successfully" };
       } else {
         const errorText = await response.text();
         return { success: false, message: errorText || "Delete failed" };
@@ -269,12 +243,16 @@ export function useFiles(initialPath?: string) {
     loading,
     error,
     navigateToPath,
-    copyFile,
+    copy,
     cancelCopyOperation,
-    moveFile,
-    deleteFile,
-    deleteDirectory,
+    move,
+    deleteItem,
     createDirectory,
     refresh: () => fetchFiles(currentPath),
+    // Legacy aliases for backward compatibility
+    copyFile: copy,
+    moveFile: move,
+    deleteFile: deleteItem,
+    deleteDirectory: deleteItem,
   };
 }

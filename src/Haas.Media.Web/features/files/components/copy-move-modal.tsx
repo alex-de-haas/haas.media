@@ -182,7 +182,7 @@ export default function CopyMoveModal({
                       Select Current Directory
                     </button>
                   </div>
-                  <div className="border border-gray-200 rounded-lg overflow-hidden dark:border-gray-700" style={{ height: "300px" }}>
+                  <div style={{ height: "300px" }}>
                     <div className="overflow-y-auto h-full">
                       <FileList
                         files={files.filter(f => f.isDirectory)} // Only show directories

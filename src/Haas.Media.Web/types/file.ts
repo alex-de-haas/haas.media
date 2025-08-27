@@ -7,13 +7,13 @@ export interface FileItem {
   isDirectory: boolean;
 }
 
-export interface CopyFileRequest {
+export interface CopyRequest {
   sourcePath: string;
   destinationPath: string;
   overwrite?: boolean;
 }
 
-export interface MoveFileRequest {
+export interface MoveRequest {
   sourcePath: string;
   destinationPath: string;
   overwrite?: boolean;
@@ -34,6 +34,9 @@ export interface CopyOperationInfo {
   startTime: string;
   completedTime?: string;
   errorMessage?: string;
+  isDirectory?: boolean;
+  totalFiles?: number;
+  copiedFiles?: number;
 }
 
 export enum CopyOperationState {
@@ -42,3 +45,7 @@ export enum CopyOperationState {
   Failed = 2,
   Cancelled = 3,
 }
+
+// Legacy type aliases for backward compatibility
+export interface CopyFileRequest extends CopyRequest {}
+export interface MoveFileRequest extends MoveRequest {}

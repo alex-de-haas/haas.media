@@ -10,7 +10,10 @@ public record CopyOperationInfo(
     CopyOperationState State,
     DateTime StartTime,
     DateTime? CompletedTime = null,
-    string? ErrorMessage = null
+    string? ErrorMessage = null,
+    bool IsDirectory = false,
+    int TotalFiles = 0,
+    int CopiedFiles = 0
 );
 
 public enum CopyOperationState
