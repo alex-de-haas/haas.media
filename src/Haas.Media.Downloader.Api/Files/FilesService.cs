@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Haas.Media.Core.Helpers;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Haas.Media.Downloader.Api.Files;
@@ -67,7 +68,14 @@ public class FilesService : IFilesApi, IHostedService
 
             var relativePath = Path.GetRelativePath(_dataPath, directory);
             files.Add(
-                new FileItem(dirInfo.Name, null, relativePath, null, dirInfo.LastWriteTimeUtc, true)
+                new FileItem(
+                    dirInfo.Name,
+                    null,
+                    relativePath,
+                    null,
+                    dirInfo.LastWriteTimeUtc,
+                    FileItemType.Directory
+                )
             );
         }
 
@@ -89,12 +97,15 @@ public class FilesService : IFilesApi, IHostedService
                     relativePath,
                     fileInfo.Length,
                     fileInfo.LastWriteTimeUtc,
-                    false
+                    FileHelper.IsMediaFile(file) ? FileItemType.Media : FileItemType.Other
                 )
             );
         }
 
-        return files.OrderBy(f => f.IsDirectory ? 0 : 1).ThenBy(f => f.Name).ToArray();
+        return files
+            .OrderBy(f => f.Type == FileItemType.Directory ? 0 : 1)
+            .ThenBy(f => f.Name)
+            .ToArray();
     }
 
     public async Task<string> StartCopyAsync(string sourcePath, string destinationPath)

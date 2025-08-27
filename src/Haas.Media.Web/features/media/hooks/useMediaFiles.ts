@@ -5,13 +5,13 @@ import type { MediaFileInfo } from "@/types/media-file-info";
 import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
 
-export function useMediaFiles(hash?: string) {
+export function useMediaFiles(path?: string) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [mediaFiles, setMediaFiles] = React.useState<MediaFileInfo[] | null>(null);
 
   React.useEffect(() => {
-    if (!hash) return;
+    if (!path) return;
     const fetchInfo = async () => {
       setLoading(true);
       setError(null);
@@ -19,7 +19,9 @@ export function useMediaFiles(hash?: string) {
         const t = await getValidToken();
         const headers = new Headers();
         if (t) headers.set("Authorization", `Bearer ${t}`);
-        const res = await fetch(`${downloaderApi}/api/encodings/${hash}`, { headers });
+        const url = new URL(`${downloaderApi}/api/encodings/info`);
+        url.searchParams.set("path", path);
+        const res = await fetch(url.toString(), { headers });
         if (!res.ok) {
           const body = await res.json().catch(() => null);
           throw new Error(body?.error ?? res.statusText);
@@ -34,7 +36,7 @@ export function useMediaFiles(hash?: string) {
       }
     };
     fetchInfo();
-  }, [hash]);
+  }, [path]);
 
   return { mediaFiles, loading, error, setMediaFiles } as const;
 }

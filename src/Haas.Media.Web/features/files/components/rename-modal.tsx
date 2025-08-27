@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { FileItemType } from "@/types/file";
 import type { FileItem, RenameRequest } from "@/types/file";
 
 interface RenameModalProps {
@@ -61,7 +62,7 @@ export default function RenameModal({
         <form onSubmit={handleSubmit}>
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-              Rename {item.isDirectory ? 'Directory' : 'File'}
+              Rename {item.type === FileItemType.Directory ? 'Directory' : 'File'}
             </h3>
           </div>
           
@@ -76,7 +77,7 @@ export default function RenameModal({
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                placeholder={`Enter new ${item.isDirectory ? 'directory' : 'file'} name`}
+                placeholder={`Enter new ${item.type === FileItemType.Directory ? 'directory' : 'file'} name`}
                 disabled={loading}
                 autoFocus
                 required

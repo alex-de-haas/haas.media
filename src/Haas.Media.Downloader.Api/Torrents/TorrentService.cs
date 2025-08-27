@@ -1,3 +1,4 @@
+using Haas.Media.Core.Helpers;
 using Microsoft.AspNetCore.SignalR;
 using MonoTorrent;
 using MonoTorrent.Client;
@@ -126,7 +127,7 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
                         var rel = Path.GetRelativePath(_downloadsPath, f.FullPath);
                         displayPath = rel.StartsWith("..") ? f.FullPath : rel;
                     }
-                    var isMedia = IsMediaFile(displayPath);
+                    var isMedia = FileHelper.IsMediaFile(displayPath);
                     return new TorrentFile(displayPath, f.Length, f.BytesDownloaded(), isMedia);
                 })
                 .ToArray()
@@ -254,12 +255,6 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
         {
             return null;
         }
-    }
-
-    private static bool IsMediaFile(string path)
-    {
-        var ext = Path.GetExtension(path);
-        return !string.IsNullOrEmpty(ext) && InternalConstants.MediaExtensions.Contains(ext);
     }
 
     private bool TryGetManager(string hash, out TorrentManager? manager)

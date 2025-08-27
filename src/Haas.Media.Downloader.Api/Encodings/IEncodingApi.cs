@@ -2,8 +2,8 @@ namespace Haas.Media.Downloader.Api.Encodings;
 
 public interface IEncodingApi
 {
-    Task<IEnumerable<MediaFileInfo>> GetMediaFilesInfoAsync(string hash);
-    Task StartEncodingAsync(string hash, EncodeRequest request, CancellationToken ct = default);
+    Task<IEnumerable<MediaFileInfo>> GetMediaFilesInfoAsync(string relativePath);
+    Task StartEncodingAsync(EncodeRequest request, CancellationToken ct = default);
     EncodingInfo[] GetEncodingsAsync();
-    Task StopEncodingAsync(string hash);
+    Task StopEncodingAsync(string id);
 }

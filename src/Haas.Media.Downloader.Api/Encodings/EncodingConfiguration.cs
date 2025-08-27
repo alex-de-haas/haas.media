@@ -34,10 +34,10 @@ public static class EncodingConfiguration
             .RequireAuthorization();
 
         app.MapGet(
-                "api/encodings/{hash}",
-                async (string hash, IEncodingApi convertApi) =>
+                "api/encodings/info",
+                async (string path, IEncodingApi convertApi) =>
                 {
-                    var mediaFiles = await convertApi.GetMediaFilesInfoAsync(hash);
+                    var mediaFiles = await convertApi.GetMediaFilesInfoAsync(path);
                     return Results.Ok(mediaFiles);
                 }
             )
@@ -45,15 +45,14 @@ public static class EncodingConfiguration
             .RequireAuthorization();
 
         app.MapPost(
-                "api/encodings/{hash}",
+                "api/encodings",
                 async (
-                    string hash,
                     EncodeRequest request,
                     IEncodingApi convertApi,
                     CancellationToken ct
                 ) =>
                 {
-                    await convertApi.StartEncodingAsync(hash, request, ct);
+                    await convertApi.StartEncodingAsync(request, ct);
                     return Results.Ok();
                 }
             )
@@ -62,9 +61,9 @@ public static class EncodingConfiguration
 
         app.MapDelete(
                 "api/encodings/{hash}",
-                async (string hash, IEncodingApi convertApi) =>
+                async (string id, IEncodingApi convertApi) =>
                 {
-                    await convertApi.StopEncodingAsync(hash);
+                    await convertApi.StopEncodingAsync(id);
                     return Results.Ok();
                 }
             )

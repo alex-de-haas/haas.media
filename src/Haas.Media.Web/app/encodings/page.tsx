@@ -60,7 +60,7 @@ export default function EncodingsPage() {
             const existing = prev ?? [];
             const idx = existing.findIndex(
               (e) =>
-                e.hash === info.hash && e.outputFileName === info.outputFileName
+                e.id === info.id && e.outputPath === info.outputPath
             );
             if (idx === -1) {
               return [info, ...existing];
@@ -76,7 +76,7 @@ export default function EncodingsPage() {
             const existing = prev ?? [];
             return existing.filter(
               (e) =>
-                !(e.hash === info.hash && e.outputFileName === info.outputFileName)
+                !(e.id === info.id && e.outputPath === info.outputPath)
             );
           });
         });
@@ -86,7 +86,7 @@ export default function EncodingsPage() {
             const existing = prev ?? [];
             return existing.filter(
               (e) =>
-                !(e.hash === info.hash && e.outputFileName === info.outputFileName)
+                !(e.id === info.id && e.outputPath === info.outputPath)
             );
           });
         });
@@ -132,16 +132,16 @@ export default function EncodingsPage() {
         <div className="space-y-3">
           {encodings.map((e) => (
             <div
-              key={`${e.hash}-${e.outputFileName}`}
+              key={`${e.id}-${e.outputPath}`}
               className="p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {e.outputFileName}
+                    {e.outputPath}
                   </div>
                   <div className="font-mono text-xs text-gray-500 dark:text-gray-400">
-                    {e.hash}
+                    {e.id}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -149,7 +149,7 @@ export default function EncodingsPage() {
                     {e.progress.toFixed(2)}%
                   </div>
                   <button
-                    onClick={() => handleStopEncoding(e.hash)}
+                    onClick={() => handleStopEncoding(e.id)}
                     disabled={actionLoading}
                     className="px-3 py-1 text-xs text-red-600 border border-red-300 rounded hover:bg-red-50 dark:text-red-400 dark:border-red-600 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
                   >

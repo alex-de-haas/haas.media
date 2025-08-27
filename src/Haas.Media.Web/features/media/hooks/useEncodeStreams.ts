@@ -6,12 +6,12 @@ import { downloaderApi } from "@/lib/api";
 import type { MediaFileInfo } from "@/types/media-file-info";
 import type { EncodeRequest } from "@/types/encoding";
 
-export function useEncodeStreams(hash?: string, mediaFiles?: MediaFileInfo[] | null, selectedStreams?: Record<string, Set<number>>) {
+export function useEncodeStreams(path?: string, mediaFiles?: MediaFileInfo[] | null, selectedStreams?: Record<string, Set<number>>) {
   const [encoding, setEncoding] = React.useState(false);
   const [encodeError, setEncodeError] = React.useState<string | null>(null);
 
   const encodeAll = React.useCallback(async () => {
-    if (!mediaFiles || !selectedStreams || !hash || encoding) return;
+    if (!mediaFiles || !selectedStreams || !path || encoding) return;
     const hasAnySelection = Object.values(selectedStreams).some((s) => s && s.size > 0);
     if (!hasAnySelection) return;
     setEncoding(true);
@@ -38,7 +38,7 @@ export function useEncodeStreams(hash?: string, mediaFiles?: MediaFileInfo[] | n
       const t = await getValidToken();
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (t) (headers as any).Authorization = `Bearer ${t}`;
-      const res = await fetch(`${downloaderApi}/api/encodings/${hash}`, {
+      const res = await fetch(`${downloaderApi}/api/encodings`, {
         method: "POST",
         headers,
         body: JSON.stringify(request),
@@ -57,7 +57,7 @@ export function useEncodeStreams(hash?: string, mediaFiles?: MediaFileInfo[] | n
     } finally {
       setEncoding(false);
     }
-  }, [hash, mediaFiles, selectedStreams, encoding]);
+  }, [path, mediaFiles, selectedStreams, encoding]);
 
   return { encodeAll, encoding, encodeError } as const;
 }

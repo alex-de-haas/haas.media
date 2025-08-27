@@ -1,7 +1,8 @@
 // Mirrors backend EncodingInfo (Encodings/EncodingInfo.cs)
 export interface EncodingInfo {
-  hash: string;
-  outputFileName: string;
+  id: string;
+  sourcePath: string;
+  outputPath: string;
   progress: number;
 }
 

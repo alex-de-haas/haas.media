@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { FileItemType } from "@/types/file";
 import type { FileItem } from "@/types/file";
 
 interface DeleteModalProps {
@@ -47,7 +48,7 @@ export default function DeleteModal({
           <div className="px-6 py-4">
             <p className="text-sm text-gray-700 mb-4 dark:text-gray-300">
               Are you sure you want to delete <strong>{item.name}</strong>?
-              {item.isDirectory && " This will delete the directory and all its contents."}
+              {item.type === FileItemType.Directory && " This will delete the directory and all its contents."}
             </p>
             <div className="bg-red-50 border border-red-200 rounded-md p-3 dark:bg-red-900/20 dark:border-red-800">
               <p className="text-sm text-red-600 dark:text-red-400">

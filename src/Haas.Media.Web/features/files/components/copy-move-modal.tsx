@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { FileItemType } from "@/types/file";
 import type { FileItem, CopyFileRequest, MoveFileRequest } from "@/types/file";
 import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
@@ -178,7 +179,7 @@ export default function CopyMoveModal({
                   <div style={{ height: "300px" }}>
                     <div className="overflow-y-auto h-full">
                       <FileList
-                        files={files.filter(f => f.isDirectory)} // Only show directories
+                        files={files.filter(f => f.type === FileItemType.Directory)} // Only show directories
                         currentPath={currentPath}
                         onNavigate={handleNavigate}
                         onDelete={() => {}} // Disable actions in destination picker

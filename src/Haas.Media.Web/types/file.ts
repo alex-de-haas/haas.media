@@ -1,10 +1,16 @@
+export enum FileItemType {
+  Directory = 1,
+  Media = 2,
+  Other = 3
+}
+
 export interface FileItem {
   name: string;
   extension: string | null;
   relativePath: string;
   size: number | null;
   lastModified: string;
-  isDirectory: boolean;
+  type: FileItemType;
 }
 
 export interface CopyRequest {

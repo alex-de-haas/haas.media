@@ -1,10 +1,10 @@
-namespace Haas.Media.Downloader.Api;
+namespace Haas.Media.Core;
 
 // Central location for internal constants shared across the Downloader API assembly.
-internal static class InternalConstants
+public static class CommonConstants
 {
     // Comprehensive list of media file extensions we recognize for torrent file classification.
-    internal static HashSet<string> MediaExtensions = new(StringComparer.OrdinalIgnoreCase)
+    public static HashSet<string> MediaExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         // Видео-контейнеры
         ".mp4",

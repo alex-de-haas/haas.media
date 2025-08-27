@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Haas.Media.Core;
+using Haas.Media.Core.Helpers;
 using Instances;
 using Microsoft.AspNetCore.SignalR;
 
@@ -8,9 +9,7 @@ namespace Haas.Media.Downloader.Api.Encodings;
 public class EncodingService : IEncodingApi, IHostedService, IDisposable
 {
     private readonly string _dataPath;
-    private readonly string _downloadsPath;
     private readonly string _outputPath;
-    private readonly HashSet<string> _allowedExtensions = InternalConstants.MediaExtensions;
     private readonly ConcurrentDictionary<IProcessInstance, EncodingInfo> _activeProcesses = new();
     private readonly IHubContext<EncodingHub> _hubContext;
     private readonly IHostApplicationLifetime _applicationLifetime;
@@ -26,11 +25,9 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
             configuration["DATA_DIRECTORY"]
             ?? throw new ArgumentException("DATA_DIRECTORY configuration is required.");
 
-        _downloadsPath = Path.Combine(_dataPath, "Downloads");
         _outputPath = Path.Combine(_dataPath, "output");
 
         // Ensure directories exist
-        Directory.CreateDirectory(_downloadsPath);
         Directory.CreateDirectory(_outputPath);
 
         _hubContext = hubContext;
@@ -89,9 +86,8 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
             try
             {
                 var info = kvp.Value;
-                var outputFullPath = Path.Combine(_outputPath, info.Hash, info.OutputFileName);
-                if (File.Exists(outputFullPath))
-                    File.Delete(outputFullPath);
+                if (File.Exists(info.OutputPath))
+                    File.Delete(info.OutputPath);
             }
             catch (Exception ex)
             {
@@ -102,19 +98,24 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
         _activeProcesses.Clear();
     }
 
-    public async Task<IEnumerable<MediaFileInfo>> GetMediaFilesInfoAsync(string hash)
+    public async Task<IEnumerable<MediaFileInfo>> GetMediaFilesInfoAsync(string relativePath)
     {
-        var path = Path.Combine(_downloadsPath, hash);
-        if (!Directory.Exists(path))
-            return [];
+        var path = Path.Combine(_dataPath, relativePath);
+        var isDirectory = Directory.Exists(path);
 
-        var files = Directory
-            .EnumerateFiles(path, "*.*", SearchOption.AllDirectories)
-            .Where(f => _allowedExtensions.Contains(Path.GetExtension(f)))
+        var filesInfo =
+            isDirectory
+                ? Directory
+                    .EnumerateFiles(path, "*.*", SearchOption.AllDirectories)
+                    .Where(FileHelper.IsMediaFile)
+                    .ToArray()
+            : FileHelper.IsMediaFile(path) ? [path]
+            : [];
+        var files = filesInfo
             .Select(f =>
             {
                 var fileInfo = new FileInfo(f);
-                var relativePath = Path.GetRelativePath(path, f);
+                var relativePath = Path.GetRelativePath(_dataPath, f);
                 return new MediaFileInfo
                 {
                     Name = fileInfo.Name,
@@ -130,23 +131,17 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
         foreach (var file in files)
         {
             file.MediaInfo = await MediaManager.GetMediaInfoAsync(
-                Path.Combine(path, file.RelativePath)
+                Path.Combine(_dataPath, file.RelativePath)
             );
         }
 
         return files;
     }
 
-    public async Task StartEncodingAsync(
-        string hash,
-        EncodeRequest request,
-        CancellationToken ct = default
-    )
+    public async Task StartEncodingAsync(EncodeRequest request, CancellationToken ct = default)
     {
         if (request.Streams == null || request.Streams.Length == 0)
             throw new ArgumentException("At least one stream must be specified", nameof(request));
-
-        var path = Path.Combine(_downloadsPath, hash);
 
         var videoFiles = request
             .Streams.Where(x => x.StreamType == StreamType.Video)
@@ -158,24 +153,21 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
                 nameof(request)
             );
 
-        var outputFolder = Path.Combine(_outputPath, hash);
-        Directory.CreateDirectory(outputFolder);
-
         foreach (var videoFile in videoFiles)
         {
-            var inputFullPath = Path.Combine(path, videoFile);
+            var sourceFilePath = Path.Combine(_dataPath, videoFile);
             var streamIndexes = request
                 .Streams.Where(x => x.InputFilePath == videoFile)
                 .Select(x => x.StreamIndex)
                 .ToArray();
-            var mediaInfo = await MediaManager.GetMediaInfoAsync(inputFullPath);
-            var outputFileName = Path.GetFileNameWithoutExtension(videoFile) + ".mkv";
-            var outputFullPath = Path.Combine(outputFolder, outputFileName);
+            var mediaInfo = await MediaManager.GetMediaInfoAsync(sourceFilePath);
+            var outputFileName = Path.GetFileNameWithoutExtension(sourceFilePath) + ".mkv";
+            var outputFullPath = Path.Combine(_outputPath, outputFileName);
             File.Delete(outputFullPath);
 
             var builder = MediaEncodingBuilder
                 .Create()
-                .FromFileInput(inputFullPath)
+                .FromFileInput(sourceFilePath)
                 .ToFileOutput(outputFullPath)
                 .WithVideoCodec(StreamCodec.HEVC)
                 .WithAutoHardwareAcceleration();
@@ -213,8 +205,9 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
 
             var info = new EncodingInfo
             {
-                Hash = hash,
-                OutputFileName = outputFileName,
+                Id = Guid.CreateVersion7().ToString(),
+                SourcePath = sourceFilePath,
+                OutputPath = outputFullPath,
                 Progress = 0,
             };
             _activeProcesses.TryAdd(process, info);
@@ -228,10 +221,10 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
         return _activeProcesses.Values.ToArray();
     }
 
-    public async Task StopEncodingAsync(string hash)
+    public async Task StopEncodingAsync(string id)
     {
         var processToStop = _activeProcesses
-            .Where(kvp => kvp.Value.Hash == hash)
+            .Where(kvp => kvp.Value.Id == id)
             .Select(kvp => kvp.Key)
             .FirstOrDefault();
 
@@ -240,9 +233,8 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
             processToStop.Kill();
             if (_activeProcesses.TryRemove(processToStop, out var info))
             {
-                var outputFullPath = Path.Combine(_outputPath, info.Hash, info.OutputFileName);
-                if (File.Exists(outputFullPath))
-                    File.Delete(outputFullPath);
+                if (File.Exists(info.OutputPath))
+                    File.Delete(info.OutputPath);
 
                 await _hubContext.Clients.All.SendAsync("EncodingDeleted", info);
             }

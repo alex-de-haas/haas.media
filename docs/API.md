@@ -19,9 +19,9 @@
 ### Endpoints
 
 - GET `api/encodings` - returns list of active encodings
-- GET `api/encodings/{hash}` - returns list of media files with media info
-- POST `api/encodings/{hash}` - start new encoding
-- DELETE `api/encodings/{hash}` - stop and delete encoding
+- GET `api/encodings/info?path={path}` - returns list of media files with media info by {path} (path to directory or file)
+- POST `api/encodings` - start new encoding
+- DELETE `api/encodings/{id}` - stop and delete encoding
 
 ### SignalR
 
