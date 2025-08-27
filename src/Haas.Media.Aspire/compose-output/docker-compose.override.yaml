@@ -3,8 +3,7 @@ services:
     environment:
       AllowedCorsOrigins__0: "http://localhost:3000"
     volumes:
-      - /Users/haas/Sources/Haas.Media/src/Haas.Media.Downloader.Api/data:/app/data
-      - /Users/haas/Sources/Haas.Media/src/Haas.Media.Downloader.Api/cache:/app/cache
+      - /Users/haas/Sources/Haas.Media/data:/data
   web:
     environment:
       NEXT_PUBLIC_API_DOWNLOADER_URL: "http://localhost:8000"

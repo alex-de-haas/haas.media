@@ -17,6 +17,7 @@ services:
       HTTP_PORTS: "8000"
       AUTH0_DOMAIN: "dev-o1l0rjv003cd8mmq.us.auth0.com"
       AUTH0_AUDIENCE: "https://dev-o1l0rjv003cd8mmq.us.auth0.com/api/v2/"
+      DATA_DIRECTORY: "/data"
       FFMPEG_BINARY: "/usr/bin"
       AllowedCorsOrigins__0: "http://web:3000"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://haas-media-dashboard:18889"
