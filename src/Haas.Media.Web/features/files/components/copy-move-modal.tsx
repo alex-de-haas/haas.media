@@ -65,13 +65,13 @@ export default function CopyMoveModal({
     }
   }, [isOpen]);
 
+  // Automatically set selectedDestination when currentPath changes
+  useEffect(() => {
+    setSelectedDestination(currentPath);
+  }, [currentPath]);
+
   const handleNavigate = (path: string) => {
     fetchFiles(path);
-  };
-
-  const handleSelectCurrentDirectory = () => {
-    setSelectedDestination(currentPath);
-    setDestinationPath(currentPath);
   };
 
   if (!isOpen) return null;
@@ -162,7 +162,7 @@ export default function CopyMoveModal({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="mb-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       {selectedDestination ? (
                         <>
@@ -174,13 +174,6 @@ export default function CopyMoveModal({
                         "Navigate to select a destination directory"
                       )}
                     </p>
-                    <button
-                      type="button"
-                      onClick={handleSelectCurrentDirectory}
-                      className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    >
-                      Select Current Directory
-                    </button>
                   </div>
                   <div style={{ height: "300px" }}>
                     <div className="overflow-y-auto h-full">
@@ -192,6 +185,7 @@ export default function CopyMoveModal({
                         onCopy={() => {}}
                         onMove={() => {}}
                         loading={filesLoading}
+                        showActions={false}
                       />
                     </div>
                   </div>

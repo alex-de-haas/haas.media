@@ -12,6 +12,7 @@ interface FileListProps {
   onCopy: (item: FileItem) => void;
   onMove: (item: FileItem) => void;
   loading?: boolean;
+  showActions?: boolean;
 }
 
 interface FileActionsProps {
@@ -44,8 +45,12 @@ function FileActions({ item, onDelete, onCopy, onMove }: FileActionsProps) {
                 onCopy();
                 setShowActions(false);
               }}
-              className="block w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+              className="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
             >
+              <svg className="w-4 h-4 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+              </svg>
               Copy
             </button>
             <button
@@ -53,8 +58,11 @@ function FileActions({ item, onDelete, onCopy, onMove }: FileActionsProps) {
                 onMove();
                 setShowActions(false);
               }}
-              className="block w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+              className="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
             >
+              <svg className="w-4 h-4 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 11-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 111.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15 13.586V12a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
               Move
             </button>
             <button
@@ -62,8 +70,11 @@ function FileActions({ item, onDelete, onCopy, onMove }: FileActionsProps) {
                 onDelete();
                 setShowActions(false);
               }}
-              className="block w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+              className="flex items-center w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
             >
+              <svg className="w-4 h-4 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
               Delete
             </button>
           </div>
@@ -116,7 +127,7 @@ function FileIcon({ item }: { item: FileItem }) {
   );
 }
 
-export default function FileList({ files, currentPath, onNavigate, onDelete, onCopy, onMove, loading }: FileListProps) {
+export default function FileList({ files, currentPath, onNavigate, onDelete, onCopy, onMove, loading, showActions = true }: FileListProps) {
   const pathParts = currentPath ? currentPath.split('/').filter(Boolean) : [];
 
   const handleItemClick = (item: FileItem) => {
@@ -217,12 +228,14 @@ export default function FileList({ files, currentPath, onNavigate, onDelete, onC
                   </div>
                 </div>
               </div>
-              <FileActions
-                item={item}
-                onDelete={() => onDelete(item)}
-                onCopy={() => onCopy(item)}
-                onMove={() => onMove(item)}
-              />
+              {showActions && (
+                <FileActions
+                  item={item}
+                  onDelete={() => onDelete(item)}
+                  onCopy={() => onCopy(item)}
+                  onMove={() => onMove(item)}
+                />
+              )}
             </div>
           ))
         )}
