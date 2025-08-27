@@ -337,23 +337,60 @@ public class FilesService : IFilesApi, IHostedService
         }
     }
 
-    public void RenameFile(string relativePath, string newFileName)
+    public void RenameFile(string relativePath, string newName)
     {
         var oldFullPath = GetValidatedFullPath(relativePath);
-        var oldFileName = Path.GetFileName(oldFullPath);
-        var newFullPath = Path.Combine(Path.GetDirectoryName(oldFullPath)!, newFileName);
-
-        if (!File.Exists(oldFullPath))
+        
+        // Validate new name
+        if (string.IsNullOrWhiteSpace(newName))
         {
-            throw new FileNotFoundException($"File not found: {relativePath}");
+            throw new ArgumentException("New name cannot be null or empty", nameof(newName));
         }
 
-        File.Move(oldFullPath, newFullPath, overwrite: false);
-        _logger.LogInformation(
-            "File renamed from {OldName} to {NewName}",
-            oldFileName,
-            newFileName
-        );
+        // Prevent directory traversal and invalid characters in the new name
+        if (newName.Contains("..") || 
+            newName.Contains(Path.DirectorySeparatorChar) || 
+            newName.Contains(Path.AltDirectorySeparatorChar) ||
+            newName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        {
+            throw new ArgumentException("New name contains invalid characters", nameof(newName));
+        }
+
+        var oldName = Path.GetFileName(oldFullPath);
+        var newFullPath = Path.Combine(Path.GetDirectoryName(oldFullPath)!, newName);
+
+        bool isDirectory = Directory.Exists(oldFullPath);
+        bool isFile = File.Exists(oldFullPath);
+
+        if (!isDirectory && !isFile)
+        {
+            throw new FileNotFoundException($"File or directory not found: {relativePath}");
+        }
+
+        // Check if destination already exists
+        if (File.Exists(newFullPath) || Directory.Exists(newFullPath))
+        {
+            throw new InvalidOperationException($"A file or directory with the name '{newName}' already exists");
+        }
+
+        if (isDirectory)
+        {
+            Directory.Move(oldFullPath, newFullPath);
+            _logger.LogInformation(
+                "Directory renamed from {OldName} to {NewName}",
+                oldName,
+                newName
+            );
+        }
+        else
+        {
+            File.Move(oldFullPath, newFullPath, overwrite: false);
+            _logger.LogInformation(
+                "File renamed from {OldName} to {NewName}",
+                oldName,
+                newName
+            );
+        }
     }
 
     public void Delete(string relativePath)

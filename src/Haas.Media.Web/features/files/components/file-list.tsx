@@ -11,6 +11,7 @@ interface FileListProps {
   onDelete: (item: FileItem) => void;
   onCopy: (item: FileItem) => void;
   onMove: (item: FileItem) => void;
+  onRename: (item: FileItem) => void;
   loading?: boolean;
   showActions?: boolean;
 }
@@ -20,9 +21,10 @@ interface FileActionsProps {
   onDelete: () => void;
   onCopy: () => void;
   onMove: () => void;
+  onRename: () => void;
 }
 
-function FileActions({ item, onDelete, onCopy, onMove }: FileActionsProps) {
+function FileActions({ item, onDelete, onCopy, onMove, onRename }: FileActionsProps) {
   const [showActions, setShowActions] = useState(false);
 
   return (
@@ -64,6 +66,18 @@ function FileActions({ item, onDelete, onCopy, onMove }: FileActionsProps) {
                 <path fillRule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 11-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 111.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15 13.586V12a1 1 0 011-1z" clipRule="evenodd" />
               </svg>
               Move
+            </button>
+            <button
+              onClick={() => {
+                onRename();
+                setShowActions(false);
+              }}
+              className="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              <svg className="w-4 h-4 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+              </svg>
+              Rename
             </button>
             <button
               onClick={() => {
@@ -127,7 +141,7 @@ function FileIcon({ item }: { item: FileItem }) {
   );
 }
 
-export default function FileList({ files, currentPath, onNavigate, onDelete, onCopy, onMove, loading, showActions = true }: FileListProps) {
+export default function FileList({ files, currentPath, onNavigate, onDelete, onCopy, onMove, onRename, loading, showActions = true }: FileListProps) {
   const pathParts = currentPath ? currentPath.split('/').filter(Boolean) : [];
 
   const handleItemClick = (item: FileItem) => {
@@ -234,6 +248,7 @@ export default function FileList({ files, currentPath, onNavigate, onDelete, onC
                   onDelete={() => onDelete(item)}
                   onCopy={() => onCopy(item)}
                   onMove={() => onMove(item)}
+                  onRename={() => onRename(item)}
                 />
               )}
             </div>

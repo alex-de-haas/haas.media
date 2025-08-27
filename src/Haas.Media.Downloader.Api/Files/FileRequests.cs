@@ -24,6 +24,12 @@ public record CreateDirectoryRequest
     public required string Path { get; init; }
 }
 
+public record RenameRequest
+{
+    public required string Path { get; init; }
+    public required string NewName { get; init; }
+}
+
 // Keep legacy names for backward compatibility
 public record CopyFileRequest : CopyRequest;
 public record MoveFileRequest : MoveRequest;

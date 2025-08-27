@@ -3,12 +3,13 @@
 import DeleteModal from "./delete-modal";
 import CreateDirectoryModal from "./create-directory-modal";
 import CopyMoveModal from "./copy-move-modal";
-import type { FileItem, CopyFileRequest, MoveFileRequest, CreateDirectoryRequest } from "@/types/file";
+import RenameModal from "./rename-modal";
+import type { FileItem, CopyFileRequest, MoveFileRequest, CreateDirectoryRequest, RenameRequest } from "@/types/file";
 
 interface FileActionsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  action: "copy" | "move" | "delete" | "create-directory" | null;
+  action: "copy" | "move" | "delete" | "create-directory" | "rename" | null;
   item?: FileItem;
   currentPath: string;
   onConfirm: (data: any) => Promise<{ success: boolean; message: string }>;
@@ -43,6 +44,18 @@ export default function FileActionsModal({
         isOpen={true}
         onClose={onClose}
         currentPath={currentPath}
+        onConfirm={onConfirm}
+      />
+    );
+  }
+
+  // Handle rename action
+  if (action === "rename" && item) {
+    return (
+      <RenameModal
+        isOpen={true}
+        onClose={onClose}
+        item={item}
         onConfirm={onConfirm}
       />
     );

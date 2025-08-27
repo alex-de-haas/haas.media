@@ -184,6 +184,7 @@ export default function CopyMoveModal({
                         onDelete={() => {}} // Disable actions in destination picker
                         onCopy={() => {}}
                         onMove={() => {}}
+                        onRename={() => {}} // Disable rename in destination picker
                         loading={filesLoading}
                         showActions={false}
                       />

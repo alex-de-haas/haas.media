@@ -94,6 +94,17 @@ public static class FilesConfiguration
             .WithName("CreateDirectory")
             .RequireAuthorization();
 
+        app.MapPut(
+                "api/files/rename",
+                (RenameRequest request, IFilesApi filesApi) =>
+                {
+                    filesApi.RenameFile(request.Path, request.NewName);
+                    return Results.Ok();
+                }
+            )
+            .WithName("Rename")
+            .RequireAuthorization();
+
         return app;
     }
 }

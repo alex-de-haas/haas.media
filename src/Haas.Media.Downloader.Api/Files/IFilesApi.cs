@@ -9,7 +9,7 @@ public interface IFilesApi
     CopyOperationInfo[] GetCopyOperations();
     Task<bool> CancelCopyOperationAsync(string operationId);
     void Move(string sourcePath, string destinationPath);
-    void RenameFile(string relativePath, string newFileName);
+    void RenameFile(string relativePath, string newName);
     void Delete(string relativePath);
     void CreateDirectory(string relativePath);
 }

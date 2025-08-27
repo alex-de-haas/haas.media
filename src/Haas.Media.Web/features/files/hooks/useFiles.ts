@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import * as signalR from "@microsoft/signalr";
-import type { FileItem, CopyRequest, MoveRequest, CreateDirectoryRequest, CopyOperationInfo } from "@/types/file";
+import type { FileItem, CopyRequest, MoveRequest, CreateDirectoryRequest, RenameRequest, CopyOperationInfo } from "@/types/file";
 import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
 
@@ -236,6 +236,32 @@ export function useFiles(initialPath?: string) {
     }
   };
 
+  const rename = async (request: RenameRequest): Promise<{ success: boolean; message: string }> => {
+    try {
+      const token = await getValidToken();
+      const headers = new Headers({
+        "Content-Type": "application/json",
+      });
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+
+      const response = await fetch(`${downloaderApi}/api/files/rename`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(request),
+      });
+
+      if (response.ok) {
+        await fetchFiles(currentPath); // Refresh the file list
+        return { success: true, message: "Item renamed successfully" };
+      } else {
+        const errorText = await response.text();
+        return { success: false, message: errorText || "Rename failed" };
+      }
+    } catch (error) {
+      return { success: false, message: "Network error occurred" };
+    }
+  };
+
   return {
     files,
     copyOperations,
@@ -248,6 +274,7 @@ export function useFiles(initialPath?: string) {
     move,
     deleteItem,
     createDirectory,
+    rename,
     refresh: () => fetchFiles(currentPath),
     // Legacy aliases for backward compatibility
     copyFile: copy,

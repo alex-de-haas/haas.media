@@ -22,13 +22,14 @@ export default function FilesPage() {
     move,
     deleteItem,
     createDirectory,
+    rename,
   } = useFiles();
 
   const { notify } = useNotifications();
 
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
-    action: "copy" | "move" | "delete" | "create-directory" | null;
+    action: "copy" | "move" | "delete" | "create-directory" | "rename" | null;
     item?: FileItem;
   }>({
     isOpen: false,
@@ -36,7 +37,7 @@ export default function FilesPage() {
   });
 
   const openModal = (
-    action: "copy" | "move" | "delete" | "create-directory",
+    action: "copy" | "move" | "delete" | "create-directory" | "rename",
     item?: FileItem
   ) => {
     setModalState({ isOpen: true, action, ...(item && { item }) });
@@ -62,6 +63,9 @@ export default function FilesPage() {
         break;
       case "create-directory":
         result = await createDirectory(data);
+        break;
+      case "rename":
+        result = await rename(data);
         break;
       default:
         result = { success: false, message: "Unknown action" };
@@ -126,6 +130,7 @@ export default function FilesPage() {
         onDelete={(item) => openModal("delete", item)}
         onCopy={(item) => openModal("copy", item)}
         onMove={(item) => openModal("move", item)}
+        onRename={(item) => openModal("rename", item)}
         loading={loading}
       />
 

@@ -23,6 +23,11 @@ export interface CreateDirectoryRequest {
   path: string;
 }
 
+export interface RenameRequest {
+  path: string;
+  newName: string;
+}
+
 export interface CopyOperationInfo {
   id: string;
   sourcePath: string;
