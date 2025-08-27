@@ -5,6 +5,7 @@ import { FileItemType } from "@/types/file";
 import type { FileItem } from "@/types/file";
 import { formatFileSize, formatDate } from "@/lib/utils/format";
 import Link from "next/link";
+import { LoadingSpinner } from "@/components/ui";
 
 interface FileListProps {
   files: FileItem[];
@@ -245,11 +246,7 @@ export default function FileList({
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-gray-500 dark:text-gray-400">Loading files...</div>
-      </div>
-    );
+    return <LoadingSpinner size="lg" />;
   }
 
   return (
