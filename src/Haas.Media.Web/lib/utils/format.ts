@@ -29,6 +29,20 @@ export function formatPercentage(value: number): string {
 }
 
 /**
+ * Formats a duration in seconds to h:mm:ss or m:ss
+ */
+export function formatDuration(totalSeconds: number): string {
+  if (!isFinite(totalSeconds) || totalSeconds < 0) return "0:00";
+  const secs = Math.round(totalSeconds);
+  const hours = Math.floor(secs / 3600);
+  const minutes = Math.floor((secs % 3600) / 60);
+  const seconds = secs % 60;
+  const mm = minutes.toString().padStart(2, '0');
+  const ss = seconds.toString().padStart(2, '0');
+  return hours > 0 ? `${hours}:${mm}:${ss}` : `${minutes}:${ss}`;
+}
+
+/**
  * Formats a date to a human readable format
  */
 export function formatDate(dateString: string): string {

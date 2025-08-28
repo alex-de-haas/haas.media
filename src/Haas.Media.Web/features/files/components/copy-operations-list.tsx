@@ -1,6 +1,6 @@
 "use client";
 
-import { formatSize } from "@/lib/utils";
+import { formatSize, formatRate, formatDuration } from "@/lib/utils";
 import type { CopyOperationInfo } from "@/types/file";
 import { CopyOperationState } from "@/types/file";
 
@@ -81,11 +81,10 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
 
               <div className="space-y-1">
                 <div className="text-sm text-gray-900 dark:text-gray-100">
-                  <span className="font-medium">From:</span> {operation.sourcePath}
-                  {operation.isDirectory && <span className="ml-1 text-xs text-blue-600 dark:text-blue-400">(Directory)</span>}
+                  <span className="font-medium">From:</span> <span className="font-mono text-gray-500 dark:text-gray-400">{operation.sourcePath}</span>
                 </div>
                 <div className="text-sm text-gray-900 dark:text-gray-100">
-                  <span className="font-medium">To:</span> {operation.destinationPath}
+                  <span className="font-medium">To:</span> <span className="font-mono text-gray-500 dark:text-gray-400">{operation.destinationPath}</span>
                 </div>
               </div>
 
@@ -100,7 +99,15 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
                         </span>
                       )}
                     </span>
-                    <span>{operation.progress.toFixed(1)}%</span>
+                    <span>
+                      {operation.progress.toFixed(1)}%
+                      {typeof operation.speedBytesPerSecond === "number" && operation.speedBytesPerSecond > 0 && (
+                        <span className="ml-2">• {formatRate(operation.speedBytesPerSecond)}</span>
+                      )}
+                      {typeof operation.estimatedTimeSeconds === "number" && isFinite(operation.estimatedTimeSeconds) && operation.estimatedTimeSeconds >= 0 && (
+                        <span className="ml-2">• ETA {formatDuration(operation.estimatedTimeSeconds)}</span>
+                      )}
+                    </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
                     <div

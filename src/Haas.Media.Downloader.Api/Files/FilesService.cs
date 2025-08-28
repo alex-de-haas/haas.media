@@ -158,7 +158,9 @@ public class FilesService : IFilesApi, IHostedService
             DateTime.UtcNow,
             IsDirectory: isDirectory,
             TotalFiles: totalFiles,
-            CopiedFiles: 0
+            CopiedFiles: 0,
+            SpeedBytesPerSecond: 0,
+            EstimatedTimeSeconds: null
         );
 
         _copyOperations.TryAdd(operationId, copyOperation);
@@ -270,11 +272,21 @@ public class FilesService : IFilesApi, IHostedService
 
                 if (_copyOperations.TryGetValue(operationId, out var currentOperation))
                 {
+                    var elapsedSeconds = (DateTime.UtcNow - currentOperation.StartTime).TotalSeconds;
+                    var speed = elapsedSeconds > 0 ? totalCopied / elapsedSeconds : 0;
+                    double? eta = null;
+                    if (speed > 0)
+                    {
+                        var remaining = Math.Max(0L, totalBytes - totalCopied);
+                        eta = remaining / speed;
+                    }
                     var updatedOperation = currentOperation with
                     {
                         CopiedBytes = totalCopied,
                         Progress = progress,
                         CopiedFiles = totalCopied == totalBytes ? 1 : 0,
+                        SpeedBytesPerSecond = speed,
+                        EstimatedTimeSeconds = eta,
                     };
                     _copyOperations.TryUpdate(operationId, updatedOperation, currentOperation);
                 }
@@ -290,6 +302,8 @@ public class FilesService : IFilesApi, IHostedService
                     CopiedBytes = totalBytes,
                     CopiedFiles = 1,
                     CompletedTime = DateTime.UtcNow,
+                    EstimatedTimeSeconds = 0,
+                    // Keep last measured speed for reference
                 };
                 _copyOperations.TryUpdate(operationId, completedOperation, operation);
                 await _hubContext.Clients.All.SendAsync("CopyOperationUpdated", completedOperation);
@@ -600,11 +614,21 @@ public class FilesService : IFilesApi, IHostedService
 
                         if (_copyOperations.TryGetValue(operationId, out var currentOperation))
                         {
+                            var elapsedSeconds = (DateTime.UtcNow - currentOperation.StartTime).TotalSeconds;
+                            var speed = elapsedSeconds > 0 ? totalCopied / elapsedSeconds : 0;
+                            double? eta = null;
+                            if (speed > 0)
+                            {
+                                var remaining = Math.Max(0L, (initialOperation.TotalBytes - totalCopied));
+                                eta = remaining / speed;
+                            }
                             var updatedOperation = currentOperation with
                             {
                                 CopiedBytes = totalCopied,
                                 Progress = progress,
                                 CopiedFiles = filesCopied,
+                                SpeedBytesPerSecond = speed,
+                                EstimatedTimeSeconds = eta,
                             };
                             _copyOperations.TryUpdate(
                                 operationId,
@@ -627,6 +651,8 @@ public class FilesService : IFilesApi, IHostedService
                         CopiedBytes = totalCopied,
                         CopiedFiles = filesCopied,
                         CompletedTime = DateTime.UtcNow,
+                        EstimatedTimeSeconds = 0,
+                        // Keep last measured speed for reference
                     };
                     _copyOperations.TryUpdate(operationId, completedOperation, operation);
                     await _hubContext.Clients.All.SendAsync(
