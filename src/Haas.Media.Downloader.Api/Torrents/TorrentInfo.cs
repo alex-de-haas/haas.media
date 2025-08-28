@@ -10,6 +10,7 @@ public record TorrentInfo(
     double Progress,
     long DownloadRate,
     long UploadRate,
+    double? EstimatedTimeSeconds,
     TorrentState State,
     TorrentFile[] Files
 );

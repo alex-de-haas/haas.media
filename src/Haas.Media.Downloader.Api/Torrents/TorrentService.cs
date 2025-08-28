@@ -101,6 +101,30 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
         // Root folder for this torrent (hash-based); files will be reported relative to this root when possible
         var hash = manager.InfoHashes.V1OrV2.ToHex();
         var torrentRoot = Path.Combine(_downloadsPath, hash);
+
+        // Compute ETA in seconds when possible
+        double? estimatedTimeSeconds = null;
+        try
+        {
+            var totalSize = manager.Torrent?.Size;
+            var downloadRate = manager.Monitor.DownloadRate; // bytes/sec
+            var progress = manager.Progress; // 0..100
+
+            if (manager.Complete || progress >= 100)
+            {
+                estimatedTimeSeconds = 0;
+            }
+            else if (totalSize.HasValue && downloadRate > 0)
+            {
+                var downloadedBytes = (long?)(totalSize.Value * progress / 100.0) ?? 0;
+                var remaining = Math.Max(0L, totalSize.Value - downloadedBytes);
+                estimatedTimeSeconds = remaining / (double)downloadRate;
+            }
+        }
+        catch
+        {
+            // leave ETA as null if any calculation fails
+        }
         return new TorrentInfo(
             hash,
             manager.Name,
@@ -109,6 +133,7 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
             manager.Progress,
             manager.Monitor.DownloadRate,
             manager.Monitor.UploadRate,
+            estimatedTimeSeconds,
             manager.State,
             manager
                 .Files.Select(f =>
@@ -151,6 +176,16 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
             return false;
 
         await manager!.StopAsync();
+        return true;
+    }
+
+    public async Task<bool> PauseAsync(string hash)
+    {
+        EnsureStarted();
+        if (!TryGetManager(hash, out var manager))
+            return false;
+
+        await manager!.PauseAsync();
         return true;
     }
 

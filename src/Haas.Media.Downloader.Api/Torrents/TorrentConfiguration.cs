@@ -59,6 +59,18 @@ public static class TorrentConfiguration
             .WithName("StopTorrent")
             .RequireAuthorization();
 
+        app.MapPost(
+                "api/torrents/{hash}/pause",
+                async (string hash, ITorrentApi torrentService) =>
+                {
+                    return await torrentService.PauseAsync(hash)
+                        ? Results.Ok()
+                        : Results.NotFound();
+                }
+            )
+            .WithName("PauseTorrent")
+            .RequireAuthorization();
+
         app.MapDelete(
                 "api/torrents/{hash}",
                 async (string hash, bool? deleteData, ITorrentApi torrentService) =>

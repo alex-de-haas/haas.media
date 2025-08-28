@@ -156,12 +156,36 @@ export function useTorrents() {
     }
   };
 
+  const pauseTorrent = async (
+    hash: string
+  ): Promise<{ success: boolean; message: string }> => {
+    try {
+      const t = await getValidToken();
+      const headers = new Headers();
+      if (t) headers.set("Authorization", `Bearer ${t}`);
+      const res = await fetch(`${downloaderApi}/api/torrents/${hash}/pause`, {
+        method: "POST",
+        headers,
+      });
+
+      if (res.ok) {
+        return { success: true, message: "Torrent paused successfully!" };
+      } else {
+        const errorText = await res.text();
+        return { success: false, message: errorText || "Pause failed" };
+      }
+    } catch (error) {
+      return { success: false, message: "Network error occurred" };
+    }
+  };
+
   return {
     torrents,
     uploadTorrent,
     deleteTorrent,
     startTorrent,
     stopTorrent,
+    pauseTorrent,
     connection,
   };
 }

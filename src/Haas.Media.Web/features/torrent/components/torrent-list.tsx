@@ -3,11 +3,7 @@
 import React from "react"; // Add React import
 import { TorrentState, type TorrentInfo } from "../../../types";
 import { TorrentFile } from "../../../types/torrent"; // Import TorrentFile
-import {
-  formatSize,
-  formatRate,
-  formatPercentage,
-} from "../../../lib/utils/format";
+import { formatSize, formatRate, formatPercentage } from "../../../lib/utils/format";
 
 interface TorrentListProps {
   torrents: TorrentInfo[];
@@ -22,6 +18,7 @@ export default function TorrentList({
   onDelete,
   onStart,
   onStop,
+  onPause,
 }: TorrentListProps) {
   const handleDelete = async (hash: string, name: string) => {
     if (!onDelete) return;
@@ -40,6 +37,10 @@ export default function TorrentList({
   const handleStop = async (hash: string) => {
     if (!onStop) return;
     await onStop(hash);
+  };
+  const handlePause = async (hash: string) => {
+    if (!onPause) return;
+    await onPause(hash);
   };
 
   if (torrents.length === 0) {
@@ -87,6 +88,7 @@ export default function TorrentList({
             }
             onStart={onStart ? () => handleStart(torrent.hash) : undefined}
             onStop={onStop ? () => handleStop(torrent.hash) : undefined}
+            onPause={onPause ? () => handlePause(torrent.hash) : undefined}
           />
         ))}
       </div>
@@ -99,14 +101,16 @@ interface TorrentCardProps {
   onDelete?: (() => Promise<void>) | undefined;
   onStart?: (() => Promise<void>) | undefined;
   onStop?: (() => Promise<void>) | undefined;
+  onPause?: (() => Promise<void>) | undefined;
 }
 
-function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
+function TorrentCard({ torrent, onDelete, onStart, onStop, onPause }: TorrentCardProps) {
   const isRunning =
     torrent.state === TorrentState.Downloading ||
     torrent.state === TorrentState.Seeding;
 
   // Media info now shown on dedicated page; keep only file toggle
+  const statusInfo = getStatusInfo(torrent.state);
 
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
@@ -124,39 +128,44 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
             <span>•</span>
             <span>{formatPercentage(torrent.progress)} complete</span>
             <span>•</span>
-            <span
-              className={
-                isRunning
-                  ? "text-green-600 dark:text-green-400"
-                  : "text-gray-500 dark:text-gray-400"
-              }
-            >
-              {isRunning ? "Running" : "Stopped"}
-            </span>
+            <span className={statusInfo.colorClass}>{statusInfo.label}</span>
+            {torrent.state === TorrentState.Downloading && (
+              <>
+                <span>•</span>
+                <span>
+                  ↓ {formatRate(torrent.downloadRate)} ↑ {formatRate(torrent.uploadRate)}
+                </span>
+                <span>•</span>
+                <span>
+                  ETA: {torrent.progress > 0 && torrent.estimatedTimeSeconds != null
+                    ? formatDuration(torrent.estimatedTimeSeconds)
+                    : "calculating…"}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
         <div className="ml-4 flex items-center space-x-2">
-          <span
-            className="p-1 text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
-            title={torrent.hash}
-            aria-label={torrent.hash}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
+          {isRunning && onPause && (
+            <button
+              onClick={onPause}
+              className="p-1 text-yellow-600 hover:text-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 rounded"
+              aria-label={`Pause ${torrent.name}`}
+              title="Pause torrent"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
-              />
-            </svg>
-          </span>
+              <span className="sr-only">Pause</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <rect x="6" y="5" width="4" height="14" rx="1" />
+                <rect x="14" y="5" width="4" height="14" rx="1" />
+              </svg>
+            </button>
+          )}
           {isRunning
             ? onStop && (
                 <button
@@ -176,7 +185,7 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
                   </svg>
                 </button>
               )
-            : onStart && (
+            : !isRunning && torrent.state !== TorrentState.Stopping && onStart && (
                 <button
                   onClick={onStart}
                   className="p-1 text-green-600 hover:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 rounded"
@@ -261,4 +270,43 @@ function TorrentCard({ torrent, onDelete, onStart, onStop }: TorrentCardProps) {
       </details>
     </div>
   );
+}
+
+function getStatusInfo(state: TorrentState): { label: string; colorClass: string } {
+  switch (state) {
+    case TorrentState.Downloading:
+      return { label: "Downloading", colorClass: "text-green-600 dark:text-green-400" };
+    case TorrentState.Seeding:
+      return { label: "Seeding", colorClass: "text-green-600 dark:text-green-400" };
+    case TorrentState.Starting:
+      return { label: "Starting", colorClass: "text-green-600 dark:text-green-400" };
+    case TorrentState.Paused:
+      return { label: "Paused", colorClass: "text-yellow-600 dark:text-yellow-400" };
+    case TorrentState.Hashing:
+      return { label: "Checking", colorClass: "text-yellow-600 dark:text-yellow-400" };
+    case TorrentState.HashingPaused:
+      return { label: "Checking (Paused)", colorClass: "text-yellow-600 dark:text-yellow-400" };
+    case TorrentState.Stopping:
+      return { label: "Stopping", colorClass: "text-yellow-600 dark:text-yellow-400" };
+    case TorrentState.Metadata:
+      return { label: "Fetching Metadata", colorClass: "text-yellow-600 dark:text-yellow-400" };
+    case TorrentState.FetchingHashes:
+      return { label: "Fetching Hashes", colorClass: "text-yellow-600 dark:text-yellow-400" };
+    case TorrentState.Error:
+      return { label: "Error", colorClass: "text-red-600 dark:text-red-400" };
+    case TorrentState.Stopped:
+    default:
+      return { label: "Stopped", colorClass: "text-gray-500 dark:text-gray-400" };
+  }
+}
+
+function formatDuration(totalSeconds: number): string {
+  if (!isFinite(totalSeconds) || totalSeconds < 0) return "0:00";
+  const secs = Math.round(totalSeconds);
+  const hours = Math.floor(secs / 3600);
+  const minutes = Math.floor((secs % 3600) / 60);
+  const seconds = secs % 60;
+  const mm = minutes.toString().padStart(2, "0");
+  const ss = seconds.toString().padStart(2, "0");
+  return hours > 0 ? `${hours}:${mm}:${ss}` : `${minutes}:${ss}`;
 }

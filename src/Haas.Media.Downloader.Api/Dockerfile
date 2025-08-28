@@ -22,16 +22,9 @@ RUN dotnet publish "Haas.Media.Downloader.Api/Haas.Media.Downloader.Api.csproj" 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0-bookworm-slim AS final
 WORKDIR /app
 
-# Install ffmpeg and AMD GPU support (VAAPI)
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      ffmpeg \
-      vainfo \
-      mesa-va-drivers \
-      mesa-vulkan-drivers \
-      && rm -rf /var/lib/apt/lists/*
-
-ENV LIBVA_DRIVER_NAME=radeonsi
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy published app
 COPY --from=build /app/publish .

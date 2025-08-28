@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout";
 
 export default function TorrentClient() {
   const [isUploading, setIsUploading] = useState(false);
-  const { torrents, uploadTorrent, deleteTorrent, startTorrent, stopTorrent } =
+  const { torrents, uploadTorrent, deleteTorrent, startTorrent, stopTorrent, pauseTorrent } =
     useTorrents();
   const { notify } = useNotifications();
 
@@ -46,6 +46,11 @@ export default function TorrentClient() {
     report(res, { success: "Torrent Stopped", fail: "Stop Failed" }, "info");
     return res;
   };
+  const handlePause = async (hash: string) => {
+    const res = await pauseTorrent(hash);
+    report(res, { success: "Torrent Paused", fail: "Pause Failed" }, "info");
+    return res;
+  };
 
   return (
     <div className="mx-auto space-y-10">
@@ -59,6 +64,7 @@ export default function TorrentClient() {
         onDelete={handleDelete}
         onStart={handleStart}
         onStop={handleStop}
+        onPause={handlePause}
       />
     </div>
   );

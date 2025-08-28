@@ -17,6 +17,7 @@ export interface TorrentInfo {
   progress: number;
   downloadRate: number;
   uploadRate: number;
+  estimatedTimeSeconds: number | null;
   state: TorrentState;
   files: TorrentFile[];
 }

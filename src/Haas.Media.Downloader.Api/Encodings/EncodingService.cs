@@ -174,8 +174,7 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
                 .Create()
                 .FromFileInput(sourceFilePath)
                 .ToFileOutput(outputFullPath)
-                .WithVideoCodec(StreamCodec.HEVC)
-                .WithVAAPI();
+                .WithVideoCodec(StreamCodec.HEVC);
 
             var streams = mediaInfo.Streams.Where(s => streamIndexes.Contains(s.Index)).ToArray();
             foreach (var stream in streams)
