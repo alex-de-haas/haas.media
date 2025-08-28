@@ -13,7 +13,7 @@ public record MediaInfo
         public required StreamCodec Codec { get; set; }
         public required StreamFeatures Features { get; set; }
         public TimeSpan Duration { get; set; }
-        public CultureInfo? Language { get; set; }
+        public string? Language { get; set; }
         public string? Title { get; set; }
         public int? Width { get; set; }
         public int? Height { get; set; }

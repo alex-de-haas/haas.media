@@ -103,15 +103,15 @@ public static class MediaManager
         return stream.Tags?.GetValueOrDefault("title");
     }
 
-    private static CultureInfo? GetStreamLanguage(FFProbeStream stream)
+    private static string? GetStreamLanguage(FFProbeStream stream)
     {
         var languageCode = stream.Tags?.GetValueOrDefault("language");
-        if (ValidLanguageCodes.Contains(languageCode))
-        {
-            return new CultureInfo(languageCode!);
-        }
+        // if (ValidLanguageCodes.Contains(languageCode))
+        // {
+        //     return new CultureInfo(languageCode!);
+        // }
 
-        return null;
+        return languageCode;
     }
 
     private static readonly string[] ValidLanguageCodes = CultureInfo

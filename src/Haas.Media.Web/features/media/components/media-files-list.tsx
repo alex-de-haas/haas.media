@@ -179,7 +179,6 @@ export default function MediaFilesList({
                           {s.width &&
                             s.height &&
                             resolutionIcon(s.width, s.height)}
-                          <span>{s.title}</span>
                           {features.map((f: string) => (
                             <span
                               key={f}
@@ -188,6 +187,12 @@ export default function MediaFilesList({
                               {f}
                             </span>
                           ))}
+                          {s.language && (
+                            <span className="px-1 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 text-[10px]">
+                              {s.language}
+                            </span>
+                          )}
+                          <span>{s.title}</span>
                           {s.duration && s.type !== 3 && (
                             <div>Duration: {s.duration}</div>
                           )}

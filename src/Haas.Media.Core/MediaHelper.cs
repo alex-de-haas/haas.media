@@ -42,10 +42,10 @@ public static partial class MediaHelper
         }
         else
         {
-            var durationTag = stream.Tags?.FirstOrDefault(t => t.Key == "DURATION");
+            var durationTag = stream.Tags?.FirstOrDefault(t => t.Key.StartsWith("DURATION")).Value;
             if (durationTag is not null)
             {
-                return ParseDuration(durationTag.Value.Value);
+                return ParseDuration(durationTag);
             }
         }
 
@@ -60,8 +60,8 @@ public static partial class MediaHelper
         }
         if (stream.Tags is not null)
         {
-            var bitRateTag = stream.Tags?.FirstOrDefault(t => t.Key == "BPS");
-            if (bitRateTag is not null && long.TryParse(bitRateTag.Value.Value, out bitRate))
+            var bitRateTag = stream.Tags?.FirstOrDefault(t => t.Key.StartsWith("BPS")).Value;
+            if (bitRateTag is not null && long.TryParse(bitRateTag, out bitRate))
             {
                 return bitRate;
             }
