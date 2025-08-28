@@ -21,6 +21,8 @@ public record MediaInfo
         public int? BitDepth { get; set; }
         public int? Channels { get; set; }
         public int? SampleRate { get; set; }
+        public double? FrameRate { get; set; }
+        public double? AvgFrameRate { get; set; }
     }
 }
 

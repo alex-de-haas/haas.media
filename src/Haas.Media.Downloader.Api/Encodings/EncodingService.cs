@@ -183,14 +183,12 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
 
             process.ErrorDataReceived += async (sender, data) =>
             {
-                var currentTime = MediaHelper.ParseProgressTime(data);
-                if (currentTime.HasValue)
+                var progress = MediaHelper.ParseProgress(data, videoStream);
+                if (progress.HasValue)
                 {
-                    var progress =
-                        currentTime.Value.TotalSeconds / videoStream.Duration.TotalSeconds * 100;
                     if (_activeProcesses.TryGetValue(process, out var info))
                     {
-                        info.Progress = progress;
+                        info.Progress = progress.Value;
                         await _hubContext.Clients.All.SendAsync("EncodingUpdated", info);
                     }
                 }

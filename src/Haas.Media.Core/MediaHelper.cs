@@ -34,6 +34,9 @@ public static partial class MediaHelper
     [GeneratedRegex(@"time=(\d+:\d+:\d+\.\d+)", RegexOptions.Compiled)]
     private static partial Regex ProgressTimeRegex { get; }
 
+    [GeneratedRegex(@"frame=\s*(\d+)", RegexOptions.Compiled)]
+    private static partial Regex ProgressFramesRegex { get; }
+
     public static TimeSpan ParseDuration(FFProbeStream stream)
     {
         if (!string.IsNullOrEmpty(stream.Duration))
@@ -91,14 +94,36 @@ public static partial class MediaHelper
         return TimeSpan.Zero;
     }
 
-    public static TimeSpan? ParseProgressTime(string time)
+    public static double? ParseProgress(string time, MediaInfo.Stream videoStream)
     {
         if (!string.IsNullOrEmpty(time))
         {
-            var match = ProgressTimeRegex.Match(time);
-            if (match.Success)
+            // Try to match time format first (HH:MM:SS.ms)
+            var matchTime = ProgressTimeRegex.Match(time);
+            if (matchTime.Success)
             {
-                return ParseDuration(match.Groups[1].Value);
+                var duration = ParseDuration(matchTime.Groups[1].Value);
+                var progress = duration.TotalSeconds / videoStream.Duration.TotalSeconds * 100;
+                return progress;
+            }
+
+            // If time format doesn't match, try frame format
+            var matchFrames = ProgressFramesRegex.Match(time);
+            if (matchFrames.Success)
+            {
+                var currentFrame = int.Parse(matchFrames.Groups[1].Value);
+                
+                // Calculate total frames using frame rate and duration
+                var frameRate = videoStream.FrameRate ?? videoStream.AvgFrameRate;
+                if (frameRate.HasValue && frameRate.Value > 0)
+                {
+                    var totalFrames = (long)(frameRate.Value * videoStream.Duration.TotalSeconds);
+                    if (totalFrames > 0)
+                    {
+                        var progress = (double)currentFrame / totalFrames * 100;
+                        return Math.Min(progress, 100); // Cap at 100%
+                    }
+                }
             }
         }
 

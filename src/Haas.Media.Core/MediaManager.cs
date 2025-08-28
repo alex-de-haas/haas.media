@@ -25,6 +25,8 @@ public static class MediaManager
                 BitDepth = int.TryParse(x.BitsPerRawSample, out var bitDepth) ? bitDepth : 0,
                 Channels = x.Channels,
                 SampleRate = int.TryParse(x.SampleRate, out var sampleRate) ? sampleRate : 0,
+                FrameRate = ParseFrameRate(x.FrameRate),
+                AvgFrameRate = ParseFrameRate(x.AvgFrameRate),
             })
             .ToArray();
 
@@ -119,4 +121,18 @@ public static class MediaManager
         .Select(c => c.TwoLetterISOLanguageName)
         .Distinct()
         .ToArray();
+
+    private static double? ParseFrameRate(string? frameRateString)
+    {
+        if (string.IsNullOrEmpty(frameRateString) || frameRateString == "0/0")
+            return null;
+
+        var parts = frameRateString.Split('/');
+        if (parts.Length == 2 && double.TryParse(parts[0], out var numerator) && double.TryParse(parts[1], out var denominator))
+        {
+            return denominator != 0 ? numerator / denominator : null;
+        }
+
+        return null;
+    }
 }

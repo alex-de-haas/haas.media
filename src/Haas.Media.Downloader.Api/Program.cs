@@ -4,9 +4,18 @@ using Haas.Media.Downloader.Api.Files;
 using Haas.Media.Downloader.Api.Torrents;
 using Haas.Media.ServiceDefaults;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure data protection to use persistent storage
+var dataDirectory =
+    builder.Configuration["DATA_DIRECTORY"]
+    ?? throw new InvalidOperationException("DATA_DIRECTORY is not configured.");
+var keysDirectory = Path.Combine(dataDirectory, ".keys");
+Directory.CreateDirectory(keysDirectory);
+builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(keysDirectory));
 
 // Add default service configurations.
 builder.AddServiceDefaults();
@@ -63,11 +72,7 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy
-            .WithOrigins(origins)
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
+        policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     });
 });
 

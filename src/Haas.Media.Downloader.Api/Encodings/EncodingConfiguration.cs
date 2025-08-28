@@ -60,7 +60,7 @@ public static class EncodingConfiguration
             .RequireAuthorization();
 
         app.MapDelete(
-                "api/encodings/{hash}",
+                "api/encodings/{id}",
                 async (string id, IEncodingApi convertApi) =>
                 {
                     await convertApi.StopEncodingAsync(id);
