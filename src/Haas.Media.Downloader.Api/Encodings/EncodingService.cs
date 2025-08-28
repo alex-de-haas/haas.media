@@ -11,14 +11,17 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
     private readonly string _dataPath;
     private readonly string _outputPath;
     private readonly ConcurrentDictionary<IProcessInstance, EncodingInfo> _activeProcesses = new();
+    private readonly ConcurrentDictionary<IProcessInstance, DateTime> _processStartTimes = new();
     private readonly IHubContext<EncodingHub> _hubContext;
     private readonly IHostApplicationLifetime _applicationLifetime;
+    private readonly ILogger<EncodingService> _logger;
     private bool _disposed = false;
 
     public EncodingService(
         IConfiguration configuration,
         IHubContext<EncodingHub> hubContext,
-        IHostApplicationLifetime applicationLifetime
+        IHostApplicationLifetime applicationLifetime,
+        ILogger<EncodingService> logger
     )
     {
         _dataPath =
@@ -32,6 +35,7 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
 
         _hubContext = hubContext;
         _applicationLifetime = applicationLifetime;
+        this._logger = logger;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -96,6 +100,7 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
         }
 
         _activeProcesses.Clear();
+        _processStartTimes.Clear();
     }
 
     public async Task<IEnumerable<MediaFileInfo>> GetMediaFilesInfoAsync(string relativePath)
@@ -169,8 +174,8 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
                 .Create()
                 .FromFileInput(sourceFilePath)
                 .ToFileOutput(outputFullPath)
-                .WithVideoCodec(StreamCodec.HEVC)
-                .WithAutoHardwareAcceleration();
+                .WithVideoCodec(StreamCodec.HEVC);
+                // .WithAutoHardwareAcceleration();
 
             var streams = mediaInfo.Streams.Where(s => streamIndexes.Contains(s.Index)).ToArray();
             foreach (var stream in streams)
@@ -181,22 +186,46 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
             var videoStream = streams.First(s => s.Type == StreamType.Video);
             var process = builder.Encode();
 
+            process.OutputDataReceived += (sender, data) =>
+            {
+                _logger.LogInformation(data);
+            };
+
             process.ErrorDataReceived += async (sender, data) =>
             {
+                _logger.LogInformation(data);
                 var progress = MediaHelper.ParseProgress(data, videoStream);
                 if (progress.HasValue)
                 {
                     if (_activeProcesses.TryGetValue(process, out var info))
                     {
                         info.Progress = progress.Value;
+                        if (_processStartTimes.TryGetValue(process, out var start))
+                        {
+                            var elapsed = DateTime.UtcNow - start;
+                            info.ElapsedTimeSeconds = Math.Max(0, elapsed.TotalSeconds);
+                            var progressFraction = info.Progress / 100.0;
+                            if (progressFraction > 0)
+                            {
+                                var totalEstimate = elapsed.TotalSeconds / progressFraction;
+                                info.EstimatedTimeSeconds = Math.Max(0, totalEstimate - elapsed.TotalSeconds);
+                            }
+                        }
                         await _hubContext.Clients.All.SendAsync("EncodingUpdated", info);
                     }
                 }
             };
             process.Exited += async (sender, args) =>
             {
+                _logger.LogInformation($"Process exited with code {args.ExitCode}");
                 if (_activeProcesses.TryRemove(process, out var info))
                 {
+                    if (_processStartTimes.TryRemove(process, out var start))
+                    {
+                        var elapsed = DateTime.UtcNow - start;
+                        info.ElapsedTimeSeconds = Math.Max(0, elapsed.TotalSeconds);
+                        info.EstimatedTimeSeconds = 0;
+                    }
                     await _hubContext.Clients.All.SendAsync("EncodingCompleted", info);
                 }
             };
@@ -207,8 +236,11 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
                 SourcePath = sourceFilePath,
                 OutputPath = outputFullPath,
                 Progress = 0,
+                ElapsedTimeSeconds = 0,
+                EstimatedTimeSeconds = 0,
             };
             _activeProcesses.TryAdd(process, info);
+            _processStartTimes.TryAdd(process, DateTime.UtcNow);
             // Broadcast initial state so clients see the encoding as soon as it starts
             _ = _hubContext.Clients.All.SendAsync("EncodingUpdated", info);
         }
@@ -231,6 +263,7 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
             processToStop.Kill();
             if (_activeProcesses.TryRemove(processToStop, out var info))
             {
+                _processStartTimes.TryRemove(processToStop, out _);
                 if (File.Exists(info.OutputPath))
                     File.Delete(info.OutputPath);
 

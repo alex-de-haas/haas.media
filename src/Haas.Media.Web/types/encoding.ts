@@ -4,6 +4,8 @@ export interface EncodingInfo {
   sourcePath: string;
   outputPath: string;
   progress: number;
+  elapsedTimeSeconds: number;
+  estimatedTimeSeconds: number;
 }
 
 // Mirrors backend EncodeRequest (Encodings/EncodeRequest.cs)
@@ -21,9 +23,12 @@ export function isEncodingInfo(value: unknown): value is EncodingInfo {
   if (!value || typeof value !== 'object') return false;
   const v = value as any;
   return (
-    typeof v.hash === 'string' &&
-    typeof v.outputFileName === 'string' &&
-    typeof v.progress === 'number'
+    typeof v.id === 'string' &&
+    typeof v.sourcePath === 'string' &&
+    typeof v.outputPath === 'string' &&
+    typeof v.progress === 'number' &&
+    typeof v.elapsedTimeSeconds === 'number' &&
+    typeof v.estimatedTimeSeconds === 'number'
   );
 }
 

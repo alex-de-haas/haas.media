@@ -371,16 +371,10 @@ export default function FileList({
                     strokeLinejoin="round"
                     aria-hidden="true"
                   >
-                    {/* Circular arrow to indicate encoding/processing */}
-                    <path d="M21 12a9 9 0 11-3-6.5" />
-                    <path d="M21 12v-4h-4" />
-
-                    {/* Play triangle to indicate media */}
-                    <polygon
-                      points="8,7 14,11 8,15"
-                      fill="currentColor"
-                      stroke="none"
-                    />
+                    {/* Information circle icon */}
+                    <circle cx="12" cy="12" r="9" />
+                    <line x1="12" y1="10" x2="12" y2="16" />
+                    <circle cx="12" cy="8" r="1" fill="currentColor" stroke="none" />
                   </svg>
                   <span className="sr-only">Media Info</span>
                 </Link>

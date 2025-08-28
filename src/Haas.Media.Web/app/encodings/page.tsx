@@ -140,9 +140,6 @@ export default function EncodingsPage() {
                   <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {e.outputPath}
                   </div>
-                  <div className="font-mono text-xs text-gray-500 dark:text-gray-400">
-                    {e.id}
-                  </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-sm font-medium">
@@ -157,7 +154,13 @@ export default function EncodingsPage() {
                   </button>
                 </div>
               </div>
-              <div className="mt-3 h-3 w-full bg-gray-100 dark:bg-gray-700 rounded overflow-hidden">
+              <div className="mt-2 text-xs text-gray-600 dark:text-gray-400 flex items-center gap-4">
+                <span>Elapsed: {formatDuration(e.elapsedTimeSeconds)}</span>
+                <span>
+                  ETA: {e.progress > 0 ? formatDuration(e.estimatedTimeSeconds) : "calculating…"}
+                </span>
+              </div>
+              <div className="mt-2 h-3 w-full bg-gray-100 dark:bg-gray-700 rounded overflow-hidden">
                 <div
                   style={{
                     width: `${Math.max(0, Math.min(100, e.progress))}%`,
@@ -171,4 +174,15 @@ export default function EncodingsPage() {
       )}
     </main>
   );
+}
+
+function formatDuration(totalSeconds: number): string {
+  if (!isFinite(totalSeconds) || totalSeconds < 0) return "0:00";
+  const secs = Math.round(totalSeconds);
+  const hours = Math.floor(secs / 3600);
+  const minutes = Math.floor((secs % 3600) / 60);
+  const seconds = secs % 60;
+  const mm = minutes.toString().padStart(2, '0');
+  const ss = seconds.toString().padStart(2, '0');
+  return hours > 0 ? `${hours}:${mm}:${ss}` : `${minutes}:${ss}`;
 }
