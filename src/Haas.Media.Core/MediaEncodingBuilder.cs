@@ -176,7 +176,6 @@ public class MediaEncodingBuilder
 
     private string GetFFMpegCodec(StreamCodec codec, HardwareAcceleration hwAccel = HardwareAcceleration.None)
     {
-        // For hardware acceleration, return hardware-specific codec names
         if (hwAccel != HardwareAcceleration.None)
         {
             return GetHardwareCodec(codec, hwAccel);
