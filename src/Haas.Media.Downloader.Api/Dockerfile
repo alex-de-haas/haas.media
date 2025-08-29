@@ -1,5 +1,5 @@
 # Build stage
-FROM mcr.microsoft.com/dotnet/sdk:9.0-jammy AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Copy project files
@@ -19,7 +19,7 @@ COPY /Haas.Media.Downloader.Api/ Haas.Media.Downloader.Api/
 RUN dotnet publish "Haas.Media.Downloader.Api/Haas.Media.Downloader.Api.csproj" -c Release -o /app/publish --no-restore
 
 # Runtime stage (Ubuntu Jammy)
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-jammy AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 
 RUN apt-get update \
