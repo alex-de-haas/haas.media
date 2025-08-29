@@ -139,9 +139,8 @@ public class MediaEncodingBuilder
             case HardwareAcceleration.VAAPI:
                 command.Append(" -hwaccel vaapi");
                 command.Append(" -hwaccel_output_format vaapi");
-                command.Append(
-                    $" -vaapi_device {(string.IsNullOrEmpty(HardwareDevice) ? "/dev/dri/renderD128" : HardwareDevice)}"
-                );
+                if (!string.IsNullOrEmpty(HardwareDevice))
+                    command.Append($" -hwaccel_device {HardwareDevice}");
                 break;
 
             case HardwareAcceleration.Auto:
