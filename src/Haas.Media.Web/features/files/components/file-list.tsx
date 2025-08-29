@@ -51,6 +51,31 @@ function FileActions({
       {showActions && (
         <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10 dark:bg-gray-800 dark:border-gray-700">
           <div className="py-1">
+            {(item.type === FileItemType.Media || item.type === FileItemType.Directory) && (
+              <Link
+                prefetch={false}
+                href={`/media-info/${encodeURIComponent(item.relativePath)}`}
+                onClick={() => setShowActions(false)}
+                className="flex items-center w-full px-4 py-2 text-sm text-left text-blue-600 hover:bg-gray-100 dark:text-blue-400 dark:hover:bg-gray-700"
+                aria-label="Media info"
+              >
+                <svg
+                  className="w-4 h-4 mr-3"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <line x1="12" y1="10" x2="12" y2="16" />
+                  <circle cx="12" cy="8" r="1" fill="currentColor" stroke="none" />
+                </svg>
+                Media Info
+              </Link>
+            )}
             <button
               onClick={() => {
                 onCopy();
@@ -245,6 +270,8 @@ export default function FileList({
     }
   };
 
+  const hasMediaFiles = files.some((f) => f.type === FileItemType.Media);
+
   if (loading) {
     return <LoadingSpinner size="lg" />;
   }
@@ -252,7 +279,7 @@ export default function FileList({
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
       {/* Breadcrumb */}
-      <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 rounded-t-lg dark:border-gray-700 dark:bg-gray-900">
+      <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 rounded-t-lg dark:border-gray-700 dark:bg-gray-900 ">
         <div className="flex items-center space-x-2 text-sm">
           <button
             onClick={() => onNavigate("")}
@@ -354,31 +381,6 @@ export default function FileList({
                   </div>
                 </div>
               </div>
-              {item.type === FileItemType.Media && (
-                <Link
-                  prefetch={false}
-                  href={`/media-info/${encodeURIComponent(item.relativePath)}`}
-                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                  aria-label="Media info"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    {/* Information circle icon */}
-                    <circle cx="12" cy="12" r="9" />
-                    <line x1="12" y1="10" x2="12" y2="16" />
-                    <circle cx="12" cy="8" r="1" fill="currentColor" stroke="none" />
-                  </svg>
-                  <span className="sr-only">Media Info</span>
-                </Link>
-              )}
               {showActions && (
                 <FileActions
                   item={item}

@@ -24,11 +24,6 @@ export default function MediaFilesList({
   setSelectedStreams,
   encoding,
 }: Props) {
-  const hasAnySelection = React.useMemo(
-    () => Object.values(selectedStreams).some((s) => s && s.size > 0),
-    [selectedStreams]
-  );
-
   // Helper functions for selecting streams
   const selectAllStreamsInFile = (filePath: string, streams: any[]) => {
     setSelectedStreams((prev) => ({

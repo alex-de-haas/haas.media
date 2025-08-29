@@ -1,4 +1,3 @@
-using System.Globalization;
 using Haas.Media.Core.FFMpeg;
 
 namespace Haas.Media.Core;
@@ -108,19 +107,8 @@ public static class MediaManager
     private static string? GetStreamLanguage(FFProbeStream stream)
     {
         var languageCode = stream.Tags?.GetValueOrDefault("language");
-        // if (ValidLanguageCodes.Contains(languageCode))
-        // {
-        //     return new CultureInfo(languageCode!);
-        // }
-
         return languageCode;
     }
-
-    private static readonly string[] ValidLanguageCodes = CultureInfo
-        .GetCultures(CultureTypes.AllCultures)
-        .Select(c => c.TwoLetterISOLanguageName)
-        .Distinct()
-        .ToArray();
 
     private static double? ParseFrameRate(string? frameRateString)
     {

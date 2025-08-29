@@ -46,7 +46,7 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
         _hubContext = hubContext;
     }
 
-    public async Task AddTorrent(Stream torrentFileData)
+    public async Task UploadTorrent(Stream torrentFileData)
     {
         EnsureStarted();
         using var memoryStream = new MemoryStream();
@@ -71,10 +71,7 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
             await memoryStream.CopyToAsync(fileStream);
         }
 
-        // Use a dedicated folder per torrent based on its hash to avoid collisions and separate payloads
-        var torrentDownloadPath = Path.Combine(_downloadsPath, hashHex);
-        Directory.CreateDirectory(torrentDownloadPath);
-        var manager = await _engine!.AddAsync(torrent, torrentDownloadPath, _torrentSettings);
+        var manager = await _engine!.AddAsync(torrent, _downloadsPath, _torrentSettings);
         await manager.StartAsync();
     }
 

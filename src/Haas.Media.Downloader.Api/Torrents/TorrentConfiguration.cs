@@ -16,11 +16,11 @@ public static class TorrentConfiguration
     {
         app.MapPost(
                 "api/torrents/upload",
-                async (HttpRequest request, ITorrentApi torrentService) =>
+                async (ITorrentApi torrentService, HttpRequest request) =>
                 {
                     var form = await request.ReadFormAsync();
                     var file = form.Files["file"];
-                    await torrentService.AddTorrent(file!.OpenReadStream());
+                    await torrentService.UploadTorrent(file!.OpenReadStream());
                     return Results.Ok();
                 }
             )
@@ -39,7 +39,7 @@ public static class TorrentConfiguration
 
         app.MapPost(
                 "api/torrents/{hash}/start",
-                async (string hash, ITorrentApi torrentService) =>
+                async (ITorrentApi torrentService, string hash) =>
                 {
                     return await torrentService.StartAsync(hash)
                         ? Results.Ok()
@@ -51,7 +51,7 @@ public static class TorrentConfiguration
 
         app.MapPost(
                 "api/torrents/{hash}/stop",
-                async (string hash, ITorrentApi torrentService) =>
+                async (ITorrentApi torrentService, string hash) =>
                 {
                     return await torrentService.StopAsync(hash) ? Results.Ok() : Results.NotFound();
                 }
@@ -61,7 +61,7 @@ public static class TorrentConfiguration
 
         app.MapPost(
                 "api/torrents/{hash}/pause",
-                async (string hash, ITorrentApi torrentService) =>
+                async (ITorrentApi torrentService, string hash) =>
                 {
                     return await torrentService.PauseAsync(hash)
                         ? Results.Ok()
@@ -73,10 +73,9 @@ public static class TorrentConfiguration
 
         app.MapDelete(
                 "api/torrents/{hash}",
-                async (string hash, bool? deleteData, ITorrentApi torrentService) =>
+                async (ITorrentApi torrentService, string hash, bool deleteData = false) =>
                 {
-                    var delete = deleteData ?? false;
-                    return await torrentService.DeleteAsync(hash, delete)
+                    return await torrentService.DeleteAsync(hash, deleteData)
                         ? Results.Ok()
                         : Results.NotFound();
                 }

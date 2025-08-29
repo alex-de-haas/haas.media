@@ -140,7 +140,7 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
             );
         }
 
-        return files;
+        return files.OrderBy(f => f.Name).ToArray();
     }
 
     public async Task StartEncodingAsync(EncodeRequest request, CancellationToken ct = default)
