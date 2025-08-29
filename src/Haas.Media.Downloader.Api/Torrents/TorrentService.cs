@@ -36,10 +36,6 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
             _torrentsPath
         );
 
-        // Ensure folders exist
-        Directory.CreateDirectory(_downloadsPath);
-        Directory.CreateDirectory(_torrentsPath);
-
         var settingsBuilder = new TorrentSettingsBuilder { MaximumConnections = 60 };
         _torrentSettings = settingsBuilder.ToSettings();
 
@@ -327,39 +323,19 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
         Directory.CreateDirectory(_torrentsPath);
 
         // Load and start any pre-existing torrents from the torrents folder
-        try
-        {
-            var torrentFiles = Directory.Exists(_torrentsPath)
-                ? Directory.GetFiles(_torrentsPath, "*.torrent", SearchOption.TopDirectoryOnly)
-                : Array.Empty<string>();
+        var torrentFiles = Directory.Exists(_torrentsPath)
+            ? Directory.GetFiles(_torrentsPath, "*.torrent", SearchOption.TopDirectoryOnly)
+            : Array.Empty<string>();
 
-            foreach (var file in torrentFiles)
-            {
-                try
-                {
-                    var torrent = await Torrent.LoadAsync(file);
-                    var hash = torrent.InfoHashes.V1OrV2.ToHex();
-                    var torrentDownloadPath = Path.Combine(_downloadsPath, hash);
-                    Directory.CreateDirectory(torrentDownloadPath);
-                    var manager = await _engine.AddAsync(
-                        torrent,
-                        torrentDownloadPath,
-                        _torrentSettings
-                    );
-                    if (!manager.Complete)
-                    {
-                        await manager.StartAsync();
-                    }
-                }
-                catch
-                {
-                    // Ignore individual torrent load/start failures to avoid crashing startup
-                }
-            }
-        }
-        catch
+        foreach (var file in torrentFiles)
         {
-            // Ignore folder enumeration issues
+            var torrent = await Torrent.LoadAsync(file);
+            var hash = torrent.InfoHashes.V1OrV2.ToHex();
+            var manager = await _engine.AddAsync(torrent, _downloadsPath, _torrentSettings);
+            if (!manager.Complete)
+            {
+                await manager.StartAsync();
+            }
         }
     }
 
