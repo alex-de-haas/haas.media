@@ -54,8 +54,42 @@ public class MediaEncodingBuilder
     )
     {
         HardwareAccel = acceleration;
-        HardwareDevice = device;
+        
+        // Validate VAAPI device if specified
+        if (acceleration == HardwareAcceleration.VAAPI)
+        {
+            var vaapiDevice = device ?? GetDefaultVAAPIDevice();
+            if (!string.IsNullOrEmpty(vaapiDevice) && File.Exists(vaapiDevice))
+            {
+                HardwareDevice = vaapiDevice;
+            }
+            else
+            {
+                throw new InvalidOperationException($"VAAPI device '{vaapiDevice}' not found or not accessible");
+            }
+        }
+        else
+        {
+            HardwareDevice = device;
+        }
+        
         return this;
+    }
+
+    public MediaEncodingBuilder WithVAAPI(string? device = null)
+    {
+        return WithHardwareAcceleration(HardwareAcceleration.VAAPI, device);
+    }
+
+    public MediaEncodingBuilder WithAutoHardwareAcceleration()
+    {
+        return WithHardwareAcceleration(HardwareAcceleration.Auto);
+    }
+
+    private static string? GetDefaultVAAPIDevice()
+    {
+        var possibleDevices = new[] { "/dev/dri/renderD128", "/dev/dri/renderD129", "/dev/dri/card0", "/dev/dri/card1" };
+        return possibleDevices.FirstOrDefault(File.Exists);
     }
 
     public MediaEncodingBuilder WithStream(MediaInfo.Stream stream)
@@ -137,10 +171,15 @@ public class MediaEncodingBuilder
                 break;
 
             case HardwareAcceleration.VAAPI:
+                // For VAAPI, we need to initialize the device first, then set hwaccel
+                var vaapiDevice = !string.IsNullOrEmpty(HardwareDevice) ? HardwareDevice : GetDefaultVAAPIDevice();
+                if (string.IsNullOrEmpty(vaapiDevice))
+                {
+                    throw new InvalidOperationException("No VAAPI device available");
+                }
+                command.Append($" -vaapi_device {vaapiDevice}");
                 command.Append(" -hwaccel vaapi");
                 command.Append(" -hwaccel_output_format vaapi");
-                if (!string.IsNullOrEmpty(HardwareDevice))
-                    command.Append($" -hwaccel_device {HardwareDevice}");
                 break;
 
             case HardwareAcceleration.Auto:
@@ -300,11 +339,26 @@ public class MediaEncodingBuilder
                 // Try VA-API first, then NVIDIA
                 try
                 {
-                    return GetVAAPICodec(codec);
+                    // For auto mode, try to find a VAAPI device
+                    var defaultDevice = GetDefaultVAAPIDevice();
+                    if (!string.IsNullOrEmpty(defaultDevice))
+                    {
+                        HardwareDevice ??= defaultDevice;
+                        return GetVAAPICodec(codec);
+                    }
                 }
                 catch
                 {
+                    // Fall through to try other options
+                }
+
+                try
+                {
                     return GetNvidiaCodec(codec);
+                }
+                catch
+                {
+                    // Fall back to software if both fail
                 }
             }
         }

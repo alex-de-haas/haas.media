@@ -71,6 +71,14 @@ var result = await MediaEncodingBuilder.Create()
     .WithVideoCodec(StreamCodec.H264)
     .WithVAAPI("/dev/dri/renderD129")
     .EncodeAsync();
+
+// Auto-detect VA-API device (recommended)
+var result = await MediaEncodingBuilder.Create()
+    .FromFileInput("input.mp4")
+    .ToFileOutput("output.mp4")
+    .WithVideoCodec(StreamCodec.HEVC)
+    .WithVAAPI() // Automatically finds best device
+    .EncodeAsync();
 ```
 
 ### Manual Hardware Acceleration Configuration

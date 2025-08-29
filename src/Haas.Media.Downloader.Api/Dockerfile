@@ -31,11 +31,15 @@ RUN apt-get update \
         libdrm2 \
         libdrm-amdgpu1 \
         libva-dev \
+        intel-media-va-driver \
+        mesa-vulkan-drivers \
     && rm -rf /var/lib/apt/lists/*
 
 # Ensure VA-API uses AMD's radeonsi driver in containers
+# Also set up Intel driver path for hybrid systems
 ENV LIBVA_DRIVER_NAME=radeonsi \
-    LIBVA_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri
+    LIBVA_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri \
+    LIBVA_MESSAGING_LEVEL=2
 
 # Copy published app
 COPY --from=build /app/publish .

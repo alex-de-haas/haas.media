@@ -78,7 +78,7 @@ public static partial class MediaHelper
             HardwareAcceleration.VideoToolbox =>
                 "-f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -c:v h264_videotoolbox -f null -",
             HardwareAcceleration.VAAPI =>
-                "-vaapi_device /dev/dri/renderD128 -f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -vf 'format=nv12,hwupload' -c:v h264_vaapi -f null -",
+                GetVAAPIDeviceTestCommand(),
             _ => null,
         };
 
@@ -93,8 +93,23 @@ public static partial class MediaHelper
             var result = await instance.StartAndWaitForExitAsync().ConfigureAwait(false);
 
             var devices = new List<string>();
-            var captureDevices = false;
 
+            // For VAAPI, check for available DRM devices directly
+            if (acceleration == HardwareAcceleration.VAAPI)
+            {
+                var possibleDevices = new[] { "/dev/dri/renderD128", "/dev/dri/renderD129", "/dev/dri/card0", "/dev/dri/card1" };
+                foreach (var device in possibleDevices)
+                {
+                    if (File.Exists(device))
+                    {
+                        devices.Add(device);
+                    }
+                }
+                return devices.ToArray();
+            }
+
+            // For other hardware acceleration types, parse FFmpeg output
+            var captureDevices = false;
             foreach (var line in result.ErrorData.Concat(result.OutputData))
             {
                 if (line.Contains("Available devices:") || line.Contains("Device list:"))
@@ -166,6 +181,23 @@ public static partial class MediaHelper
             HardwareAcceleration.VAAPI => "vaapi",
             _ => "",
         };
+    }
+
+    private static string GetVAAPIDeviceTestCommand()
+    {
+        // Try to find available VAAPI devices dynamically
+        var possibleDevices = new[] { "/dev/dri/renderD128", "/dev/dri/renderD129", "/dev/dri/card0", "/dev/dri/card1" };
+        
+        foreach (var device in possibleDevices)
+        {
+            if (File.Exists(device))
+            {
+                return $"-vaapi_device {device} -f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -vf 'format=nv12,hwupload' -c:v h264_vaapi -f null -";
+            }
+        }
+        
+        // Fallback to default if no devices found
+        return "-vaapi_device /dev/dri/renderD128 -f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -vf 'format=nv12,hwupload' -c:v h264_vaapi -f null -";
     }
 
     private static StreamCodec ParseCodecFromLine(string line, bool isEncoder)
