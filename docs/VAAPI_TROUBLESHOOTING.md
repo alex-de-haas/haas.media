@@ -99,8 +99,20 @@ dmesg | grep -i drm
 | GPU Vendor | Driver Package | Device Path | Notes |
 |------------|----------------|-------------|-------|
 | Intel | intel-media-va-driver | /dev/dri/renderD128 | Usually default |
-| AMD | mesa-va-drivers | /dev/dri/renderD128 | AMD RADV driver |
+| AMD (older) | mesa-va-drivers | /dev/dri/renderD128 | AMD RADV driver |
+| AMD (RDNA 3.5) | mesa-va-drivers + firmware-amd-graphics | /dev/dri/renderD128-130 | Ryzen AI 9 HX 370 + 890M |
 | NVIDIA | nvidia-driver | /dev/dri/renderD128 | Limited VAAPI support |
+
+## Specific GPU Configurations
+
+### Ryzen AI 9 HX 370 with Radeon 890M (RDNA 3.5)
+For this specific AMD APU, see the dedicated guide: [RYZEN_AI_9_HX_370_VAAPI.md](RYZEN_AI_9_HX_370_VAAPI.md)
+
+Key points:
+- May use higher numbered render devices (/dev/dri/renderD130)
+- Requires firmware-amd-graphics package
+- Enhanced Docker device mapping needed
+- Use provided docker-compose.ryzen-ai.yml
 
 ## Testing the Fix
 

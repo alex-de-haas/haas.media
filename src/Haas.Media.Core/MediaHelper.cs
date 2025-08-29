@@ -97,7 +97,15 @@ public static partial class MediaHelper
             // For VAAPI, check for available DRM devices directly
             if (acceleration == HardwareAcceleration.VAAPI)
             {
-                var possibleDevices = new[] { "/dev/dri/renderD128", "/dev/dri/renderD129", "/dev/dri/card0", "/dev/dri/card1" };
+                var possibleDevices = new[] { 
+                    "/dev/dri/renderD128", 
+                    "/dev/dri/renderD129", 
+                    "/dev/dri/renderD130",  // For newer AMD GPUs like 890M
+                    "/dev/dri/card0", 
+                    "/dev/dri/card1",
+                    "/dev/dri/card2"
+                };
+                
                 foreach (var device in possibleDevices)
                 {
                     if (File.Exists(device))
@@ -105,6 +113,13 @@ public static partial class MediaHelper
                         devices.Add(device);
                     }
                 }
+                
+                // If no devices were found, add the default one
+                if (devices.Count == 0)
+                {
+                    devices.Add("/dev/dri/renderD128");
+                }
+                
                 return devices.ToArray();
             }
 
@@ -186,11 +201,20 @@ public static partial class MediaHelper
     private static string GetVAAPIDeviceTestCommand()
     {
         // Try to find available VAAPI devices dynamically
-        var possibleDevices = new[] { "/dev/dri/renderD128", "/dev/dri/renderD129", "/dev/dri/card0", "/dev/dri/card1" };
+        // For newer AMD APUs like Ryzen AI 9 HX 370 with 890M
+        var possibleDevices = new[] { 
+            "/dev/dri/renderD128", 
+            "/dev/dri/renderD129", 
+            "/dev/dri/renderD130",
+            "/dev/dri/card0", 
+            "/dev/dri/card1",
+            "/dev/dri/card2"
+        };
         
         foreach (var device in possibleDevices)
         {
-            if (File.Exists(device))
+            // In containers, device might not be accessible during build but available at runtime
+            if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true" || File.Exists(device))
             {
                 return $"-vaapi_device {device} -f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -vf 'format=nv12,hwupload' -c:v h264_vaapi -f null -";
             }
