@@ -179,13 +179,13 @@ export default function CopyMoveModal({
                   <div style={{ height: "300px" }}>
                     <div className="overflow-y-auto h-full">
                       <FileList
-                        files={files.filter(f => f.type === FileItemType.Directory)} // Only show directories
+                        files={files}
                         currentPath={currentPath}
                         onNavigate={handleNavigate}
-                        onDelete={() => {}} // Disable actions in destination picker
+                        onDelete={() => {}}
                         onCopy={() => {}}
                         onMove={() => {}}
-                        onRename={() => {}} // Disable rename in destination picker
+                        onRename={() => {}}
                         loading={filesLoading}
                         showActions={false}
                       />

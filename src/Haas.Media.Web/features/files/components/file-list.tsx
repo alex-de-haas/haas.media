@@ -270,8 +270,6 @@ export default function FileList({
     }
   };
 
-  const hasMediaFiles = files.some((f) => f.type === FileItemType.Media);
-
   if (loading) {
     return <LoadingSpinner size="lg" />;
   }
