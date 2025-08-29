@@ -3,7 +3,7 @@
 import React from "react";
 import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
-import type { EncodingInfo } from "@/types/encoding";
+import type { EncodingProcessInfo } from "@/types/encoding";
 import { useEncodingActions } from "@/features/media/hooks";
 import {
   HubConnection,
@@ -13,7 +13,7 @@ import {
 import { PageHeader } from "@/components/layout";
 
 export default function EncodingsPage() {
-  const [encodings, setEncodings] = React.useState<EncodingInfo[] | null>(null);
+  const [encodings, setEncodings] = React.useState<EncodingProcessInfo[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const { stopEncoding, loading: actionLoading } = useEncodingActions();
@@ -55,7 +55,7 @@ export default function EncodingsPage() {
           .withAutomaticReconnect()
           .build();
 
-        connection.on("EncodingUpdated", (info: EncodingInfo) => {
+        connection.on("EncodingUpdated", (info: EncodingProcessInfo) => {
           setEncodings((prev) => {
             const existing = prev ?? [];
             const idx = existing.findIndex(
@@ -71,7 +71,7 @@ export default function EncodingsPage() {
           });
         });
 
-        connection.on("EncodingDeleted", (info: EncodingInfo) => {
+        connection.on("EncodingDeleted", (info: EncodingProcessInfo) => {
           setEncodings((prev) => {
             const existing = prev ?? [];
             return existing.filter(
@@ -81,7 +81,7 @@ export default function EncodingsPage() {
           });
         });
 
-        connection.on("EncodingCompleted", (info: EncodingInfo) => {
+        connection.on("EncodingCompleted", (info: EncodingProcessInfo) => {
           setEncodings((prev) => {
             const existing = prev ?? [];
             return existing.filter(

@@ -1,5 +1,8 @@
-// Mirrors backend EncodingInfo (Encodings/EncodingInfo.cs)
-export interface EncodingInfo {
+import type { MediaFileInfo } from "./media-file-info";
+import { StreamCodec } from "./media-info";
+
+// Mirrors backend EncodingProcessInfo (for active encoding processes)
+export interface EncodingProcessInfo {
   id: string;
   sourcePath: string;
   outputPath: string;
@@ -8,10 +11,26 @@ export interface EncodingInfo {
   estimatedTimeSeconds: number;
 }
 
+// Mirrors backend EncodingInfo (Encodings/EncodingInfo.cs) for GetEncodingInfoAsync response
+export interface EncodingInfo {
+  hardwareAccelerations: HardwareAccelerationInfo[];
+  mediaFiles: MediaFileInfo[];
+}
+
+// Mirrors backend HardwareAccelerationInfo (Core/HardwareAccelerationInfo.cs)
+export interface HardwareAccelerationInfo {
+  hardwareAcceleration: HardwareAcceleration;
+  devices: string[];
+  encoders: number[]; // StreamCodec enum values
+  decoders: number[]; // StreamCodec enum values
+}
+
 // Mirrors backend EncodeRequest (Encodings/EncodeRequest.cs)
 export interface EncodeRequest {
+  hardwareAcceleration: HardwareAcceleration;
+  videoCodec: StreamCodec;
+  device?: string | null;
   streams: EncodeRequestStream[];
-  hardwareAcceleration?: HardwareAcceleration;
 }
 
 export interface EncodeRequestStream {
@@ -31,7 +50,32 @@ export enum HardwareAcceleration {
   Auto = 99,
 }
 
-export function isEncodingInfo(value: unknown): value is EncodingInfo {
+export function isHardwareAccelerationInfo(value: unknown): value is HardwareAccelerationInfo {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as any;
+  return (
+    typeof v.hardwareAcceleration === 'number' &&
+    Array.isArray(v.devices) &&
+    v.devices.every((d: any) => typeof d === 'string') &&
+    Array.isArray(v.encoders) &&
+    v.encoders.every((e: any) => typeof e === 'number') &&
+    Array.isArray(v.decoders) &&
+    v.decoders.every((d: any) => typeof d === 'number')
+  );
+}
+
+export function isMediaEncodingInfo(value: unknown): value is EncodingInfo {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as any;
+  return (
+    Array.isArray(v.hardwareAccelerations) &&
+    v.hardwareAccelerations.every(isHardwareAccelerationInfo) &&
+    Array.isArray(v.mediaFiles) &&
+    v.mediaFiles.every((f: any) => typeof f === 'object' && f !== null)
+  );
+}
+
+export function isEncodingInfo(value: unknown): value is EncodingProcessInfo {
   if (!value || typeof value !== 'object') return false;
   const v = value as any;
   return (
@@ -44,6 +88,6 @@ export function isEncodingInfo(value: unknown): value is EncodingInfo {
   );
 }
 
-export function isEncodingInfoArray(value: unknown): value is EncodingInfo[] {
+export function isEncodingInfoArray(value: unknown): value is EncodingProcessInfo[] {
   return Array.isArray(value) && value.every(isEncodingInfo);
 }

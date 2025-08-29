@@ -2,6 +2,8 @@
 
 import React from "react";
 import type { MediaFileInfo } from "@/types/media-file-info";
+import type { EncodingInfo, HardwareAccelerationInfo } from "@/types/encoding";
+import { isMediaEncodingInfo } from "@/types/encoding";
 import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
 
@@ -9,6 +11,7 @@ export function useMediaFiles(path?: string) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [mediaFiles, setMediaFiles] = React.useState<MediaFileInfo[] | null>(null);
+  const [hardwareAccelerations, setHardwareAccelerations] = React.useState<HardwareAccelerationInfo[] | null>(null);
 
   React.useEffect(() => {
     if (!path) return;
@@ -27,8 +30,12 @@ export function useMediaFiles(path?: string) {
           throw new Error(body?.error ?? res.statusText);
         }
         const data = await res.json();
-        if (Array.isArray(data)) setMediaFiles(data as MediaFileInfo[]);
-        else throw new Error("Unexpected media files response");
+        if (isMediaEncodingInfo(data)) {
+          setMediaFiles(data.mediaFiles);
+          setHardwareAccelerations(data.hardwareAccelerations);
+        } else {
+          throw new Error("Unexpected media encoding info response");
+        }
       } catch (err: any) {
         setError(err?.message ?? String(err));
       } finally {
@@ -38,5 +45,5 @@ export function useMediaFiles(path?: string) {
     fetchInfo();
   }, [path]);
 
-  return { mediaFiles, loading, error, setMediaFiles } as const;
+  return { mediaFiles, hardwareAccelerations, loading, error, setMediaFiles } as const;
 }

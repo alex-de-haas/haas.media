@@ -49,11 +49,11 @@ public class MediaEncodingBuilder
     }
 
     public MediaEncodingBuilder WithHardwareAcceleration(
-        HardwareAcceleration? acceleration,
+        HardwareAcceleration acceleration,
         string? device = null
     )
     {
-        HardwareAccel = acceleration ?? HardwareAcceleration.None;
+        HardwareAccel = acceleration;
         HardwareDevice = device;
         return this;
     }

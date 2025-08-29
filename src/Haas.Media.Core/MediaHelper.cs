@@ -8,6 +8,204 @@ namespace Haas.Media.Core;
 
 public static partial class MediaHelper
 {
+    public static async Task<HardwareAccelerationInfo[]> GetHardwareAccelerationInfoAsync()
+    {
+        var supportedAccelerations = await GetSupportedHardwareAccelerationsAsync();
+        var result = new List<HardwareAccelerationInfo>();
+
+        foreach (var acceleration in supportedAccelerations)
+        {
+            var info = new HardwareAccelerationInfo
+            {
+                HardwareAcceleration = acceleration,
+                Devices = await GetDevicesForAccelerationAsync(acceleration),
+                Encoders = await GetCodecsForAccelerationAsync(acceleration, isEncoder: true),
+                Decoders = await GetCodecsForAccelerationAsync(acceleration, isEncoder: false),
+            };
+            result.Add(info);
+        }
+
+        return result.ToArray();
+    }
+
+    private static async Task<HardwareAcceleration[]> GetSupportedHardwareAccelerationsAsync()
+    {
+        var instance = PrepareFFMpegInstance("-hwaccels", GlobalFFOptions.Current, null);
+        var result = await instance.StartAndWaitForExitAsync().ConfigureAwait(false);
+
+        if (result.ExitCode == 0)
+        {
+            var hardwareAccelerations = new List<HardwareAcceleration>();
+            foreach (var output in result.OutputData)
+            {
+                var hardwareAcceleration = output switch
+                {
+                    // "vdpau" => HardwareAcceleration.VDPAU,
+                    "cuda" => HardwareAcceleration.NVENC,
+                    "vaapi" => HardwareAcceleration.VAAPI,
+                    // "dxva2" => HardwareAcceleration.DXVA2,
+                    "qsv" => HardwareAcceleration.QSV,
+                    "videotoolbox" => HardwareAcceleration.VideoToolbox,
+                    "d3d11va" => HardwareAcceleration.AMF,
+                    // "opencl" => HardwareAcceleration.OpenCL,
+                    // "drm" => HardwareAcceleration.DRM,
+                    _ => HardwareAcceleration.None,
+                };
+                if (hardwareAcceleration != HardwareAcceleration.None)
+                {
+                    hardwareAccelerations.Add(hardwareAcceleration);
+                }
+            }
+
+            return hardwareAccelerations.ToArray();
+        }
+
+        return Array.Empty<HardwareAcceleration>();
+    }
+
+    private static async Task<string[]> GetDevicesForAccelerationAsync(
+        HardwareAcceleration acceleration
+    )
+    {
+        var deviceArgument = acceleration switch
+        {
+            HardwareAcceleration.NVENC =>
+                "-f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -c:v h264_nvenc -list_devices 1 -f null -",
+            HardwareAcceleration.QSV =>
+                "-init_hw_device qsv -f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -c:v h264_qsv -list_devices 1 -f null -",
+            HardwareAcceleration.AMF =>
+                "-f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -c:v h264_amf -list_devices 1 -f null -",
+            HardwareAcceleration.VideoToolbox =>
+                "-f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -c:v h264_videotoolbox -f null -",
+            HardwareAcceleration.VAAPI =>
+                "-vaapi_device /dev/dri/renderD128 -f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -vf 'format=nv12,hwupload' -c:v h264_vaapi -f null -",
+            _ => null,
+        };
+
+        if (string.IsNullOrEmpty(deviceArgument))
+        {
+            return Array.Empty<string>();
+        }
+
+        try
+        {
+            var instance = PrepareFFMpegInstance(deviceArgument, GlobalFFOptions.Current, null);
+            var result = await instance.StartAndWaitForExitAsync().ConfigureAwait(false);
+
+            var devices = new List<string>();
+            var captureDevices = false;
+
+            foreach (var line in result.ErrorData.Concat(result.OutputData))
+            {
+                if (line.Contains("Available devices:") || line.Contains("Device list:"))
+                {
+                    captureDevices = true;
+                    continue;
+                }
+
+                if (captureDevices && !string.IsNullOrWhiteSpace(line))
+                {
+                    if (line.Trim().StartsWith("[") && line.Contains("]"))
+                    {
+                        var deviceName = line.Trim();
+                        devices.Add(deviceName);
+                    }
+                }
+            }
+
+            return devices.ToArray();
+        }
+        catch
+        {
+            return Array.Empty<string>();
+        }
+    }
+
+    private static async Task<StreamCodec[]> GetCodecsForAccelerationAsync(
+        HardwareAcceleration acceleration,
+        bool isEncoder
+    )
+    {
+        var command = isEncoder ? "-encoders" : "-decoders";
+        var instance = PrepareFFMpegInstance(command, GlobalFFOptions.Current, null);
+        var result = await instance.StartAndWaitForExitAsync().ConfigureAwait(false);
+
+        if (result.ExitCode != 0)
+        {
+            return Array.Empty<StreamCodec>();
+        }
+
+        var codecs = new List<StreamCodec>();
+        var accelerationPrefix = GetAccelerationPrefix(acceleration);
+
+        foreach (var line in result.OutputData)
+        {
+            if (string.IsNullOrWhiteSpace(line) || !line.Contains(accelerationPrefix))
+            {
+                continue;
+            }
+
+            var codec = ParseCodecFromLine(line, isEncoder);
+            if (codec != StreamCodec.Unknown && !codecs.Contains(codec))
+            {
+                codecs.Add(codec);
+            }
+        }
+
+        return codecs.ToArray();
+    }
+
+    private static string GetAccelerationPrefix(HardwareAcceleration acceleration)
+    {
+        return acceleration switch
+        {
+            HardwareAcceleration.NVENC => "nvenc",
+            HardwareAcceleration.QSV => "qsv",
+            HardwareAcceleration.AMF => "amf",
+            HardwareAcceleration.VideoToolbox => "videotoolbox",
+            HardwareAcceleration.VAAPI => "vaapi",
+            _ => "",
+        };
+    }
+
+    private static StreamCodec ParseCodecFromLine(string line, bool isEncoder)
+    {
+        // FFmpeg output format: " V..... h264_nvenc            NVIDIA NVENC H.264 encoder"
+        var parts = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 2)
+        {
+            return StreamCodec.Unknown;
+        }
+
+        var codecName = parts[1].ToLowerInvariant();
+
+        return codecName switch
+        {
+            var name when name.Contains("h264") => StreamCodec.H264,
+            var name when name.Contains("h265") || name.Contains("hevc") => StreamCodec.HEVC,
+            var name when name.Contains("mpeg2") => StreamCodec.Mpeg2Video,
+            var name when name.Contains("mpeg4") => StreamCodec.Mpeg4Part2,
+            var name when name.Contains("vp8") => StreamCodec.VP8,
+            var name when name.Contains("vp9") => StreamCodec.VP9,
+            var name when name.Contains("av1") => StreamCodec.AV1,
+            var name when name.Contains("vc1") => StreamCodec.VC1,
+            var name when name.Contains("prores") => StreamCodec.ProRes,
+            var name when name.Contains("theora") => StreamCodec.Theora,
+            var name when name.Contains("aac") => StreamCodec.AdvancedAudioCoding,
+            var name when name.Contains("ac3") => StreamCodec.DolbyDigital,
+            var name when name.Contains("eac3") => StreamCodec.DolbyDigitalPlus,
+            var name when name.Contains("truehd") => StreamCodec.DolbyTrueHD,
+            var name when name.Contains("mp3") => StreamCodec.MpegLayer3,
+            var name when name.Contains("flac") => StreamCodec.Flac,
+            var name when name.Contains("opus") => StreamCodec.Opus,
+            var name when name.Contains("vorbis") => StreamCodec.Vorbis,
+            var name when name.Contains("dts") => StreamCodec.DTS,
+            var name when name.Contains("alac") => StreamCodec.ALAC,
+            var name when name.Contains("pcm") => StreamCodec.PCM,
+            _ => StreamCodec.Unknown,
+        };
+    }
+
     public static async Task<FFProbeAnalysis> GetFFProbeAnalysisAsync(string filePath)
     {
         var instance = PrepareStreamAnalysisInstance(filePath, GlobalFFOptions.Current, null);
@@ -112,7 +310,7 @@ public static partial class MediaHelper
             if (matchFrames.Success)
             {
                 var currentFrame = int.Parse(matchFrames.Groups[1].Value);
-                
+
                 // Calculate total frames using frame rate and duration
                 var frameRate = videoStream.FrameRate ?? videoStream.AvgFrameRate;
                 if (frameRate.HasValue && frameRate.Value > 0)

@@ -4,7 +4,9 @@ namespace Haas.Media.Downloader.Api.Encodings;
 
 public record EncodeRequest
 {
-    public HardwareAcceleration? HardwareAcceleration { get; init; }
+    public required HardwareAcceleration HardwareAcceleration { get; init; }
+    public required StreamCodec VideoCodec { get; init; }
+    public required string? Device { get; init; }
     public required Stream[] Streams { get; init; }
 
     public record Stream

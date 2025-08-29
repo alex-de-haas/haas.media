@@ -10,7 +10,8 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
 {
     private readonly string _dataPath;
     private readonly string _outputPath;
-    private readonly ConcurrentDictionary<IProcessInstance, EncodingInfo> _activeProcesses = new();
+    private readonly ConcurrentDictionary<IProcessInstance, EncodingProcessInfo> _activeProcesses =
+        new();
     private readonly ConcurrentDictionary<IProcessInstance, DateTime> _processStartTimes = new();
     private readonly IHubContext<EncodingHub> _hubContext;
     private readonly IHostApplicationLifetime _applicationLifetime;
@@ -103,7 +104,7 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
         _processStartTimes.Clear();
     }
 
-    public async Task<IEnumerable<MediaFileInfo>> GetMediaFilesInfoAsync(string relativePath)
+    public async Task<EncodingInfo> GetEncodingInfoAsync(string relativePath)
     {
         var path = Path.Combine(_dataPath, relativePath);
         var isDirectory = Directory.Exists(path);
@@ -121,7 +122,7 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
             {
                 var fileInfo = new FileInfo(f);
                 var relativePath = Path.GetRelativePath(_dataPath, f);
-                return new MediaFileInfo
+                return new EncodingInfo.MediaFileInfo
                 {
                     Name = fileInfo.Name,
                     RelativePath = relativePath,
@@ -140,7 +141,13 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
             );
         }
 
-        return files.OrderBy(f => f.Name).ToArray();
+        var result = new EncodingInfo
+        {
+            HardwareAccelerations = await MediaHelper.GetHardwareAccelerationInfoAsync(),
+            MediaFiles = files.OrderBy(f => f.Name).ToArray(),
+        };
+
+        return result;
     }
 
     public async Task StartEncodingAsync(EncodeRequest request, CancellationToken ct = default)
@@ -174,8 +181,8 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
                 .Create()
                 .FromFileInput(sourceFilePath)
                 .ToFileOutput(outputFullPath)
-                .WithVideoCodec(StreamCodec.HEVC)
-                .WithHardwareAcceleration(request.HardwareAcceleration);
+                .WithVideoCodec(request.VideoCodec)
+                .WithHardwareAcceleration(request.HardwareAcceleration, request.Device);
 
             var streams = mediaInfo.Streams.Where(s => streamIndexes.Contains(s.Index)).ToArray();
             foreach (var stream in streams)
@@ -233,7 +240,7 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
                 }
             };
 
-            var info = new EncodingInfo
+            var info = new EncodingProcessInfo
             {
                 Id = Guid.CreateVersion7().ToString(),
                 SourcePath = sourceFilePath,
@@ -249,7 +256,7 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
         }
     }
 
-    public EncodingInfo[] GetEncodingsAsync()
+    public EncodingProcessInfo[] GetEncodingsAsync()
     {
         return _activeProcesses.Values.ToArray();
     }

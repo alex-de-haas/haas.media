@@ -37,7 +37,7 @@ public static class EncodingConfiguration
                 "api/encodings/info",
                 async (string path, IEncodingApi convertApi) =>
                 {
-                    var mediaFiles = await convertApi.GetMediaFilesInfoAsync(path);
+                    var mediaFiles = await convertApi.GetEncodingInfoAsync(path);
                     return Results.Ok(mediaFiles);
                 }
             )

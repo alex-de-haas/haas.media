@@ -3,7 +3,7 @@
 import React from "react";
 import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
-import type { EncodingInfo, EncodeRequest } from "@/types/encoding";
+import type { EncodingProcessInfo, EncodeRequest } from "@/types/encoding";
 import type { MediaFileInfo } from "@/types/media-file-info";
 
 /**
@@ -18,7 +18,7 @@ export function useEncodingApi() {
    * Get all active encodings
    * Corresponds to: GET /api/encodings
    */
-  const getEncodings = React.useCallback(async (): Promise<EncodingInfo[]> => {
+  const getEncodings = React.useCallback(async (): Promise<EncodingProcessInfo[]> => {
     setLoading(true);
     setError(null);
     try {

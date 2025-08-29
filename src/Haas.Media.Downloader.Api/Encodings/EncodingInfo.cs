@@ -1,13 +1,19 @@
+using Haas.Media.Core;
+
 namespace Haas.Media.Downloader.Api.Encodings;
 
-public record EncodingInfo
+public class EncodingInfo
 {
-    public required string Id { get; set; }
-    public required string SourcePath { get; set; }
-    public required string OutputPath { get; set; }
-    public double Progress { get; set; }
-    // Elapsed encoding time in seconds
-    public double ElapsedTimeSeconds { get; set; }
-    // Estimated remaining time in seconds
-    public double EstimatedTimeSeconds { get; set; }
+    public required HardwareAccelerationInfo[] HardwareAccelerations { get; set; }
+    public required MediaFileInfo[] MediaFiles { get; set; }
+
+    public class MediaFileInfo
+    {
+        public required string Name { get; init; }
+        public required string RelativePath { get; init; }
+        public required long Size { get; init; }
+        public required DateTimeOffset LastModified { get; init; }
+        public required string Extension { get; init; }
+        public MediaInfo? MediaInfo { get; set; }
+    }
 }
