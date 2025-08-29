@@ -114,12 +114,6 @@ public static partial class MediaHelper
                     }
                 }
                 
-                // If no devices were found, add the default one
-                if (devices.Count == 0)
-                {
-                    devices.Add("/dev/dri/renderD128");
-                }
-                
                 return devices.ToArray();
             }
 
