@@ -10,11 +10,13 @@ import { HardwareAcceleration } from "@/types/encoding";
 import { StreamCodec } from "@/types/media-info";
 
 interface PageProps {
-  params: { path: string };
+  // In Next.js 15, `params` is a Promise and should be unwrapped with React.use()
+  params: Promise<{ path: string }>;
 }
 
 export default function MediaInfoPage({ params }: PageProps) {
-  const { path } = params;
+  // Unwrap params Promise per Next.js guidance
+  const { path } = React.use(params);
   const router = useRouter();
 
   // Join path segments and decode the full path
