@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useMediaFiles, useEncodeStreams } from "@/features/media";
 import { MediaFilesList } from "@/features/media";
 import { LoadingSpinner } from "@/components/ui";
+import { PageHeader } from "@/components/layout";
+import { HardwareAcceleration } from "@/types/encoding";
 
 interface PageProps {
   params: { path: string };
@@ -21,13 +23,15 @@ export default function MediaInfoPage({ params }: PageProps) {
   }, [path]);
 
   const { mediaFiles, loading, error } = useMediaFiles(decodedPath);
+  const [hardwareAccel, setHardwareAccel] = React.useState<HardwareAcceleration>(HardwareAcceleration.None);
   const [selectedStreams, setSelectedStreams] = React.useState<
     Record<string, Set<number>>
   >({});
   const { encodeAll, encoding, encodeError } = useEncodeStreams(
     decodedPath,
     mediaFiles,
-    selectedStreams
+    selectedStreams,
+    hardwareAccel
   );
 
   const hasAnySelection = React.useMemo(
@@ -49,32 +53,39 @@ export default function MediaInfoPage({ params }: PageProps) {
   if (!decodedPath) return <div className="p-6">No file path provided.</div>;
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-xl font-semibold mb-1">Media File Info</h1>
-          <div className="text-xs text-gray-600 dark:text-gray-400">
-            Path: <span className="font-mono">{decodedPath}</span>
+    <main className="mx-auto space-y-10">
+      <PageHeader
+        title="Media Info"
+        description="Media file information and encoding options."
+        actions={
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-700 dark:text-gray-300">
+              HW Accel
+            </label>
+            <select
+              className="px-3 py-2 text-xs border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none"
+              value={String(hardwareAccel)}
+              onChange={(e) => setHardwareAccel(Number(e.target.value) as HardwareAcceleration)}
+            >
+              <option value={String(HardwareAcceleration.None)}>None</option>
+              <option value={String(HardwareAcceleration.NVENC)}>NVIDIA (NVENC)</option>
+              <option value={String(HardwareAcceleration.QSV)}>Intel (QSV)</option>
+              <option value={String(HardwareAcceleration.AMF)}>AMD (AMF)</option>
+              <option value={String(HardwareAcceleration.VideoToolbox)}>Apple VideoToolbox</option>
+              <option value={String(HardwareAcceleration.VAAPI)}>VA-API (Linux)</option>
+              <option value={String(HardwareAcceleration.Auto)}>Auto</option>
+            </select>
+            <button
+              type="button"
+              disabled={encoding || !hasAnySelection}
+              onClick={handleEncodeAndRedirect}
+              className="inline-flex items-center justify-center px-3 py-2 text-xs font-medium rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {encoding ? "Encoding..." : "Encode Selected"}
+            </button>
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="text-xs text-gray-600 dark:text-gray-400">
-            Selected streams:{" "}
-            {Object.values(selectedStreams).reduce(
-              (acc, s) => acc + (s?.size ?? 0),
-              0
-            )}
-          </div>
-          <button
-            type="button"
-            disabled={encoding || !hasAnySelection}
-            onClick={handleEncodeAndRedirect}
-            className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {encoding ? "Encoding..." : "Encode Selected"}
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {loading && <LoadingSpinner size="lg" />}
       {error && <div className="text-red-500 text-sm">{error}</div>}
@@ -88,6 +99,6 @@ export default function MediaInfoPage({ params }: PageProps) {
           encoding={encoding}
         />
       )}
-    </div>
+    </main>
   );
 }

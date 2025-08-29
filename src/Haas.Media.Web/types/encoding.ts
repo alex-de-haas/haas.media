@@ -11,12 +11,24 @@ export interface EncodingInfo {
 // Mirrors backend EncodeRequest (Encodings/EncodeRequest.cs)
 export interface EncodeRequest {
   streams: EncodeRequestStream[];
+  hardwareAcceleration?: HardwareAcceleration;
 }
 
 export interface EncodeRequestStream {
   inputFilePath: string;
   streamIndex: number;
   streamType: number;
+}
+
+// Mirrors backend enum Haas.Media.Core.HardwareAcceleration
+export enum HardwareAcceleration {
+  None = 0,
+  NVENC = 1,
+  QSV = 2,
+  AMF = 3,
+  VideoToolbox = 4,
+  VAAPI = 5,
+  Auto = 99,
 }
 
 export function isEncodingInfo(value: unknown): value is EncodingInfo {

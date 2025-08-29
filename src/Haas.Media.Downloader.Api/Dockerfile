@@ -23,8 +23,19 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0-bookworm-slim AS final
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg \
+    && apt-get install -y --no-install-recommends \
+        ffmpeg \
+        libva2 \
+        vainfo \
+        mesa-va-drivers \
+        libdrm2 \
+        libdrm-amdgpu1 \
+        libva-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Ensure VA-API uses AMD's radeonsi driver in containers
+ENV LIBVA_DRIVER_NAME=radeonsi \
+    LIBVA_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri
 
 # Copy published app
 COPY --from=build /app/publish .

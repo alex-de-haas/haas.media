@@ -5,8 +5,14 @@ import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
 import type { MediaFileInfo } from "@/types/media-file-info";
 import type { EncodeRequest } from "@/types/encoding";
+import { HardwareAcceleration } from "@/types/encoding";
 
-export function useEncodeStreams(path?: string, mediaFiles?: MediaFileInfo[] | null, selectedStreams?: Record<string, Set<number>>) {
+export function useEncodeStreams(
+  path?: string,
+  mediaFiles?: MediaFileInfo[] | null,
+  selectedStreams?: Record<string, Set<number>>,
+  hardwareAcceleration?: HardwareAcceleration | null
+) {
   const [encoding, setEncoding] = React.useState(false);
   const [encodeError, setEncodeError] = React.useState<string | null>(null);
 
@@ -33,7 +39,10 @@ export function useEncodeStreams(path?: string, mediaFiles?: MediaFileInfo[] | n
       }
       if (streams.length === 0) return;
 
-      const request: EncodeRequest = { streams };
+      const request: EncodeRequest = {
+        streams,
+        hardwareAcceleration: hardwareAcceleration ?? undefined,
+      };
 
       const t = await getValidToken();
       const headers: HeadersInit = { "Content-Type": "application/json" };
@@ -57,7 +66,7 @@ export function useEncodeStreams(path?: string, mediaFiles?: MediaFileInfo[] | n
     } finally {
       setEncoding(false);
     }
-  }, [path, mediaFiles, selectedStreams, encoding]);
+  }, [path, mediaFiles, selectedStreams, hardwareAcceleration, encoding]);
 
   return { encodeAll, encoding, encodeError } as const;
 }

@@ -6,12 +6,12 @@ namespace Haas.Media.Core;
 public enum HardwareAcceleration
 {
     None = 0,
-    Nvidia = 1,      // NVENC
-    Intel = 2,       // QuickSync (QSV)
-    AMD = 3,         // AMF
-    VideoToolbox = 4, // Apple VideoToolbox (macOS)
-    VAAPI = 5,       // Linux VA-API
-    Auto = 99        // Auto-detect available hardware
+    NVENC = 1, // cuda - NVIDIA
+    QSV = 2, // qsv - Intel
+    AMF = 3, // d3d11va, amf - AMD (Windows)
+    VideoToolbox = 4, // videotoolbox - Apple VideoToolbox (macOS)
+    VAAPI = 5, // vaapi - AMD, Intel, NVIDIA (Linux)
+    Auto = 99, // Auto-detect available hardware
 }
 
 public class MediaEncodingBuilder
@@ -48,41 +48,14 @@ public class MediaEncodingBuilder
         return this;
     }
 
-    public MediaEncodingBuilder WithHardwareAcceleration(HardwareAcceleration acceleration, string? device = null)
+    public MediaEncodingBuilder WithHardwareAcceleration(
+        HardwareAcceleration? acceleration,
+        string? device = null
+    )
     {
-        HardwareAccel = acceleration;
+        HardwareAccel = acceleration ?? HardwareAcceleration.None;
         HardwareDevice = device;
         return this;
-    }
-
-    public MediaEncodingBuilder WithNvidiaEncoding(string? device = null)
-    {
-        return WithHardwareAcceleration(HardwareAcceleration.Nvidia, device);
-    }
-
-    public MediaEncodingBuilder WithIntelQuickSync(string? device = null)
-    {
-        return WithHardwareAcceleration(HardwareAcceleration.Intel, device);
-    }
-
-    public MediaEncodingBuilder WithAMDEncoding(string? device = null)
-    {
-        return WithHardwareAcceleration(HardwareAcceleration.AMD, device);
-    }
-
-    public MediaEncodingBuilder WithVideoToolbox()
-    {
-        return WithHardwareAcceleration(HardwareAcceleration.VideoToolbox);
-    }
-
-    public MediaEncodingBuilder WithVAAPI(string? device = null)
-    {
-        return WithHardwareAcceleration(HardwareAcceleration.VAAPI, device ?? "/dev/dri/renderD128");
-    }
-
-    public MediaEncodingBuilder WithAutoHardwareAcceleration()
-    {
-        return WithHardwareAcceleration(HardwareAcceleration.Auto);
     }
 
     public MediaEncodingBuilder WithStream(MediaInfo.Stream stream)
@@ -106,10 +79,10 @@ public class MediaEncodingBuilder
     private string BuildFFMpegArguments()
     {
         var command = new StringBuilder();
-        
+
         // Add hardware acceleration parameters before inputs
         AddHardwareAccelerationArgs(command);
-        
+
         foreach (var input in Inputs)
         {
             command.Append($" -i \"{input}\"");
@@ -140,42 +113,53 @@ public class MediaEncodingBuilder
     {
         switch (HardwareAccel)
         {
-            case HardwareAcceleration.Nvidia:
+            case HardwareAcceleration.NVENC:
                 command.Append(" -hwaccel cuda");
                 if (!string.IsNullOrEmpty(HardwareDevice))
                     command.Append($" -hwaccel_device {HardwareDevice}");
                 break;
-                
-            case HardwareAcceleration.Intel:
+
+            case HardwareAcceleration.QSV:
                 command.Append(" -hwaccel qsv");
                 if (!string.IsNullOrEmpty(HardwareDevice))
                     command.Append($" -hwaccel_device {HardwareDevice}");
                 break;
-                
-            case HardwareAcceleration.AMD:
+
+            case HardwareAcceleration.AMF:
                 command.Append(" -hwaccel d3d11va");
+                command.Append(" -hwaccel_output_format d3d11");
                 if (!string.IsNullOrEmpty(HardwareDevice))
                     command.Append($" -hwaccel_device {HardwareDevice}");
                 break;
-                
+
             case HardwareAcceleration.VideoToolbox:
                 command.Append(" -hwaccel videotoolbox");
                 break;
-                
+
             case HardwareAcceleration.VAAPI:
                 command.Append(" -hwaccel vaapi");
-                if (!string.IsNullOrEmpty(HardwareDevice))
-                    command.Append($" -hwaccel_device {HardwareDevice}");
+                command.Append(" -hwaccel_output_format vaapi");
+                command.Append(
+                    $" -vaapi_device {(string.IsNullOrEmpty(HardwareDevice) ? "/dev/dri/renderD128" : HardwareDevice)}"
+                );
                 break;
-                
+
             case HardwareAcceleration.Auto:
                 command.Append(" -hwaccel auto");
                 break;
         }
     }
 
-    private string GetFFMpegCodec(StreamCodec codec, HardwareAcceleration hwAccel = HardwareAcceleration.None)
+    private string GetFFMpegCodec(
+        StreamCodec codec,
+        HardwareAcceleration hwAccel = HardwareAcceleration.None
+    )
     {
+        if (codec == StreamCodec.Unknown)
+        {
+            return "copy";
+        }
+
         if (hwAccel != HardwareAcceleration.None)
         {
             return GetHardwareCodec(codec, hwAccel);
@@ -193,7 +177,9 @@ public class MediaEncodingBuilder
             StreamCodec.DolbyDigital => "ac3",
             StreamCodec.DolbyDigitalPlus => "eac3",
             StreamCodec.DolbyTrueHD => "truehd",
-            _ => throw new NotSupportedException($"Codec {codec} is not supported for software encoding"),
+            _ => throw new NotSupportedException(
+                $"Codec {codec} is not supported for software encoding"
+            ),
         };
     }
 
@@ -201,13 +187,15 @@ public class MediaEncodingBuilder
     {
         return hwAccel switch
         {
-            HardwareAcceleration.Nvidia => GetNvidiaCodec(codec),
-            HardwareAcceleration.Intel => GetIntelCodec(codec),
-            HardwareAcceleration.AMD => GetAMDCodec(codec),
+            HardwareAcceleration.NVENC => GetNvidiaCodec(codec),
+            HardwareAcceleration.QSV => GetIntelCodec(codec),
+            HardwareAcceleration.AMF => GetAMDCodec(codec),
             HardwareAcceleration.VideoToolbox => GetVideoToolboxCodec(codec),
             HardwareAcceleration.VAAPI => GetVAAPICodec(codec),
             HardwareAcceleration.Auto => GetAutoCodec(codec),
-            _ => throw new NotSupportedException($"Hardware acceleration {hwAccel} is not supported"),
+            _ => throw new NotSupportedException(
+                $"Hardware acceleration {hwAccel} is not supported"
+            ),
         };
     }
 
@@ -218,7 +206,9 @@ public class MediaEncodingBuilder
             StreamCodec.H264 => "h264_nvenc",
             StreamCodec.HEVC => "hevc_nvenc",
             StreamCodec.AV1 => "av1_nvenc",
-            _ => throw new NotSupportedException($"Codec {codec} is not supported for NVIDIA hardware encoding"),
+            _ => throw new NotSupportedException(
+                $"Codec {codec} is not supported for NVIDIA hardware encoding"
+            ),
         };
     }
 
@@ -231,7 +221,9 @@ public class MediaEncodingBuilder
             StreamCodec.AV1 => "av1_qsv",
             StreamCodec.VP9 => "vp9_qsv",
             StreamCodec.Mpeg2Video => "mpeg2_qsv",
-            _ => throw new NotSupportedException($"Codec {codec} is not supported for Intel QuickSync hardware encoding"),
+            _ => throw new NotSupportedException(
+                $"Codec {codec} is not supported for Intel QuickSync hardware encoding"
+            ),
         };
     }
 
@@ -241,7 +233,9 @@ public class MediaEncodingBuilder
         {
             StreamCodec.H264 => "h264_amf",
             StreamCodec.HEVC => "hevc_amf",
-            _ => throw new NotSupportedException($"Codec {codec} is not supported for AMD hardware encoding"),
+            _ => throw new NotSupportedException(
+                $"Codec {codec} is not supported for AMD hardware encoding"
+            ),
         };
     }
 
@@ -252,7 +246,9 @@ public class MediaEncodingBuilder
             StreamCodec.H264 => "h264_videotoolbox",
             StreamCodec.HEVC => "hevc_videotoolbox",
             StreamCodec.ProRes => "prores_videotoolbox",
-            _ => throw new NotSupportedException($"Codec {codec} is not supported for VideoToolbox hardware encoding"),
+            _ => throw new NotSupportedException(
+                $"Codec {codec} is not supported for VideoToolbox hardware encoding"
+            ),
         };
     }
 
@@ -266,7 +262,9 @@ public class MediaEncodingBuilder
             StreamCodec.VP9 => "vp9_vaapi",
             StreamCodec.AV1 => "av1_vaapi",
             StreamCodec.Mpeg2Video => "mpeg2_vaapi",
-            _ => throw new NotSupportedException($"Codec {codec} is not supported for VA-API hardware encoding"),
+            _ => throw new NotSupportedException(
+                $"Codec {codec} is not supported for VA-API hardware encoding"
+            ),
         };
     }
 
@@ -282,14 +280,33 @@ public class MediaEncodingBuilder
             else if (OperatingSystem.IsWindows())
             {
                 // Try NVIDIA first, then Intel, then AMD
-                try { return GetNvidiaCodec(codec); }
-                catch { try { return GetIntelCodec(codec); } catch { return GetAMDCodec(codec); } }
+                try
+                {
+                    return GetNvidiaCodec(codec);
+                }
+                catch
+                {
+                    try
+                    {
+                        return GetIntelCodec(codec);
+                    }
+                    catch
+                    {
+                        return GetAMDCodec(codec);
+                    }
+                }
             }
             else if (OperatingSystem.IsLinux())
             {
                 // Try VA-API first, then NVIDIA
-                try { return GetVAAPICodec(codec); }
-                catch { return GetNvidiaCodec(codec); }
+                try
+                {
+                    return GetVAAPICodec(codec);
+                }
+                catch
+                {
+                    return GetNvidiaCodec(codec);
+                }
             }
         }
         catch

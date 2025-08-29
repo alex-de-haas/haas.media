@@ -174,7 +174,8 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
                 .Create()
                 .FromFileInput(sourceFilePath)
                 .ToFileOutput(outputFullPath)
-                .WithVideoCodec(StreamCodec.HEVC);
+                .WithVideoCodec(StreamCodec.HEVC)
+                .WithHardwareAcceleration(request.HardwareAcceleration);
 
             var streams = mediaInfo.Streams.Where(s => streamIndexes.Contains(s.Index)).ToArray();
             foreach (var stream in streams)
@@ -207,7 +208,10 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
                             if (progressFraction > 0)
                             {
                                 var totalEstimate = elapsed.TotalSeconds / progressFraction;
-                                info.EstimatedTimeSeconds = Math.Max(0, totalEstimate - elapsed.TotalSeconds);
+                                info.EstimatedTimeSeconds = Math.Max(
+                                    0,
+                                    totalEstimate - elapsed.TotalSeconds
+                                );
                             }
                         }
                         await _hubContext.Clients.All.SendAsync("EncodingUpdated", info);
