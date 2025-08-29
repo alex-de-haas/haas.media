@@ -31,21 +31,11 @@ RUN apt-get update \
         libdrm2 \
         libdrm-amdgpu1 \
         libva-dev \
-        intel-media-va-driver \
-        mesa-vulkan-drivers \
-        firmware-amd-graphics \
-        libgl1-mesa-dri \
-        libxcb-dri3-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Environment variables for AMD Radeon 890M (RDNA 3.5) and newer AMD APUs
-# Set container indicator for runtime device detection
-ENV DOTNET_RUNNING_IN_CONTAINER=true \
-    LIBVA_DRIVER_NAME=radeonsi \
-    LIBVA_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri \
-    LIBVA_MESSAGING_LEVEL=2 \
-    AMD_VULKAN_ICD=RADV \
-    RADV_PERFTEST=gpl
+# Ensure VA-API uses AMD's radeonsi driver in containers
+ENV LIBVA_DRIVER_NAME=radeonsi \
+    LIBVA_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri
 
 # Copy published app
 COPY --from=build /app/publish .
