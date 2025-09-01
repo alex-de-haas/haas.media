@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Library } from "@/types/library";
+import { LibraryType } from "@/types/library";
 import { formatDate } from "@/lib/utils/format";
 import { LoadingSpinner } from "@/components/ui";
 
@@ -91,6 +92,17 @@ function LibraryIcon() {
   );
 }
 
+function getLibraryTypeDisplayName(type: LibraryType): string {
+  switch (type) {
+    case LibraryType.Movies:
+      return "Movies";
+    case LibraryType.TVShows:
+      return "TV Shows";
+    default:
+      return "Unknown";
+  }
+}
+
 export default function LibraryList({
   libraries,
   onEdit,
@@ -139,9 +151,14 @@ export default function LibraryList({
                   <div className="text-xs text-gray-500 mt-1 dark:text-gray-400">
                     <div className="flex flex-col gap-1">
                       <span className="truncate">{library.directoryPath}</span>
-                      {library.description && (
-                        <span className="truncate">{library.description}</span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                          {getLibraryTypeDisplayName(library.type)}
+                        </span>
+                        {library.description && (
+                          <span className="truncate">{library.description}</span>
+                        )}
+                      </div>
                       <span>Created {formatDate(library.createdAt)}</span>
                     </div>
                   </div>

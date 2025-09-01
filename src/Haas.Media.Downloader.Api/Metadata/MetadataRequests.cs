@@ -5,6 +5,9 @@ namespace Haas.Media.Downloader.Api.Metadata;
 public class CreateLibraryRequest
 {
     [Required]
+    public LibraryType Type { get; set; }
+    
+    [Required]
     public required string DirectoryPath { get; set; }
     
     [Required]
@@ -15,6 +18,9 @@ public class CreateLibraryRequest
 
 public class UpdateLibraryRequest
 {
+    [Required]
+    public LibraryType Type { get; set; }
+    
     [Required]
     public required string DirectoryPath { get; set; }
     

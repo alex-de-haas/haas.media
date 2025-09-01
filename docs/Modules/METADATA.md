@@ -8,12 +8,23 @@ For getting metadata use `TMDbLib` nuget package.
 
 ## Models
 
+### LibraryType
+
+```csharp
+public enum LibraryType
+{
+    Movies = 1,
+    TVShows = 2,
+}
+```
+
 ### LibraryInfo
 
 ```csharp
 public class LibraryInfo
 {
     public string? Id { get; set; }                    // MongoDB ObjectId
+    public LibraryType Type { get; set; }
     public required string DirectoryPath { get; set; } // Path to directory with media files
     public required string Title { get; set; }
     public string? Description { get; set; }
@@ -27,6 +38,7 @@ public class LibraryInfo
 ```csharp
 public class CreateLibraryRequest
 {
+    public LibraryType Type { get; set; }
     public required string DirectoryPath { get; set; }
     public required string Title { get; set; }
     public string? Description { get; set; }
@@ -34,6 +46,7 @@ public class CreateLibraryRequest
 
 public class UpdateLibraryRequest
 {
+    public LibraryType Type { get; set; }
     public required string DirectoryPath { get; set; }
     public required string Title { get; set; }
     public string? Description { get; set; }

@@ -40,6 +40,7 @@ public static class MetadataConfiguration
                 {
                     var library = new LibraryInfo
                     {
+                        Type = request.Type,
                         DirectoryPath = request.DirectoryPath,
                         Title = request.Title,
                         Description = request.Description
@@ -58,6 +59,7 @@ public static class MetadataConfiguration
                 {
                     var library = new LibraryInfo
                     {
+                        Type = request.Type,
                         DirectoryPath = request.DirectoryPath,
                         Title = request.Title,
                         Description = request.Description

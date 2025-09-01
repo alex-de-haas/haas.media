@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useFiles } from "@/features/files";
 import FileList from "@/features/files/components/file-list";
 import type { Library, CreateLibraryRequest, UpdateLibraryRequest } from "@/types/library";
+import { LibraryType } from "@/types/library";
 import type { FileItem } from "@/types/file";
 import { FileItemType } from "@/types/file";
 
@@ -23,6 +24,7 @@ export default function LibraryForm({
   const [title, setTitle] = useState(library?.title || "");
   const [description, setDescription] = useState(library?.description || "");
   const [selectedPath, setSelectedPath] = useState(library?.directoryPath || "");
+  const [libraryType, setLibraryType] = useState<LibraryType>(library?.type || LibraryType.Movies);
   const [showDirectoryPicker, setShowDirectoryPicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -38,6 +40,7 @@ export default function LibraryForm({
       setTitle(library.title);
       setDescription(library.description || "");
       setSelectedPath(library.directoryPath);
+      setLibraryType(library.type);
     }
   }, [library]);
 
@@ -48,6 +51,7 @@ export default function LibraryForm({
     setIsSubmitting(true);
     try {
       const data = {
+        type: libraryType,
         title: title.trim(),
         directoryPath: selectedPath.trim(),
         ...(description.trim() ? { description: description.trim() } : {}),
@@ -136,6 +140,25 @@ export default function LibraryForm({
               Browse
             </button>
           </div>
+        </div>
+
+        <div>
+          <label
+            htmlFor="libraryType"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            Library Type
+          </label>
+          <select
+            id="libraryType"
+            value={libraryType}
+            onChange={(e) => setLibraryType(Number(e.target.value) as LibraryType)}
+            required
+            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+          >
+            <option value={LibraryType.Movies}>Movies</option>
+            <option value={LibraryType.TVShows}>TV Shows</option>
+          </select>
         </div>
 
         <div className="flex justify-end space-x-3">
