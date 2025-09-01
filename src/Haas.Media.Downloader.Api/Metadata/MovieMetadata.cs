@@ -1,0 +1,30 @@
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+
+namespace Haas.Media.Downloader.Api.Metadata;
+
+public class MovieMetadata
+{
+    [BsonId]
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string? Id { get; set; }
+    
+    public required int TmdbId { get; set; }
+    public required string OriginalTitle { get; set; }
+    public required string OriginalLanguage { get; set; }
+    public required string Title { get; set; }
+    public required string Overview { get; set; }
+    public required double VoteAverage { get; set; }
+    public required int VoteCount { get; set; }
+    public DateTime? ReleaseDate { get; set; }
+    
+    // Additional fields for file association
+    public required string LibraryId { get; set; }
+    public required string FilePath { get; set; }
+    
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}

@@ -22,6 +22,7 @@ var downloaderApi = builder
         "FFMPEG_BINARY",
         builder.ExecutionContext.IsPublishMode ? "/usr/bin" : env["FFMPEG_BINARY"]
     )
+    .WithEnvironment("TMDB_API_KEY", env["TMDB_API_KEY"])
     .WithExternalHttpEndpoints()
     .WithOtlpExporter()
     .PublishAsDockerFile(config =>

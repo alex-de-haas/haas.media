@@ -4,8 +4,7 @@ public static class MetadataConfiguration
 {
     public static WebApplicationBuilder AddMetadata(this WebApplicationBuilder builder)
     {
-        // Register the metadata service
-        builder.Services.AddScoped<MetadataService>();
+        builder.Services.AddSingleton<MetadataService>();
         builder.Services.AddScoped<IMetadataApi>(sp => sp.GetRequiredService<MetadataService>());
 
         return builder;
@@ -80,6 +79,39 @@ public static class MetadataConfiguration
                 }
             )
             .WithName("DeleteLibrary")
+            .RequireAuthorization();
+
+        app.MapPost(
+                "api/metadata/scan",
+                async (IMetadataApi metadataService) =>
+                {
+                    await metadataService.ScanLibrariesAsync();
+                    return Results.Ok(new { message = "Metadata scan completed successfully" });
+                }
+            )
+            .WithName("ScanLibraries")
+            .RequireAuthorization();
+
+        app.MapGet(
+                "api/metadata/movies",
+                async (IMetadataApi metadataService, string? libraryId = null) =>
+                {
+                    var movieMetadata = await metadataService.GetMovieMetadataAsync(libraryId);
+                    return Results.Ok(movieMetadata);
+                }
+            )
+            .WithName("GetMovieMetadata")
+            .RequireAuthorization();
+
+        app.MapGet(
+                "api/metadata/movies/{id}",
+                async (IMetadataApi metadataService, string id) =>
+                {
+                    var movieMetadata = await metadataService.GetMovieMetadataByIdAsync(id);
+                    return movieMetadata != null ? Results.Ok(movieMetadata) : Results.NotFound();
+                }
+            )
+            .WithName("GetMovieMetadataById")
             .RequireAuthorization();
 
         return app;
