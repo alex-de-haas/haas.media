@@ -1,6 +1,7 @@
 using Haas.Media.Core.FFMpeg;
 using Haas.Media.Downloader.Api.Encodings;
 using Haas.Media.Downloader.Api.Files;
+using Haas.Media.Downloader.Api.Metadata;
 using Haas.Media.Downloader.Api.Torrents;
 using Haas.Media.ServiceDefaults;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -20,11 +21,16 @@ builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(k
 // Add default service configurations.
 builder.AddServiceDefaults();
 
+// Add MongoDB client
+builder.AddMongoDBClient("haas-media-db");
+
 builder.AddEncoding();
 builder.AddFiles();
+builder.AddMetadata();
 builder.AddTorrent();
 
 // Add services to the container.
+builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSignalR();
@@ -101,8 +107,11 @@ if (!string.IsNullOrWhiteSpace(auth0Domain) && !string.IsNullOrWhiteSpace(auth0A
 
 app.MapDefaultEndpoints();
 
+app.MapControllers();
+
 app.UseEncoding();
 app.UseFiles();
+app.UseMetadata();
 app.UseTorrent();
 
 app.Run();

@@ -6,5 +6,6 @@ export * from './torrent';
 export * from './theme';
 export * from './encoding';
 export * from './file';
+export * from './library';
 export * from './media-file-info';
 export * from './media-info';

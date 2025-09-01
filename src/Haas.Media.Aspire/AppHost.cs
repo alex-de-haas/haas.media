@@ -3,9 +3,15 @@ var env = DotNetEnv.Env.LoadMulti([".env.local"]).ToDictionary();
 var builder = DistributedApplication.CreateBuilder(args);
 builder.AddDockerComposeEnvironment("haas-media");
 
+// Add MongoDB
+var mongodb = builder.AddMongoDB("mongodb")
+    .WithMongoExpress();
+var mongoDatabase = mongodb.AddDatabase("haas-media-db");
+
 var downloaderApi = builder
     .AddProject<Projects.Haas_Media_Downloader_Api>("downloader-api")
     .WithHttpEndpoint(port: 8000)
+    .WithReference(mongoDatabase)
     .WithEnvironment("AUTH0_DOMAIN", env["AUTH0_DOMAIN"])
     .WithEnvironment("AUTH0_AUDIENCE", env["AUTH0_AUDIENCE"])
     .WithEnvironment(
