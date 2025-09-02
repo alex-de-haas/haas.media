@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileItemType } from "@/types/file";
 import type { FileItem, CopyFileRequest, MoveFileRequest } from "@/types/file";
 import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
@@ -182,12 +181,7 @@ export default function CopyMoveModal({
                         files={files}
                         currentPath={currentPath}
                         onNavigate={handleNavigate}
-                        onDelete={() => {}}
-                        onCopy={() => {}}
-                        onMove={() => {}}
-                        onRename={() => {}}
                         loading={filesLoading}
-                        showActions={false}
                       />
                     </div>
                   </div>

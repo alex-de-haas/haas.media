@@ -204,12 +204,7 @@ export default function LibraryForm({
                 files={files.filter(file => file.type === FileItemType.Directory)}
                 currentPath={currentPath}
                 onNavigate={navigateToPath}
-                onDelete={() => {}} // No delete action needed
-                onCopy={() => {}} // No copy action needed
-                onMove={() => {}} // No move action needed
-                onRename={() => {}} // No rename action needed
                 loading={filesLoading}
-                showActions={false}
               />
               {currentPath && (
                 <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md dark:bg-blue-900/20 dark:border-blue-800">
