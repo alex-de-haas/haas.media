@@ -69,6 +69,10 @@ public class MovieMetadata
     public required int VoteCount { get; set; }
     public DateTime? ReleaseDate { get; set; }
 
+    // TMDB image paths (relative paths)
+    public string? PosterPath { get; set; }
+    public string? BackdropPath { get; set; }
+
     public required string LibraryId { get; set; }
     public required string FilePath { get; set; }
 }
@@ -87,6 +91,10 @@ public class TVShowMetadata
     public required double VoteAverage { get; set; }
     public required int VoteCount { get; set; }
     public required TVSeasonMetadata[] Seasons { get; set; }
+
+    // TMDB image paths (relative paths)
+    public string? PosterPath { get; set; }
+    public string? BackdropPath { get; set; }
 
     public required string LibraryId { get; set; }
 }
@@ -125,7 +133,11 @@ public class TVEpisodeMetadata
 
 ### Metadata
 
-- POST `api/metadata/scan` - scan all libraries for metadata using search in `TMDbLib`. Default language "en".
+- POST `api/metadata/scan` - scan all libraries for metadata using search in `TMDbLib`. Default language "en". Includes poster and backdrop images from TMDB.
+- GET `api/metadata/movies` - get all movie metadata (optionally filtered by libraryId)
+- GET `api/metadata/movies/{id}` - get specific movie metadata by id
+- GET `api/metadata/tvshows` - get all TV show metadata (optionally filtered by libraryId)
+- GET `api/metadata/tvshows/{id}` - get specific TV show metadata by id
 
 ## Storage
 
@@ -133,6 +145,38 @@ Libraries are stored in MongoDB in the `libraries` collection with the following
 - Unique index on `DirectoryPath` to prevent duplicate library paths
 - Index on `Title` for efficient searching
 - Automatic timestamp management for creation and updates
+
+## Image URLs
+
+The `PosterPath` and `BackdropPath` properties contain relative paths from TMDB. To get the full image URLs, use the provided helper methods:
+
+### Static Helper Methods
+```csharp
+// Get full poster URL (w500 size)
+var posterUrl = MetadataService.GetPosterUrl(movie.PosterPath);
+
+// Get full backdrop URL (w1280 size)
+var backdropUrl = MetadataService.GetBackdropUrl(movie.BackdropPath);
+```
+
+### Extension Methods
+```csharp
+// For movies
+var posterUrl = movie.GetPosterUrl();
+var backdropUrl = movie.GetBackdropUrl();
+
+// For TV shows
+var posterUrl = tvShow.GetPosterUrl();
+var backdropUrl = tvShow.GetBackdropUrl();
+```
+
+### Image Sizes
+- **Posters**: w500 (500px width) - suitable for most UI components
+- **Backdrops**: w1280 (1280px width) - suitable for hero images and backgrounds
+
+### Example URLs
+- Poster: `https://image.tmdb.org/t/p/w500/rktDFPbfHfUbArZ6OOOKsXcv0Bm.jpg`
+- Backdrop: `https://image.tmdb.org/t/p/w1280/xJHokMbljvjADYdit5fK5VQsXEG.jpg`
 
 ## Authentication
 

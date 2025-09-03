@@ -8,6 +8,8 @@ export interface MovieMetadata {
   voteAverage: number;
   voteCount: number;
   releaseDate?: string;
+  posterPath?: string;
+  backdropPath?: string;
   libraryId: string;
   filePath: string;
   createdAt: string;
@@ -24,6 +26,8 @@ export interface TVShowMetadata {
   voteAverage: number;
   voteCount: number;
   seasons: TVSeasonMetadata[];
+  posterPath?: string;
+  backdropPath?: string;
   libraryId: string;
   createdAt: string;
   updatedAt: string;

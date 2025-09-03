@@ -345,6 +345,8 @@ public class MetadataService : IMetadataApi
                 VoteAverage = tmdbMovie.VoteAverage,
                 VoteCount = tmdbMovie.VoteCount,
                 ReleaseDate = tmdbMovie.ReleaseDate,
+                PosterPath = tmdbMovie.PosterPath,
+                BackdropPath = tmdbMovie.BackdropPath,
                 LibraryId = libraryId,
                 FilePath = filePath,
                 CreatedAt = DateTime.UtcNow,
@@ -697,6 +699,8 @@ public class MetadataService : IMetadataApi
                 Overview = tmdbTvShow.Overview,
                 VoteAverage = tmdbTvShow.VoteAverage,
                 VoteCount = tmdbTvShow.VoteCount,
+                PosterPath = tmdbTvShow.PosterPath,
+                BackdropPath = tmdbTvShow.BackdropPath,
                 Seasons = seasons.ToArray(),
                 LibraryId = libraryId
             };
@@ -854,5 +858,31 @@ public class MetadataService : IMetadataApi
         {
             _logger.LogWarning(ex, "Error creating indexes");
         }
+    }
+
+    /// <summary>
+    /// Gets the full URL for a TMDB image poster (w500 size)
+    /// </summary>
+    /// <param name="posterPath">The relative poster path from TMDB</param>
+    /// <returns>Full image URL or null if path is null/empty</returns>
+    public static string? GetPosterUrl(string? posterPath)
+    {
+        if (string.IsNullOrEmpty(posterPath))
+            return null;
+        
+        return $"https://image.tmdb.org/t/p/w500{posterPath}";
+    }
+
+    /// <summary>
+    /// Gets the full URL for a TMDB backdrop image (w1280 size)
+    /// </summary>
+    /// <param name="backdropPath">The relative backdrop path from TMDB</param>
+    /// <returns>Full image URL or null if path is null/empty</returns>
+    public static string? GetBackdropUrl(string? backdropPath)
+    {
+        if (string.IsNullOrEmpty(backdropPath))
+            return null;
+        
+        return $"https://image.tmdb.org/t/p/w1280{backdropPath}";
     }
 }

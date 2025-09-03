@@ -18,6 +18,10 @@ public class TVShowMetadata
     public required int VoteCount { get; set; }
     public required TVSeasonMetadata[] Seasons { get; set; }
 
+    // TMDB image paths
+    public string? PosterPath { get; set; }
+    public string? BackdropPath { get; set; }
+
     public required string LibraryId { get; set; }
     
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]

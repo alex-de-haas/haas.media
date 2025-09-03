@@ -18,6 +18,10 @@ public class MovieMetadata
     public required int VoteCount { get; set; }
     public DateTime? ReleaseDate { get; set; }
     
+    // TMDB image paths
+    public string? PosterPath { get; set; }
+    public string? BackdropPath { get; set; }
+    
     // Additional fields for file association
     public required string LibraryId { get; set; }
     public required string FilePath { get; set; }
