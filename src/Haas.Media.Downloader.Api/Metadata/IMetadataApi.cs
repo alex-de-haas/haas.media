@@ -10,4 +10,6 @@ public interface IMetadataApi
     Task ScanLibrariesAsync();
     Task<IEnumerable<MovieMetadata>> GetMovieMetadataAsync(string? libraryId = null);
     Task<MovieMetadata?> GetMovieMetadataByIdAsync(string id);
+    Task<IEnumerable<TVShowMetadata>> GetTVShowMetadataAsync(string? libraryId = null);
+    Task<TVShowMetadata?> GetTVShowMetadataByIdAsync(string id);
 }

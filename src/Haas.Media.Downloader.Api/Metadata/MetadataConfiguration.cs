@@ -116,6 +116,28 @@ public static class MetadataConfiguration
             .WithName("GetMovieMetadataById")
             .RequireAuthorization();
 
+        app.MapGet(
+                "api/metadata/tvshows",
+                async (IMetadataApi metadataService, string? libraryId = null) =>
+                {
+                    var tvShowMetadata = await metadataService.GetTVShowMetadataAsync(libraryId);
+                    return Results.Ok(tvShowMetadata);
+                }
+            )
+            .WithName("GetTVShowMetadata")
+            .RequireAuthorization();
+
+        app.MapGet(
+                "api/metadata/tvshows/{id}",
+                async (IMetadataApi metadataService, string id) =>
+                {
+                    var tvShowMetadata = await metadataService.GetTVShowMetadataByIdAsync(id);
+                    return tvShowMetadata != null ? Results.Ok(tvShowMetadata) : Results.NotFound();
+                }
+            )
+            .WithName("GetTVShowMetadataById")
+            .RequireAuthorization();
+
         return app;
     }
 }

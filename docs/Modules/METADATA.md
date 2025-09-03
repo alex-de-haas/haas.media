@@ -53,14 +53,14 @@ public class UpdateLibraryRequest
 }
 ```
 
-### MediaMetadata model
+## Database models
 
-Database model:
+### Movies
 
 ```csharp
 public class MovieMetadata
 {
-    public required string ImdbId { get; set; }
+    public required int TmdbId { get; set; }
     public required string OriginalTitle { get; set; }
     public required string OriginalLanguage { get; set; }
     public required string Title { get; set; }
@@ -68,6 +68,48 @@ public class MovieMetadata
     public required double VoteAverage { get; set; }
     public required int VoteCount { get; set; }
     public DateTime? ReleaseDate { get; set; }
+
+    public required string LibraryId { get; set; }
+    public required string FilePath { get; set; }
+}
+```
+
+### TV Shows
+
+```csharp
+public class TVShowMetadata
+{
+    public required int TmdbId { get; set; }
+    public required string OriginalTitle { get; set; }
+    public required string OriginalLanguage { get; set; }
+    public required string Title { get; set; }
+    public required string Overview { get; set; }
+    public required double VoteAverage { get; set; }
+    public required int VoteCount { get; set; }
+    public required TVSeasonMetadata[] Seasons { get; set; }
+
+    public required string LibraryId { get; set; }
+}
+
+public class TVSeasonMetadata
+{
+    public required int SeasonNumber { get; set; }
+    public required string Overview { get; set; }
+    public required double VoteAverage { get; set; }
+    public required TVEpisodeMetadata[] Episodes { get; set; }
+
+    public required string DirectoryPath { get; set; }
+}
+
+public class TVEpisodeMetadata
+{
+    public required int SeasonNumber { get; set; }
+    public required int EpisodeNumber { get; set; }
+    public required string Name { get; set; }
+    public required string Overview { get; set; }
+    public required double VoteAverage { get; set; }
+
+    public required string FilePath { get; set; }
 }
 ```
 
