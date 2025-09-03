@@ -1,61 +1,47 @@
 export interface MovieMetadata {
-  id: string;
+  id?: string;
+  tmdbId: number;
+  originalTitle: string;
+  originalLanguage: string;
   title: string;
-  originalTitle?: string;
-  year?: number;
-  plot?: string;
-  poster?: string;
-  imdbId?: string;
-  tmdbId?: number;
-  runtime?: number;
-  genres?: string[];
-  director?: string;
-  cast?: string[];
-  rating?: number;
-  filePath: string;
+  overview: string;
+  voteAverage: number;
+  voteCount: number;
+  releaseDate?: string;
   libraryId: string;
-  fileSize?: number;
-  dateAdded: string;
-  lastModified: string;
+  filePath: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TVShowMetadata {
-  id: string;
+  id?: string;
+  tmdbId: number;
+  originalTitle: string;
+  originalLanguage: string;
   title: string;
-  originalTitle?: string;
-  year?: number;
-  plot?: string;
-  poster?: string;
-  imdbId?: string;
-  tmdbId?: number;
-  genres?: string[];
-  network?: string;
-  status?: string;
-  rating?: number;
+  overview: string;
+  voteAverage: number;
+  voteCount: number;
+  seasons: TVSeasonMetadata[];
   libraryId: string;
-  seasons?: TVSeasonMetadata[];
-  dateAdded: string;
-  lastModified: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TVSeasonMetadata {
-  id: string;
   seasonNumber: number;
-  title?: string;
-  year?: number;
-  poster?: string;
-  episodes?: TVEpisodeMetadata[];
+  overview: string;
+  voteAverage: number;
+  episodes: TVEpisodeMetadata[];
+  directoryPath: string;
 }
 
 export interface TVEpisodeMetadata {
-  id: string;
   seasonNumber: number;
   episodeNumber: number;
-  title?: string;
-  plot?: string;
-  airDate?: string;
-  runtime?: number;
+  name: string;
+  overview: string;
+  voteAverage: number;
   filePath: string;
-  fileSize?: number;
-  lastModified: string;
 }
