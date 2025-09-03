@@ -4,8 +4,11 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.AddDockerComposeEnvironment("haas-media");
 
 // Add MongoDB
-var mongodb = builder.AddMongoDB("mongodb")
+var mongodb = builder
+    .AddMongoDB("mongodb")
+    .WithBindMount(env["MONGODB_DATA_DIRECTORY"], "/data/db")
     .WithMongoExpress();
+
 var mongoDatabase = mongodb.AddDatabase("haas-media-db");
 
 var downloaderApi = builder

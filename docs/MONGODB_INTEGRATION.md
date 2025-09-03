@@ -132,6 +132,20 @@ When running locally via Aspire:
 2. MongoDB Express admin UI is available at the URL shown in the Aspire dashboard
 3. The database "haas-media-db" is automatically created
 4. Connection strings are automatically configured via Aspire
+5. Data directory can be persisted to a host folder via `MONGODB_DATA_DIRECTORY`
+
+### Local data directory
+
+For local development, the Aspire host binds a host directory to MongoDB's data path (`/data/db`).
+
+- Set `MONGODB_DATA_DIRECTORY` in your `.env.local` to the desired host path (e.g. `data/mongodb`).
+- Example:
+
+  ```env
+  MONGODB_DATA_DIRECTORY=data/mongodb
+  ```
+
+This bind is only applied in non-publish (dev) mode. In publish mode, MongoDB uses its internal container storage or whatever you configure for deployment.
 
 ## Connection Configuration
 
