@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Library } from "@/types/library";
 import { LibraryType } from "@/types/library";
 import { formatDate } from "@/lib/utils/format";
@@ -10,6 +11,8 @@ interface LibraryListProps {
   libraries: Library[];
   onEdit: (library: Library) => void;
   onDelete: (library: Library) => void;
+  onView?: (library: Library) => void;
+  onScan?: () => void;
   loading?: boolean;
 }
 
@@ -17,9 +20,10 @@ interface LibraryActionsProps {
   library: Library;
   onEdit: () => void;
   onDelete: () => void;
+  onView?: () => void;
 }
 
-function LibraryActions({ library, onEdit, onDelete }: LibraryActionsProps) {
+function LibraryActions({ library, onEdit, onDelete, onView }: LibraryActionsProps) {
   const [showActions, setShowActions] = useState(false);
 
   return (
@@ -37,6 +41,29 @@ function LibraryActions({ library, onEdit, onDelete }: LibraryActionsProps) {
       {showActions && (
         <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10 dark:bg-gray-800 dark:border-gray-700">
           <div className="py-1">
+            {onView && (
+              <button
+                onClick={() => {
+                  onView();
+                  setShowActions(false);
+                }}
+                className="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                <svg
+                  className="w-4 h-4 mr-3"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                  <path
+                    fillRule="evenodd"
+                    d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                View Content
+              </button>
+            )}
             <button
               onClick={() => {
                 onEdit();
@@ -107,14 +134,57 @@ export default function LibraryList({
   libraries,
   onEdit,
   onDelete,
+  onView,
+  onScan,
   loading,
 }: LibraryListProps) {
+  const router = useRouter();
+
+  const handleViewLibrary = (library: Library) => {
+    if (onView) {
+      onView(library);
+    } else {
+      // Default navigation based on library type
+      const route = library.type === LibraryType.Movies ? '/movies' : '/tvshows';
+      router.push(`${route}?libraryId=${library.id}`);
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner size="lg" />;
   }
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
+      {/* Header with scan button */}
+      {onScan && (
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+              Libraries
+            </h3>
+            <button
+              onClick={onScan}
+              className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading}
+            >
+              <svg
+                className="w-4 h-4 mr-2"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Scan Libraries
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Library listing */}
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
         {libraries.length === 0 ? (
@@ -168,6 +238,7 @@ export default function LibraryList({
                 library={library}
                 onEdit={() => onEdit(library)}
                 onDelete={() => onDelete(library)}
+                onView={() => handleViewLibrary(library)}
               />
             </div>
           ))

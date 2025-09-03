@@ -158,6 +158,7 @@ export default function LibrariesClient() {
         libraries={libraries}
         onEdit={openEditForm}
         onDelete={confirmDelete}
+        onScan={handleScanLibraries}
         loading={loading}
       />
 
