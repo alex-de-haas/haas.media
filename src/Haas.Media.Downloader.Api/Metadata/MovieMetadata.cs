@@ -18,6 +18,8 @@ public class MovieMetadata
     public required int VoteCount { get; set; }
     public DateTime? ReleaseDate { get; set; }
     public required string[] Genres { get; set; }
+    public required CrewMember[] Crew { get; set; }
+    public required CastMember[] Cast { get; set; }
     
     // TMDB image paths
     public string? PosterPath { get; set; }

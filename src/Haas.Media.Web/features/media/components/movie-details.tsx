@@ -6,9 +6,85 @@ import Link from "next/link";
 import { useMovie } from "@/features/media/hooks";
 import { LoadingSpinner } from "@/components/ui";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
+import { CrewMember, CastMember } from "@/types/metadata";
 
 interface MovieDetailsProps {
   movieId: string;
+}
+
+interface CrewMemberCardProps {
+  crewMember: CrewMember;
+}
+
+interface CastMemberCardProps {
+  castMember: CastMember;
+}
+
+function CastMemberCard({ castMember }: CastMemberCardProps) {
+  return (
+    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="flex-shrink-0">
+        {castMember.profilePath ? (
+          <Image
+            src={`https://image.tmdb.org/t/p/w92${castMember.profilePath}`}
+            alt={castMember.name}
+            width={48}
+            height={48}
+            className="w-12 h-12 rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+            <svg className="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+          {castMember.name}
+        </p>
+        <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+          as {castMember.character}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function CrewMemberCard({ crewMember }: CrewMemberCardProps) {
+  return (
+    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="flex-shrink-0">
+        {crewMember.profilePath ? (
+          <Image
+            src={`https://image.tmdb.org/t/p/w92${crewMember.profilePath}`}
+            alt={crewMember.name}
+            width={48}
+            height={48}
+            className="w-12 h-12 rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+            <svg className="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+          {crewMember.name}
+        </p>
+        <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+          {crewMember.job}
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-500 truncate">
+          {crewMember.department}
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export default function MovieDetails({ movieId }: MovieDetailsProps) {
@@ -229,6 +305,61 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                 <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg">
                   {movie.overview}
                 </p>
+              </div>
+            )}
+
+            {/* Cast */}
+            {movie.cast && movie.cast.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                  Cast
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+                  {movie.cast
+                    .sort((a, b) => a.order - b.order) // Sort by cast order
+                    .slice(0, 20) // Limit to first 20 cast members to avoid overwhelming the UI
+                    .map((castMember) => (
+                      <CastMemberCard key={`${castMember.id}-${castMember.order}`} castMember={castMember} />
+                    ))}
+                </div>
+                {movie.cast.length > 20 && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    Showing 20 of {movie.cast.length} cast members
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Crew */}
+            {movie.crew && movie.crew.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                  Crew
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+                  {movie.crew
+                    .sort((a, b) => {
+                      // Sort by importance (Director, Producer, etc. first)
+                      const importantJobs = ['Director', 'Producer', 'Executive Producer', 'Writer', 'Screenplay'];
+                      const aIndex = importantJobs.indexOf(a.job);
+                      const bIndex = importantJobs.indexOf(b.job);
+                      
+                      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+                      if (aIndex !== -1) return -1;
+                      if (bIndex !== -1) return 1;
+                      
+                      return a.name.localeCompare(b.name);
+                    })
+                    .slice(0, 20) // Limit to first 20 crew members to avoid overwhelming the UI
+                    .map((crewMember) => (
+                      <CrewMemberCard key={`${crewMember.id}-${crewMember.job}`} crewMember={crewMember} />
+                    ))}
+                </div>
+                {movie.crew.length > 20 && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    Showing 20 of {movie.crew.length} crew members
+                  </p>
+                )}
               </div>
             )}
 

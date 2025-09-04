@@ -1,3 +1,19 @@
+export interface CrewMember {
+  id: number;
+  name: string;
+  job: string;
+  department: string;
+  profilePath?: string;
+}
+
+export interface CastMember {
+  id: number;
+  name: string;
+  character: string;
+  order: number;
+  profilePath?: string;
+}
+
 export interface MovieMetadata {
   id?: string;
   tmdbId: number;
@@ -9,6 +25,8 @@ export interface MovieMetadata {
   voteCount: number;
   releaseDate?: string;
   genres: string[];
+  crew: CrewMember[];
+  cast: CastMember[];
   posterPath?: string;
   backdropPath?: string;
   libraryId: string;
@@ -27,6 +45,8 @@ export interface TVShowMetadata {
   voteAverage: number;
   voteCount: number;
   genres: string[];
+  crew: CrewMember[];
+  cast: CastMember[];
   seasons: TVSeasonMetadata[];
   posterPath?: string;
   backdropPath?: string;

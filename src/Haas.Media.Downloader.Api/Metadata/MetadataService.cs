@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using TMDbLib.Client;
+using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.Search;
 using TMDbLib.Objects.TvShows;
 
@@ -341,6 +342,33 @@ public class MetadataService : IMetadataApi
             // Get detailed movie information to access genres
             var movieDetails = await _tmdbClient.GetMovieAsync(tmdbMovie.Id);
             
+            // Get movie credits to access crew and cast information
+            var movieCredits = await _tmdbClient.GetMovieCreditsAsync(tmdbMovie.Id);
+            
+            // Convert crew to our CrewMember format
+            var crew = movieCredits.Crew?
+                .Select(c => new CrewMember
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Job = c.Job,
+                    Department = c.Department,
+                    ProfilePath = c.ProfilePath
+                })
+                .ToArray() ?? Array.Empty<CrewMember>();
+            
+            // Convert cast to our CastMember format
+            var cast = movieCredits.Cast?
+                .Select(c => new CastMember
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Character = c.Character ?? "",
+                    Order = c.Order,
+                    ProfilePath = c.ProfilePath
+                })
+                .ToArray() ?? Array.Empty<CastMember>();
+            
             return new MovieMetadata
             {
                 TmdbId = tmdbMovie.Id,
@@ -352,6 +380,8 @@ public class MetadataService : IMetadataApi
                 VoteCount = tmdbMovie.VoteCount,
                 ReleaseDate = tmdbMovie.ReleaseDate,
                 Genres = movieDetails.Genres?.Select(g => g.Name).ToArray() ?? Array.Empty<string>(),
+                Crew = crew,
+                Cast = cast,
                 PosterPath = tmdbMovie.PosterPath,
                 BackdropPath = tmdbMovie.BackdropPath,
                 LibraryId = libraryId,
@@ -749,6 +779,33 @@ public class MetadataService : IMetadataApi
             // Get detailed TV show information to access seasons
             var tvShowDetails = await _tmdbClient.GetTvShowAsync(tmdbTvShow.Id);
             
+            // Get TV show credits to access crew and cast information
+            var tvShowCredits = await _tmdbClient.GetTvShowCreditsAsync(tmdbTvShow.Id);
+            
+            // Convert crew to our CrewMember format
+            var crew = tvShowCredits.Crew?
+                .Select(c => new CrewMember
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Job = c.Job,
+                    Department = c.Department,
+                    ProfilePath = c.ProfilePath
+                })
+                .ToArray() ?? Array.Empty<CrewMember>();
+            
+            // Convert cast to our CastMember format
+            var cast = tvShowCredits.Cast?
+                .Select(c => new CastMember
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Character = c.Character ?? "",
+                    Order = c.Order,
+                    ProfilePath = c.ProfilePath
+                })
+                .ToArray() ?? Array.Empty<CastMember>();
+            
             var seasons = new List<TVSeasonMetadata>();
             
             // Process each season
@@ -805,6 +862,8 @@ public class MetadataService : IMetadataApi
                 VoteAverage = tmdbTvShow.VoteAverage,
                 VoteCount = tmdbTvShow.VoteCount,
                 Genres = tvShowDetails.Genres?.Select(g => g.Name).ToArray() ?? Array.Empty<string>(),
+                Crew = crew,
+                Cast = cast,
                 PosterPath = tmdbTvShow.PosterPath,
                 BackdropPath = tmdbTvShow.BackdropPath,
                 Seasons = seasons.ToArray(),
