@@ -1,13 +1,6 @@
-import { PageHeader } from "../components/layout";
-
 export default function HomePage() {
   return (
     <div className="space-y-8">
-      <PageHeader
-        title="Dashboard"
-        description="Welcome to your personal media server"
-      />
-
       <section className="relative isolate">
         <div className="mx-auto max-w-2xl py-16 text-center">
           <h2 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
