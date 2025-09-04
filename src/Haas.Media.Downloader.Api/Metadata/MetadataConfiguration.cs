@@ -43,11 +43,14 @@ public static class MetadataConfiguration
                         Type = request.Type,
                         DirectoryPath = request.DirectoryPath,
                         Title = request.Title,
-                        Description = request.Description
+                        Description = request.Description,
                     };
 
                     var createdLibrary = await metadataService.AddLibraryAsync(library);
-                    return Results.Created($"api/metadata/libraries/{createdLibrary.Id}", createdLibrary);
+                    return Results.Created(
+                        $"api/metadata/libraries/{createdLibrary.Id}",
+                        createdLibrary
+                    );
                 }
             )
             .WithName("AddLibrary")
@@ -62,7 +65,7 @@ public static class MetadataConfiguration
                         Type = request.Type,
                         DirectoryPath = request.DirectoryPath,
                         Title = request.Title,
-                        Description = request.Description
+                        Description = request.Description,
                     };
 
                     var updatedLibrary = await metadataService.UpdateLibraryAsync(id, library);
@@ -83,11 +86,14 @@ public static class MetadataConfiguration
             .WithName("DeleteLibrary")
             .RequireAuthorization();
 
+        // Scan all libraries for media files and create/update metadata
+        // refreshExisting: If true (default), updates existing metadata with fresh data from TMDb
+        //                  If false, skips files that already have metadata
         app.MapPost(
                 "api/metadata/scan",
-                async (IMetadataApi metadataService) =>
+                async (IMetadataApi metadataService, bool refreshExisting = true) =>
                 {
-                    await metadataService.ScanLibrariesAsync();
+                    await metadataService.ScanLibrariesAsync(refreshExisting);
                     return Results.Ok(new { message = "Metadata scan completed successfully" });
                 }
             )

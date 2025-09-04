@@ -162,11 +162,14 @@ public class MetadataService : IMetadataApi
         }
     }
 
-    public async Task ScanLibrariesAsync()
+    public async Task ScanLibrariesAsync(bool refreshExisting = true)
     {
         try
         {
-            _logger.LogInformation("Starting metadata scan for all libraries");
+            _logger.LogInformation(
+                "Starting metadata scan for all libraries (refreshExisting: {RefreshExisting})", 
+                refreshExisting
+            );
 
             var libraries = await GetLibrariesAsync();
             var totalProcessed = 0;
@@ -192,13 +195,13 @@ public class MetadataService : IMetadataApi
 
                 if (library.Type == LibraryType.Movies)
                 {
-                    var (processed, found) = await ScanMovieLibraryAsync(library, fullDirectoryPath);
+                    var (processed, found) = await ScanMovieLibraryAsync(library, fullDirectoryPath, refreshExisting);
                     totalProcessed += processed;
                     totalFound += found;
                 }
                 else if (library.Type == LibraryType.TVShows)
                 {
-                    var (processed, found) = await ScanTVShowLibraryAsync(library, fullDirectoryPath);
+                    var (processed, found) = await ScanTVShowLibraryAsync(library, fullDirectoryPath, refreshExisting);
                     totalProcessed += processed;
                     totalFound += found;
                 }
@@ -327,7 +330,7 @@ public class MetadataService : IMetadataApi
         }
     }
 
-    private MovieMetadata CreateMovieMetadata(
+    private async Task<MovieMetadata> CreateMovieMetadata(
         SearchMovie tmdbMovie,
         string libraryId,
         string filePath
@@ -335,6 +338,9 @@ public class MetadataService : IMetadataApi
     {
         try
         {
+            // Get detailed movie information to access genres
+            var movieDetails = await _tmdbClient.GetMovieAsync(tmdbMovie.Id);
+            
             return new MovieMetadata
             {
                 TmdbId = tmdbMovie.Id,
@@ -345,6 +351,7 @@ public class MetadataService : IMetadataApi
                 VoteAverage = tmdbMovie.VoteAverage,
                 VoteCount = tmdbMovie.VoteCount,
                 ReleaseDate = tmdbMovie.ReleaseDate,
+                Genres = movieDetails.Genres?.Select(g => g.Name).ToArray() ?? Array.Empty<string>(),
                 PosterPath = tmdbMovie.PosterPath,
                 BackdropPath = tmdbMovie.BackdropPath,
                 LibraryId = libraryId,
@@ -409,7 +416,7 @@ public class MetadataService : IMetadataApi
         }
     }
 
-    private async Task<(int processed, int found)> ScanMovieLibraryAsync(LibraryInfo library, string fullDirectoryPath)
+    private async Task<(int processed, int found)> ScanMovieLibraryAsync(LibraryInfo library, string fullDirectoryPath, bool refreshExisting = true)
     {
         var mediaFiles = ScanDirectoryForMediaFiles(fullDirectoryPath);
         _logger.LogDebug(
@@ -442,10 +449,59 @@ public class MetadataService : IMetadataApi
 
                 if (existingMetadata != null)
                 {
+                    if (!refreshExisting)
+                    {
+                        _logger.LogDebug(
+                            "Metadata already exists for file: {FilePath} (skipping due to refreshExisting=false)",
+                            filePath
+                        );
+                        continue;
+                    }
+
                     _logger.LogDebug(
-                        "Metadata already exists for file: {FilePath}",
+                        "Updating existing metadata for file: {FilePath}",
                         filePath
                     );
+                    
+                    // Get fresh metadata from TMDb
+                    var updatedTmdbResult = await SearchTMDbForMovie(movieTitle);
+                    if (updatedTmdbResult != null)
+                    {
+                        var updatedMovieMetadata = await CreateMovieMetadata(
+                            updatedTmdbResult,
+                            library.Id!,
+                            filePath
+                        );
+                        
+                        // Preserve the original ID and CreatedAt timestamp
+                        updatedMovieMetadata.Id = existingMetadata.Id;
+                        updatedMovieMetadata.CreatedAt = existingMetadata.CreatedAt;
+                        updatedMovieMetadata.UpdatedAt = DateTime.UtcNow;
+
+                        await _movieMetadataCollection.ReplaceOneAsync(
+                            m => m.Id == existingMetadata.Id,
+                            updatedMovieMetadata
+                        );
+
+                        _logger.LogInformation(
+                            "Updated metadata for movie: {Title} ({Year}) - File: {FileName}",
+                            updatedMovieMetadata.Title,
+                            updatedMovieMetadata.ReleaseDate?.Year.ToString() ?? "Unknown",
+                            Path.GetFileName(filePath)
+                        );
+
+                        found++;
+                    }
+                    else
+                    {
+                        _logger.LogDebug(
+                            "No TMDb results found for movie: {MovieTitle} (existing file)",
+                            movieTitle
+                        );
+                    }
+
+                    processed++;
+                    await Task.Delay(250);
                     continue;
                 }
 
@@ -454,7 +510,7 @@ public class MetadataService : IMetadataApi
 
                 if (tmdbResult != null)
                 {
-                    var movieMetadata = CreateMovieMetadata(
+                    var movieMetadata = await CreateMovieMetadata(
                         tmdbResult,
                         library.Id!,
                         filePath
@@ -492,7 +548,7 @@ public class MetadataService : IMetadataApi
         return (processed, found);
     }
 
-    private async Task<(int processed, int found)> ScanTVShowLibraryAsync(LibraryInfo library, string fullDirectoryPath)
+    private async Task<(int processed, int found)> ScanTVShowLibraryAsync(LibraryInfo library, string fullDirectoryPath, bool refreshExisting = true)
     {
         var showDirectories = Directory.GetDirectories(fullDirectoryPath, "*", SearchOption.TopDirectoryOnly);
         _logger.LogDebug(
@@ -525,10 +581,58 @@ public class MetadataService : IMetadataApi
 
                 if (existingMetadata != null)
                 {
+                    if (!refreshExisting)
+                    {
+                        _logger.LogDebug(
+                            "Metadata already exists for TV show: {ShowTitle} (skipping due to refreshExisting=false)",
+                            showTitle
+                        );
+                        continue;
+                    }
+
                     _logger.LogDebug(
-                        "Metadata already exists for TV show: {ShowTitle}",
+                        "Updating existing metadata for TV show: {ShowTitle}",
                         showTitle
                     );
+                    
+                    // Get fresh metadata from TMDb
+                    var updatedTmdbResult = await SearchTMDbForTVShow(showTitle);
+                    if (updatedTmdbResult != null)
+                    {
+                        var updatedTvShowMetadata = await CreateTVShowMetadata(
+                            updatedTmdbResult,
+                            library.Id!,
+                            showDirectory
+                        );
+                        
+                        // Preserve the original ID and CreatedAt timestamp
+                        updatedTvShowMetadata.Id = existingMetadata.Id;
+                        updatedTvShowMetadata.CreatedAt = existingMetadata.CreatedAt;
+                        updatedTvShowMetadata.UpdatedAt = DateTime.UtcNow;
+
+                        await _tvShowMetadataCollection.ReplaceOneAsync(
+                            tv => tv.Id == existingMetadata.Id,
+                            updatedTvShowMetadata
+                        );
+
+                        _logger.LogInformation(
+                            "Updated metadata for TV show: {Title} - Directory: {DirectoryName}",
+                            updatedTvShowMetadata.Title,
+                            Path.GetFileName(showDirectory)
+                        );
+
+                        found++;
+                    }
+                    else
+                    {
+                        _logger.LogDebug(
+                            "No TMDb results found for TV show: {ShowTitle} (existing show)",
+                            showTitle
+                        );
+                    }
+
+                    processed++;
+                    await Task.Delay(250);
                     continue;
                 }
 
@@ -700,6 +804,7 @@ public class MetadataService : IMetadataApi
                 Overview = tmdbTvShow.Overview,
                 VoteAverage = tmdbTvShow.VoteAverage,
                 VoteCount = tmdbTvShow.VoteCount,
+                Genres = tvShowDetails.Genres?.Select(g => g.Name).ToArray() ?? Array.Empty<string>(),
                 PosterPath = tmdbTvShow.PosterPath,
                 BackdropPath = tmdbTvShow.BackdropPath,
                 Seasons = seasons.ToArray(),

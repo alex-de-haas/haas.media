@@ -297,6 +297,25 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
               </div>
             )}
 
+            {/* Genres */}
+            {tvShow.genres && tvShow.genres.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                  Genres
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {tvShow.genres.map((genre) => (
+                    <span
+                      key={genre}
+                      className="px-3 py-1 text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full"
+                    >
+                      {genre}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Overview */}
             {tvShow.overview && (
               <div className="mb-6">

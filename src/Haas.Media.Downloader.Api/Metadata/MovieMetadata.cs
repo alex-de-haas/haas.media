@@ -17,6 +17,7 @@ public class MovieMetadata
     public required double VoteAverage { get; set; }
     public required int VoteCount { get; set; }
     public DateTime? ReleaseDate { get; set; }
+    public required string[] Genres { get; set; }
     
     // TMDB image paths
     public string? PosterPath { get; set; }

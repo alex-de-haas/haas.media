@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useMovie } from '@/features/media/hooks';
-import { LoadingSpinner } from '@/components/ui';
-import { getPosterUrl, getBackdropUrl } from '@/lib/tmdb';
+import { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useMovie } from "@/features/media/hooks";
+import { LoadingSpinner } from "@/components/ui";
+import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
 
 interface MovieDetailsProps {
   movieId: string;
@@ -28,7 +28,11 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 dark:bg-red-900/20 dark:border-red-800">
           <div className="flex items-center">
-            <svg className="w-6 h-6 text-red-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
+            <svg
+              className="w-6 h-6 text-red-400 mr-3"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
               <path
                 fillRule="evenodd"
                 d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -40,7 +44,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                 Movie not found
               </h3>
               <p className="text-red-700 dark:text-red-300 mt-1">
-                {error || 'The movie you requested could not be found.'}
+                {error || "The movie you requested could not be found."}
               </p>
             </div>
           </div>
@@ -57,7 +61,9 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
     );
   }
 
-  const releaseYear = movie.releaseDate ? new Date(movie.releaseDate).getFullYear() : null;
+  const releaseYear = movie.releaseDate
+    ? new Date(movie.releaseDate).getFullYear()
+    : null;
   const posterUrl = getPosterUrl(movie.posterPath);
   const backdropUrl = getBackdropUrl(movie.backdropPath);
 
@@ -79,20 +85,40 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
           </div>
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-            <svg className="w-24 h-24 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+            <svg
+              className="w-24 h-24 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1}
+                d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z"
+              />
             </svg>
           </div>
         )}
-        
+
         {/* Back Button - Floating over backdrop */}
         <div className="absolute top-6 left-6">
           <Link
             href="/movies"
             className="inline-flex items-center px-4 py-2 bg-black/50 hover:bg-black/70 text-white rounded-lg transition-colors duration-200 backdrop-blur-sm border border-white/10"
           >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg
+              className="w-4 h-4 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
             Back to Movies
           </Link>
@@ -116,8 +142,18 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800">
-                  <svg className="w-16 h-16 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+                  <svg
+                    className="w-16 h-16 text-gray-400 dark:text-gray-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1}
+                      d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z"
+                    />
                   </svg>
                 </div>
               )}
@@ -146,7 +182,11 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
             {movie.voteAverage > 0 && (
               <div className="flex items-center mb-6">
                 <div className="flex items-center bg-yellow-100 dark:bg-yellow-900/30 px-3 py-2 rounded-lg">
-                  <svg className="w-5 h-5 text-yellow-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <svg
+                    className="w-5 h-5 text-yellow-500 mr-2"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
                   <span className="font-semibold text-yellow-900 dark:text-yellow-100">
@@ -157,6 +197,25 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                       ({movie.voteCount.toLocaleString()} votes)
                     </span>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Genres */}
+            {movie.genres && movie.genres.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                  Genres
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {movie.genres.map((genre) => (
+                    <span
+                      key={genre}
+                      className="px-3 py-1 text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full"
+                    >
+                      {genre}
+                    </span>
+                  ))}
                 </div>
               </div>
             )}
@@ -179,31 +238,23 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                 Details
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-600 dark:text-gray-400">TMDB ID:</span>
-                  <span className="text-gray-900 dark:text-gray-100">{movie.tmdbId}</span>
-                </div>
-                {movie.originalLanguage && (
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-600 dark:text-gray-400">Language:</span>
-                    <span className="text-gray-900 dark:text-gray-100">{movie.originalLanguage.toUpperCase()}</span>
-                  </div>
-                )}
                 {movie.releaseDate && (
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-600 dark:text-gray-400">Release Date:</span>
+                  <div>
+                    <span className="font-medium text-gray-600 dark:text-gray-400">
+                      Release Date:
+                    </span>
                     <span className="text-gray-900 dark:text-gray-100">
                       {new Date(movie.releaseDate).toLocaleDateString()}
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-600 dark:text-gray-400">File Path:</span>
-                  <span className="text-gray-900 dark:text-gray-100 text-right text-sm font-mono truncate max-w-64" title={movie.filePath}>
-                    {movie.filePath}
-                  </span>
-                </div>
               </div>
+              <p
+                className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate"
+                title={movie.filePath}
+              >
+                {movie.filePath}
+              </p>
             </div>
           </div>
         </div>

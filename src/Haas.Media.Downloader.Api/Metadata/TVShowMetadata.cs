@@ -16,6 +16,7 @@ public class TVShowMetadata
     public required string Overview { get; set; }
     public required double VoteAverage { get; set; }
     public required int VoteCount { get; set; }
+    public required string[] Genres { get; set; }
     public required TVSeasonMetadata[] Seasons { get; set; }
 
     // TMDB image paths

@@ -8,6 +8,7 @@ export interface MovieMetadata {
   voteAverage: number;
   voteCount: number;
   releaseDate?: string;
+  genres: string[];
   posterPath?: string;
   backdropPath?: string;
   libraryId: string;
@@ -25,6 +26,7 @@ export interface TVShowMetadata {
   overview: string;
   voteAverage: number;
   voteCount: number;
+  genres: string[];
   seasons: TVSeasonMetadata[];
   posterPath?: string;
   backdropPath?: string;

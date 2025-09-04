@@ -68,6 +68,7 @@ public class MovieMetadata
     public required double VoteAverage { get; set; }
     public required int VoteCount { get; set; }
     public DateTime? ReleaseDate { get; set; }
+    public required string[] Genres { get; set; }
 
     // TMDB image paths (relative paths)
     public string? PosterPath { get; set; }
@@ -90,6 +91,7 @@ public class TVShowMetadata
     public required string Overview { get; set; }
     public required double VoteAverage { get; set; }
     public required int VoteCount { get; set; }
+    public required string[] Genres { get; set; }
     public required TVSeasonMetadata[] Seasons { get; set; }
 
     // TMDB image paths (relative paths)
