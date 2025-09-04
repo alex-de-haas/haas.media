@@ -679,6 +679,7 @@ public class MetadataService : IMetadataApi
                 {
                     SeasonNumber = season.SeasonNumber,
                     Overview = season.Overview ?? "",
+                    PosterPath = season.PosterPath,
                     VoteAverage = seasonDetails.VoteAverage,
                     Episodes = episodes.ToArray(),
                     DirectoryPath = seasonDirectory

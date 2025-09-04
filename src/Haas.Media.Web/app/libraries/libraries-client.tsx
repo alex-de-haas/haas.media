@@ -94,7 +94,7 @@ export default function LibrariesClient() {
   };
 
   return (
-    <div className="mx-auto space-y-6">
+    <div className="container mx-auto px-4 py-8">
       <PageHeader
         title="Libraries"
         description="Manage your media libraries and organize your content collections."

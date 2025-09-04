@@ -38,6 +38,9 @@ public class TVSeasonMetadata
     public required double VoteAverage { get; set; }
     public required TVEpisodeMetadata[] Episodes { get; set; }
 
+    // TMDB image path
+    public string? PosterPath { get; set; }
+
     public required string DirectoryPath { get; set; }
 }
 

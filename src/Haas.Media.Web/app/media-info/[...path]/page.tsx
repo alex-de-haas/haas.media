@@ -167,7 +167,7 @@ export default function MediaInfoPage({ params }: PageProps) {
   if (!decodedPath) return <div className="p-6">No file path provided.</div>;
 
   return (
-    <main className="mx-auto space-y-10">
+    <main className="container mx-auto px-4 py-8">
       <PageHeader
         title="Media Info"
         description="Media file information and encoding options."

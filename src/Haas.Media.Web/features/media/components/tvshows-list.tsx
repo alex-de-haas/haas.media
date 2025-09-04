@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { useTVShows } from "@/features/media/hooks";
 import type { TVShowMetadata } from "@/types/metadata";
 import { LoadingSpinner } from "@/components/ui";
@@ -15,70 +16,59 @@ function TVShowCard({ tvShow }: TVShowCardProps) {
   const posterUrl = getPosterUrl(tvShow.posterPath);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden dark:bg-gray-800 dark:border-gray-700">
-      <div className="aspect-w-2 aspect-h-3 bg-gray-200 dark:bg-gray-700">
-        {posterUrl ? (
-          <div className="w-full h-48 relative">
-            <Image
-              src={posterUrl}
-              alt={`${tvShow.title} poster`}
-              fill
-              className="object-cover"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, (max-width: 1536px) 25vw, 20vw"
-              placeholder="blur"
-              blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyb5v3esSXpPQ8iyjJzlAqE="
-            />
-          </div>
-        ) : (
-          <div className="w-full h-48 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
-            <svg className="w-16 h-16 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v15.125c0 .621.504 1.125 1.125 1.125z" />
-            </svg>
-          </div>
-        )}
-      </div>
-      <div className="p-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 line-clamp-2">
-          {tvShow.title}
-        </h3>
-        {tvShow.originalTitle && tvShow.originalTitle !== tvShow.title && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1 italic">
-            {tvShow.originalTitle}
-          </p>
-        )}
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
-            {tvShow.originalLanguage.toUpperCase()}
-          </span>
-          <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full">
-            TMDB: {tvShow.tmdbId}
-          </span>
-        </div>
-        {tvShow.overview && (
-          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 mb-3">
-            {tvShow.overview}
-          </p>
-        )}
-        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-          {tvShow.seasons && (
-            <span>
-              {tvShow.seasons.length} season{tvShow.seasons.length !== 1 ? 's' : ''}
-            </span>
-          )}
-          {tvShow.voteAverage > 0 && (
-            <div className="flex items-center">
-              <svg className="w-4 h-4 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+    <Link href={`/tvshows/${tvShow.id}`} className="block">
+      <div className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden dark:bg-gray-800 dark:border-gray-700 group cursor-pointer">
+        <div className="aspect-w-2 aspect-h-3 bg-gray-200 dark:bg-gray-700">
+          {posterUrl ? (
+            <div className="w-full h-96 relative">
+              <Image
+                src={posterUrl}
+                alt={`${tvShow.title} poster`}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, (max-width: 1536px) 25vw, 20vw"
+                placeholder="blur"
+                blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyb5v3esSXpPQ8iyjJzlAqE="
+              />
+            </div>
+          ) : (
+            <div className="w-full h-96 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
+              <svg className="w-16 h-16 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v15.125c0 .621.504 1.125 1.125 1.125z" />
               </svg>
-              <span>{tvShow.voteAverage.toFixed(1)}/10</span>
-              {tvShow.voteCount > 0 && (
-                <span className="ml-1 text-xs">({tvShow.voteCount})</span>
-              )}
             </div>
           )}
         </div>
+        <div className="p-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 line-clamp-2">
+            {tvShow.title}
+          </h3>
+          {tvShow.originalTitle && tvShow.originalTitle !== tvShow.title && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1 italic">
+              {tvShow.originalTitle}
+            </p>
+          )}
+          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            {tvShow.seasons && (
+              <span>
+                {tvShow.seasons.length} season{tvShow.seasons.length !== 1 ? 's' : ''}
+              </span>
+            )}
+            {tvShow.voteAverage > 0 && (
+              <div className="flex items-center">
+                <svg className="w-4 h-4 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <span>{tvShow.voteAverage.toFixed(1)}/10</span>
+                {tvShow.voteCount > 0 && (
+                  <span className="ml-1 text-xs">({tvShow.voteCount})</span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }
 

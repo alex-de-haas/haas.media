@@ -218,7 +218,7 @@ export default function FilesPage() {
   };
 
   return (
-    <main className="mx-auto space-y-10">
+    <main className="container mx-auto px-4 py-8">
       <PageHeader
         title="Files"
         description="Manage your files and folders."
