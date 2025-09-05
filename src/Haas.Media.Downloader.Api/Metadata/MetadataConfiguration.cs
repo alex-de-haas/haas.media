@@ -6,7 +6,7 @@ public static class MetadataConfiguration
     {
         builder.Services.AddSingleton<MetadataService>();
         builder.Services.AddScoped<IMetadataApi>(sp => sp.GetRequiredService<MetadataService>());
-        builder.Services.AddHostedService<MetadataService>(sp => sp.GetRequiredService<MetadataService>());
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<MetadataService>());
 
         return builder;
     }
