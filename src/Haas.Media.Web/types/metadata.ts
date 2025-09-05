@@ -1,3 +1,17 @@
+import type { LibraryType } from './library';
+
+export interface SearchResult {
+  tmdbId: number;
+  title: string;
+  originalTitle: string;
+  overview: string;
+  voteAverage: number;
+  voteCount: number;
+  type: LibraryType;
+  posterPath?: string;
+  backdropPath?: string;
+}
+
 export interface CrewMember {
   id: number;
   name: string;

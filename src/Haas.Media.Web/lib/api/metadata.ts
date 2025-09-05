@@ -1,5 +1,5 @@
 import { downloaderApi } from "@/lib/api";
-import type { MovieMetadata, TVShowMetadata } from "@/types/metadata";
+import type { MovieMetadata, TVShowMetadata, SearchResult } from "@/types/metadata";
 import type { LibraryType } from "@/types/library";
 
 export interface MetadataApiClient {
@@ -9,6 +9,7 @@ export interface MetadataApiClient {
   getTVShowById: (id: string) => Promise<TVShowMetadata | null>;
   scanLibraries: () => Promise<void>;
   addToLibrary: (request: AddToLibraryRequest) => Promise<MovieMetadata | TVShowMetadata>;
+  search: (query: string, libraryType?: LibraryType) => Promise<SearchResult[]>;
 }
 
 export interface AddToLibraryRequest {
@@ -89,6 +90,17 @@ export const metadataApi: MetadataApiClient = {
       method: 'POST',
       body: JSON.stringify(request),
     });
+    return response.json();
+  },
+
+  async search(query: string, libraryType?: LibraryType): Promise<SearchResult[]> {
+    const url = new URL('/api/metadata/search', window.location.origin);
+    url.searchParams.set('query', query);
+    if (libraryType !== undefined) {
+      url.searchParams.set('libraryType', libraryType.toString());
+    }
+
+    const response = await fetchWithAuth(url.toString());
     return response.json();
   },
 };

@@ -987,11 +987,13 @@ public class MetadataService : IMetadataApi, IHostedService
                     {
                         searchResults.Add(new SearchResult
                         {
+                            TmdbId = movie.Id,
                             Title = movie.Title ?? string.Empty,
                             OriginalTitle = movie.OriginalTitle ?? string.Empty,
                             Overview = movie.Overview ?? string.Empty,
                             VoteAverage = movie.VoteAverage,
                             VoteCount = movie.VoteCount,
+                            Type = LibraryType.Movies,
                             PosterPath = movie.PosterPath,
                             BackdropPath = movie.BackdropPath
                         });
@@ -1009,11 +1011,13 @@ public class MetadataService : IMetadataApi, IHostedService
                     {
                         searchResults.Add(new SearchResult
                         {
+                            TmdbId = tvShow.Id,
                             Title = tvShow.Name ?? string.Empty,
                             OriginalTitle = tvShow.OriginalName ?? string.Empty,
                             Overview = tvShow.Overview ?? string.Empty,
                             VoteAverage = tvShow.VoteAverage,
                             VoteCount = tvShow.VoteCount,
+                            Type = LibraryType.TVShows,
                             PosterPath = tvShow.PosterPath,
                             BackdropPath = tvShow.BackdropPath
                         });
