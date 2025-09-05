@@ -135,6 +135,59 @@ export function useLibraries() {
     }
   }, [fetchLibraries]);
 
+  const startBackgroundScan = useCallback(async (): Promise<{ success: boolean; message: string; operationId?: string }> => {
+    try {
+      const token = await getValidToken();
+      const headers = new Headers({
+        "Content-Type": "application/json",
+      });
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+
+      const response = await fetch(`${downloaderApi}/api/metadata/scan/start`, {
+        method: "POST",
+        headers,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return { 
+          success: true, 
+          message: "Background scan started successfully",
+          operationId: data.operationId 
+        };
+      } else {
+        const errorText = await response.text();
+        return { success: false, message: errorText || "Failed to start background scan" };
+      }
+    } catch (error) {
+      return { success: false, message: "Network error occurred while starting background scan" };
+    }
+  }, []);
+
+  const cancelScanOperation = useCallback(async (operationId: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const token = await getValidToken();
+      const headers = new Headers({
+        "Content-Type": "application/json",
+      });
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+
+      const response = await fetch(`${downloaderApi}/api/metadata/scan/operations/${operationId}/cancel`, {
+        method: "POST",
+        headers,
+      });
+
+      if (response.ok) {
+        return { success: true, message: "Scan operation cancelled successfully" };
+      } else {
+        const errorText = await response.text();
+        return { success: false, message: errorText || "Failed to cancel scan operation" };
+      }
+    } catch (error) {
+      return { success: false, message: "Network error occurred while cancelling scan operation" };
+    }
+  }, []);
+
   useEffect(() => {
     fetchLibraries();
   }, [fetchLibraries]);
@@ -148,5 +201,7 @@ export function useLibraries() {
     updateLibrary,
     deleteLibrary,
     scanLibraries,
+    startBackgroundScan,
+    cancelScanOperation,
   };
 }

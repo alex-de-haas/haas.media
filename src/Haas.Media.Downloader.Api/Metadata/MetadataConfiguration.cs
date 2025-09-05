@@ -6,6 +6,7 @@ public static class MetadataConfiguration
     {
         builder.Services.AddSingleton<MetadataService>();
         builder.Services.AddScoped<IMetadataApi>(sp => sp.GetRequiredService<MetadataService>());
+        builder.Services.AddHostedService<MetadataService>(sp => sp.GetRequiredService<MetadataService>());
 
         return builder;
     }
@@ -99,6 +100,46 @@ public static class MetadataConfiguration
             )
             .WithName("ScanLibraries")
             .RequireAuthorization();
+
+        // Start background scan operation
+        app.MapPost(
+                "api/metadata/scan/start",
+                async (IMetadataApi metadataService, bool refreshExisting = true) =>
+                {
+                    var operationId = await metadataService.StartScanLibrariesAsync(refreshExisting);
+                    return Results.Ok(new { operationId, message = "Background scan started" });
+                }
+            )
+            .WithName("StartBackgroundScan")
+            .RequireAuthorization();
+
+        // Get scan operations
+        app.MapGet(
+                "api/metadata/scan/operations",
+                (IMetadataApi metadataService) =>
+                {
+                    var operations = metadataService.GetScanOperations();
+                    return Results.Ok(operations);
+                }
+            )
+            .WithName("GetScanOperations")
+            .RequireAuthorization();
+
+        // Cancel scan operation
+        app.MapPost(
+                "api/metadata/scan/operations/{operationId}/cancel",
+                async (IMetadataApi metadataService, string operationId) =>
+                {
+                    var cancelled = await metadataService.CancelScanOperationAsync(operationId);
+                    return cancelled ? Results.Ok(new { message = "Scan operation cancelled" }) 
+                                     : Results.NotFound(new { message = "Scan operation not found" });
+                }
+            )
+            .WithName("CancelScanOperation")
+            .RequireAuthorization();
+
+        // Map SignalR hub
+        app.MapHub<MetadataHub>("/hub/metadata");
 
         app.MapGet(
                 "api/metadata/movies",
