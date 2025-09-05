@@ -4,6 +4,11 @@
 
 A modern web application for downloading torrents and encoding videos to various formats with hardware acceleration support.
 
+## AI Models
+
+- Claude Sonnet 4 (GitHub Copilot)
+- GPT-5 (GitHub Copilot, OpenAI Codex)
+
 ## 🚀 Features
 
 - **Torrent Management**: Download and manage torrent files
@@ -24,7 +29,7 @@ A modern web application for downloading torrents and encoding videos to various
 - **SignalR** - Real-time communication
 
 ### Backend
-- **.NET 8** - Cross-platform backend framework
+- **.NET 9** - Cross-platform backend framework
 - **ASP.NET Core** - Web API framework
 - **MongoDB** - Document database
 - **FFmpeg** - Video processing and encoding
@@ -48,7 +53,7 @@ A modern web application for downloading torrents and encoding videos to various
 
 ### Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download)
+- [.NET 9 SDK](https://dotnet.microsoft.com/download)
 - [Node.js 18+](https://nodejs.org/)
 - [Docker](https://docker.com/) (for MongoDB)
 - [FFmpeg](https://ffmpeg.org/) (for video processing)

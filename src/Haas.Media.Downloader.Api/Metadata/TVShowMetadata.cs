@@ -25,7 +25,8 @@ public class TVShowMetadata
     public string? PosterPath { get; set; }
     public string? BackdropPath { get; set; }
 
-    public required string LibraryId { get; set; }
+    // Library relation if tv show exists in library
+    public string? LibraryId { get; set; }
     
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -43,8 +44,6 @@ public class TVSeasonMetadata
 
     // TMDB image path
     public string? PosterPath { get; set; }
-
-    public required string DirectoryPath { get; set; }
 }
 
 public class TVEpisodeMetadata
@@ -55,5 +54,6 @@ public class TVEpisodeMetadata
     public required string Overview { get; set; }
     public required double VoteAverage { get; set; }
     
-    public required string FilePath { get; set; }
+    // File relation if tv show episode file exists in library
+    public string? FilePath { get; set; }
 }

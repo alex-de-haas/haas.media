@@ -851,7 +851,6 @@ public class MetadataService : IMetadataApi, IHostedService
                     PosterPath = season.PosterPath,
                     VoteAverage = seasonDetails.VoteAverage,
                     Episodes = episodes.ToArray(),
-                    DirectoryPath = seasonDirectory
                 };
                 
                 seasons.Add(seasonMetadata);
@@ -875,7 +874,7 @@ public class MetadataService : IMetadataApi, IHostedService
                 PosterPath = tmdbTvShow.PosterPath,
                 BackdropPath = tmdbTvShow.BackdropPath,
                 Seasons = seasons.ToArray(),
-                LibraryId = libraryId
+                LibraryId = libraryId,
             };
         }
         catch (Exception ex)

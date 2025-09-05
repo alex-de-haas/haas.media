@@ -8,7 +8,65 @@ For getting metadata use `TMDbLib` nuget package.
 
 ## Models
 
-### LibraryType
+### Request Models
+
+- Create library
+
+```csharp
+public class CreateLibraryRequest
+{
+    public LibraryType Type { get; set; }
+    public required string DirectoryPath { get; set; }
+    public required string Title { get; set; }
+    public string? Description { get; set; }
+}
+```
+
+- Update library
+
+```csharp
+public class UpdateLibraryRequest
+{
+    public LibraryType Type { get; set; }
+    public required string DirectoryPath { get; set; }
+    public required string Title { get; set; }
+    public string? Description { get; set; }
+}
+```
+
+- Add movie or tv show to library
+
+```csharp
+public class AddToLibraryRequest
+{
+    public required LibraryType Type { get; set; }
+    public required string LibraryId { get; set; }
+    public required string TmdbId { get; set; }
+}
+```
+
+### Search
+
+- Search movies or tv shows for adding to library.
+
+```csharp
+public class SearchResult
+{
+    public string Title { get; set; }
+    public required string OriginalTitle { get; set; }
+    public required string Overview { get; set; }
+    public required double VoteAverage { get; set; }
+    public required int VoteCount { get; set; }
+
+    // TMDB image paths (relative paths)
+    public string? PosterPath { get; set; }
+    public string? BackdropPath { get; set; }
+}
+```
+
+## Database models
+
+### Libraries
 
 ```csharp
 public enum LibraryType
@@ -16,11 +74,7 @@ public enum LibraryType
     Movies = 1,
     TVShows = 2,
 }
-```
 
-### LibraryInfo
-
-```csharp
 public class LibraryInfo
 {
     public string? Id { get; set; }                    // MongoDB ObjectId
@@ -33,33 +87,35 @@ public class LibraryInfo
 }
 ```
 
-### Request Models
+### Cast and Crew
 
 ```csharp
-public class CreateLibraryRequest
+public class CrewMember
 {
-    public LibraryType Type { get; set; }
-    public required string DirectoryPath { get; set; }
-    public required string Title { get; set; }
-    public string? Description { get; set; }
+    public required int Id { get; set; }
+    public required string Name { get; set; }
+    public required string Job { get; set; }
+    public required string Department { get; set; }
+    public string? ProfilePath { get; set; }
 }
 
-public class UpdateLibraryRequest
+public class CastMember
 {
-    public LibraryType Type { get; set; }
-    public required string DirectoryPath { get; set; }
-    public required string Title { get; set; }
-    public string? Description { get; set; }
+    public required int Id { get; set; }
+    public required string Name { get; set; }
+    public required string Character { get; set; }
+    public required int Order { get; set; }
+    public string? ProfilePath { get; set; }
 }
 ```
-
-## Database models
 
 ### Movies
 
 ```csharp
 public class MovieMetadata
 {
+    public string Id { get; set; } // Local database ID
+
     public required int TmdbId { get; set; }
     public required string OriginalTitle { get; set; }
     public required string OriginalLanguage { get; set; }
@@ -69,13 +125,16 @@ public class MovieMetadata
     public required int VoteCount { get; set; }
     public DateTime? ReleaseDate { get; set; }
     public required string[] Genres { get; set; }
+    public required CrewMember[] Crew { get; set; }
+    public required CastMember[] Cast { get; set; }
 
     // TMDB image paths (relative paths)
     public string? PosterPath { get; set; }
     public string? BackdropPath { get; set; }
 
-    public required string LibraryId { get; set; }
-    public required string FilePath { get; set; }
+    // Library and file relation if movie file exists in library
+    public string? LibraryId { get; set; }
+    public string? FilePath { get; set; }
 }
 ```
 
@@ -84,6 +143,8 @@ public class MovieMetadata
 ```csharp
 public class TVShowMetadata
 {
+    public string Id { get; set; } // Local database ID
+
     public required int TmdbId { get; set; }
     public required string OriginalTitle { get; set; }
     public required string OriginalLanguage { get; set; }
@@ -92,13 +153,16 @@ public class TVShowMetadata
     public required double VoteAverage { get; set; }
     public required int VoteCount { get; set; }
     public required string[] Genres { get; set; }
+    public required CrewMember[] Crew { get; set; }
+    public required CastMember[] Cast { get; set; }
     public required TVSeasonMetadata[] Seasons { get; set; }
 
     // TMDB image paths (relative paths)
     public string? PosterPath { get; set; }
     public string? BackdropPath { get; set; }
 
-    public required string LibraryId { get; set; }
+    // Library relation if tv show exists in library
+    public string? LibraryId { get; set; }
 }
 
 public class TVSeasonMetadata
@@ -110,8 +174,6 @@ public class TVSeasonMetadata
 
     // TMDB image paths (relative paths)
     public string? PosterPath { get; set; }
-
-    public required string DirectoryPath { get; set; }
 }
 
 public class TVEpisodeMetadata
@@ -122,7 +184,8 @@ public class TVEpisodeMetadata
     public required string Overview { get; set; }
     public required double VoteAverage { get; set; }
 
-    public required string FilePath { get; set; }
+    // File relation if tv show episode file exists in library
+    public string? FilePath { get; set; }
 }
 ```
 

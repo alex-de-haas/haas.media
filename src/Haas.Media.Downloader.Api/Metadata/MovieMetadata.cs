@@ -25,9 +25,9 @@ public class MovieMetadata
     public string? PosterPath { get; set; }
     public string? BackdropPath { get; set; }
     
-    // Additional fields for file association
-    public required string LibraryId { get; set; }
-    public required string FilePath { get; set; }
+    // Library and file relation if movie file exists in library
+    public string? LibraryId { get; set; }
+    public string? FilePath { get; set; }
     
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
