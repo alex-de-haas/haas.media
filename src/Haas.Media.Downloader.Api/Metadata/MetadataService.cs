@@ -969,6 +969,319 @@ public class MetadataService : IMetadataApi, IHostedService
         }
     }
 
+    public async Task<IEnumerable<SearchResult>> SearchAsync(string query, LibraryType? libraryType = null)
+    {
+        try
+        {
+            _logger.LogDebug("Searching TMDB for query: {Query}, libraryType: {LibraryType}", query, libraryType);
+            
+            var searchResults = new List<SearchResult>();
+            
+            // If libraryType is not specified or is Movies, search for movies
+            if (libraryType == null || libraryType == LibraryType.Movies)
+            {
+                var movieResults = await _tmdbClient.SearchMovieAsync(query);
+                if (movieResults?.Results != null)
+                {
+                    foreach (var movie in movieResults.Results.Take(10)) // Limit to 10 results
+                    {
+                        searchResults.Add(new SearchResult
+                        {
+                            Title = movie.Title ?? string.Empty,
+                            OriginalTitle = movie.OriginalTitle ?? string.Empty,
+                            Overview = movie.Overview ?? string.Empty,
+                            VoteAverage = movie.VoteAverage,
+                            VoteCount = movie.VoteCount,
+                            PosterPath = movie.PosterPath,
+                            BackdropPath = movie.BackdropPath
+                        });
+                    }
+                }
+            }
+            
+            // If libraryType is not specified or is TVShows, search for TV shows
+            if (libraryType == null || libraryType == LibraryType.TVShows)
+            {
+                var tvResults = await _tmdbClient.SearchTvShowAsync(query);
+                if (tvResults?.Results != null)
+                {
+                    foreach (var tvShow in tvResults.Results.Take(10)) // Limit to 10 results
+                    {
+                        searchResults.Add(new SearchResult
+                        {
+                            Title = tvShow.Name ?? string.Empty,
+                            OriginalTitle = tvShow.OriginalName ?? string.Empty,
+                            Overview = tvShow.Overview ?? string.Empty,
+                            VoteAverage = tvShow.VoteAverage,
+                            VoteCount = tvShow.VoteCount,
+                            PosterPath = tvShow.PosterPath,
+                            BackdropPath = tvShow.BackdropPath
+                        });
+                    }
+                }
+            }
+            
+            _logger.LogDebug("Found {Count} search results for query: {Query}", searchResults.Count, query);
+            return searchResults;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching TMDB for query: {Query}", query);
+            throw;
+        }
+    }
+
+    public async Task<object> AddToLibraryAsync(AddToLibraryRequest request)
+    {
+        try
+        {
+            _logger.LogDebug("Adding to library: LibraryId={LibraryId}, Type={Type}, TmdbId={TmdbId}", 
+                request.LibraryId, request.Type, request.TmdbId);
+
+            // Validate that the library exists
+            var library = await GetLibraryAsync(request.LibraryId);
+            if (library == null)
+            {
+                throw new ArgumentException($"Library with ID '{request.LibraryId}' not found.");
+            }
+
+            // Validate that the library type matches the request type
+            if (library.Type != request.Type)
+            {
+                throw new ArgumentException($"Library type mismatch. Library is of type {library.Type}, but request is for {request.Type}.");
+            }
+
+            if (!int.TryParse(request.TmdbId, out var tmdbId))
+            {
+                throw new ArgumentException("Invalid TMDB ID format. Must be a valid integer.");
+            }
+
+            switch (request.Type)
+            {
+                case LibraryType.Movies:
+                    return await AddMovieToLibraryAsync(request.LibraryId, tmdbId);
+                
+                case LibraryType.TVShows:
+                    return await AddTVShowToLibraryAsync(request.LibraryId, tmdbId);
+                
+                default:
+                    throw new ArgumentException($"Unsupported library type: {request.Type}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding to library: LibraryId={LibraryId}, Type={Type}, TmdbId={TmdbId}", 
+                request.LibraryId, request.Type, request.TmdbId);
+            throw;
+        }
+    }
+
+    private async Task<MovieMetadata> AddMovieToLibraryAsync(string libraryId, int tmdbId)
+    {
+        try
+        {
+            // Check if movie already exists in the library
+            var existingMovie = await _movieMetadataCollection
+                .Find(m => m.LibraryId == libraryId && m.TmdbId == tmdbId)
+                .FirstOrDefaultAsync();
+
+            if (existingMovie != null)
+            {
+                throw new InvalidOperationException($"Movie with TMDB ID {tmdbId} already exists in library {libraryId}.");
+            }
+
+            // Get movie details from TMDB
+            var movieDetails = await _tmdbClient.GetMovieAsync(tmdbId);
+            if (movieDetails == null)
+            {
+                throw new ArgumentException($"Movie with TMDB ID {tmdbId} not found on TMDB.");
+            }
+
+            // Get movie credits to access crew and cast information
+            var movieCredits = await _tmdbClient.GetMovieCreditsAsync(tmdbId);
+            
+            // Convert crew to our CrewMember format
+            var crew = movieCredits.Crew?
+                .Select(c => new CrewMember
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Job = c.Job,
+                    Department = c.Department,
+                    ProfilePath = c.ProfilePath
+                })
+                .ToArray() ?? Array.Empty<CrewMember>();
+            
+            // Convert cast to our CastMember format
+            var cast = movieCredits.Cast?
+                .Select(c => new CastMember
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Character = c.Character ?? "",
+                    Order = c.Order,
+                    ProfilePath = c.ProfilePath
+                })
+                .ToArray() ?? Array.Empty<CastMember>();
+
+            var movieMetadata = new MovieMetadata
+            {
+                Id = ObjectId.GenerateNewId().ToString(),
+                LibraryId = libraryId,
+                TmdbId = tmdbId,
+                Title = movieDetails.Title ?? "",
+                OriginalTitle = movieDetails.OriginalTitle ?? "",
+                Overview = movieDetails.Overview ?? "",
+                ReleaseDate = movieDetails.ReleaseDate,
+                VoteAverage = movieDetails.VoteAverage,
+                VoteCount = movieDetails.VoteCount,
+                Genres = movieDetails.Genres?.Select(g => g.Name).ToArray() ?? Array.Empty<string>(),
+                PosterPath = movieDetails.PosterPath,
+                BackdropPath = movieDetails.BackdropPath,
+                OriginalLanguage = movieDetails.OriginalLanguage ?? "",
+                Crew = crew,
+                Cast = cast,
+                FilePath = null, // No file path for manually added items
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            await _movieMetadataCollection.InsertOneAsync(movieMetadata);
+            
+            _logger.LogInformation("Successfully added movie '{Title}' (TMDB ID: {TmdbId}) to library {LibraryId}", 
+                movieMetadata.Title, tmdbId, libraryId);
+
+            return movieMetadata;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding movie to library: LibraryId={LibraryId}, TmdbId={TmdbId}", 
+                libraryId, tmdbId);
+            throw;
+        }
+    }
+
+    private async Task<TVShowMetadata> AddTVShowToLibraryAsync(string libraryId, int tmdbId)
+    {
+        try
+        {
+            // Check if TV show already exists in the library
+            var existingTVShow = await _tvShowMetadataCollection
+                .Find(tv => tv.LibraryId == libraryId && tv.TmdbId == tmdbId)
+                .FirstOrDefaultAsync();
+
+            if (existingTVShow != null)
+            {
+                throw new InvalidOperationException($"TV show with TMDB ID {tmdbId} already exists in library {libraryId}.");
+            }
+
+            // Get TV show details from TMDB
+            var tvShowDetails = await _tmdbClient.GetTvShowAsync(tmdbId);
+            if (tvShowDetails == null)
+            {
+                throw new ArgumentException($"TV show with TMDB ID {tmdbId} not found on TMDB.");
+            }
+
+            // Get TV show credits to access crew and cast information
+            var tvShowCredits = await _tmdbClient.GetTvShowCreditsAsync(tmdbId);
+            
+            // Convert crew to our CrewMember format
+            var crew = tvShowCredits.Crew?
+                .Select(c => new CrewMember
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Job = c.Job,
+                    Department = c.Department,
+                    ProfilePath = c.ProfilePath
+                })
+                .ToArray() ?? Array.Empty<CrewMember>();
+            
+            // Convert cast to our CastMember format
+            var cast = tvShowCredits.Cast?
+                .Select(c => new CastMember
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Character = c.Character ?? "",
+                    Order = c.Order,
+                    ProfilePath = c.ProfilePath
+                })
+                .ToArray() ?? Array.Empty<CastMember>();
+
+            var seasons = new List<TVSeasonMetadata>();
+            
+            // Process each season (skip specials - season 0)
+            foreach (var season in tvShowDetails.Seasons.Where(s => s.SeasonNumber > 0))
+            {
+                var episodes = new List<TVEpisodeMetadata>();
+                
+                // Get season details to access episodes
+                var seasonDetails = await _tmdbClient.GetTvSeasonAsync(tmdbId, season.SeasonNumber);
+                
+                foreach (var episode in seasonDetails.Episodes)
+                {
+                    var episodeMetadata = new TVEpisodeMetadata
+                    {
+                        SeasonNumber = season.SeasonNumber,
+                        EpisodeNumber = episode.EpisodeNumber,
+                        Name = episode.Name ?? "",
+                        Overview = episode.Overview ?? "",
+                        VoteAverage = episode.VoteAverage,
+                        FilePath = null // No file path for manually added items
+                    };
+                    
+                    episodes.Add(episodeMetadata);
+                }
+                
+                var seasonMetadata = new TVSeasonMetadata
+                {
+                    SeasonNumber = season.SeasonNumber,
+                    Overview = season.Overview ?? "",
+                    VoteAverage = 0.0, // Default value since season details don't include vote average
+                    PosterPath = season.PosterPath,
+                    Episodes = episodes.ToArray()
+                };
+                
+                seasons.Add(seasonMetadata);
+            }
+
+            var tvShowMetadata = new TVShowMetadata
+            {
+                Id = ObjectId.GenerateNewId().ToString(),
+                LibraryId = libraryId,
+                TmdbId = tmdbId,
+                Title = tvShowDetails.Name ?? "",
+                OriginalTitle = tvShowDetails.OriginalName ?? "",
+                Overview = tvShowDetails.Overview ?? "",
+                VoteAverage = tvShowDetails.VoteAverage,
+                VoteCount = tvShowDetails.VoteCount,
+                Genres = tvShowDetails.Genres?.Select(g => g.Name).ToArray() ?? Array.Empty<string>(),
+                PosterPath = tvShowDetails.PosterPath,
+                BackdropPath = tvShowDetails.BackdropPath,
+                OriginalLanguage = tvShowDetails.OriginalLanguage ?? "",
+                Crew = crew,
+                Cast = cast,
+                Seasons = seasons.ToArray(),
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            await _tvShowMetadataCollection.InsertOneAsync(tvShowMetadata);
+            
+            _logger.LogInformation("Successfully added TV show '{Title}' (TMDB ID: {TmdbId}) to library {LibraryId}", 
+                tvShowMetadata.Title, tmdbId, libraryId);
+
+            return tvShowMetadata;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding TV show to library: LibraryId={LibraryId}, TmdbId={TmdbId}", 
+                libraryId, tmdbId);
+            throw;
+        }
+    }
+
     private void CreateIndexes()
     {
         try

@@ -1,6 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
 import { metadataApi } from '@/lib/api/metadata';
 import type { MovieMetadata, TVShowMetadata } from '@/types/metadata';
+import type { AddToLibraryRequest } from '@/lib/api/metadata';
+
+export function useAddToLibrary() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const addToLibrary = useCallback(async (request: AddToLibraryRequest) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await metadataApi.addToLibrary(request);
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to add to library';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { addToLibrary, loading, error };
+}
 
 export function useMovies(libraryId?: string) {
   const [movies, setMovies] = useState<MovieMetadata[]>([]);

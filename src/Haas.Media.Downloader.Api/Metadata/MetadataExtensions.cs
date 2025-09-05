@@ -41,4 +41,24 @@ public static class MetadataExtensions
     {
         return MetadataService.GetBackdropUrl(tvShow.BackdropPath);
     }
+
+    /// <summary>
+    /// Gets the full URL for the search result poster (w500 size)
+    /// </summary>
+    /// <param name="searchResult">The search result</param>
+    /// <returns>Full poster URL or null if no poster path</returns>
+    public static string? GetPosterUrl(this SearchResult searchResult)
+    {
+        return MetadataService.GetPosterUrl(searchResult.PosterPath);
+    }
+
+    /// <summary>
+    /// Gets the full URL for the search result backdrop (w1280 size)
+    /// </summary>
+    /// <param name="searchResult">The search result</param>
+    /// <returns>Full backdrop URL or null if no backdrop path</returns>
+    public static string? GetBackdropUrl(this SearchResult searchResult)
+    {
+        return MetadataService.GetBackdropUrl(searchResult.BackdropPath);
+    }
 }

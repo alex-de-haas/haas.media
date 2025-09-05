@@ -185,6 +185,44 @@ public static class MetadataConfiguration
             .WithName("GetTVShowMetadataById")
             .RequireAuthorization();
 
+        app.MapGet(
+                "api/metadata/search",
+                async (IMetadataApi metadataService, string query, LibraryType? libraryType = null) =>
+                {
+                    if (string.IsNullOrWhiteSpace(query))
+                    {
+                        return Results.BadRequest(new { message = "Query parameter is required" });
+                    }
+
+                    var searchResults = await metadataService.SearchAsync(query, libraryType);
+                    return Results.Ok(searchResults);
+                }
+            )
+            .WithName("SearchTMDB")
+            .RequireAuthorization();
+
+        app.MapPost(
+                "api/metadata/add-to-library",
+                async (AddToLibraryRequest request, IMetadataApi metadataService) =>
+                {
+                    try
+                    {
+                        var result = await metadataService.AddToLibraryAsync(request);
+                        return Results.Ok(result);
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        return Results.BadRequest(new { message = ex.Message });
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        return Results.Conflict(new { message = ex.Message });
+                    }
+                }
+            )
+            .WithName("AddToLibrary")
+            .RequireAuthorization();
+
         return app;
     }
 }

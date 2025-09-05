@@ -1,5 +1,6 @@
 import { downloaderApi } from "@/lib/api";
 import type { MovieMetadata, TVShowMetadata } from "@/types/metadata";
+import type { LibraryType } from "@/types/library";
 
 export interface MetadataApiClient {
   getMovies: (libraryId?: string) => Promise<MovieMetadata[]>;
@@ -7,6 +8,13 @@ export interface MetadataApiClient {
   getTVShows: (libraryId?: string) => Promise<TVShowMetadata[]>;
   getTVShowById: (id: string) => Promise<TVShowMetadata | null>;
   scanLibraries: () => Promise<void>;
+  addToLibrary: (request: AddToLibraryRequest) => Promise<MovieMetadata | TVShowMetadata>;
+}
+
+export interface AddToLibraryRequest {
+  type: LibraryType;
+  libraryId: string;
+  tmdbId: string;
 }
 
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
@@ -74,5 +82,13 @@ export const metadataApi: MetadataApiClient = {
     await fetchWithAuth('/api/metadata/scan', {
       method: 'POST',
     });
+  },
+
+  async addToLibrary(request: AddToLibraryRequest): Promise<MovieMetadata | TVShowMetadata> {
+    const response = await fetchWithAuth('/api/metadata/add-to-library', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+    return response.json();
   },
 };
