@@ -3,7 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace Haas.Media.Downloader.Api.Metadata;
 
-public class TVShowMetadata
+public class MovieMetadata
 {
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
@@ -16,17 +16,18 @@ public class TVShowMetadata
     public required string Overview { get; set; }
     public required double VoteAverage { get; set; }
     public required int VoteCount { get; set; }
+    public DateTime? ReleaseDate { get; set; }
     public required string[] Genres { get; set; }
     public required CrewMember[] Crew { get; set; }
     public required CastMember[] Cast { get; set; }
-    public required TVSeasonMetadata[] Seasons { get; set; }
-
+    
     // TMDB image paths
     public string? PosterPath { get; set; }
     public string? BackdropPath { get; set; }
-
-    // Library relation if tv show exists in library
+    
+    // Library and file relation if movie file exists in library
     public string? LibraryId { get; set; }
+    public string? FilePath { get; set; }
     
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -35,25 +36,3 @@ public class TVShowMetadata
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
-public class TVSeasonMetadata
-{
-    public required int SeasonNumber { get; set; }
-    public required string Overview { get; set; }
-    public required double VoteAverage { get; set; }
-    public required TVEpisodeMetadata[] Episodes { get; set; }
-
-    // TMDB image path
-    public string? PosterPath { get; set; }
-}
-
-public class TVEpisodeMetadata
-{
-    public required int SeasonNumber { get; set; }
-    public required int EpisodeNumber { get; set; }
-    public required string Name { get; set; }
-    public required string Overview { get; set; }
-    public required double VoteAverage { get; set; }
-    
-    // File relation if tv show episode file exists in library
-    public string? FilePath { get; set; }
-}

@@ -8,3 +8,4 @@ public class CastMember
     public required int Order { get; set; }
     public string? ProfilePath { get; set; }
 }
+

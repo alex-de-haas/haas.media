@@ -17,10 +17,3 @@ public record ScanOperationInfo(
     double? EstimatedTimeSeconds = null
 );
 
-public enum ScanOperationState
-{
-    Running,
-    Completed,
-    Failed,
-    Cancelled
-}

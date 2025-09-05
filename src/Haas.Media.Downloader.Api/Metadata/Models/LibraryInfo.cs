@@ -3,12 +3,6 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace Haas.Media.Downloader.Api.Metadata;
 
-public enum LibraryType
-{
-    Movies = 1,
-    TVShows = 2,
-}
-
 public class LibraryInfo
 {
     [BsonId]
@@ -26,3 +20,4 @@ public class LibraryInfo
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
+

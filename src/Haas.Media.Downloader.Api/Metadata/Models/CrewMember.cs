@@ -8,3 +8,4 @@ public class CrewMember
     public required string Department { get; set; }
     public string? ProfilePath { get; set; }
 }
+
