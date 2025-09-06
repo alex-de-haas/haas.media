@@ -2,7 +2,6 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using Riok.Mapperly.Abstractions;
 using TMDbLib.Objects.TvShows;
-using TMDbLib.Objects.Search;
 
 namespace Haas.Media.Downloader.Api.Metadata;
 
@@ -58,6 +57,7 @@ static partial class TVShowMetadataMapper
     [MapperIgnoreSource(nameof(TvShow.ExternalIds))]
     [MapperIgnoreSource(nameof(TvShow.FirstAirDate))]
     [MapperIgnoreSource(nameof(TvShow.GenreIds))]
+    [MapperIgnoreSource(nameof(TvShow.Genres))]
     [MapperIgnoreSource(nameof(TvShow.Homepage))]
     [MapperIgnoreSource(nameof(TvShow.Images))]
     [MapperIgnoreSource(nameof(TvShow.InProduction))]

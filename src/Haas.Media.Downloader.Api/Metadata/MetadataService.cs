@@ -367,7 +367,7 @@ public class MetadataService : IMetadataApi, IHostedService
             // Convert cast to our CastMember format
             var cast = movieCredits.Cast?.Select(c => c.Map()).ToArray() ?? [];
 
-            var movieMetadata = tmdbMovie.Map(ObjectId.GenerateNewId().ToString());
+            var movieMetadata = movieDetails.Create(ObjectId.GenerateNewId().ToString());
             movieMetadata.Genres = movieDetails.Genres?.Select(g => g.Name).ToArray() ?? [];
             movieMetadata.Crew = crew;
             movieMetadata.Cast = cast;

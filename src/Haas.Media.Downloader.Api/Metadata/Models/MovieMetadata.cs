@@ -2,7 +2,6 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using Riok.Mapperly.Abstractions;
 using TMDbLib.Objects.Movies;
-using TMDbLib.Objects.Search;
 
 namespace Haas.Media.Downloader.Api.Metadata;
 
@@ -45,14 +44,6 @@ public class MovieMetadata
 static partial class MovieMetadataMapper
 {
     [MapProperty(nameof(Movie.Id), nameof(MovieMetadata.TmdbId))]
-    [MapperIgnoreSource(nameof(SearchMovie.Adult))]
-    [MapperIgnoreSource(nameof(SearchMovie.Video))]
-    [MapperIgnoreSource(nameof(SearchMovie.GenreIds))]
-    [MapperIgnoreSource(nameof(SearchMovie.MediaType))]
-    [MapperIgnoreSource(nameof(SearchMovie.Popularity))]
-    public static partial MovieMetadata Map(this SearchMovie source, string id);
-
-    [MapProperty(nameof(Movie.Id), nameof(MovieMetadata.TmdbId))]
     [MapperIgnoreSource(nameof(Movie.AccountStates))]
     [MapperIgnoreSource(nameof(Movie.Adult))]
     [MapperIgnoreSource(nameof(Movie.AlternativeTitles))]
@@ -93,6 +84,7 @@ static partial class MovieMetadataMapper
     [MapperIgnoreSource(nameof(Movie.Budget))]
     [MapperIgnoreSource(nameof(Movie.Changes))]
     [MapperIgnoreSource(nameof(Movie.Credits))]
+    [MapperIgnoreSource(nameof(Movie.Genres))]
     [MapperIgnoreSource(nameof(Movie.Homepage))]
     [MapperIgnoreSource(nameof(Movie.Images))]
     [MapperIgnoreSource(nameof(Movie.ImdbId))]
