@@ -109,6 +109,18 @@ public class CastMember
 }
 ```
 
+### Networks
+
+```csharp
+public class Network
+{
+    public required int TmdbId { get; set; }
+    public required string Name { get; set; }
+    public string? LogoPath { get; set; }
+    public string? OriginCountry { get; set; }
+}
+```
+
 ### Movies
 
 ```csharp
@@ -155,6 +167,7 @@ public class TVShowMetadata
     public required string[] Genres { get; set; }
     public required CrewMember[] Crew { get; set; }
     public required CastMember[] Cast { get; set; }
+    public required Network[] Networks { get; set; }
     public required TVSeasonMetadata[] Seasons { get; set; }
 
     // TMDB image paths (relative paths)

@@ -13,7 +13,7 @@ export interface SearchResult {
 }
 
 export interface CrewMember {
-  id: number;
+  tmdbId: number;
   name: string;
   job: string;
   department: string;
@@ -21,11 +21,18 @@ export interface CrewMember {
 }
 
 export interface CastMember {
-  id: number;
+  tmdbId: number;
   name: string;
   character: string;
   order: number;
   profilePath?: string;
+}
+
+export interface Network {
+  tmdbId: number;
+  name: string;
+  logoPath?: string;
+  originCountry?: string;
 }
 
 export interface MovieMetadata {
@@ -61,6 +68,7 @@ export interface TVShowMetadata {
   genres: string[];
   crew: CrewMember[];
   cast: CastMember[];
+  networks: Network[];
   seasons: TVSeasonMetadata[];
   posterPath?: string;
   backdropPath?: string;

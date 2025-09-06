@@ -22,6 +22,7 @@ public class TVShowMetadata
     public string[] Genres { get; set; } = [];
     public CrewMember[] Crew { get; set; } = [];
     public CastMember[] Cast { get; set; } = [];
+    public Network[] Networks { get; set; } = [];
     public TVSeasonMetadata[] Seasons { get; set; } = [];
 
     // TMDB image paths

@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useTVShow } from '@/features/media/hooks';
-import { LoadingSpinner } from '@/components/ui';
-import { getPosterUrl, getBackdropUrl } from '@/lib/tmdb';
-import type { TVSeasonMetadata, TVEpisodeMetadata, CrewMember, CastMember } from '@/types/metadata';
+import { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useTVShow } from "@/features/media/hooks";
+import { LoadingSpinner } from "@/components/ui";
+import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
+import type {
+  TVSeasonMetadata,
+  TVEpisodeMetadata,
+  CrewMember,
+  CastMember,
+} from "@/types/metadata";
 
 interface TVShowDetailsProps {
   tvShowId: string;
@@ -40,8 +45,18 @@ function CastMemberCard({ castMember }: CastMemberCardProps) {
           />
         ) : (
           <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
-            <svg className="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            <svg
+              className="w-6 h-6 text-gray-400 dark:text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
             </svg>
           </div>
         )}
@@ -72,8 +87,18 @@ function CrewMemberCard({ crewMember }: CrewMemberCardProps) {
           />
         ) : (
           <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
-            <svg className="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            <svg
+              className="w-6 h-6 text-gray-400 dark:text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
             </svg>
           </div>
         )}
@@ -106,7 +131,11 @@ function EpisodeCard({ episode }: EpisodeCardProps) {
         </h4>
         {episode.voteAverage > 0 && (
           <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-            <svg className="w-3 h-3 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
+            <svg
+              className="w-3 h-3 text-yellow-400 mr-1"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
             <span>{episode.voteAverage.toFixed(1)}</span>
@@ -118,7 +147,10 @@ function EpisodeCard({ episode }: EpisodeCardProps) {
           {episode.overview}
         </p>
       )}
-      <p className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate" title={episode.filePath}>
+      <p
+        className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate"
+        title={episode.filePath}
+      >
         {episode.filePath}
       </p>
     </div>
@@ -140,10 +172,16 @@ function SeasonCard({ season, isExpanded, onToggle }: SeasonCardProps) {
               Season {season.seasonNumber}
             </h3>
             <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-              <span>{episodeCount} episode{episodeCount !== 1 ? 's' : ''}</span>
+              <span>
+                {episodeCount} episode{episodeCount !== 1 ? "s" : ""}
+              </span>
               {season.voteAverage > 0 && (
                 <div className="flex items-center">
-                  <svg className="w-4 h-4 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <svg
+                    className="w-4 h-4 text-yellow-400 mr-1"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
                   <span>{season.voteAverage.toFixed(1)}/10</span>
@@ -159,18 +197,23 @@ function SeasonCard({ season, isExpanded, onToggle }: SeasonCardProps) {
           <div className="ml-4">
             <svg
               className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
-                isExpanded ? 'rotate-180' : ''
+                isExpanded ? "rotate-180" : ""
               }`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </div>
         </div>
       </button>
-      
+
       {isExpanded && (
         <div className="border-t border-gray-200 dark:border-gray-700 p-6 bg-gray-50 dark:bg-gray-900">
           {episodeCount > 0 ? (
@@ -179,7 +222,10 @@ function SeasonCard({ season, isExpanded, onToggle }: SeasonCardProps) {
                 Episodes ({episodeCount})
               </h4>
               {season.episodes.map((episode) => (
-                <EpisodeCard key={`${episode.seasonNumber}-${episode.episodeNumber}`} episode={episode} />
+                <EpisodeCard
+                  key={`${episode.seasonNumber}-${episode.episodeNumber}`}
+                  episode={episode}
+                />
               ))}
             </div>
           ) : (
@@ -196,10 +242,12 @@ function SeasonCard({ season, isExpanded, onToggle }: SeasonCardProps) {
 export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
   const { tvShow, loading, error } = useTVShow(tvShowId);
   const [imageError, setImageError] = useState(false);
-  const [expandedSeasons, setExpandedSeasons] = useState<Set<number>>(new Set());
+  const [expandedSeasons, setExpandedSeasons] = useState<Set<number>>(
+    new Set()
+  );
 
   const toggleSeason = (seasonNumber: number) => {
-    setExpandedSeasons(prev => {
+    setExpandedSeasons((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(seasonNumber)) {
         newSet.delete(seasonNumber);
@@ -212,7 +260,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
 
   const expandAllSeasons = () => {
     if (tvShow?.seasons) {
-      setExpandedSeasons(new Set(tvShow.seasons.map(s => s.seasonNumber)));
+      setExpandedSeasons(new Set(tvShow.seasons.map((s) => s.seasonNumber)));
     }
   };
 
@@ -233,7 +281,11 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 dark:bg-red-900/20 dark:border-red-800">
           <div className="flex items-center">
-            <svg className="w-6 h-6 text-red-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
+            <svg
+              className="w-6 h-6 text-red-400 mr-3"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
               <path
                 fillRule="evenodd"
                 d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -245,7 +297,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                 TV Show not found
               </h3>
               <p className="text-red-700 dark:text-red-300 mt-1">
-                {error || 'The TV show you requested could not be found.'}
+                {error || "The TV show you requested could not be found."}
               </p>
             </div>
           </div>
@@ -264,7 +316,11 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
 
   const posterUrl = getPosterUrl(tvShow.posterPath);
   const backdropUrl = getBackdropUrl(tvShow.backdropPath);
-  const totalEpisodes = tvShow.seasons?.reduce((total, season) => total + (season.episodes?.length || 0), 0) || 0;
+  const totalEpisodes =
+    tvShow.seasons?.reduce(
+      (total, season) => total + (season.episodes?.length || 0),
+      0
+    ) || 0;
 
   return (
     <div>
@@ -284,20 +340,40 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
           </div>
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-            <svg className="w-24 h-24 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v15.125c0 .621.504 1.125 1.125 1.125z" />
+            <svg
+              className="w-24 h-24 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1}
+                d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v15.125c0 .621.504 1.125 1.125 1.125z"
+              />
             </svg>
           </div>
         )}
-        
+
         {/* Back Button - Floating over backdrop */}
         <div className="absolute top-6 left-6">
           <Link
             href="/tvshows"
             className="inline-flex items-center px-4 py-2 bg-black/50 hover:bg-black/70 text-white rounded-lg transition-colors duration-200 backdrop-blur-sm border border-white/10"
           >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg
+              className="w-4 h-4 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
             Back to TV Shows
           </Link>
@@ -321,8 +397,18 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800">
-                  <svg className="w-16 h-16 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v15.125c0 .621.504 1.125 1.125 1.125z" />
+                  <svg
+                    className="w-16 h-16 text-gray-400 dark:text-gray-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1}
+                      d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v15.125c0 .621.504 1.125 1.125 1.125z"
+                    />
                   </svg>
                 </div>
               )}
@@ -332,23 +418,61 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
           {/* TV Show Information */}
           <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
             <div className="mb-6">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                {tvShow.title}
-              </h1>
-              {tvShow.originalTitle && tvShow.originalTitle !== tvShow.title && (
-                <p className="text-lg text-gray-600 dark:text-gray-400 italic mb-2">
-                  {tvShow.originalTitle}
-                </p>
-              )}
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex-1">
+                  <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    {tvShow.title}
+                  </h1>
+                  {tvShow.originalTitle &&
+                    tvShow.originalTitle !== tvShow.title && (
+                      <p className="text-lg text-gray-600 dark:text-gray-400 italic mb-2">
+                        {tvShow.originalTitle}
+                      </p>
+                    )}
+                </div>
+
+                {/* Networks - moved here and aligned right */}
+                {tvShow.networks && tvShow.networks.length > 0 && (
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    {tvShow.networks.map((network) => (
+                      <div key={network.tmdbId} className="flex items-center">
+                        {network.logoPath ? (
+                          <Image
+                            src={`https://image.tmdb.org/t/p/w154${network.logoPath}`}
+                            alt={network.name}
+                            width={60}
+                            height={30}
+                            className="h-6 w-auto object-contain"
+                            title={network.name}
+                          />
+                        ) : (
+                          <div className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-600">
+                            <span className="text-xs font-medium">
+                              {network.name}
+                            </span>
+                            {network.originCountry && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                                ({network.originCountry})
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center gap-4 text-sm">
                 <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full font-medium">
                   {tvShow.originalLanguage.toUpperCase()}
                 </span>
                 <span className="text-gray-600 dark:text-gray-400">
-                  {tvShow.seasons?.length || 0} season{(tvShow.seasons?.length || 0) !== 1 ? 's' : ''}
+                  {tvShow.seasons?.length || 0} season
+                  {(tvShow.seasons?.length || 0) !== 1 ? "s" : ""}
                 </span>
                 <span className="text-gray-600 dark:text-gray-400">
-                  {totalEpisodes} episode{totalEpisodes !== 1 ? 's' : ''}
+                  {totalEpisodes} episode{totalEpisodes !== 1 ? "s" : ""}
                 </span>
               </div>
             </div>
@@ -357,7 +481,11 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
             {tvShow.voteAverage > 0 && (
               <div className="flex items-center mb-6">
                 <div className="flex items-center bg-yellow-100 dark:bg-yellow-900/30 px-3 py-2 rounded-lg">
-                  <svg className="w-5 h-5 text-yellow-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <svg
+                    className="w-5 h-5 text-yellow-500 mr-2"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
                   <span className="font-semibold text-yellow-900 dark:text-yellow-100">
@@ -414,7 +542,10 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                     .sort((a, b) => a.order - b.order) // Sort by cast order
                     .slice(0, 20) // Limit to first 20 cast members to avoid overwhelming the UI
                     .map((castMember) => (
-                      <CastMemberCard key={`${castMember.id}-${castMember.order}`} castMember={castMember} />
+                      <CastMemberCard
+                        key={`${castMember.tmdbId}-${castMember.order}`}
+                        castMember={castMember}
+                      />
                     ))}
                 </div>
                 {tvShow.cast.length > 20 && (
@@ -435,19 +566,29 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                   {tvShow.crew
                     .sort((a, b) => {
                       // Sort by importance (Creator, Executive Producer, etc. first)
-                      const importantJobs = ['Creator', 'Executive Producer', 'Producer', 'Writer', 'Director'];
+                      const importantJobs = [
+                        "Creator",
+                        "Executive Producer",
+                        "Producer",
+                        "Writer",
+                        "Director",
+                      ];
                       const aIndex = importantJobs.indexOf(a.job);
                       const bIndex = importantJobs.indexOf(b.job);
-                      
-                      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+
+                      if (aIndex !== -1 && bIndex !== -1)
+                        return aIndex - bIndex;
                       if (aIndex !== -1) return -1;
                       if (bIndex !== -1) return 1;
-                      
+
                       return a.name.localeCompare(b.name);
                     })
                     .slice(0, 20) // Limit to first 20 crew members to avoid overwhelming the UI
                     .map((crewMember) => (
-                      <CrewMemberCard key={`${crewMember.id}-${crewMember.job}`} crewMember={crewMember} />
+                      <CrewMemberCard
+                        key={crewMember.tmdbId}
+                        crewMember={crewMember}
+                      />
                     ))}
                 </div>
                 {tvShow.crew.length > 20 && (
@@ -465,21 +606,47 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex justify-between">
-                  <span className="font-medium text-gray-600 dark:text-gray-400">TMDB ID:</span>
-                  <span className="text-gray-900 dark:text-gray-100">{tvShow.tmdbId}</span>
+                  <span className="font-medium text-gray-600 dark:text-gray-400">
+                    TMDB ID:
+                  </span>
+                  <span className="text-gray-900 dark:text-gray-100">
+                    {tvShow.tmdbId}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="font-medium text-gray-600 dark:text-gray-400">Language:</span>
-                  <span className="text-gray-900 dark:text-gray-100">{tvShow.originalLanguage.toUpperCase()}</span>
+                  <span className="font-medium text-gray-600 dark:text-gray-400">
+                    Language:
+                  </span>
+                  <span className="text-gray-900 dark:text-gray-100">
+                    {tvShow.originalLanguage.toUpperCase()}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="font-medium text-gray-600 dark:text-gray-400">Total Seasons:</span>
-                  <span className="text-gray-900 dark:text-gray-100">{tvShow.seasons?.length || 0}</span>
+                  <span className="font-medium text-gray-600 dark:text-gray-400">
+                    Total Seasons:
+                  </span>
+                  <span className="text-gray-900 dark:text-gray-100">
+                    {tvShow.seasons?.length || 0}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="font-medium text-gray-600 dark:text-gray-400">Total Episodes:</span>
-                  <span className="text-gray-900 dark:text-gray-100">{totalEpisodes}</span>
+                  <span className="font-medium text-gray-600 dark:text-gray-400">
+                    Total Episodes:
+                  </span>
+                  <span className="text-gray-900 dark:text-gray-100">
+                    {totalEpisodes}
+                  </span>
                 </div>
+                {tvShow.networks && tvShow.networks.length > 0 && (
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-600 dark:text-gray-400">
+                      Networks:
+                    </span>
+                    <span className="text-gray-900 dark:text-gray-100">
+                      {tvShow.networks.map((n) => n.name).join(", ")}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

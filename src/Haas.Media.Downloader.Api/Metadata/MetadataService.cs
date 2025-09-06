@@ -793,6 +793,8 @@ public class MetadataService : IMetadataApi, IHostedService
             // Set manually populated fields that aren't in the source
             tvShowMetadata.Genres =
                 tvShowDetails.Genres?.Select(g => g.Name).ToArray() ?? Array.Empty<string>();
+            tvShowMetadata.Networks =
+                tvShowDetails.Networks?.Select(n => n.Map()).ToArray() ?? Array.Empty<Network>();
             tvShowMetadata.LibraryId = libraryId;
 
             // Convert crew to our CrewMember format
@@ -1196,6 +1198,12 @@ public class MetadataService : IMetadataApi, IHostedService
             var tvShowMetadata = tvShowDetails.Create(ObjectId.GenerateNewId().ToString());
 
             tvShowMetadata.LibraryId = libraryId;
+
+            // Set manually populated fields that aren't in the source
+            tvShowMetadata.Genres =
+                tvShowDetails.Genres?.Select(g => g.Name).ToArray() ?? Array.Empty<string>();
+            tvShowMetadata.Networks =
+                tvShowDetails.Networks?.Select(n => n.Map()).ToArray() ?? Array.Empty<Network>();
 
             tvShowMetadata.CreatedAt = DateTime.UtcNow;
             tvShowMetadata.UpdatedAt = DateTime.UtcNow;

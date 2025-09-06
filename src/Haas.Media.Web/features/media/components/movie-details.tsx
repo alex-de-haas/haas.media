@@ -319,7 +319,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                     .sort((a, b) => a.order - b.order) // Sort by cast order
                     .slice(0, 20) // Limit to first 20 cast members to avoid overwhelming the UI
                     .map((castMember) => (
-                      <CastMemberCard key={`${castMember.id}-${castMember.order}`} castMember={castMember} />
+                      <CastMemberCard key={`${castMember.tmdbId}-${castMember.order}`} castMember={castMember} />
                     ))}
                 </div>
                 {movie.cast.length > 20 && (
