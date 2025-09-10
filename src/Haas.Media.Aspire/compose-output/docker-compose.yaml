@@ -7,6 +7,20 @@ services:
     networks:
       - "aspire"
     restart: "always"
+  mongodb:
+    image: "docker.io/library/mongo:8.0"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "${MONGO_USERNAME}"
+      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_PASSWORD}"
+    expose:
+      - "27017"
+    volumes:
+      - type: "bind"
+        target: "/data/db"
+        source: "/Users/haas/Sources/Haas.Media/data/.mongodb"
+        read_only: false
+    networks:
+      - "aspire"
   downloader-api:
     image: "${DOWNLOADER_API_IMAGE}"
     environment:
@@ -15,16 +29,21 @@ services:
       OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       HTTP_PORTS: "8000"
-      AUTH0_DOMAIN: "dev-o1l0rjv003cd8mmq.us.auth0.com"
-      AUTH0_AUDIENCE: "https://dev-o1l0rjv003cd8mmq.us.auth0.com/api/v2/"
+      ConnectionStrings__haas-media-db: "mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/haas-media-db?authSource=admin&authMechanism=SCRAM-SHA-256"
+      AUTH0_DOMAIN: "${AUTH0_DOMAIN}"
+      AUTH0_AUDIENCE: "${AUTH0_AUDIENCE}"
       DATA_DIRECTORY: "/data"
       FFMPEG_BINARY: "/usr/bin"
+      TMDB_API_KEY: "${TMDB_API_KEY}"
       AllowedCorsOrigins__0: "http://web:3000"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://haas-media-dashboard:18889"
       OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       OTEL_SERVICE_NAME: "downloader-api"
     ports:
       - "8000:8000"
+    depends_on:
+      mongodb:
+        condition: "service_started"
     networks:
       - "aspire"
   web:
@@ -32,13 +51,13 @@ services:
     environment:
       NODE_ENV: "production"
       NEXT_PUBLIC_API_DOWNLOADER_URL: "http://downloader-api:8000"
-      AUTH0_DOMAIN: "dev-o1l0rjv003cd8mmq.us.auth0.com"
-      AUTH0_AUDIENCE: "https://dev-o1l0rjv003cd8mmq.us.auth0.com/api/v2/"
-      AUTH0_SECRET: "d638b4419ccc1c03bff4df5dfd4175c66c375d7a6dcd17179cbce3cc560d2054"
-      AUTH0_BASE_URL: "http://localhost:3000"
-      AUTH0_CLIENT_ID: "66tJK0DLub6MlvFMsRSvpR6UrLFU63G5"
-      AUTH0_CLIENT_SECRET: "3fagPcBKoH_6VCRikbvPbjgS9j3p7ZwMSZgco4GNqHgAApAEOhQ2JbF0ut8TLqJY"
-      AUTH0_ISSUER_BASE_URL: "https://dev-o1l0rjv003cd8mmq.us.auth0.com"
+      AUTH0_DOMAIN: "${AUTH0_DOMAIN}"
+      AUTH0_AUDIENCE: "${AUTH0_AUDIENCE}"
+      AUTH0_SECRET: "${AUTH0_SECRET}"
+      AUTH0_BASE_URL: "${AUTH0_BASE_URL}"
+      AUTH0_CLIENT_ID: "${AUTH0_CLIENT_ID}"
+      AUTH0_CLIENT_SECRET: "${AUTH0_CLIENT_SECRET}"
+      AUTH0_ISSUER_BASE_URL: "https://${AUTH0_DOMAIN}"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://haas-media-dashboard:18889"
       OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       OTEL_SERVICE_NAME: "web"
