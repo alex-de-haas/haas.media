@@ -29,7 +29,7 @@ services:
       AUTH0_AUDIENCE: "${AUTH0_AUDIENCE}"
       TMDB_API_KEY: "${TMDB_API_KEY}"
       DATA_DIRECTORY: "/data"
-      FFMPEG_BINARY: "/ffmpeg"
+      FFMPEG_BINARY: "/usr/bin"
       AllowedCorsOrigins__0: "http://web:3000"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://haas-media-dashboard:18889"
       OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"

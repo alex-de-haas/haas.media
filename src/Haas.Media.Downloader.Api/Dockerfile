@@ -22,6 +22,18 @@ RUN dotnet publish "Haas.Media.Downloader.Api/Haas.Media.Downloader.Api.csproj" 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 
+# Install ffmpeg and VA-API dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ffmpeg \
+        libva2 \
+        vainfo \
+        mesa-va-drivers \
+        libdrm2 \
+        libdrm-amdgpu1 \
+        libva-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy published app
 COPY --from=build /app/publish .
 

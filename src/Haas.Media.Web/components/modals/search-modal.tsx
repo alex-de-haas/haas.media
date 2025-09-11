@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { SearchResult } from "@/types/metadata";
-import { Library, LibraryType } from "@/types/library";
-import { metadataApi } from "@/lib/api/metadata";
+import { LibraryType } from "@/types/library";
+import { useSearch, useAddToLibrary } from "@/features/media/hooks/useMetadata";
 import { useLibraries } from "@/features/libraries/hooks/useLibraries";
 import { getPosterUrl } from "@/lib/tmdb";
 import { LoadingSpinner } from "@/components/ui";
@@ -20,11 +20,12 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [selectedLibraryId, setSelectedLibraryId] = useState<string>("");
-  const [isSearching, setIsSearching] = useState(false);
   const [isAdding, setIsAdding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { libraries } = useLibraries();
+  const { search, loading: isSearching } = useSearch();
+  const { addToLibrary } = useAddToLibrary();
 
   // Filter libraries by media type
   const filteredLibraries = useMemo(() => {
@@ -69,15 +70,12 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
 
-    setIsSearching(true);
     setError(null);
     try {
-      const results = await metadataApi.search(searchQuery, mediaType);
-      setSearchResults(results.filter(result => result.type === mediaType));
+      const results = await search(searchQuery, mediaType);
+      setSearchResults(results.filter((result: SearchResult) => result.type === mediaType));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Search failed");
-    } finally {
-      setIsSearching(false);
     }
   };
 
@@ -90,7 +88,7 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
     setIsAdding(result.tmdbId.toString());
     setError(null);
     try {
-      await metadataApi.addToLibrary({
+      await addToLibrary({
         type: mediaType,
         libraryId: selectedLibraryId,
         tmdbId: result.tmdbId.toString(),

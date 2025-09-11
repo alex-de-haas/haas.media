@@ -50,7 +50,7 @@ var downloaderApi = builder
     )
     .WithEnvironment(
         "FFMPEG_BINARY",
-        builder.ExecutionContext.IsPublishMode ? "/ffmpeg" : env["FFMPEG_BINARY"]
+        builder.ExecutionContext.IsPublishMode ? "/usr/bin" : env["FFMPEG_BINARY"]
     )
     .WithExternalHttpEndpoints()
     .WithOtlpExporter()

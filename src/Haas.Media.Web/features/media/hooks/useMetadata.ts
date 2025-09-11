@@ -1,7 +1,37 @@
 import { useState, useEffect, useCallback } from 'react';
-import { metadataApi } from '@/lib/api/metadata';
-import type { MovieMetadata, TVShowMetadata } from '@/types/metadata';
-import type { AddToLibraryRequest } from '@/lib/api/metadata';
+import { getValidToken } from '@/lib/auth/token';
+import { getApiDownloaderUrl } from '@/lib/env';
+import type { MovieMetadata, TVShowMetadata, SearchResult } from '@/types/metadata';
+import type { LibraryType } from '@/types/library';
+
+export interface AddToLibraryRequest {
+  type: LibraryType;
+  libraryId: string;
+  tmdbId: string;
+}
+
+async function fetchWithAuth(url: string, options: RequestInit = {}) {
+  const token = await getValidToken();
+  const headers = new Headers(options.headers);
+  
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  
+  headers.set('Content-Type', 'application/json');
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  return response;
+}
 
 export function useAddToLibrary() {
   const [loading, setLoading] = useState(false);
@@ -11,7 +41,13 @@ export function useAddToLibrary() {
     try {
       setLoading(true);
       setError(null);
-      const result = await metadataApi.addToLibrary(request);
+      
+      const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/add-to-library`, {
+        method: 'POST',
+        body: JSON.stringify(request),
+      });
+      
+      const result = await response.json();
       return result;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to add to library';
@@ -34,7 +70,14 @@ export function useMovies(libraryId?: string) {
     try {
       setLoading(true);
       setError(null);
-      const moviesData = await metadataApi.getMovies(libraryId);
+      
+      const url = new URL(`${getApiDownloaderUrl()}/api/metadata/movies`);
+      if (libraryId) {
+        url.searchParams.set('libraryId', libraryId);
+      }
+      
+      const response = await fetchWithAuth(url.toString());
+      const moviesData = await response.json();
       setMovies(moviesData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load movies');
@@ -59,10 +102,16 @@ export function useMovie(id: string) {
     try {
       setLoading(true);
       setError(null);
-      const movieData = await metadataApi.getMovieById(id);
+      
+      const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/movies/${id}`);
+      const movieData = await response.json();
       setMovie(movieData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load movie');
+      if (err instanceof Error && err.message.includes('404')) {
+        setMovie(null);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to load movie');
+      }
     } finally {
       setLoading(false);
     }
@@ -86,7 +135,14 @@ export function useTVShows(libraryId?: string) {
     try {
       setLoading(true);
       setError(null);
-      const tvShowsData = await metadataApi.getTVShows(libraryId);
+      
+      const url = new URL(`${getApiDownloaderUrl()}/api/metadata/tvshows`);
+      if (libraryId) {
+        url.searchParams.set('libraryId', libraryId);
+      }
+      
+      const response = await fetchWithAuth(url.toString());
+      const tvShowsData = await response.json();
       setTVShows(tvShowsData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load TV shows');
@@ -111,10 +167,16 @@ export function useTVShow(id: string) {
     try {
       setLoading(true);
       setError(null);
-      const tvShowData = await metadataApi.getTVShowById(id);
+      
+      const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/tvshows/${id}`);
+      const tvShowData = await response.json();
       setTVShow(tvShowData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load TV show');
+      if (err instanceof Error && err.message.includes('404')) {
+        setTVShow(null);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to load TV show');
+      }
     } finally {
       setLoading(false);
     }
@@ -127,4 +189,58 @@ export function useTVShow(id: string) {
   }, [fetchTVShow, id]);
 
   return { tvShow, loading, error, refetch: fetchTVShow };
+}
+
+export function useScanLibraries() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const scanLibraries = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/scan`, {
+        method: 'POST',
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to scan libraries';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { scanLibraries, loading, error };
+}
+
+export function useSearch() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const search = useCallback(async (query: string, libraryType?: LibraryType): Promise<SearchResult[]> => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const url = new URL(`${getApiDownloaderUrl()}/api/metadata/search`);
+      url.searchParams.set('query', query);
+      if (libraryType !== undefined) {
+        url.searchParams.set('libraryType', libraryType.toString());
+      }
+      
+      const response = await fetchWithAuth(url.toString());
+      const searchResults = await response.json();
+      return searchResults;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Search failed';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { search, loading, error };
 }
