@@ -352,8 +352,7 @@ export default function LibrariesClient() {
             </div>
             <div className="mb-6">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Are you sure you want to delete the library "
-                {showDeleteConfirm.title}"? This action cannot be undone.
+                Are you sure you want to delete the library "{showDeleteConfirm.title}"? This action cannot be undone.
               </p>
               <p className="text-xs text-gray-500 mt-2 dark:text-gray-500">
                 Path: {showDeleteConfirm.directoryPath}

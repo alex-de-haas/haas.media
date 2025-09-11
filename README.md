@@ -70,7 +70,7 @@ A modern web application for downloading torrents and encoding videos to various
    Create a `.env.local` file in the root directory:
    ```env
    # MongoDB
-   MONGODB_DATA_DIRECTORY=/path/to/mongodb/data
+   MONGO_DIRECTORY=/path/to/mongodb/data
    
    # Auth0
    AUTH0_DOMAIN=your-auth0-domain

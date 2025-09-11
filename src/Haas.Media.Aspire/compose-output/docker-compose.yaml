@@ -14,11 +14,6 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: "${MONGO_PASSWORD}"
     expose:
       - "27017"
-    volumes:
-      - type: "bind"
-        target: "/data/db"
-        source: "/Users/haas/Sources/Haas.Media/data/.mongodb"
-        read_only: false
     networks:
       - "aspire"
   downloader-api:
@@ -32,9 +27,9 @@ services:
       ConnectionStrings__haas-media-db: "mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/haas-media-db?authSource=admin&authMechanism=SCRAM-SHA-256"
       AUTH0_DOMAIN: "${AUTH0_DOMAIN}"
       AUTH0_AUDIENCE: "${AUTH0_AUDIENCE}"
-      DATA_DIRECTORY: "/data"
-      FFMPEG_BINARY: "/usr/bin"
       TMDB_API_KEY: "${TMDB_API_KEY}"
+      DATA_DIRECTORY: "/data"
+      FFMPEG_BINARY: "/ffmpeg"
       AllowedCorsOrigins__0: "http://web:3000"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://haas-media-dashboard:18889"
       OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"

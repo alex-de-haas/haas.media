@@ -1,9 +1,20 @@
 services:
+  haas-media-dashboard:
+    ports:
+      - "18888:18888" # Dashboard UI
+      - "18889:18889" # OTLP gRPC endpoint (optional)
+    environment:
+      - DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true
+  mongodb:
+    volumes:
+      - ${MONGO_DIRECTORY}:/data/db
   downloader-api:
     environment:
       AllowedCorsOrigins__0: "http://localhost:3000"
     volumes:
-      - /Users/haas/Sources/Haas.Media/data:/data
+      - ${DATA_DIRECTORY}:/data
+      - ${FFMPEG_BINARY}:/ffmpeg
   web:
     environment:
-      NEXT_PUBLIC_API_DOWNLOADER_URL: "http://localhost:8000"
+      # Use the internal service name for inter-container calls
+      NEXT_PUBLIC_API_DOWNLOADER_URL: "http://downloader-api:8000"

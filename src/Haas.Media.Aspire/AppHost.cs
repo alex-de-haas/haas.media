@@ -5,12 +5,20 @@ builder.AddDockerComposeEnvironment("haas-media");
 
 // Add MongoDB
 var mongoUsername = builder.AddParameter("mongo-username", value: env["MONGO_USERNAME"]);
-var mongoPassword = builder.AddParameter("mongo-password", value: env["MONGO_PASSWORD"], secret: true);
+var mongoPassword = builder.AddParameter(
+    "mongo-password",
+    value: env["MONGO_PASSWORD"],
+    secret: true
+);
 
 var mongodb = builder
     .AddMongoDB("mongodb", userName: mongoUsername, password: mongoPassword)
-    .WithMongoExpress()
-    .WithBindMount(env["MONGO_DATA_DIRECTORY"], "/data/db");
+    .WithMongoExpress();
+
+if (!builder.ExecutionContext.IsPublishMode)
+{
+    mongodb.WithDataBindMount(env["MONGO_DIRECTORY"]);
+}
 
 var mongoDatabase = mongodb.AddDatabase("haas-media-db");
 
@@ -20,7 +28,11 @@ var auth0Audience = builder.AddParameter("auth0-audience", value: env["AUTH0_AUD
 var auth0Secret = builder.AddParameter("auth0-secret", value: env["AUTH0_SECRET"], secret: true);
 var auth0BaseUrl = builder.AddParameter("auth0-base-url", value: env["AUTH0_BASE_URL"]);
 var auth0ClientId = builder.AddParameter("auth0-client-id", value: env["AUTH0_CLIENT_ID"]);
-var auth0ClientSecret = builder.AddParameter("auth0-client-secret", value: env["AUTH0_CLIENT_SECRET"], secret: true);
+var auth0ClientSecret = builder.AddParameter(
+    "auth0-client-secret",
+    value: env["AUTH0_CLIENT_SECRET"],
+    secret: true
+);
 
 // TMDb parameters
 var tmdbApiKey = builder.AddParameter("tmdb-api-key", value: env["TMDB_API_KEY"], secret: true);
@@ -31,15 +43,15 @@ var downloaderApi = builder
     .WithReference(mongoDatabase)
     .WithEnvironment("AUTH0_DOMAIN", auth0Domain)
     .WithEnvironment("AUTH0_AUDIENCE", auth0Audience)
+    .WithEnvironment("TMDB_API_KEY", tmdbApiKey)
     .WithEnvironment(
         "DATA_DIRECTORY",
         builder.ExecutionContext.IsPublishMode ? "/data" : env["DATA_DIRECTORY"]
     )
     .WithEnvironment(
         "FFMPEG_BINARY",
-        builder.ExecutionContext.IsPublishMode ? "/usr/bin" : env["FFMPEG_BINARY"]
+        builder.ExecutionContext.IsPublishMode ? "/ffmpeg" : env["FFMPEG_BINARY"]
     )
-    .WithEnvironment("TMDB_API_KEY", tmdbApiKey)
     .WithExternalHttpEndpoints()
     .WithOtlpExporter()
     .PublishAsDockerFile(config =>
