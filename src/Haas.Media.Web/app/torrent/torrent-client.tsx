@@ -10,10 +10,13 @@ export default function TorrentClient() {
     useTorrents();
   const { notify } = useNotifications();
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (files: File[]) => {
+    if (!files.length) {
+      return { success: false, message: "No files selected." };
+    }
     setIsUploading(true);
     try {
-      return await uploadTorrent(file);
+      return await uploadTorrent(files);
     } finally {
       setIsUploading(false);
     }

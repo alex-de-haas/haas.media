@@ -61,10 +61,12 @@ export function useTorrents() {
   }, []);
 
   const uploadTorrent = async (
-    file: File
+    files: File[]
   ): Promise<{ success: boolean; message: string }> => {
     const formData = new FormData();
-    formData.append("file", file);
+    files.forEach((file) => {
+      formData.append("files", file);
+    });
 
     try {
       const t = await getValidToken();
@@ -76,12 +78,32 @@ export function useTorrents() {
         headers,
       });
 
+      const contentType = res.headers.get("Content-Type");
+      const isJson = contentType?.includes("application/json");
+      const payload = isJson ? await res.json() : await res.text();
+
       if (res.ok) {
-        return { success: true, message: "Torrent uploaded successfully!" };
-      } else {
-        const errorText = await res.text();
-        return { success: false, message: errorText || "Upload failed" };
+        const uploaded = typeof payload?.uploaded === "number" ? payload.uploaded : files.length;
+        const failed = typeof payload?.failed === "number" ? payload.failed : 0;
+        const errors = Array.isArray(payload?.errors) ? payload.errors : [];
+
+        let message = `Uploaded ${uploaded} torrent${uploaded === 1 ? "" : "s"}.`;
+        if (failed > 0) {
+          const errorDetails = errors.length ? ` Details: ${errors.join("; ")}` : "";
+          message = `Uploaded ${uploaded} torrent${uploaded === 1 ? "" : "s"}, failed ${failed}.${errorDetails}`;
+        }
+
+        return { success: failed === 0, message };
       }
+
+      if (typeof payload === "string") {
+        return { success: false, message: payload || "Upload failed" };
+      }
+
+      const errors = Array.isArray(payload?.errors) ? payload.errors.join("; ") : undefined;
+      const fallbackMessage =
+        typeof payload?.message === "string" ? payload.message : "Upload failed";
+      return { success: false, message: errors || fallbackMessage };
     } catch (error) {
       return { success: false, message: "Network error occurred" };
     }

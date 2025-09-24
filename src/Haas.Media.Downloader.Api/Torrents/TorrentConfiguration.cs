@@ -19,9 +19,40 @@ public static class TorrentConfiguration
                 async (ITorrentApi torrentService, HttpRequest request) =>
                 {
                     var form = await request.ReadFormAsync();
-                    var file = form.Files["file"];
-                    await torrentService.UploadTorrent(file!.OpenReadStream());
-                    return Results.Ok();
+                    if (form.Files.Count == 0)
+                    {
+                        return Results.BadRequest("No torrent files uploaded.");
+                    }
+
+                    var errors = new List<string>();
+                    var uploaded = 0;
+
+                    foreach (var file in form.Files)
+                    {
+                        if (file is null || file.Length <= 0)
+                        {
+                            errors.Add($"{file?.FileName ?? "(unknown)"} is empty or missing.");
+                            continue;
+                        }
+
+                        try
+                        {
+                            await using var stream = file.OpenReadStream();
+                            await torrentService.UploadTorrent(stream);
+                            uploaded++;
+                        }
+                        catch (Exception ex)
+                        {
+                            errors.Add($"{file.FileName}: {ex.Message}");
+                        }
+                    }
+
+                    if (uploaded == 0)
+                    {
+                        return Results.BadRequest(new { uploaded, errors });
+                    }
+
+                    return Results.Ok(new { uploaded, failed = errors.Count, errors });
                 }
             )
             .WithName("UploadTorrent")
