@@ -19,15 +19,15 @@ public class MovieMetadata
     public required double VoteAverage { get; set; }
     public required int VoteCount { get; set; }
     public DateTime? ReleaseDate { get; set; }
-
-    public string[] Genres { get; set; } = [];
-
-    public CrewMember[] Crew { get; set; } = [];
-    public CastMember[] Cast { get; set; } = [];
     
     // TMDB image paths
-    public string? PosterPath { get; set; }
-    public string? BackdropPath { get; set; }
+    public required string PosterPath { get; set; }
+    public required string BackdropPath { get; set; }
+
+    // Related metadata
+    public string[] Genres { get; set; } = [];
+    public CrewMember[] Crew { get; set; } = [];
+    public CastMember[] Cast { get; set; } = [];
     
     // Library and file relation if movie file exists in library
     public string? LibraryId { get; set; }
@@ -40,73 +40,19 @@ public class MovieMetadata
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Source)]
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
 static partial class MovieMetadataMapper
 {
     [MapProperty(nameof(Movie.Id), nameof(MovieMetadata.TmdbId))]
-    [MapperIgnoreSource(nameof(Movie.AccountStates))]
-    [MapperIgnoreSource(nameof(Movie.Adult))]
-    [MapperIgnoreSource(nameof(Movie.AlternativeTitles))]
-    [MapperIgnoreSource(nameof(Movie.BelongsToCollection))]
-    [MapperIgnoreSource(nameof(Movie.Budget))]
-    [MapperIgnoreSource(nameof(Movie.Changes))]
-    [MapperIgnoreSource(nameof(Movie.Credits))]
-    [MapperIgnoreSource(nameof(Movie.Homepage))]
-    [MapperIgnoreSource(nameof(Movie.Images))]
-    [MapperIgnoreSource(nameof(Movie.ImdbId))]
-    [MapperIgnoreSource(nameof(Movie.Keywords))]
-    [MapperIgnoreSource(nameof(Movie.Lists))]
-    [MapperIgnoreSource(nameof(Movie.Popularity))]
-    [MapperIgnoreSource(nameof(Movie.ProductionCompanies))]
-    [MapperIgnoreSource(nameof(Movie.ProductionCountries))]
-    [MapperIgnoreSource(nameof(Movie.ReleaseDates))]
-    [MapperIgnoreSource(nameof(Movie.ExternalIds))]
-    [MapperIgnoreSource(nameof(Movie.Releases))]
-    [MapperIgnoreSource(nameof(Movie.Revenue))]
-    [MapperIgnoreSource(nameof(Movie.Reviews))]
-    [MapperIgnoreSource(nameof(Movie.Runtime))]
-    [MapperIgnoreSource(nameof(Movie.Similar))]
-    [MapperIgnoreSource(nameof(Movie.Recommendations))]
-    [MapperIgnoreSource(nameof(Movie.SpokenLanguages))]
-    [MapperIgnoreSource(nameof(Movie.Status))]
-    [MapperIgnoreSource(nameof(Movie.Tagline))]
-    [MapperIgnoreSource(nameof(Movie.Translations))]
-    [MapperIgnoreSource(nameof(Movie.Video))]
-    [MapperIgnoreSource(nameof(Movie.Videos))]
-    [MapperIgnoreSource(nameof(Movie.WatchProviders))]
+    [MapperIgnoreTarget(nameof(MovieMetadata.Genres))]
+    [MapperIgnoreTarget(nameof(MovieMetadata.Cast))]
+    [MapperIgnoreTarget(nameof(MovieMetadata.Crew))]
+    [MapperIgnoreTarget(nameof(MovieMetadata.LibraryId))]
+    [MapperIgnoreTarget(nameof(MovieMetadata.FilePath))]
+    [MapperIgnoreTarget(nameof(MovieMetadata.CreatedAt))]
+    [MapperIgnoreTarget(nameof(MovieMetadata.UpdatedAt))]
     public static partial MovieMetadata Create(this Movie source, string id);
 
     [MapProperty(nameof(Movie.Id), nameof(MovieMetadata.TmdbId))]
-    [MapperIgnoreSource(nameof(Movie.AccountStates))]
-    [MapperIgnoreSource(nameof(Movie.Adult))]
-    [MapperIgnoreSource(nameof(Movie.AlternativeTitles))]
-    [MapperIgnoreSource(nameof(Movie.BelongsToCollection))]
-    [MapperIgnoreSource(nameof(Movie.Budget))]
-    [MapperIgnoreSource(nameof(Movie.Changes))]
-    [MapperIgnoreSource(nameof(Movie.Credits))]
-    [MapperIgnoreSource(nameof(Movie.Genres))]
-    [MapperIgnoreSource(nameof(Movie.Homepage))]
-    [MapperIgnoreSource(nameof(Movie.Images))]
-    [MapperIgnoreSource(nameof(Movie.ImdbId))]
-    [MapperIgnoreSource(nameof(Movie.Keywords))]
-    [MapperIgnoreSource(nameof(Movie.Lists))]
-    [MapperIgnoreSource(nameof(Movie.Popularity))]
-    [MapperIgnoreSource(nameof(Movie.ProductionCompanies))]
-    [MapperIgnoreSource(nameof(Movie.ProductionCountries))]
-    [MapperIgnoreSource(nameof(Movie.ReleaseDates))]
-    [MapperIgnoreSource(nameof(Movie.ExternalIds))]
-    [MapperIgnoreSource(nameof(Movie.Releases))]
-    [MapperIgnoreSource(nameof(Movie.Revenue))]
-    [MapperIgnoreSource(nameof(Movie.Reviews))]
-    [MapperIgnoreSource(nameof(Movie.Runtime))]
-    [MapperIgnoreSource(nameof(Movie.Similar))]
-    [MapperIgnoreSource(nameof(Movie.Recommendations))]
-    [MapperIgnoreSource(nameof(Movie.SpokenLanguages))]
-    [MapperIgnoreSource(nameof(Movie.Status))]
-    [MapperIgnoreSource(nameof(Movie.Tagline))]
-    [MapperIgnoreSource(nameof(Movie.Translations))]
-    [MapperIgnoreSource(nameof(Movie.Video))]
-    [MapperIgnoreSource(nameof(Movie.Videos))]
-    [MapperIgnoreSource(nameof(Movie.WatchProviders))]
     public static partial MovieMetadata Update(this MovieMetadata target, Movie source);
 }

@@ -1,4 +1,4 @@
-var env = DotNetEnv.Env.LoadMulti([".env.local"]).ToDictionary();
+var env = DotNetEnv.Env.LoadMulti(["compose-output/.env"]).ToDictionary();
 
 var builder = DistributedApplication.CreateBuilder(args);
 builder.AddDockerComposeEnvironment("haas-media");

@@ -16,24 +16,11 @@ public class TVEpisodeMetadata
     public string? FilePath { get; set; }
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Source)]
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
 static partial class TVEpisodeMetadataMapper
 {
-    [MapperIgnoreSource(nameof(TvEpisode.AccountStates))]
-    [MapperIgnoreSource(nameof(TvEpisode.AirDate))]
-    [MapperIgnoreSource(nameof(TvEpisode.Credits))]
-    [MapperIgnoreSource(nameof(TvEpisode.Crew))]
-    [MapperIgnoreSource(nameof(TvEpisode.ExternalIds))]
-    [MapperIgnoreSource(nameof(TvEpisode.GuestStars))]
-    [MapperIgnoreSource(nameof(TvEpisode.Id))]
-    [MapperIgnoreSource(nameof(TvEpisode.Images))]
-    [MapperIgnoreSource(nameof(TvEpisode.ProductionCode))]
-    [MapperIgnoreSource(nameof(TvEpisode.Runtime))]
-    [MapperIgnoreSource(nameof(TvEpisode.ShowId))]
-    [MapperIgnoreSource(nameof(TvEpisode.StillPath))]
-    [MapperIgnoreSource(nameof(TvEpisode.Translations))]
-    [MapperIgnoreSource(nameof(TvEpisode.Videos))]
-    [MapperIgnoreSource(nameof(TvEpisode.VoteCount))]
+    
+    [MapperIgnoreTarget(nameof(TVEpisodeMetadata.FilePath))]
     public static partial TVEpisodeMetadata Create(this TvEpisode tvEpisode);
 }
 

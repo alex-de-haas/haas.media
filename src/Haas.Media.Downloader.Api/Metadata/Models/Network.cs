@@ -7,11 +7,11 @@ public class Network
 {
     public required int TmdbId { get; set; }
     public required string Name { get; set; }
-    public string? LogoPath { get; set; }
-    public string? OriginCountry { get; set; }
+    public required string LogoPath { get; set; }
+    public required string OriginCountry { get; set; }
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Source)]
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
 static partial class NetworkMapper
 {
     [MapProperty(nameof(NetworkWithLogo.Id), nameof(Network.TmdbId))]
