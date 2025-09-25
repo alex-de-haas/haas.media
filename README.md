@@ -31,7 +31,7 @@ A modern web application for downloading torrents and encoding videos to various
 ### Backend
 - **.NET 9** - Cross-platform backend framework
 - **ASP.NET Core** - Web API framework
-- **MongoDB** - Document database
+- **LiteDB** - Embedded document database
 - **FFmpeg** - Video processing and encoding
 - **.NET Aspire** - Cloud-native application orchestration
 
@@ -55,7 +55,6 @@ A modern web application for downloading torrents and encoding videos to various
 
 - [.NET 9 SDK](https://dotnet.microsoft.com/download)
 - [Node.js 18+](https://nodejs.org/)
-- [Docker](https://docker.com/) (for MongoDB)
 - [FFmpeg](https://ffmpeg.org/) (for video processing)
 
 ### Environment Setup
@@ -69,9 +68,6 @@ A modern web application for downloading torrents and encoding videos to various
 2. **Configure environment variables**
    Create a `.env.local` file in the root directory:
    ```env
-   # MongoDB
-   MONGO_DIRECTORY=/path/to/mongodb/data
-   
    # Auth0
    AUTH0_DOMAIN=your-auth0-domain
    AUTH0_AUDIENCE=your-auth0-audience
@@ -102,21 +98,16 @@ cd src/Haas.Media.Aspire
 dotnet run
 ```
 
-This will start all services including MongoDB, the API, and the web frontend.
+This will start the API and the web frontend.
 
 #### Option 2: Manual Setup
-1. **Start MongoDB**
-   ```bash
-   docker-compose up mongodb
-   ```
-
-2. **Start the API**
+1. **Start the API**
    ```bash
    cd src/Haas.Media.Downloader.Api
    dotnet run
    ```
 
-3. **Start the Frontend**
+2. **Start the Frontend**
    ```bash
    cd src/Haas.Media.Web
    npm run dev
@@ -125,14 +116,13 @@ This will start all services including MongoDB, the API, and the web frontend.
 The application will be available at:
 - **Frontend**: http://localhost:3000
 - **API**: http://localhost:8000
-- **MongoDB Express**: http://localhost:8081
 
 ## 📚 Documentation
 
 - [API Documentation](docs/API.md) - REST API endpoints and SignalR hubs
 - [Client Layout](docs/CLIENT_LAYOUT.md) - Frontend architecture
 - [Hardware Encoding](docs/HARDWARE_ENCODING.md) - Hardware acceleration setup
-- [MongoDB Integration](docs/MONGODB_INTEGRATION.md) - Database configuration
+- [LiteDB Integration](docs/LITEDB_INTEGRATION.md) - Database configuration
 - [Authentication](docs/README-AUTH.md) - Auth0 setup guide
 - [VAAPI Troubleshooting](docs/VAAPI_TROUBLESHOOTING.md) - Hardware acceleration issues
 

@@ -26,7 +26,7 @@ The system removes common elements from file names to extract clean movie titles
 - TV series markers (S01E01)
 
 ### 4. Database Storage
-- Stores movie metadata in MongoDB `movieMetadata` collection
+- Stores movie metadata in LiteDB `movieMetadata` collection
 - Prevents duplicate entries by checking existing file paths
 - Creates indexes for efficient querying
 
@@ -109,5 +109,5 @@ The implementation includes comprehensive logging:
 
 - Rate limited to respect TMDb API limits (250ms between requests)
 - Duplicate detection prevents re-processing existing files
-- Efficient MongoDB indexing for fast queries
+- Efficient LiteDB indexing for fast queries
 - Asynchronous processing for non-blocking operations

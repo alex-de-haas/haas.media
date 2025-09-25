@@ -77,7 +77,7 @@ public enum LibraryType
 
 public class LibraryInfo
 {
-    public string? Id { get; set; }                    // MongoDB ObjectId
+    public string? Id { get; set; }                    // LiteDB ObjectId stored as string
     public LibraryType Type { get; set; }
     public required string DirectoryPath { get; set; } // Path to directory with media files
     public required string Title { get; set; }
@@ -222,7 +222,7 @@ public class TVEpisodeMetadata
 
 ## Storage
 
-Libraries are stored in MongoDB in the `libraries` collection with the following features:
+Libraries are stored in LiteDB in the `libraries` collection with the following features:
 - Unique index on `DirectoryPath` to prevent duplicate library paths
 - Index on `Title` for efficient searching
 - Automatic timestamp management for creation and updates

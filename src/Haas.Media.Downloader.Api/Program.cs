@@ -4,6 +4,7 @@ using Haas.Media.Downloader.Api.Files;
 using Haas.Media.Downloader.Api.Metadata;
 using Haas.Media.Downloader.Api.Torrents;
 using Haas.Media.ServiceDefaults;
+using LiteDB;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.IdentityModel.Tokens;
@@ -21,8 +22,10 @@ builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(k
 // Add default service configurations.
 builder.AddServiceDefaults();
 
-// Add MongoDB client
-builder.AddMongoDBClient("haas-media-db");
+var databaseDirectory = Path.Combine(dataDirectory, ".db");
+Directory.CreateDirectory(databaseDirectory);
+var databasePath = Path.Combine(databaseDirectory, "common.db");
+builder.Services.AddSingleton(_ => new LiteDatabase($"Filename={databasePath};Connection=shared;"));
 
 builder.AddEncoding();
 builder.AddFiles();

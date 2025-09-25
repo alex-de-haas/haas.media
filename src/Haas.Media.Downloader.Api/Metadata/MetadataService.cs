@@ -1,8 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.SignalR;
-using MongoDB.Bson;
-using MongoDB.Driver;
+using LiteDB;
 using TMDbLib.Client;
 using TMDbLib.Objects.Search;
 
@@ -11,9 +10,9 @@ namespace Haas.Media.Downloader.Api.Metadata;
 public class MetadataService : IMetadataApi, IHostedService
 {
     private readonly string _dataPath;
-    private readonly IMongoCollection<LibraryInfo> _librariesCollection;
-    private readonly IMongoCollection<MovieMetadata> _movieMetadataCollection;
-    private readonly IMongoCollection<TVShowMetadata> _tvShowMetadataCollection;
+    private readonly ILiteCollection<LibraryInfo> _librariesCollection;
+    private readonly ILiteCollection<MovieMetadata> _movieMetadataCollection;
+    private readonly ILiteCollection<TVShowMetadata> _tvShowMetadataCollection;
     private readonly ILogger<MetadataService> _logger;
     private readonly TMDbClient _tmdbClient;
     private readonly IHubContext<MetadataHub> _hubContext;
@@ -24,7 +23,7 @@ public class MetadataService : IMetadataApi, IHostedService
     public MetadataService(
         IConfiguration configuration,
         ILogger<MetadataService> logger,
-        IMongoDatabase database,
+        LiteDatabase database,
         IHubContext<MetadataHub> hubContext
     )
     {
@@ -53,13 +52,13 @@ public class MetadataService : IMetadataApi, IHostedService
         _logger.LogInformation("MetadataService initialized");
     }
 
-    public async Task<IEnumerable<LibraryInfo>> GetLibrariesAsync()
+    public Task<IEnumerable<LibraryInfo>> GetLibrariesAsync()
     {
         try
         {
-            var libraries = await _librariesCollection.Find(_ => true).ToListAsync();
+            var libraries = _librariesCollection.FindAll().ToList();
             _logger.LogDebug("Retrieved {Count} libraries", libraries.Count);
-            return libraries;
+            return Task.FromResult<IEnumerable<LibraryInfo>>(libraries);
         }
         catch (Exception ex)
         {
@@ -68,19 +67,19 @@ public class MetadataService : IMetadataApi, IHostedService
         }
     }
 
-    public async Task<LibraryInfo?> GetLibraryAsync(string id)
+    public Task<LibraryInfo?> GetLibraryAsync(string id)
     {
         try
         {
-            if (!ObjectId.TryParse(id, out var objectId))
+            if (string.IsNullOrWhiteSpace(id))
             {
-                _logger.LogWarning("Invalid ObjectId format: {Id}", id);
-                return null;
+                _logger.LogWarning("Invalid ID format: {Id}", id);
+                return Task.FromResult<LibraryInfo?>(null);
             }
 
-            var library = await _librariesCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
+            var library = _librariesCollection.FindById(new BsonValue(id));
             _logger.LogDebug("Retrieved library with ID: {Id}", id);
-            return library;
+            return Task.FromResult<LibraryInfo?>(library);
         }
         catch (Exception ex)
         {
@@ -89,21 +88,21 @@ public class MetadataService : IMetadataApi, IHostedService
         }
     }
 
-    public async Task<LibraryInfo> AddLibraryAsync(LibraryInfo library)
+    public Task<LibraryInfo> AddLibraryAsync(LibraryInfo library)
     {
         try
         {
-            library.Id = null; // Ensure MongoDB generates the ID
+            library.Id = ObjectId.NewObjectId().ToString();
             library.CreatedAt = DateTime.UtcNow;
             library.UpdatedAt = DateTime.UtcNow;
 
-            await _librariesCollection.InsertOneAsync(library);
+            _librariesCollection.Insert(library);
             _logger.LogInformation(
                 "Added new library: {Title} at {DirectoryPath}",
                 library.Title,
                 library.DirectoryPath
             );
-            return library;
+            return Task.FromResult(library);
         }
         catch (Exception ex)
         {
@@ -112,29 +111,29 @@ public class MetadataService : IMetadataApi, IHostedService
         }
     }
 
-    public async Task<LibraryInfo?> UpdateLibraryAsync(string id, LibraryInfo library)
+    public Task<LibraryInfo?> UpdateLibraryAsync(string id, LibraryInfo library)
     {
         try
         {
-            if (!ObjectId.TryParse(id, out var objectId))
+            if (string.IsNullOrWhiteSpace(id))
             {
-                _logger.LogWarning("Invalid ObjectId format: {Id}", id);
-                return null;
+                _logger.LogWarning("Invalid ID format: {Id}", id);
+                return Task.FromResult<LibraryInfo?>(null);
             }
 
             library.Id = id;
             library.UpdatedAt = DateTime.UtcNow;
 
-            var result = await _librariesCollection.ReplaceOneAsync(x => x.Id == id, library);
+            var updated = _librariesCollection.Update(library);
 
-            if (result.MatchedCount == 0)
+            if (!updated)
             {
                 _logger.LogWarning("Library not found with ID: {Id}", id);
-                return null;
+                return Task.FromResult<LibraryInfo?>(null);
             }
 
             _logger.LogInformation("Updated library: {Title} with ID: {Id}", library.Title, id);
-            return library;
+            return Task.FromResult<LibraryInfo?>(library);
         }
         catch (Exception ex)
         {
@@ -143,26 +142,26 @@ public class MetadataService : IMetadataApi, IHostedService
         }
     }
 
-    public async Task<bool> DeleteLibraryAsync(string id)
+    public Task<bool> DeleteLibraryAsync(string id)
     {
         try
         {
-            if (!ObjectId.TryParse(id, out var objectId))
+            if (string.IsNullOrWhiteSpace(id))
             {
-                _logger.LogWarning("Invalid ObjectId format: {Id}", id);
-                return false;
+                _logger.LogWarning("Invalid ID format: {Id}", id);
+                return Task.FromResult(false);
             }
 
-            var result = await _librariesCollection.DeleteOneAsync(x => x.Id == id);
+            var deleted = _librariesCollection.Delete(new BsonValue(id));
 
-            if (result.DeletedCount > 0)
+            if (deleted)
             {
                 _logger.LogInformation("Deleted library with ID: {Id}", id);
-                return true;
+                return Task.FromResult(true);
             }
 
             _logger.LogWarning("Library not found with ID: {Id}", id);
-            return false;
+            return Task.FromResult(false);
         }
         catch (Exception ex)
         {
@@ -367,7 +366,7 @@ public class MetadataService : IMetadataApi, IHostedService
             // Convert cast to our CastMember format
             var cast = movieCredits.Cast?.Select(c => c.Map()).ToArray() ?? [];
 
-            var movieMetadata = movieDetails.Create(ObjectId.GenerateNewId().ToString());
+            var movieMetadata = movieDetails.Create(ObjectId.NewObjectId().ToString());
             movieMetadata.Genres = movieDetails.Genres?.Select(g => g.Name).ToArray() ?? [];
             movieMetadata.Crew = crew;
             movieMetadata.Cast = cast;
@@ -391,20 +390,17 @@ public class MetadataService : IMetadataApi, IHostedService
         }
     }
 
-    public async Task<IEnumerable<MovieMetadata>> GetMovieMetadataAsync(string? libraryId = null)
+    public Task<IEnumerable<MovieMetadata>> GetMovieMetadataAsync(string? libraryId = null)
     {
         try
         {
-            FilterDefinition<MovieMetadata> filter = Builders<MovieMetadata>.Filter.Empty;
+            IEnumerable<MovieMetadata> results = string.IsNullOrEmpty(libraryId)
+                ? _movieMetadataCollection.FindAll()
+                : _movieMetadataCollection.Find(m => m.LibraryId == libraryId);
 
-            if (!string.IsNullOrEmpty(libraryId))
-            {
-                filter = Builders<MovieMetadata>.Filter.Eq(m => m.LibraryId, libraryId);
-            }
-
-            var movieMetadata = await _movieMetadataCollection.Find(filter).ToListAsync();
+            var movieMetadata = results.ToList();
             _logger.LogDebug("Retrieved {Count} movie metadata records", movieMetadata.Count);
-            return movieMetadata;
+            return Task.FromResult<IEnumerable<MovieMetadata>>(movieMetadata);
         }
         catch (Exception ex)
         {
@@ -413,21 +409,19 @@ public class MetadataService : IMetadataApi, IHostedService
         }
     }
 
-    public async Task<MovieMetadata?> GetMovieMetadataByIdAsync(string id)
+    public Task<MovieMetadata?> GetMovieMetadataByIdAsync(string id)
     {
         try
         {
-            if (!ObjectId.TryParse(id, out var objectId))
+            if (string.IsNullOrWhiteSpace(id))
             {
-                _logger.LogWarning("Invalid ObjectId format: {Id}", id);
-                return null;
+                _logger.LogWarning("Invalid ID format: {Id}", id);
+                return Task.FromResult<MovieMetadata?>(null);
             }
 
-            var movieMetadata = await _movieMetadataCollection
-                .Find(x => x.Id == id)
-                .FirstOrDefaultAsync();
+            var movieMetadata = _movieMetadataCollection.FindById(new BsonValue(id));
             _logger.LogDebug("Retrieved movie metadata with ID: {Id}", id);
-            return movieMetadata;
+            return Task.FromResult<MovieMetadata?>(movieMetadata);
         }
         catch (Exception ex)
         {
@@ -467,9 +461,7 @@ public class MetadataService : IMetadataApi, IHostedService
                 }
 
                 // Check if metadata already exists for this file
-                var existingMetadata = await _movieMetadataCollection
-                    .Find(m => m.FilePath == filePath)
-                    .FirstOrDefaultAsync();
+                var existingMetadata = _movieMetadataCollection.FindOne(m => m.FilePath == filePath);
 
                 if (existingMetadata != null)
                 {
@@ -499,10 +491,7 @@ public class MetadataService : IMetadataApi, IHostedService
                         updatedMovieMetadata.CreatedAt = existingMetadata.CreatedAt;
                         updatedMovieMetadata.UpdatedAt = DateTime.UtcNow;
 
-                        await _movieMetadataCollection.ReplaceOneAsync(
-                            m => m.Id == existingMetadata.Id,
-                            updatedMovieMetadata
-                        );
+                        _movieMetadataCollection.Update(updatedMovieMetadata);
 
                         _logger.LogInformation(
                             "Updated metadata for movie: {Title} ({Year}) - File: {FileName}",
@@ -536,7 +525,7 @@ public class MetadataService : IMetadataApi, IHostedService
                         library.Id!,
                         filePath
                     );
-                    await _movieMetadataCollection.InsertOneAsync(movieMetadata);
+                    _movieMetadataCollection.Insert(movieMetadata);
 
                     _logger.LogInformation(
                         "Added metadata for movie: {Title} ({Year}) - File: {FileName}",
@@ -603,9 +592,9 @@ public class MetadataService : IMetadataApi, IHostedService
                 }
 
                 // Check if metadata already exists for this show
-                var existingMetadata = await _tvShowMetadataCollection
-                    .Find(tv => tv.LibraryId == library.Id && tv.Title == showTitle)
-                    .FirstOrDefaultAsync();
+                var existingMetadata = _tvShowMetadataCollection.FindOne(tv =>
+                    tv.LibraryId == library.Id && tv.Title == showTitle
+                );
 
                 if (existingMetadata != null)
                 {
@@ -638,10 +627,7 @@ public class MetadataService : IMetadataApi, IHostedService
                         updatedTvShowMetadata.CreatedAt = existingMetadata.CreatedAt;
                         updatedTvShowMetadata.UpdatedAt = DateTime.UtcNow;
 
-                        await _tvShowMetadataCollection.ReplaceOneAsync(
-                            tv => tv.Id == existingMetadata.Id,
-                            updatedTvShowMetadata
-                        );
+                        _tvShowMetadataCollection.Update(updatedTvShowMetadata);
 
                         _logger.LogInformation(
                             "Updated metadata for TV show: {Title} - Directory: {DirectoryName}",
@@ -674,7 +660,7 @@ public class MetadataService : IMetadataApi, IHostedService
                         library.Id!,
                         showDirectory
                     );
-                    await _tvShowMetadataCollection.InsertOneAsync(tvShowMetadata);
+                    _tvShowMetadataCollection.Insert(tvShowMetadata);
 
                     _logger.LogInformation(
                         "Added metadata for TV show: {Title} - Directory: {DirectoryName}",
@@ -788,7 +774,7 @@ public class MetadataService : IMetadataApi, IHostedService
             var tvShowCredits = await _tmdbClient.GetTvShowCreditsAsync(tmdbTvShowId);
 
             // Use mapper to convert SearchTv to TVShowMetadata
-            var tvShowMetadata = tvShowDetails.Create(ObjectId.GenerateNewId().ToString());
+            var tvShowMetadata = tvShowDetails.Create(ObjectId.NewObjectId().ToString());
 
             // Set manually populated fields that aren't in the source
             tvShowMetadata.Genres =
@@ -920,20 +906,17 @@ public class MetadataService : IMetadataApi, IHostedService
         }
     }
 
-    public async Task<IEnumerable<TVShowMetadata>> GetTVShowMetadataAsync(string? libraryId = null)
+    public Task<IEnumerable<TVShowMetadata>> GetTVShowMetadataAsync(string? libraryId = null)
     {
         try
         {
-            FilterDefinition<TVShowMetadata> filter = Builders<TVShowMetadata>.Filter.Empty;
+            IEnumerable<TVShowMetadata> results = string.IsNullOrEmpty(libraryId)
+                ? _tvShowMetadataCollection.FindAll()
+                : _tvShowMetadataCollection.Find(tv => tv.LibraryId == libraryId);
 
-            if (!string.IsNullOrEmpty(libraryId))
-            {
-                filter = Builders<TVShowMetadata>.Filter.Eq(tv => tv.LibraryId, libraryId);
-            }
-
-            var tvShowMetadata = await _tvShowMetadataCollection.Find(filter).ToListAsync();
+            var tvShowMetadata = results.ToList();
             _logger.LogDebug("Retrieved {Count} TV show metadata records", tvShowMetadata.Count);
-            return tvShowMetadata;
+            return Task.FromResult<IEnumerable<TVShowMetadata>>(tvShowMetadata);
         }
         catch (Exception ex)
         {
@@ -942,21 +925,19 @@ public class MetadataService : IMetadataApi, IHostedService
         }
     }
 
-    public async Task<TVShowMetadata?> GetTVShowMetadataByIdAsync(string id)
+    public Task<TVShowMetadata?> GetTVShowMetadataByIdAsync(string id)
     {
         try
         {
-            if (!ObjectId.TryParse(id, out var objectId))
+            if (string.IsNullOrWhiteSpace(id))
             {
-                _logger.LogWarning("Invalid ObjectId format: {Id}", id);
-                return null;
+                _logger.LogWarning("Invalid ID format: {Id}", id);
+                return Task.FromResult<TVShowMetadata?>(null);
             }
 
-            var tvShowMetadata = await _tvShowMetadataCollection
-                .Find(x => x.Id == id)
-                .FirstOrDefaultAsync();
+            var tvShowMetadata = _tvShowMetadataCollection.FindById(new BsonValue(id));
             _logger.LogDebug("Retrieved TV show metadata with ID: {Id}", id);
-            return tvShowMetadata;
+            return Task.FromResult<TVShowMetadata?>(tvShowMetadata);
         }
         catch (Exception ex)
         {
@@ -1107,9 +1088,9 @@ public class MetadataService : IMetadataApi, IHostedService
         try
         {
             // Check if movie already exists in the library
-            var existingMovie = await _movieMetadataCollection
-                .Find(m => m.LibraryId == libraryId && m.TmdbId == tmdbId)
-                .FirstOrDefaultAsync();
+            var existingMovie = _movieMetadataCollection.FindOne(m =>
+                m.LibraryId == libraryId && m.TmdbId == tmdbId
+            );
 
             if (existingMovie != null)
             {
@@ -1134,7 +1115,7 @@ public class MetadataService : IMetadataApi, IHostedService
             // Convert cast to our CastMember format
             var cast = movieCredits.Cast?.Select(c => c.Map()).ToArray() ?? [];
 
-            var movieMetadata = movieDetails.Create(ObjectId.GenerateNewId().ToString());
+            var movieMetadata = movieDetails.Create(ObjectId.NewObjectId().ToString());
 
             movieMetadata.Genres = movieDetails.Genres?.Select(g => g.Name).ToArray() ?? [];
             movieMetadata.Crew = crew;
@@ -1145,7 +1126,7 @@ public class MetadataService : IMetadataApi, IHostedService
             movieMetadata.CreatedAt = DateTime.UtcNow;
             movieMetadata.UpdatedAt = DateTime.UtcNow;
 
-            await _movieMetadataCollection.InsertOneAsync(movieMetadata);
+            _movieMetadataCollection.Insert(movieMetadata);
 
             _logger.LogInformation(
                 "Successfully added movie '{Title}' (TMDB ID: {TmdbId}) to library {LibraryId}",
@@ -1173,9 +1154,9 @@ public class MetadataService : IMetadataApi, IHostedService
         try
         {
             // Check if TV show already exists in the library
-            var existingTVShow = await _tvShowMetadataCollection
-                .Find(tv => tv.LibraryId == libraryId && tv.TmdbId == tmdbId)
-                .FirstOrDefaultAsync();
+            var existingTVShow = _tvShowMetadataCollection.FindOne(tv =>
+                tv.LibraryId == libraryId && tv.TmdbId == tmdbId
+            );
 
             if (existingTVShow != null)
             {
@@ -1195,7 +1176,7 @@ public class MetadataService : IMetadataApi, IHostedService
             var tvShowCredits = await _tmdbClient.GetTvShowCreditsAsync(tmdbId);
 
             // Use mapper to convert TvShow to TVShowMetadata
-            var tvShowMetadata = tvShowDetails.Create(ObjectId.GenerateNewId().ToString());
+            var tvShowMetadata = tvShowDetails.Create(ObjectId.NewObjectId().ToString());
 
             tvShowMetadata.LibraryId = libraryId;
 
@@ -1249,7 +1230,7 @@ public class MetadataService : IMetadataApi, IHostedService
 
             tvShowMetadata.Seasons = seasons.ToArray();
 
-            await _tvShowMetadataCollection.InsertOneAsync(tvShowMetadata);
+            _tvShowMetadataCollection.Insert(tvShowMetadata);
 
             _logger.LogInformation(
                 "Successfully added TV show '{Title}' (TMDB ID: {TmdbId}) to library {LibraryId}",
@@ -1276,56 +1257,17 @@ public class MetadataService : IMetadataApi, IHostedService
     {
         try
         {
-            // Create indexes for libraries collection
-            var directoryPathIndex = new CreateIndexModel<LibraryInfo>(
-                Builders<LibraryInfo>.IndexKeys.Ascending(x => x.DirectoryPath),
-                new CreateIndexOptions { Unique = true }
-            );
+            _librariesCollection.EnsureIndex(x => x.DirectoryPath, true);
+            _librariesCollection.EnsureIndex(x => x.Title);
 
-            var titleIndex = new CreateIndexModel<LibraryInfo>(
-                Builders<LibraryInfo>.IndexKeys.Ascending(x => x.Title)
-            );
+            _movieMetadataCollection.EnsureIndex(x => x.FilePath, true);
+            _movieMetadataCollection.EnsureIndex(x => x.LibraryId);
+            _movieMetadataCollection.EnsureIndex(x => x.TmdbId);
+            _movieMetadataCollection.EnsureIndex(x => x.Title);
 
-            _librariesCollection.Indexes.CreateMany([directoryPathIndex, titleIndex]);
-
-            // Create indexes for movie metadata collection
-            var filePathIndex = new CreateIndexModel<MovieMetadata>(
-                Builders<MovieMetadata>.IndexKeys.Ascending(x => x.FilePath),
-                new CreateIndexOptions { Unique = true }
-            );
-
-            var libraryIdIndex = new CreateIndexModel<MovieMetadata>(
-                Builders<MovieMetadata>.IndexKeys.Ascending(x => x.LibraryId)
-            );
-
-            var tmdbIdIndex = new CreateIndexModel<MovieMetadata>(
-                Builders<MovieMetadata>.IndexKeys.Ascending(x => x.TmdbId)
-            );
-
-            var movieTitleIndex = new CreateIndexModel<MovieMetadata>(
-                Builders<MovieMetadata>.IndexKeys.Ascending(x => x.Title)
-            );
-
-            _movieMetadataCollection.Indexes.CreateMany(
-                [filePathIndex, libraryIdIndex, tmdbIdIndex, movieTitleIndex]
-            );
-
-            // Create indexes for TV show metadata collection
-            var tvLibraryIdIndex = new CreateIndexModel<TVShowMetadata>(
-                Builders<TVShowMetadata>.IndexKeys.Ascending(x => x.LibraryId)
-            );
-
-            var tvTmdbIdIndex = new CreateIndexModel<TVShowMetadata>(
-                Builders<TVShowMetadata>.IndexKeys.Ascending(x => x.TmdbId)
-            );
-
-            var tvTitleIndex = new CreateIndexModel<TVShowMetadata>(
-                Builders<TVShowMetadata>.IndexKeys.Ascending(x => x.Title)
-            );
-
-            _tvShowMetadataCollection.Indexes.CreateMany(
-                [tvLibraryIdIndex, tvTmdbIdIndex, tvTitleIndex]
-            );
+            _tvShowMetadataCollection.EnsureIndex(x => x.LibraryId);
+            _tvShowMetadataCollection.EnsureIndex(x => x.TmdbId);
+            _tvShowMetadataCollection.EnsureIndex(x => x.Title);
 
             _logger.LogDebug(
                 "Created indexes for libraries, movie metadata, and TV show metadata collections"
@@ -1686,9 +1628,9 @@ public class MetadataService : IMetadataApi, IHostedService
             }
 
             var relativePath = Path.GetRelativePath(_dataPath, filePath);
-            var existingMetadata = await _movieMetadataCollection
-                .Find(m => m.LibraryId == library.Id && m.FilePath == relativePath)
-                .FirstOrDefaultAsync(cancellationToken);
+            var existingMetadata = _movieMetadataCollection.FindOne(m =>
+                m.LibraryId == library.Id && m.FilePath == relativePath
+            );
 
             if (existingMetadata != null && !refreshExisting)
             {
@@ -1714,24 +1656,21 @@ public class MetadataService : IMetadataApi, IHostedService
                     if (existingMetadata != null)
                     {
                         var movieMetadata = existingMetadata.Update(movieDetails);
+                        movieMetadata.LibraryId = library.Id;
+                        movieMetadata.FilePath = relativePath;
                         movieMetadata.UpdatedAt = DateTime.UtcNow;
-                        await _movieMetadataCollection.ReplaceOneAsync(
-                            m => m.Id == existingMetadata.Id,
-                            movieMetadata,
-                            cancellationToken: cancellationToken
-                        );
+                        _movieMetadataCollection.Update(movieMetadata);
                     }
                     else
                     {
                         var movieMetadata = movieDetails.Create(
-                            ObjectId.GenerateNewId().ToString()
+                            ObjectId.NewObjectId().ToString()
                         );
+                        movieMetadata.LibraryId = library.Id;
+                        movieMetadata.FilePath = relativePath;
                         movieMetadata.CreatedAt = DateTime.UtcNow;
                         movieMetadata.UpdatedAt = DateTime.UtcNow;
-                        await _movieMetadataCollection.InsertOneAsync(
-                            movieMetadata,
-                            cancellationToken: cancellationToken
-                        );
+                        _movieMetadataCollection.Insert(movieMetadata);
                     }
 
                     found++;

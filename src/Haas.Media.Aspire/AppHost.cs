@@ -3,25 +3,6 @@ var env = DotNetEnv.Env.LoadMulti(["compose-output/.env"]).ToDictionary();
 var builder = DistributedApplication.CreateBuilder(args);
 builder.AddDockerComposeEnvironment("haas-media");
 
-// Add MongoDB
-var mongoUsername = builder.AddParameter("mongo-username", value: env["MONGO_USERNAME"]);
-var mongoPassword = builder.AddParameter(
-    "mongo-password",
-    value: env["MONGO_PASSWORD"],
-    secret: true
-);
-
-var mongodb = builder
-    .AddMongoDB("mongodb", userName: mongoUsername, password: mongoPassword)
-    .WithMongoExpress();
-
-if (!builder.ExecutionContext.IsPublishMode)
-{
-    mongodb.WithDataBindMount(env["MONGO_DIRECTORY"]);
-}
-
-var mongoDatabase = mongodb.AddDatabase("haas-media-db");
-
 // Auth0 parameters
 var auth0Domain = builder.AddParameter("auth0-domain", value: env["AUTH0_DOMAIN"]);
 var auth0Audience = builder.AddParameter("auth0-audience", value: env["AUTH0_AUDIENCE"]);
@@ -40,7 +21,6 @@ var tmdbApiKey = builder.AddParameter("tmdb-api-key", value: env["TMDB_API_KEY"]
 var downloaderApi = builder
     .AddProject<Projects.Haas_Media_Downloader_Api>("downloader-api")
     .WithHttpEndpoint(port: 8000)
-    .WithReference(mongoDatabase)
     .WithEnvironment("AUTH0_DOMAIN", auth0Domain)
     .WithEnvironment("AUTH0_AUDIENCE", auth0Audience)
     .WithEnvironment("TMDB_API_KEY", tmdbApiKey)
@@ -57,9 +37,7 @@ var downloaderApi = builder
     .PublishAsDockerFile(config =>
     {
         config.WithDockerfile("..", dockerfilePath: "Haas.Media.Downloader.Api/Dockerfile");
-    })
-    .WithReference(mongoDatabase)
-    .WaitFor(mongodb);
+    });
 
 var web = builder
     .AddNpmApp(

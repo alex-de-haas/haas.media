@@ -1,5 +1,4 @@
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
+using LiteDB;
 using Riok.Mapperly.Abstractions;
 using TMDbLib.Objects.Movies;
 
@@ -8,7 +7,6 @@ namespace Haas.Media.Downloader.Api.Metadata;
 public class MovieMetadata
 {
     [BsonId]
-    [BsonRepresentation(BsonType.ObjectId)]
     public string? Id { get; set; }
     
     public required int TmdbId { get; set; }
@@ -33,10 +31,8 @@ public class MovieMetadata
     public string? LibraryId { get; set; }
     public string? FilePath { get; set; }
     
-    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    
-    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
