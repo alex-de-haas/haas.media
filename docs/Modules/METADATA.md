@@ -214,7 +214,9 @@ public class TVEpisodeMetadata
 
 ### Metadata
 
-- POST `api/metadata/scan` - scan all libraries for metadata using search in `TMDbLib`. Default language "en". Includes poster and backdrop images from TMDB.
+- POST `api/metadata/scan/start` - start a background scan that discovers media and pulls metadata from TMDb
+- GET `api/metadata/scan/operations` - list active scan operations and their progress
+- POST `api/metadata/scan/operations/{operationId}/cancel` - cancel an in-flight scan
 - GET `api/metadata/movies` - get all movie metadata (optionally filtered by libraryId)
 - GET `api/metadata/movies/{id}` - get specific movie metadata by id
 - GET `api/metadata/tvshows` - get all TV show metadata (optionally filtered by libraryId)

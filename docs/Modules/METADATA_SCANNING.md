@@ -32,11 +32,23 @@ The system removes common elements from file names to extract clean movie titles
 
 ### 5. API Endpoints
 
-#### Scan Libraries
+#### Start Background Scan
 ```
-POST /api/metadata/scan
+POST /api/metadata/scan/start
 ```
-Scans all libraries and fetches metadata for found movies.
+Starts an asynchronous scan that crawls every library and fetches metadata for discovered media.
+
+#### Monitor Scan Operations
+```
+GET /api/metadata/scan/operations
+```
+Returns active scan operations with progress, speed, and ETA details. Clients can poll this endpoint or rely on the `hub/metadata` SignalR hub for realtime updates.
+
+#### Cancel Scan Operation
+```
+POST /api/metadata/scan/operations/{operationId}/cancel
+```
+Cancels an in-flight operation. The cancellation request is idempotent.
 
 #### Get Movie Metadata
 ```
@@ -86,12 +98,17 @@ export TMDB_API_KEY="your-tmdb-api-key-here"
 ## Usage Examples
 
 1. **Add libraries** using the existing library endpoints
-2. **Run scan** to fetch metadata:
+2. **Start a background scan** to fetch metadata:
    ```bash
-   curl -X POST https://your-api/api/metadata/scan \
+   curl -X POST https://your-api/api/metadata/scan/start \
      -H "Authorization: Bearer your-jwt-token"
    ```
-3. **View results**:
+3. **Monitor progress**:
+   ```bash
+   curl https://your-api/api/metadata/scan/operations \
+     -H "Authorization: Bearer your-jwt-token"
+   ```
+4. **View results**:
    ```bash
    curl https://your-api/api/metadata/movies \
      -H "Authorization: Bearer your-jwt-token"

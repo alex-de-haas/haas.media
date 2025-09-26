@@ -7,7 +7,6 @@ public interface IMetadataApi
     Task<LibraryInfo> AddLibraryAsync(LibraryInfo library);
     Task<LibraryInfo?> UpdateLibraryAsync(string id, LibraryInfo library);
     Task<bool> DeleteLibraryAsync(string id);
-    Task ScanLibrariesAsync(bool refreshExisting = true);
     Task<string> StartScanLibrariesAsync(bool refreshExisting = true);
     ScanOperationInfo[] GetScanOperations();
     Task<bool> CancelScanOperationAsync(string operationId);

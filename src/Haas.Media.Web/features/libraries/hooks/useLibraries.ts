@@ -110,31 +110,6 @@ export function useLibraries() {
     }
   }, [fetchLibraries]);
 
-  const scanLibraries = useCallback(async (): Promise<{ success: boolean; message: string }> => {
-    try {
-      const token = await getValidToken();
-      const headers = new Headers({
-        "Content-Type": "application/json",
-      });
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
-      const response = await fetch(`${downloaderApi}/api/metadata/scan`, {
-        method: "POST",
-        headers,
-      });
-
-      if (response.ok) {
-        await fetchLibraries(); // Refresh the library list after scan
-        return { success: true, message: "Metadata scan completed successfully" };
-      } else {
-        const errorText = await response.text();
-        return { success: false, message: errorText || "Scan failed" };
-      }
-    } catch (error) {
-      return { success: false, message: "Network error occurred during scan" };
-    }
-  }, [fetchLibraries]);
-
   const startBackgroundScan = useCallback(async (): Promise<{ success: boolean; message: string; operationId?: string }> => {
     try {
       const token = await getValidToken();
@@ -200,7 +175,6 @@ export function useLibraries() {
     createLibrary,
     updateLibrary,
     deleteLibrary,
-    scanLibraries,
     startBackgroundScan,
     cancelScanOperation,
   };

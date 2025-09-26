@@ -10,6 +10,5 @@ export {
   useTVShow, 
   useDeleteTVShowMetadata,
   useAddToLibrary, 
-  useScanLibraries, 
   useSearch 
 } from './useMetadata';

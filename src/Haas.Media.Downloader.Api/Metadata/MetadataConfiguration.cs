@@ -87,20 +87,6 @@ public static class MetadataConfiguration
             .WithName("DeleteLibrary")
             .RequireAuthorization();
 
-        // Scan all libraries for media files and create/update metadata
-        // refreshExisting: If true (default), updates existing metadata with fresh data from TMDb
-        //                  If false, skips files that already have metadata
-        app.MapPost(
-                "api/metadata/scan",
-                async (IMetadataApi metadataService, bool refreshExisting = true) =>
-                {
-                    await metadataService.ScanLibrariesAsync(refreshExisting);
-                    return Results.Ok(new { message = "Metadata scan completed successfully" });
-                }
-            )
-            .WithName("ScanLibraries")
-            .RequireAuthorization();
-
         // Start background scan operation
         app.MapPost(
                 "api/metadata/scan/start",

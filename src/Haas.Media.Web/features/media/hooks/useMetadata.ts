@@ -243,30 +243,6 @@ export function useDeleteTVShowMetadata() {
   return { deleteTVShow, loading, error };
 }
 
-export function useScanLibraries() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const scanLibraries = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/scan`, {
-        method: 'POST',
-      });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to scan libraries';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  return { scanLibraries, loading, error };
-}
-
 export function useSearch() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

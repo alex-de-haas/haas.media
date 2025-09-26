@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.SignalR;
 using LiteDB;
+using Microsoft.AspNetCore.SignalR;
 using TMDbLib.Client;
 using TMDbLib.Objects.Search;
 
@@ -170,72 +170,6 @@ public class MetadataService : IMetadataApi, IHostedService
         }
     }
 
-    public async Task ScanLibrariesAsync(bool refreshExisting = true)
-    {
-        try
-        {
-            _logger.LogInformation(
-                "Starting metadata scan for all libraries (refreshExisting: {RefreshExisting})",
-                refreshExisting
-            );
-
-            var libraries = await GetLibrariesAsync();
-            var totalProcessed = 0;
-            var totalFound = 0;
-
-            foreach (var library in libraries)
-            {
-                _logger.LogDebug(
-                    "Scanning library: {Title} at {DirectoryPath}",
-                    library.Title,
-                    library.DirectoryPath
-                );
-
-                var fullDirectoryPath = Path.Combine(_dataPath, library.DirectoryPath);
-                if (!Directory.Exists(fullDirectoryPath))
-                {
-                    _logger.LogWarning(
-                        "Library directory does not exist: {DirectoryPath}",
-                        fullDirectoryPath
-                    );
-                    continue;
-                }
-
-                if (library.Type == LibraryType.Movies)
-                {
-                    var (processed, found) = await ScanMovieLibraryAsync(
-                        library,
-                        fullDirectoryPath,
-                        refreshExisting
-                    );
-                    totalProcessed += processed;
-                    totalFound += found;
-                }
-                else if (library.Type == LibraryType.TVShows)
-                {
-                    var (processed, found) = await ScanTVShowLibraryAsync(
-                        library,
-                        fullDirectoryPath,
-                        refreshExisting
-                    );
-                    totalProcessed += processed;
-                    totalFound += found;
-                }
-            }
-
-            _logger.LogInformation(
-                "Completed metadata scan. Processed: {Processed}, Found metadata: {Found}",
-                totalProcessed,
-                totalFound
-            );
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during metadata scan");
-            throw;
-        }
-    }
-
     private List<string> ScanDirectoryForMediaFiles(string directoryPath)
     {
         var mediaExtensions = new[]
@@ -326,70 +260,6 @@ public class MetadataService : IMetadataApi, IHostedService
         }
     }
 
-    private async Task<SearchMovie?> SearchTMDbForMovie(string movieTitle)
-    {
-        try
-        {
-            var searchResults = await _tmdbClient.SearchMovieAsync(movieTitle);
-            if (searchResults?.Results?.Count > 0)
-            {
-                // Return the first result with the highest popularity
-                return searchResults.Results.OrderByDescending(m => m.Popularity).FirstOrDefault();
-            }
-
-            return null;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error searching TMDb for movie: {MovieTitle}", movieTitle);
-            return null;
-        }
-    }
-
-    private async Task<MovieMetadata> CreateMovieMetadata(
-        SearchMovie tmdbMovie,
-        string libraryId,
-        string filePath
-    )
-    {
-        try
-        {
-            // Get detailed movie information to access genres
-            var movieDetails = await _tmdbClient.GetMovieAsync(tmdbMovie.Id);
-
-            // Get movie credits to access crew and cast information
-            var movieCredits = await _tmdbClient.GetMovieCreditsAsync(tmdbMovie.Id);
-
-            // Convert crew to our CrewMember format
-            var crew = movieCredits.Crew?.Select(c => c.Map()).ToArray() ?? [];
-
-            // Convert cast to our CastMember format
-            var cast = movieCredits.Cast?.Select(c => c.Map()).ToArray() ?? [];
-
-            var movieMetadata = movieDetails.Create(ObjectId.NewObjectId().ToString());
-            movieMetadata.Genres = movieDetails.Genres?.Select(g => g.Name).ToArray() ?? [];
-            movieMetadata.Crew = crew;
-            movieMetadata.Cast = cast;
-
-            movieMetadata.LibraryId = libraryId;
-            movieMetadata.FilePath = filePath;
-
-            movieMetadata.CreatedAt = DateTime.UtcNow;
-            movieMetadata.UpdatedAt = DateTime.UtcNow;
-
-            return movieMetadata;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Error creating movie metadata for TMDb movie: {MovieId}",
-                tmdbMovie.Id
-            );
-            throw;
-        }
-    }
-
     public Task<IEnumerable<MovieMetadata>> GetMovieMetadataAsync(string? libraryId = null)
     {
         try
@@ -456,136 +326,6 @@ public class MetadataService : IMetadataApi, IHostedService
             _logger.LogError(ex, "Error deleting movie metadata with ID: {Id}", id);
             throw;
         }
-    }
-
-    private async Task<(int processed, int found)> ScanMovieLibraryAsync(
-        LibraryInfo library,
-        string fullDirectoryPath,
-        bool refreshExisting = true
-    )
-    {
-        var mediaFiles = ScanDirectoryForMediaFiles(fullDirectoryPath);
-        _logger.LogDebug(
-            "Found {Count} media files in movie library: {Title}",
-            mediaFiles.Count,
-            library.Title
-        );
-
-        var processed = 0;
-        var found = 0;
-
-        foreach (var filePath in mediaFiles)
-        {
-            try
-            {
-                var movieTitle = ExtractMovieTitleFromFileName(Path.GetFileName(filePath));
-                if (string.IsNullOrEmpty(movieTitle))
-                {
-                    _logger.LogDebug(
-                        "Could not extract movie title from file: {FilePath}",
-                        filePath
-                    );
-                    continue;
-                }
-
-                // Check if metadata already exists for this file
-                var existingMetadata = _movieMetadataCollection.FindOne(m => m.FilePath == filePath);
-
-                if (existingMetadata != null)
-                {
-                    if (!refreshExisting)
-                    {
-                        _logger.LogDebug(
-                            "Metadata already exists for file: {FilePath} (skipping due to refreshExisting=false)",
-                            filePath
-                        );
-                        continue;
-                    }
-
-                    _logger.LogDebug("Updating existing metadata for file: {FilePath}", filePath);
-
-                    // Get fresh metadata from TMDb
-                    var updatedTmdbResult = await SearchTMDbForMovie(movieTitle);
-                    if (updatedTmdbResult != null)
-                    {
-                        var updatedMovieMetadata = await CreateMovieMetadata(
-                            updatedTmdbResult,
-                            library.Id!,
-                            filePath
-                        );
-
-                        // Preserve the original ID and CreatedAt timestamp
-                        updatedMovieMetadata.Id = existingMetadata.Id;
-                        updatedMovieMetadata.CreatedAt = existingMetadata.CreatedAt;
-                        updatedMovieMetadata.UpdatedAt = DateTime.UtcNow;
-
-                        _movieMetadataCollection.Update(updatedMovieMetadata);
-
-                        _logger.LogInformation(
-                            "Updated metadata for movie: {Title} ({Year}) - File: {FileName}",
-                            updatedMovieMetadata.Title,
-                            updatedMovieMetadata.ReleaseDate?.Year.ToString() ?? "Unknown",
-                            Path.GetFileName(filePath)
-                        );
-
-                        found++;
-                    }
-                    else
-                    {
-                        _logger.LogDebug(
-                            "No TMDb results found for movie: {MovieTitle} (existing file)",
-                            movieTitle
-                        );
-                    }
-
-                    processed++;
-                    await Task.Delay(250);
-                    continue;
-                }
-
-                _logger.LogDebug("Searching TMDb for movie: {MovieTitle}", movieTitle);
-                var tmdbResult = await SearchTMDbForMovie(movieTitle);
-
-                if (tmdbResult != null)
-                {
-                    var movieMetadata = await CreateMovieMetadata(
-                        tmdbResult,
-                        library.Id!,
-                        filePath
-                    );
-                    _movieMetadataCollection.Insert(movieMetadata);
-
-                    _logger.LogInformation(
-                        "Added metadata for movie: {Title} ({Year}) - File: {FileName}",
-                        movieMetadata.Title,
-                        movieMetadata.ReleaseDate?.Year.ToString() ?? "Unknown",
-                        Path.GetFileName(filePath)
-                    );
-
-                    found++;
-                }
-                else
-                {
-                    _logger.LogDebug("No TMDb results found for movie: {MovieTitle}", movieTitle);
-                }
-
-                processed++;
-
-                // Add small delay to respect TMDb rate limits
-                await Task.Delay(250);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing movie file: {FilePath}", filePath);
-            }
-        }
-
-        if (library.Id is { } libraryId)
-        {
-            ClearMissingMovieFiles(libraryId);
-        }
-
-        return (processed, found);
     }
 
     private async Task<(int processed, int found)> ScanTVShowLibraryAsync(
@@ -1270,13 +1010,6 @@ public class MetadataService : IMetadataApi, IHostedService
                 m.LibraryId == libraryId && m.TmdbId == tmdbId
             );
 
-            if (existingMovie != null)
-            {
-                throw new InvalidOperationException(
-                    $"Movie with TMDB ID {tmdbId} already exists in library {libraryId}."
-                );
-            }
-
             // Get movie details from TMDB
             var movieDetails = await _tmdbClient.GetMovieAsync(tmdbId);
             if (movieDetails == null)
@@ -1292,6 +1025,31 @@ public class MetadataService : IMetadataApi, IHostedService
 
             // Convert cast to our CastMember format
             var cast = movieCredits.Cast?.Select(c => c.Map()).ToArray() ?? [];
+
+            if (existingMovie != null)
+            {
+                existingMovie.Update(movieDetails);
+
+                existingMovie.Genres = movieDetails.Genres?.Select(g => g.Name).ToArray() ?? [];
+                existingMovie.Crew = crew;
+                existingMovie.Cast = cast;
+                existingMovie.LibraryId = libraryId;
+                existingMovie.UpdatedAt = DateTime.UtcNow;
+
+                if (!_movieMetadataCollection.Update(existingMovie))
+                {
+                    _movieMetadataCollection.Upsert(existingMovie);
+                }
+
+                _logger.LogInformation(
+                    "Updated movie '{Title}' (TMDB ID: {TmdbId}) metadata for library {LibraryId}",
+                    existingMovie.Title,
+                    tmdbId,
+                    libraryId
+                );
+
+                return existingMovie;
+            }
 
             var movieMetadata = movieDetails.Create(ObjectId.NewObjectId().ToString());
 
@@ -1336,13 +1094,6 @@ public class MetadataService : IMetadataApi, IHostedService
                 tv.LibraryId == libraryId && tv.TmdbId == tmdbId
             );
 
-            if (existingTVShow != null)
-            {
-                throw new InvalidOperationException(
-                    $"TV show with TMDB ID {tmdbId} already exists in library {libraryId}."
-                );
-            }
-
             // Get TV show details from TMDB
             var tvShowDetails = await _tmdbClient.GetTvShowAsync(tmdbId);
             if (tvShowDetails == null)
@@ -1353,25 +1104,27 @@ public class MetadataService : IMetadataApi, IHostedService
             // Get TV show credits to access crew and cast information
             var tvShowCredits = await _tmdbClient.GetTvShowCreditsAsync(tmdbId);
 
-            // Use mapper to convert TvShow to TVShowMetadata
-            var tvShowMetadata = tvShowDetails.Create(ObjectId.NewObjectId().ToString());
-
-            tvShowMetadata.LibraryId = libraryId;
-
-            // Set manually populated fields that aren't in the source
-            tvShowMetadata.Genres =
+            var crew = tvShowCredits.Crew?.Select(c => c.Map()).ToArray() ?? [];
+            var cast = tvShowCredits.Cast?.Select(c => c.Map()).ToArray() ?? [];
+            var genres =
                 tvShowDetails.Genres?.Select(g => g.Name).ToArray() ?? Array.Empty<string>();
-            tvShowMetadata.Networks =
+            var networks =
                 tvShowDetails.Networks?.Select(n => n.Map()).ToArray() ?? Array.Empty<Network>();
 
-            tvShowMetadata.CreatedAt = DateTime.UtcNow;
-            tvShowMetadata.UpdatedAt = DateTime.UtcNow;
-
-            // Convert crew to our CrewMember format
-            tvShowMetadata.Crew = tvShowCredits.Crew?.Select(c => c.Map()).ToArray() ?? [];
-
-            // Convert cast to our CastMember format
-            tvShowMetadata.Cast = tvShowCredits.Cast?.Select(c => c.Map()).ToArray() ?? [];
+            Dictionary<(int SeasonNumber, int EpisodeNumber), string?>? existingEpisodeLookup =
+                existingTVShow
+                    ?.Seasons?.SelectMany(season =>
+                        season.Episodes.Select(episode => new
+                        {
+                            season.SeasonNumber,
+                            episode.EpisodeNumber,
+                            episode.FilePath,
+                        })
+                    )
+                    .ToDictionary(
+                        keySelector => (keySelector.SeasonNumber, keySelector.EpisodeNumber),
+                        elementSelector => elementSelector.FilePath
+                    );
 
             var seasons = new List<TVSeasonMetadata>();
 
@@ -1399,12 +1152,67 @@ public class MetadataService : IMetadataApi, IHostedService
                     var episodeMetadata = episodeDetails.Create();
                     episodeMetadata.FilePath = null; // No file path for manually added items
 
+                    if (
+                        existingEpisodeLookup?.TryGetValue(
+                            (season.SeasonNumber, episode.EpisodeNumber),
+                            out var existingFilePath
+                        ) == true
+                    )
+                    {
+                        episodeMetadata.FilePath = existingFilePath;
+                    }
+
                     episodes.Add(episodeMetadata);
                 }
 
                 seasonMetadata.Episodes = episodes.ToArray();
                 seasons.Add(seasonMetadata);
             }
+
+            if (existingTVShow != null)
+            {
+                existingTVShow.Update(tvShowDetails);
+
+                existingTVShow.Genres = genres;
+                existingTVShow.Networks = networks;
+                existingTVShow.Crew = crew;
+                existingTVShow.Cast = cast;
+                existingTVShow.Seasons = seasons.ToArray();
+                existingTVShow.LibraryId = libraryId;
+                existingTVShow.UpdatedAt = DateTime.UtcNow;
+
+                if (!_tvShowMetadataCollection.Update(existingTVShow))
+                {
+                    _tvShowMetadataCollection.Upsert(existingTVShow);
+                }
+
+                _logger.LogInformation(
+                    "Updated TV show '{Title}' (TMDB ID: {TmdbId}) metadata for library {LibraryId}",
+                    existingTVShow.Title,
+                    tmdbId,
+                    libraryId
+                );
+
+                return existingTVShow;
+            }
+
+            // Use mapper to convert TvShow to TVShowMetadata
+            var tvShowMetadata = tvShowDetails.Create(ObjectId.NewObjectId().ToString());
+
+            tvShowMetadata.LibraryId = libraryId;
+
+            // Set manually populated fields that aren't in the source
+            tvShowMetadata.Genres = genres;
+            tvShowMetadata.Networks = networks;
+
+            tvShowMetadata.CreatedAt = DateTime.UtcNow;
+            tvShowMetadata.UpdatedAt = DateTime.UtcNow;
+
+            // Convert crew to our CrewMember format
+            tvShowMetadata.Crew = crew;
+
+            // Convert cast to our CastMember format
+            tvShowMetadata.Cast = cast;
 
             tvShowMetadata.Seasons = seasons.ToArray();
 
@@ -1841,9 +1649,7 @@ public class MetadataService : IMetadataApi, IHostedService
                     }
                     else
                     {
-                        var movieMetadata = movieDetails.Create(
-                            ObjectId.NewObjectId().ToString()
-                        );
+                        var movieMetadata = movieDetails.Create(ObjectId.NewObjectId().ToString());
                         movieMetadata.LibraryId = library.Id;
                         movieMetadata.FilePath = relativePath;
                         movieMetadata.CreatedAt = DateTime.UtcNow;

@@ -36,7 +36,6 @@
 - POST `api/metadata/libraries` - create new media library
 - PUT `api/metadata/libraries/{id}` - update existing library
 - DELETE `api/metadata/libraries/{id}` - delete library
-- POST `api/metadata/scan` - scan all libraries for media files and update metadata
 - POST `api/metadata/scan/start` - start background scan operation
 - GET `api/metadata/scan/operations` - get active scan operations
 - POST `api/metadata/scan/operations/{operationId}/cancel` - cancel scan operation
