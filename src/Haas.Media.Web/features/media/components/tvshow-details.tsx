@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useTVShow } from "@/features/media/hooks";
+import { useRouter } from "next/navigation";
+import { useTVShow, useDeleteTVShowMetadata } from "@/features/media/hooks";
 import { LoadingSpinner } from "@/components/ui";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
 import type {
@@ -12,6 +13,7 @@ import type {
   CrewMember,
   CastMember,
 } from "@/types/metadata";
+import { useNotifications } from "@/lib/notifications";
 
 interface TVShowDetailsProps {
   tvShowId: string;
@@ -147,12 +149,18 @@ function EpisodeCard({ episode }: EpisodeCardProps) {
           {episode.overview}
         </p>
       )}
-      <p
-        className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate"
-        title={episode.filePath}
-      >
-        {episode.filePath}
-      </p>
+      {episode.filePath ? (
+        <p
+          className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate"
+          title={episode.filePath}
+        >
+          {episode.filePath}
+        </p>
+      ) : (
+        <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+          No local file linked
+        </p>
+      )}
     </div>
   );
 }
@@ -245,6 +253,10 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
   const [expandedSeasons, setExpandedSeasons] = useState<Set<number>>(
     new Set()
   );
+  const [showActions, setShowActions] = useState(false);
+  const router = useRouter();
+  const { notify } = useNotifications();
+  const { deleteTVShow, loading: deletingTVShow } = useDeleteTVShowMetadata();
 
   const toggleSeason = (seasonNumber: number) => {
     setExpandedSeasons((prev) => {
@@ -266,6 +278,38 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
 
   const collapseAllSeasons = () => {
     setExpandedSeasons(new Set());
+  };
+
+  const handleDelete = async () => {
+    if (!tvShow || deletingTVShow) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete "${tvShow.title}"? This action cannot be undone.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setShowActions(false);
+    const result = await deleteTVShow(tvShow.id);
+
+    if (result.success) {
+      notify({
+        type: "success",
+        title: "TV Show Deleted",
+        message: `${tvShow.title} metadata was removed.`,
+      });
+      router.push("/tvshows");
+    } else {
+      notify({
+        type: "error",
+        title: "Delete Failed",
+        message: result.message || "Unable to delete TV show metadata.",
+      });
+    }
   };
 
   if (loading) {
@@ -431,36 +475,73 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                     )}
                 </div>
 
-                {/* Networks - moved here and aligned right */}
-                {tvShow.networks && tvShow.networks.length > 0 && (
-                  <div className="flex flex-wrap gap-2 justify-end">
-                    {tvShow.networks.map((network) => (
-                      <div key={network.tmdbId} className="flex items-center">
-                        {network.logoPath ? (
-                          <Image
-                            src={`https://image.tmdb.org/t/p/w154${network.logoPath}`}
-                            alt={network.name}
-                            width={60}
-                            height={30}
-                            className="h-6 w-auto object-contain"
-                            title={network.name}
-                          />
-                        ) : (
-                          <div className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-600">
-                            <span className="text-xs font-medium">
-                              {network.name}
-                            </span>
-                            {network.originCountry && (
-                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
-                                ({network.originCountry})
+                <div className="flex items-start gap-3">
+                  {tvShow.networks && tvShow.networks.length > 0 && (
+                    <div className="flex flex-wrap gap-2 justify-end">
+                      {tvShow.networks.map((network) => (
+                        <div key={network.tmdbId} className="flex items-center">
+                          {network.logoPath ? (
+                            <Image
+                              src={`https://image.tmdb.org/t/p/w154${network.logoPath}`}
+                              alt={network.name}
+                              width={60}
+                              height={30}
+                              className="h-6 w-auto object-contain"
+                              title={network.name}
+                            />
+                          ) : (
+                            <div className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-600">
+                              <span className="text-xs font-medium">
+                                {network.name}
                               </span>
-                            )}
-                          </div>
-                        )}
+                              {network.originCountry && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                                  ({network.originCountry})
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowActions((prev) => !prev)}
+                      className="p-2 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-700"
+                      aria-label="TV show actions"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                      </svg>
+                    </button>
+
+                    {showActions && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-20 dark:bg-gray-800 dark:border-gray-700">
+                        <div className="py-1">
+                          <button
+                            onClick={handleDelete}
+                            disabled={deletingTVShow}
+                            className="flex items-center w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed dark:text-red-400 dark:hover:bg-red-900/20"
+                          >
+                            <svg
+                              className="w-4 h-4 mr-3"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            {deletingTVShow ? "Deleting..." : "Delete TV Show"}
+                          </button>
+                        </div>
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
+                </div>
               </div>
 
               <div className="flex items-center gap-4 text-sm">

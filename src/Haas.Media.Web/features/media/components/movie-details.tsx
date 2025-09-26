@@ -3,10 +3,12 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useMovie } from "@/features/media/hooks";
+import { useRouter } from "next/navigation";
+import { useMovie, useDeleteMovieMetadata } from "@/features/media/hooks";
 import { LoadingSpinner } from "@/components/ui";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
 import { CrewMember, CastMember } from "@/types/metadata";
+import { useNotifications } from "@/lib/notifications";
 
 interface MovieDetailsProps {
   movieId: string;
@@ -90,6 +92,42 @@ function CrewMemberCard({ crewMember }: CrewMemberCardProps) {
 export default function MovieDetails({ movieId }: MovieDetailsProps) {
   const { movie, loading, error } = useMovie(movieId);
   const [imageError, setImageError] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+  const router = useRouter();
+  const { notify } = useNotifications();
+  const { deleteMovie, loading: deletingMovie } = useDeleteMovieMetadata();
+
+  const handleDelete = async () => {
+    if (!movie || deletingMovie) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete "${movie.title}"? This action cannot be undone.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setShowActions(false);
+    const result = await deleteMovie(movie.id);
+
+    if (result.success) {
+      notify({
+        type: "success",
+        title: "Movie Deleted",
+        message: `${movie.title} metadata was removed.`,
+      });
+      router.push("/movies");
+    } else {
+      notify({
+        type: "error",
+        title: "Delete Failed",
+        message: result.message || "Unable to delete movie metadata.",
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -239,19 +277,59 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
           {/* Movie Information */}
           <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
             <div className="mb-6">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                {movie.title}
-              </h1>
-              {movie.originalTitle && movie.originalTitle !== movie.title && (
-                <p className="text-lg text-gray-600 dark:text-gray-400 italic mb-2">
-                  {movie.originalTitle}
-                </p>
-              )}
-              {releaseYear && (
-                <p className="text-gray-600 dark:text-gray-400 text-lg">
-                  {releaseYear}
-                </p>
-              )}
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    {movie.title}
+                  </h1>
+                  {movie.originalTitle && movie.originalTitle !== movie.title && (
+                    <p className="text-lg text-gray-600 dark:text-gray-400 italic mb-2">
+                      {movie.originalTitle}
+                    </p>
+                  )}
+                  {releaseYear && (
+                    <p className="text-gray-600 dark:text-gray-400 text-lg">
+                      {releaseYear}
+                    </p>
+                  )}
+                </div>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowActions((prev) => !prev)}
+                    className="p-2 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-700"
+                    aria-label="Movie actions"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                    </svg>
+                  </button>
+
+                  {showActions && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-20 dark:bg-gray-800 dark:border-gray-700">
+                      <div className="py-1">
+                        <button
+                          onClick={handleDelete}
+                          disabled={deletingMovie}
+                          className="flex items-center w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed dark:text-red-400 dark:hover:bg-red-900/20"
+                        >
+                          <svg
+                            className="w-4 h-4 mr-3"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          {deletingMovie ? "Deleting..." : "Delete Movie"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Rating */}
@@ -352,7 +430,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                     })
                     .slice(0, 20) // Limit to first 20 crew members to avoid overwhelming the UI
                     .map((crewMember) => (
-                      <CrewMemberCard key={`${crewMember.id}-${crewMember.job}`} crewMember={crewMember} />
+                      <CrewMemberCard key={`${crewMember.tmdbId}-${crewMember.job}`} crewMember={crewMember} />
                     ))}
                 </div>
                 {movie.crew.length > 20 && (
@@ -380,12 +458,18 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                   </div>
                 )}
               </div>
-              <p
-                className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate"
-                title={movie.filePath}
-              >
-                {movie.filePath}
-              </p>
+              {movie.filePath ? (
+                <p
+                  className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate"
+                  title={movie.filePath}
+                >
+                  {movie.filePath}
+                </p>
+              ) : (
+                <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+                  No local file linked
+                </p>
+              )}
             </div>
           </div>
         </div>

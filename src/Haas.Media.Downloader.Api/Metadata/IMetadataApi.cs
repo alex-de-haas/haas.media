@@ -13,8 +13,10 @@ public interface IMetadataApi
     Task<bool> CancelScanOperationAsync(string operationId);
     Task<IEnumerable<MovieMetadata>> GetMovieMetadataAsync(string? libraryId = null);
     Task<MovieMetadata?> GetMovieMetadataByIdAsync(string id);
+    Task<bool> DeleteMovieMetadataAsync(string id);
     Task<IEnumerable<TVShowMetadata>> GetTVShowMetadataAsync(string? libraryId = null);
     Task<TVShowMetadata?> GetTVShowMetadataByIdAsync(string id);
+    Task<bool> DeleteTVShowMetadataAsync(string id);
     Task<IEnumerable<SearchResult>> SearchAsync(string query, LibraryType? libraryType = null);
     Task<object> AddToLibraryAsync(AddToLibraryRequest request);
 }

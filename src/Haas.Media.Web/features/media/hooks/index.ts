@@ -5,8 +5,10 @@ export { useEncodingApi } from './useEncodingApi';
 export { 
   useMovies, 
   useMovie, 
+  useDeleteMovieMetadata,
   useTVShows, 
   useTVShow, 
+  useDeleteTVShowMetadata,
   useAddToLibrary, 
   useScanLibraries, 
   useSearch 

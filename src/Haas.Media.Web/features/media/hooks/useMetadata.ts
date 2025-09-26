@@ -126,6 +126,32 @@ export function useMovie(id: string) {
   return { movie, loading, error, refetch: fetchMovie };
 }
 
+export function useDeleteMovieMetadata() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const deleteMovie = useCallback(async (id: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/movies/${id}`, {
+        method: 'DELETE',
+      });
+
+      return { success: true, message: 'Movie deleted successfully' };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete movie';
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { deleteMovie, loading, error };
+}
+
 export function useTVShows(libraryId?: string) {
   const [tvShows, setTVShows] = useState<TVShowMetadata[]>([]);
   const [loading, setLoading] = useState(true);
@@ -189,6 +215,32 @@ export function useTVShow(id: string) {
   }, [fetchTVShow, id]);
 
   return { tvShow, loading, error, refetch: fetchTVShow };
+}
+
+export function useDeleteTVShowMetadata() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const deleteTVShow = useCallback(async (id: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/tvshows/${id}`, {
+        method: 'DELETE',
+      });
+
+      return { success: true, message: 'TV show deleted successfully' };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete TV show';
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { deleteTVShow, loading, error };
 }
 
 export function useScanLibraries() {

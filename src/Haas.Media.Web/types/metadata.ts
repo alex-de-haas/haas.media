@@ -36,7 +36,7 @@ export interface Network {
 }
 
 export interface MovieMetadata {
-  id?: string;
+  id: string;
   tmdbId: number;
   originalTitle: string;
   originalLanguage: string;
@@ -50,14 +50,14 @@ export interface MovieMetadata {
   cast: CastMember[];
   posterPath?: string;
   backdropPath?: string;
-  libraryId: string;
-  filePath: string;
+  libraryId?: string | null;
+  filePath?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface TVShowMetadata {
-  id?: string;
+  id: string;
   tmdbId: number;
   originalTitle: string;
   originalLanguage: string;
@@ -72,7 +72,7 @@ export interface TVShowMetadata {
   seasons: TVSeasonMetadata[];
   posterPath?: string;
   backdropPath?: string;
-  libraryId: string;
+  libraryId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -91,5 +91,5 @@ export interface TVEpisodeMetadata {
   name: string;
   overview: string;
   voteAverage: number;
-  filePath: string;
+  filePath?: string | null;
 }

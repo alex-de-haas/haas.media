@@ -163,6 +163,17 @@ public static class MetadataConfiguration
             .WithName("GetMovieMetadataById")
             .RequireAuthorization();
 
+        app.MapDelete(
+                "api/metadata/movies/{id}",
+                async (IMetadataApi metadataService, string id) =>
+                {
+                    var deleted = await metadataService.DeleteMovieMetadataAsync(id);
+                    return deleted ? Results.Ok() : Results.NotFound();
+                }
+            )
+            .WithName("DeleteMovieMetadata")
+            .RequireAuthorization();
+
         app.MapGet(
                 "api/metadata/tvshows",
                 async (IMetadataApi metadataService, string? libraryId = null) =>
@@ -183,6 +194,17 @@ public static class MetadataConfiguration
                 }
             )
             .WithName("GetTVShowMetadataById")
+            .RequireAuthorization();
+
+        app.MapDelete(
+                "api/metadata/tvshows/{id}",
+                async (IMetadataApi metadataService, string id) =>
+                {
+                    var deleted = await metadataService.DeleteTVShowMetadataAsync(id);
+                    return deleted ? Results.Ok() : Results.NotFound();
+                }
+            )
+            .WithName("DeleteTVShowMetadata")
             .RequireAuthorization();
 
         app.MapGet(

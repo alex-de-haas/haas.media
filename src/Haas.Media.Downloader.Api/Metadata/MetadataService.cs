@@ -430,6 +430,34 @@ public class MetadataService : IMetadataApi, IHostedService
         }
     }
 
+    public Task<bool> DeleteMovieMetadataAsync(string id)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                _logger.LogWarning("Invalid ID format: {Id}", id);
+                return Task.FromResult(false);
+            }
+
+            var deleted = _movieMetadataCollection.Delete(new BsonValue(id));
+
+            if (deleted)
+            {
+                _logger.LogInformation("Deleted movie metadata with ID: {Id}", id);
+                return Task.FromResult(true);
+            }
+
+            _logger.LogWarning("Movie metadata not found with ID: {Id}", id);
+            return Task.FromResult(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting movie metadata with ID: {Id}", id);
+            throw;
+        }
+    }
+
     private async Task<(int processed, int found)> ScanMovieLibraryAsync(
         LibraryInfo library,
         string fullDirectoryPath,
@@ -550,6 +578,11 @@ public class MetadataService : IMetadataApi, IHostedService
             {
                 _logger.LogError(ex, "Error processing movie file: {FilePath}", filePath);
             }
+        }
+
+        if (library.Id is { } libraryId)
+        {
+            ClearMissingMovieFiles(libraryId);
         }
 
         return (processed, found);
@@ -688,6 +721,11 @@ public class MetadataService : IMetadataApi, IHostedService
                     showDirectory
                 );
             }
+        }
+
+        if (library.Id is { } libraryId)
+        {
+            ClearMissingTvShowFiles(libraryId);
         }
 
         return (processed, found);
@@ -906,6 +944,118 @@ public class MetadataService : IMetadataApi, IHostedService
         }
     }
 
+    private void ClearMissingMovieFiles(string libraryId)
+    {
+        var movieMetadataEntries = _movieMetadataCollection
+            .Find(m => m.LibraryId == libraryId)
+            .ToList();
+
+        foreach (var metadata in movieMetadataEntries)
+        {
+            if (string.IsNullOrWhiteSpace(metadata.FilePath))
+            {
+                continue;
+            }
+
+            var storedPath = metadata.FilePath;
+            var absolutePath = ResolveMediaPath(storedPath);
+
+            if (absolutePath != null && File.Exists(absolutePath))
+            {
+                continue;
+            }
+
+            metadata.LibraryId = null;
+            metadata.FilePath = null;
+            metadata.UpdatedAt = DateTime.UtcNow;
+            _movieMetadataCollection.Update(metadata);
+
+            _logger.LogInformation(
+                "Cleared file path for movie '{Title}' because the file is missing: {FilePath}",
+                metadata.Title,
+                storedPath
+            );
+        }
+    }
+
+    private void ClearMissingTvShowFiles(string libraryId)
+    {
+        var tvShows = _tvShowMetadataCollection.Find(tv => tv.LibraryId == libraryId).ToList();
+
+        foreach (var tvShow in tvShows)
+        {
+            var hasChanges = false;
+            var hasEpisodeWithFile = false;
+
+            foreach (var season in tvShow.Seasons ?? Array.Empty<TVSeasonMetadata>())
+            {
+                foreach (var episode in season.Episodes ?? Array.Empty<TVEpisodeMetadata>())
+                {
+                    if (string.IsNullOrWhiteSpace(episode.FilePath))
+                    {
+                        continue;
+                    }
+
+                    var storedPath = episode.FilePath;
+                    var absolutePath = ResolveMediaPath(storedPath);
+
+                    if (absolutePath != null && File.Exists(absolutePath))
+                    {
+                        hasEpisodeWithFile = true;
+                        continue;
+                    }
+
+                    episode.FilePath = null;
+                    hasChanges = true;
+
+                    _logger.LogInformation(
+                        "Cleared file path for TV episode '{Title}' S{Season:D2}E{Episode:D2} because the file is missing: {FilePath}",
+                        tvShow.Title,
+                        episode.SeasonNumber,
+                        episode.EpisodeNumber,
+                        storedPath
+                    );
+                }
+            }
+
+            var shouldUpdate = hasChanges;
+
+            if (!hasEpisodeWithFile && tvShow.LibraryId != null)
+            {
+                tvShow.LibraryId = null;
+                shouldUpdate = true;
+            }
+
+            if (!shouldUpdate)
+            {
+                continue;
+            }
+
+            tvShow.UpdatedAt = DateTime.UtcNow;
+            _tvShowMetadataCollection.Update(tvShow);
+        }
+    }
+
+    private string? ResolveMediaPath(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return null;
+        }
+
+        try
+        {
+            return Path.IsPathRooted(filePath)
+                ? filePath
+                : Path.GetFullPath(Path.Combine(_dataPath, filePath));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to resolve media path: {FilePath}", filePath);
+            return null;
+        }
+    }
+
     public Task<IEnumerable<TVShowMetadata>> GetTVShowMetadataAsync(string? libraryId = null)
     {
         try
@@ -942,6 +1092,34 @@ public class MetadataService : IMetadataApi, IHostedService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving TV show metadata with ID: {Id}", id);
+            throw;
+        }
+    }
+
+    public Task<bool> DeleteTVShowMetadataAsync(string id)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                _logger.LogWarning("Invalid ID format: {Id}", id);
+                return Task.FromResult(false);
+            }
+
+            var deleted = _tvShowMetadataCollection.Delete(new BsonValue(id));
+
+            if (deleted)
+            {
+                _logger.LogInformation("Deleted TV show metadata with ID: {Id}", id);
+                return Task.FromResult(true);
+            }
+
+            _logger.LogWarning("TV show metadata not found with ID: {Id}", id);
+            return Task.FromResult(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting TV show metadata with ID: {Id}", id);
             throw;
         }
     }
@@ -1690,6 +1868,11 @@ public class MetadataService : IMetadataApi, IHostedService
 
             // Throttle to avoid overwhelming the API
             await Task.Delay(250, cancellationToken);
+        }
+
+        if (library.Id is { } libraryId)
+        {
+            ClearMissingMovieFiles(libraryId);
         }
 
         return (processed, found);
