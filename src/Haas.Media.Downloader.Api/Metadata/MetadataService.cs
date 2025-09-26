@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Text.RegularExpressions;
 using LiteDB;
 using Microsoft.AspNetCore.SignalR;
 using TMDbLib.Client;
@@ -203,63 +202,6 @@ public class MetadataService : IMetadataApi, IHostedService
         return mediaFiles;
     }
 
-    private string ExtractMovieTitleFromFileName(string fileName)
-    {
-        try
-        {
-            // Remove file extension
-            var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
-
-            // Common patterns to clean movie titles from file names
-            var patterns = new[]
-            {
-                @"\.\d{4}\.", // Remove year with dots (e.g., .2018.)
-                @"\s+\d{4}\s+", // Remove year with spaces
-                @"\s+\(\d{4}\)", // Remove year in parentheses
-                @"\s*[\[\(].*?[\]\)]", // Remove anything in brackets or parentheses
-                @"\s*\d{3,4}p.*", // Remove resolution and everything after (720p, 1080p, etc.)
-                @"\s*BluRay.*", // Remove BluRay and everything after
-                @"\s*BDRip.*", // Remove BDRip and everything after
-                @"\s*WEBRip.*", // Remove WEBRip and everything after
-                @"\s*HDRip.*", // Remove HDRip and everything after
-                @"\s*DVDRip.*", // Remove DVDRip and everything after
-                @"\s*x264.*", // Remove codec and everything after
-                @"\s*x265.*", // Remove codec and everything after
-                @"\s*H\.?264.*", // Remove codec and everything after
-                @"\s*H\.?265.*", // Remove codec and everything after
-                @"\s*HEVC.*", // Remove codec and everything after
-                @"\s*AAC.*", // Remove audio codec and everything after
-                @"\s*AC3.*", // Remove audio codec and everything after
-                @"\s*DTS.*", // Remove audio codec and everything after
-                @"\s*-.*", // Remove dash and everything after
-                @"\s*\[.*", // Remove opening bracket and everything after
-                @"\.rus\.", // Remove Russian language marker
-                @"\.LostFilm\.TV", // Remove LostFilm.TV marker
-                @"S\d{2}E\d{2}", // Remove TV series episode markers
-            };
-
-            var cleanedTitle = nameWithoutExtension;
-
-            foreach (var pattern in patterns)
-            {
-                cleanedTitle = Regex.Replace(cleanedTitle, pattern, " ", RegexOptions.IgnoreCase);
-            }
-
-            // Replace dots and underscores with spaces
-            cleanedTitle = cleanedTitle.Replace(".", " ").Replace("_", " ");
-
-            // Clean up multiple spaces and trim
-            cleanedTitle = Regex.Replace(cleanedTitle, @"\s+", " ").Trim();
-
-            return cleanedTitle;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error extracting title from filename: {FileName}", fileName);
-            return fileName;
-        }
-    }
-
     public Task<IEnumerable<MovieMetadata>> GetMovieMetadataAsync(string? libraryId = null)
     {
         try
@@ -352,8 +294,8 @@ public class MetadataService : IMetadataApi, IHostedService
         {
             try
             {
-                var showTitle = ExtractTVShowTitleFromDirectoryName(
-                    Path.GetFileName(showDirectory)
+                var showTitle = MetadataHelper.ExtractTVShowTitleFromDirectoryName(
+                    Path.GetDirectoryName(showDirectory)
                 );
                 if (string.IsNullOrEmpty(showTitle))
                 {
@@ -469,50 +411,6 @@ public class MetadataService : IMetadataApi, IHostedService
         }
 
         return (processed, found);
-    }
-
-    private string ExtractTVShowTitleFromDirectoryName(string directoryName)
-    {
-        try
-        {
-            // Common patterns to clean TV show titles from directory names
-            var patterns = new[]
-            {
-                @"\s+\d{4}\s*-\s*\d{4}", // Remove year range (e.g., 2020-2023)
-                @"\s+\(\d{4}\)", // Remove year in parentheses
-                @"\s*[\[\(].*?[\]\)]", // Remove anything in brackets or parentheses
-                @"\s*-\s*LostFilm\.TV.*", // Remove LostFilm.TV and everything after
-                @"\s*\[.*?\].*", // Remove anything in square brackets and after
-                @"\s+S\d{2}.*", // Remove season indicators and everything after
-                @"\s+Season\s+\d+.*", // Remove "Season X" and everything after
-                @"\s+Complete.*", // Remove "Complete" and everything after
-                @"\s*-\s*.*", // Remove dash and everything after (be careful with this)
-            };
-
-            var cleanedTitle = directoryName;
-
-            foreach (var pattern in patterns)
-            {
-                cleanedTitle = Regex.Replace(cleanedTitle, pattern, "", RegexOptions.IgnoreCase);
-            }
-
-            // Replace dots and underscores with spaces
-            cleanedTitle = cleanedTitle.Replace(".", " ").Replace("_", " ");
-
-            // Clean up multiple spaces and trim
-            cleanedTitle = Regex.Replace(cleanedTitle, @"\s+", " ").Trim();
-
-            return cleanedTitle;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Error extracting title from directory name: {DirectoryName}",
-                directoryName
-            );
-            return directoryName;
-        }
     }
 
     private async Task<SearchTv?> SearchTMDbForTVShow(string tvShowTitle)
@@ -1265,32 +1163,6 @@ public class MetadataService : IMetadataApi, IHostedService
         }
     }
 
-    /// <summary>
-    /// Gets the full URL for a TMDB image poster (w500 size)
-    /// </summary>
-    /// <param name="posterPath">The relative poster path from TMDB</param>
-    /// <returns>Full image URL or null if path is null/empty</returns>
-    public static string? GetPosterUrl(string? posterPath)
-    {
-        if (string.IsNullOrEmpty(posterPath))
-            return null;
-
-        return $"https://image.tmdb.org/t/p/w500{posterPath}";
-    }
-
-    /// <summary>
-    /// Gets the full URL for a TMDB backdrop image (w1280 size)
-    /// </summary>
-    /// <param name="backdropPath">The relative backdrop path from TMDB</param>
-    /// <returns>Full image URL or null if path is null/empty</returns>
-    public static string? GetBackdropUrl(string? backdropPath)
-    {
-        if (string.IsNullOrEmpty(backdropPath))
-            return null;
-
-        return $"https://image.tmdb.org/t/p/w1280{backdropPath}";
-    }
-
     public async Task<string> StartScanLibrariesAsync(bool refreshExisting = true)
     {
         var operationId = Guid.NewGuid().ToString();
@@ -1606,7 +1478,9 @@ public class MetadataService : IMetadataApi, IHostedService
             }
 
             // Process the file
-            var movieTitle = ExtractMovieTitleFromFileName(Path.GetFileName(filePath));
+            var movieTitle = MetadataHelper.ExtractMovieTitleFromFileName(
+                Path.GetFileName(filePath)
+            );
             if (string.IsNullOrWhiteSpace(movieTitle))
             {
                 processed++;
