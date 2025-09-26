@@ -44,11 +44,6 @@ function MovieCard({ movie }: MovieCardProps) {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 line-clamp-2">
             {movie.title}{releaseYear && ` (${releaseYear})`}
           </h3>
-          {movie.originalTitle && movie.originalTitle !== movie.title && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1 italic">
-              {movie.originalTitle}
-            </p>
-          )}
           <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
             {movie.voteAverage > 0 && (
               <div className="flex items-center">

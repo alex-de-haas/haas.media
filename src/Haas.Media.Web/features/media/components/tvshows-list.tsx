@@ -43,11 +43,6 @@ function TVShowCard({ tvShow }: TVShowCardProps) {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 line-clamp-2">
             {tvShow.title}
           </h3>
-          {tvShow.originalTitle && tvShow.originalTitle !== tvShow.title && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1 italic">
-              {tvShow.originalTitle}
-            </p>
-          )}
           <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
             {tvShow.seasons && (
               <span>
@@ -66,34 +61,6 @@ function TVShowCard({ tvShow }: TVShowCardProps) {
               </div>
             )}
           </div>
-          {/* Networks */}
-          {tvShow.networks && tvShow.networks.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {tvShow.networks.slice(0, 3).map((network) => (
-                <div key={network.tmdbId} className="flex items-center">
-                  {network.logoPath ? (
-                    <Image
-                      src={`https://image.tmdb.org/t/p/w92${network.logoPath}`}
-                      alt={network.name}
-                      width={32}
-                      height={20}
-                      className="h-4 w-auto object-contain bg-white rounded px-1"
-                      title={network.name}
-                    />
-                  ) : (
-                    <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded text-center">
-                      {network.name}
-                    </span>
-                  )}
-                </div>
-              ))}
-              {tvShow.networks.length > 3 && (
-                <span className="text-xs text-gray-400 dark:text-gray-500">
-                  +{tvShow.networks.length - 3} more
-                </span>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </Link>
