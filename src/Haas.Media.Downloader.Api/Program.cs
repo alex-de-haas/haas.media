@@ -1,6 +1,7 @@
 using Haas.Media.Core.FFMpeg;
 using Haas.Media.Downloader.Api.Encodings;
 using Haas.Media.Downloader.Api.Files;
+using Haas.Media.Downloader.Api.Infrastructure;
 using Haas.Media.Downloader.Api.Metadata;
 using Haas.Media.Downloader.Api.Torrents;
 using Haas.Media.ServiceDefaults;
@@ -100,6 +101,8 @@ if (app.Environment.IsDevelopment())
 // app.UseHttpsRedirection();
 
 app.UseCors();
+
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 // Auth
 if (!string.IsNullOrWhiteSpace(auth0Domain) && !string.IsNullOrWhiteSpace(auth0Audience))
