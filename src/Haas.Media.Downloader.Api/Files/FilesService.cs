@@ -1,22 +1,26 @@
 using System.Collections.Concurrent;
 using Haas.Media.Core.Helpers;
+using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Haas.Media.Downloader.Api.Files;
 
 public class FilesService : IFilesApi, IHostedService
 {
+    private const string CopyTaskName = "File copy operation";
     private readonly string _dataPath;
     private readonly ILogger<FilesService> _logger;
     private readonly IHubContext<FileHub> _hubContext;
+    private readonly IBackgroundTaskService _backgroundTaskService;
     private readonly ConcurrentDictionary<string, CopyOperationInfo> _copyOperations;
-    private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokens;
+    private readonly CopyOperationTaskExecutor _copyTaskExecutor;
     private Timer? _broadcastTimer;
 
     public FilesService(
         IConfiguration configuration,
         ILogger<FilesService> logger,
-        IHubContext<FileHub> hubContext
+        IHubContext<FileHub> hubContext,
+        IBackgroundTaskService backgroundTaskService
     )
     {
         _dataPath =
@@ -25,8 +29,13 @@ public class FilesService : IFilesApi, IHostedService
 
         _logger = logger;
         _hubContext = hubContext;
+        _backgroundTaskService = backgroundTaskService;
         _copyOperations = new ConcurrentDictionary<string, CopyOperationInfo>();
-        _cancellationTokens = new ConcurrentDictionary<string, CancellationTokenSource>();
+        _copyTaskExecutor = new CopyOperationTaskExecutor(
+            _copyOperations,
+            _hubContext,
+            logger
+        );
 
         // Ensure root directory exists
         Directory.CreateDirectory(_dataPath);
@@ -130,7 +139,8 @@ public class FilesService : IFilesApi, IHostedService
             Directory.CreateDirectory(destinationDir);
         }
 
-        var operationId = Guid.NewGuid().ToString();
+        var operationGuid = Guid.NewGuid();
+        var operationId = operationGuid.ToString();
         long totalBytes = 0;
         int totalFiles = 0;
 
@@ -164,31 +174,32 @@ public class FilesService : IFilesApi, IHostedService
         );
 
         _copyOperations.TryAdd(operationId, copyOperation);
-        var cancellationTokenSource = new CancellationTokenSource();
-        _cancellationTokens.TryAdd(operationId, cancellationTokenSource);
 
-        // Start the copy operation in the background
         if (isDirectory)
         {
-            _ = Task.Run(async () =>
-                await PerformDirectoryCopyOperationAsync(
+            _backgroundTaskService.Enqueue(
+                CopyTaskName,
+                context => _copyTaskExecutor.ExecuteDirectoryCopyAsync(
+                    context,
                     operationId,
                     sourceFullPath,
-                    destinationFullPath,
-                    cancellationTokenSource.Token
-                )
+                    destinationFullPath
+                ),
+                operationGuid
             );
         }
         else
         {
-            _ = Task.Run(async () =>
-                await PerformFileCopyOperationAsync(
+            _backgroundTaskService.Enqueue(
+                CopyTaskName,
+                context => _copyTaskExecutor.ExecuteFileCopyAsync(
+                    context,
                     operationId,
                     sourceFullPath,
                     destinationFullPath,
-                    totalBytes,
-                    cancellationTokenSource.Token
-                )
+                    totalBytes
+                ),
+                operationGuid
             );
         }
 
@@ -205,11 +216,20 @@ public class FilesService : IFilesApi, IHostedService
 
     public async Task<bool> CancelCopyOperationAsync(string operationId)
     {
-        if (_cancellationTokens.TryGetValue(operationId, out var cancellationTokenSource))
+        if (!Guid.TryParse(operationId, out var taskId))
         {
-            cancellationTokenSource.Cancel();
+            return false;
+        }
 
-            if (_copyOperations.TryGetValue(operationId, out var operation))
+        var cancelled = _backgroundTaskService.TryCancel(taskId);
+        if (!cancelled)
+        {
+            return false;
+        }
+
+        if (_copyOperations.TryGetValue(operationId, out var operation))
+        {
+            if (operation.State == CopyOperationState.Running)
             {
                 var cancelledOperation = operation with
                 {
@@ -219,149 +239,16 @@ public class FilesService : IFilesApi, IHostedService
                 _copyOperations.TryUpdate(operationId, cancelledOperation, operation);
                 await _hubContext.Clients.All.SendAsync("CopyOperationUpdated", cancelledOperation);
 
-                // Remove the cancelled operation after a short delay
                 _ = Task.Run(async () =>
                 {
-                    await Task.Delay(3000); // Wait 3 seconds
-                    _copyOperations.TryRemove(operationId, out _);
-                    await _hubContext.Clients.All.SendAsync("CopyOperationDeleted", operationId);
-                });
-            }
-
-            return true;
-        }
-        return false;
-    }
-
-    private async Task PerformFileCopyOperationAsync(
-        string operationId,
-        string sourceFullPath,
-        string destinationFullPath,
-        long totalBytes,
-        CancellationToken cancellationToken
-    )
-    {
-        try
-        {
-            using var sourceStream = new FileStream(sourceFullPath, FileMode.Open, FileAccess.Read);
-            using var destinationStream = new FileStream(
-                destinationFullPath,
-                FileMode.CreateNew,
-                FileAccess.Write
-            );
-
-            var buffer = new byte[81920]; // 80KB buffer
-            long totalCopied = 0;
-            int bytesRead;
-
-            while (
-                (
-                    bytesRead = await sourceStream.ReadAsync(
-                        buffer,
-                        0,
-                        buffer.Length,
-                        cancellationToken
-                    )
-                ) > 0
-            )
-            {
-                await destinationStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
-                totalCopied += bytesRead;
-
-                var progress = totalBytes > 0 ? (double)totalCopied / totalBytes * 100.0 : 0.0;
-
-                if (_copyOperations.TryGetValue(operationId, out var currentOperation))
-                {
-                    var elapsedSeconds = (DateTime.UtcNow - currentOperation.StartTime).TotalSeconds;
-                    var speed = elapsedSeconds > 0 ? totalCopied / elapsedSeconds : 0;
-                    double? eta = null;
-                    if (speed > 0)
-                    {
-                        var remaining = Math.Max(0L, totalBytes - totalCopied);
-                        eta = remaining / speed;
-                    }
-                    var updatedOperation = currentOperation with
-                    {
-                        CopiedBytes = totalCopied,
-                        Progress = progress,
-                        CopiedFiles = totalCopied == totalBytes ? 1 : 0,
-                        SpeedBytesPerSecond = speed,
-                        EstimatedTimeSeconds = eta,
-                    };
-                    _copyOperations.TryUpdate(operationId, updatedOperation, currentOperation);
-                }
-            }
-
-            // Mark as completed and then remove after a short delay
-            if (_copyOperations.TryGetValue(operationId, out var operation))
-            {
-                var completedOperation = operation with
-                {
-                    State = CopyOperationState.Completed,
-                    Progress = 100.0,
-                    CopiedBytes = totalBytes,
-                    CopiedFiles = 1,
-                    CompletedTime = DateTime.UtcNow,
-                    EstimatedTimeSeconds = 0,
-                    // Keep last measured speed for reference
-                };
-                _copyOperations.TryUpdate(operationId, completedOperation, operation);
-                await _hubContext.Clients.All.SendAsync("CopyOperationUpdated", completedOperation);
-
-                _logger.LogInformation(
-                    "File copy completed: {OperationId} from {Source} to {Destination}",
-                    operationId,
-                    sourceFullPath,
-                    destinationFullPath
-                );
-
-                // Remove the completed operation after a short delay to allow clients to see the completion
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(3000); // Wait 3 seconds
+                    await Task.Delay(3000);
                     _copyOperations.TryRemove(operationId, out _);
                     await _hubContext.Clients.All.SendAsync("CopyOperationDeleted", operationId);
                 });
             }
         }
-        catch (OperationCanceledException)
-        {
-            _logger.LogInformation("File copy cancelled: {OperationId}", operationId);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Error copying file: {OperationId} from {Source} to {Destination}",
-                operationId,
-                sourceFullPath,
-                destinationFullPath
-            );
 
-            if (_copyOperations.TryGetValue(operationId, out var operation))
-            {
-                var failedOperation = operation with
-                {
-                    State = CopyOperationState.Failed,
-                    CompletedTime = DateTime.UtcNow,
-                    ErrorMessage = ex.Message,
-                };
-                _copyOperations.TryUpdate(operationId, failedOperation, operation);
-                await _hubContext.Clients.All.SendAsync("CopyOperationUpdated", failedOperation);
-
-                // Remove the failed operation after a delay to allow clients to see the error
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(10000); // Wait 10 seconds for errors
-                    _copyOperations.TryRemove(operationId, out _);
-                    await _hubContext.Clients.All.SendAsync("CopyOperationDeleted", operationId);
-                });
-            }
-        }
-        finally
-        {
-            _cancellationTokens.TryRemove(operationId, out _);
-        }
+        return true;
     }
 
     public async Task BroadcastCopyOperationsAsync()
@@ -547,178 +434,6 @@ public class FilesService : IFilesApi, IHostedService
         return (totalBytes, totalFiles);
     }
 
-    private async Task PerformDirectoryCopyOperationAsync(
-        string operationId,
-        string sourceFullPath,
-        string destinationFullPath,
-        CancellationToken cancellationToken
-    )
-    {
-        try
-        {
-            var files = Directory.GetFiles(sourceFullPath, "*", SearchOption.AllDirectories);
-            long totalCopied = 0;
-            int filesCopied = 0;
-
-            if (_copyOperations.TryGetValue(operationId, out var initialOperation))
-            {
-                foreach (var sourceFile in files)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    var relativePath = Path.GetRelativePath(sourceFullPath, sourceFile);
-                    var destinationFile = Path.Combine(destinationFullPath, relativePath);
-                    var destinationDir = Path.GetDirectoryName(destinationFile);
-
-                    if (!string.IsNullOrEmpty(destinationDir))
-                    {
-                        Directory.CreateDirectory(destinationDir);
-                    }
-
-                    var fileInfo = new FileInfo(sourceFile);
-                    long fileCopied = 0;
-
-                    using var sourceStream = new FileStream(
-                        sourceFile,
-                        FileMode.Open,
-                        FileAccess.Read
-                    );
-                    using var destinationStream = new FileStream(
-                        destinationFile,
-                        FileMode.CreateNew,
-                        FileAccess.Write
-                    );
-
-                    var buffer = new byte[81920]; // 80KB buffer
-                    int bytesRead;
-
-                    while (
-                        (
-                            bytesRead = await sourceStream.ReadAsync(
-                                buffer,
-                                0,
-                                buffer.Length,
-                                cancellationToken
-                            )
-                        ) > 0
-                    )
-                    {
-                        await destinationStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
-                        fileCopied += bytesRead;
-                        totalCopied += bytesRead;
-
-                        var progress =
-                            initialOperation.TotalBytes > 0
-                                ? (double)totalCopied / initialOperation.TotalBytes * 100.0
-                                : 0.0;
-
-                        if (_copyOperations.TryGetValue(operationId, out var currentOperation))
-                        {
-                            var elapsedSeconds = (DateTime.UtcNow - currentOperation.StartTime).TotalSeconds;
-                            var speed = elapsedSeconds > 0 ? totalCopied / elapsedSeconds : 0;
-                            double? eta = null;
-                            if (speed > 0)
-                            {
-                                var remaining = Math.Max(0L, (initialOperation.TotalBytes - totalCopied));
-                                eta = remaining / speed;
-                            }
-                            var updatedOperation = currentOperation with
-                            {
-                                CopiedBytes = totalCopied,
-                                Progress = progress,
-                                CopiedFiles = filesCopied,
-                                SpeedBytesPerSecond = speed,
-                                EstimatedTimeSeconds = eta,
-                            };
-                            _copyOperations.TryUpdate(
-                                operationId,
-                                updatedOperation,
-                                currentOperation
-                            );
-                        }
-                    }
-
-                    filesCopied++;
-                }
-
-                // Mark as completed
-                if (_copyOperations.TryGetValue(operationId, out var operation))
-                {
-                    var completedOperation = operation with
-                    {
-                        State = CopyOperationState.Completed,
-                        Progress = 100.0,
-                        CopiedBytes = totalCopied,
-                        CopiedFiles = filesCopied,
-                        CompletedTime = DateTime.UtcNow,
-                        EstimatedTimeSeconds = 0,
-                        // Keep last measured speed for reference
-                    };
-                    _copyOperations.TryUpdate(operationId, completedOperation, operation);
-                    await _hubContext.Clients.All.SendAsync(
-                        "CopyOperationUpdated",
-                        completedOperation
-                    );
-
-                    _logger.LogInformation(
-                        "Directory copy completed: {OperationId} from {Source} to {Destination}",
-                        operationId,
-                        sourceFullPath,
-                        destinationFullPath
-                    );
-
-                    // Remove the completed operation after a short delay
-                    _ = Task.Run(async () =>
-                    {
-                        await Task.Delay(3000);
-                        _copyOperations.TryRemove(operationId, out _);
-                        await _hubContext.Clients.All.SendAsync(
-                            "CopyOperationDeleted",
-                            operationId
-                        );
-                    });
-                }
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            _logger.LogInformation("Directory copy cancelled: {OperationId}", operationId);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Error copying directory: {OperationId} from {Source} to {Destination}",
-                operationId,
-                sourceFullPath,
-                destinationFullPath
-            );
-
-            if (_copyOperations.TryGetValue(operationId, out var operation))
-            {
-                var failedOperation = operation with
-                {
-                    State = CopyOperationState.Failed,
-                    CompletedTime = DateTime.UtcNow,
-                    ErrorMessage = ex.Message,
-                };
-                _copyOperations.TryUpdate(operationId, failedOperation, operation);
-                await _hubContext.Clients.All.SendAsync("CopyOperationUpdated", failedOperation);
-
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(10000);
-                    _copyOperations.TryRemove(operationId, out _);
-                    await _hubContext.Clients.All.SendAsync("CopyOperationDeleted", operationId);
-                });
-            }
-        }
-        finally
-        {
-            _cancellationTokens.TryRemove(operationId, out _);
-        }
-    }
-
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Files service is starting");
@@ -755,19 +470,13 @@ public class FilesService : IFilesApi, IHostedService
         _broadcastTimer = null;
 
         // Cancel all active copy operations
-        foreach (var cancellationTokenSource in _cancellationTokens.Values)
+        foreach (var operationId in _copyOperations.Keys)
         {
-            try
+            if (Guid.TryParse(operationId, out var taskId))
             {
-                cancellationTokenSource.Cancel();
-            }
-            catch
-            {
-                // ignore individual cancellation failures
+                _backgroundTaskService.TryCancel(taskId);
             }
         }
-
-        _cancellationTokens.Clear();
         return Task.CompletedTask;
     }
 
