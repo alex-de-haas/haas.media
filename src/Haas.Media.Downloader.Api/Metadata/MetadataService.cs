@@ -230,8 +230,9 @@ public class MetadataService : IMetadataApi, IHostedService
         {
             try
             {
+                var directoryInfo = new DirectoryInfo(showDirectory);
                 var showTitle = MetadataHelper.ExtractTVShowTitleFromDirectoryName(
-                    Path.GetDirectoryName(showDirectory)
+                    directoryInfo.Name
                 );
                 if (string.IsNullOrEmpty(showTitle))
                 {
@@ -870,7 +871,8 @@ public class MetadataService : IMetadataApi, IHostedService
         var crew = tvShowCredits.Crew?.Select(c => c.Map()).ToArray() ?? [];
         var cast = tvShowCredits.Cast?.Select(c => c.Map()).ToArray() ?? [];
         var genres = tvShowDetails.Genres?.Select(g => g.Name).ToArray() ?? Array.Empty<string>();
-        var networks = tvShowDetails.Networks?.Select(n => n.Map()).ToArray() ?? Array.Empty<Network>();
+        var networks =
+            tvShowDetails.Networks?.Select(n => n.Map()).ToArray() ?? Array.Empty<Network>();
 
         Dictionary<(int SeasonNumber, int EpisodeNumber), string?>? existingEpisodeLookup =
             existingTVShow
