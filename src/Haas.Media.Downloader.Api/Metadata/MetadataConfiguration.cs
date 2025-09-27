@@ -99,31 +99,6 @@ public static class MetadataConfiguration
             .WithName("StartBackgroundScan")
             .RequireAuthorization();
 
-        // Get scan operations
-        app.MapGet(
-                "api/metadata/scan/operations",
-                (IMetadataApi metadataService) =>
-                {
-                    var operations = metadataService.GetScanOperations();
-                    return Results.Ok(operations);
-                }
-            )
-            .WithName("GetScanOperations")
-            .RequireAuthorization();
-
-        // Cancel scan operation
-        app.MapPost(
-                "api/metadata/scan/operations/{operationId}/cancel",
-                async (IMetadataApi metadataService, string operationId) =>
-                {
-                    var cancelled = await metadataService.CancelScanOperationAsync(operationId);
-                    return cancelled ? Results.Ok(new { message = "Scan operation cancelled" }) 
-                                     : Results.NotFound(new { message = "Scan operation not found" });
-                }
-            )
-            .WithName("CancelScanOperation")
-            .RequireAuthorization();
-
         // Map SignalR hub
         app.MapHub<MetadataHub>("/hub/metadata");
 

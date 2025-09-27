@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 using LiteDB;
 using Microsoft.AspNetCore.SignalR;
 using TMDbLib.Client;
@@ -8,6 +8,7 @@ namespace Haas.Media.Downloader.Api.Metadata;
 
 public class MetadataService : IMetadataApi, IHostedService
 {
+    private const string MetadataScanTaskName = "Metadata library scan";
     private readonly string _dataPath;
     private readonly ILiteCollection<LibraryInfo> _librariesCollection;
     private readonly ILiteCollection<MovieMetadata> _movieMetadataCollection;
@@ -15,15 +16,14 @@ public class MetadataService : IMetadataApi, IHostedService
     private readonly ILogger<MetadataService> _logger;
     private readonly TMDbClient _tmdbClient;
     private readonly IHubContext<MetadataHub> _hubContext;
-    private readonly ConcurrentDictionary<string, ScanOperationInfo> _scanOperations;
-    private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokens;
-    private Timer? _broadcastTimer;
+    private readonly IBackgroundTaskService _backgroundTaskService;
 
     public MetadataService(
         IConfiguration configuration,
         ILogger<MetadataService> logger,
         LiteDatabase database,
-        IHubContext<MetadataHub> hubContext
+        IHubContext<MetadataHub> hubContext,
+        IBackgroundTaskService backgroundTaskService
     )
     {
         _dataPath =
@@ -35,8 +35,7 @@ public class MetadataService : IMetadataApi, IHostedService
         _tvShowMetadataCollection = database.GetCollection<TVShowMetadata>("tvShowMetadata");
         _logger = logger;
         _hubContext = hubContext;
-        _scanOperations = new ConcurrentDictionary<string, ScanOperationInfo>();
-        _cancellationTokens = new ConcurrentDictionary<string, CancellationTokenSource>();
+        _backgroundTaskService = backgroundTaskService;
 
         var tmdbApiKey =
             configuration["TMDB_API_KEY"]
@@ -45,7 +44,6 @@ public class MetadataService : IMetadataApi, IHostedService
         _tmdbClient = new TMDbClient(tmdbApiKey);
         _tmdbClient.DefaultLanguage = "en"; // Default language as specified in METADATA.md
 
-        // Create indexes
         CreateIndexes();
 
         _logger.LogInformation("MetadataService initialized");
@@ -209,7 +207,8 @@ public class MetadataService : IMetadataApi, IHostedService
     private async Task<(int processed, int found)> ScanTVShowLibraryAsync(
         LibraryInfo library,
         string fullDirectoryPath,
-        bool refreshExisting = true
+        bool refreshExisting,
+        CancellationToken cancellationToken
     )
     {
         var showDirectories = Directory.GetDirectories(
@@ -230,6 +229,7 @@ public class MetadataService : IMetadataApi, IHostedService
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var directoryInfo = new DirectoryInfo(showDirectory);
                 var showTitle = MetadataHelper.ExtractTVShowTitleFromDirectoryName(
                     directoryInfo.Name
@@ -298,7 +298,7 @@ public class MetadataService : IMetadataApi, IHostedService
                     }
 
                     processed++;
-                    await Task.Delay(250);
+                    await Task.Delay(250, cancellationToken);
                     continue;
                 }
 
@@ -330,7 +330,7 @@ public class MetadataService : IMetadataApi, IHostedService
                 processed++;
 
                 // Add small delay to respect TMDb rate limits
-                await Task.Delay(250);
+                await Task.Delay(250, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -993,38 +993,32 @@ public class MetadataService : IMetadataApi, IHostedService
 
     private void CreateIndexes()
     {
-        try
-        {
-            _librariesCollection.EnsureIndex(x => x.DirectoryPath, true);
-            _librariesCollection.EnsureIndex(x => x.Title);
+        _librariesCollection.EnsureIndex(x => x.DirectoryPath, true);
+        _librariesCollection.EnsureIndex(x => x.Title);
 
-            _movieMetadataCollection.EnsureIndex(x => x.LibraryId);
-            _movieMetadataCollection.EnsureIndex(x => x.TmdbId, true);
-            _movieMetadataCollection.EnsureIndex(x => x.Title);
+        _movieMetadataCollection.EnsureIndex(x => x.LibraryId);
+        _movieMetadataCollection.EnsureIndex(x => x.TmdbId, true);
+        _movieMetadataCollection.EnsureIndex(x => x.Title);
 
-            _tvShowMetadataCollection.EnsureIndex(x => x.LibraryId);
-            _tvShowMetadataCollection.EnsureIndex(x => x.TmdbId, true);
-            _tvShowMetadataCollection.EnsureIndex(x => x.Title);
+        _tvShowMetadataCollection.EnsureIndex(x => x.LibraryId);
+        _tvShowMetadataCollection.EnsureIndex(x => x.TmdbId, true);
+        _tvShowMetadataCollection.EnsureIndex(x => x.Title);
 
-            _logger.LogDebug(
-                "Created indexes for libraries, movie metadata, and TV show metadata collections"
-            );
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Error creating indexes");
-        }
+        _logger.LogDebug(
+            "Created indexes for libraries, movie metadata, and TV show metadata collections"
+        );
     }
 
-    public async Task<string> StartScanLibrariesAsync(bool refreshExisting = true)
+    public Task<string> StartScanLibrariesAsync(bool refreshExisting = true)
     {
-        var operationId = Guid.NewGuid().ToString();
+        var operationGuid = Guid.NewGuid();
+        var operationId = operationGuid.ToString();
         _logger.LogInformation(
             "Starting background scan operation with ID: {OperationId}",
             operationId
         );
 
-        var scanOperation = new ScanOperationInfo(
+        var initialOperation = new ScanOperationInfo(
             operationId,
             "All Libraries",
             "Scanning all libraries",
@@ -1036,95 +1030,56 @@ public class MetadataService : IMetadataApi, IHostedService
             DateTime.UtcNow
         );
 
-        _scanOperations.TryAdd(operationId, scanOperation);
-        var cancellationTokenSource = new CancellationTokenSource();
-        _cancellationTokens.TryAdd(operationId, cancellationTokenSource);
-
-        // Start the scan operation in the background
-        _ = Task.Run(async () =>
-            await PerformScanOperationAsync(
-                operationId,
-                refreshExisting,
-                cancellationTokenSource.Token
-            )
-        );
-
-        // Broadcast initial operation state
         try
         {
-            await _hubContext.Clients.All.SendAsync("ScanOperationUpdated", scanOperation);
-            _logger.LogDebug(
-                "Broadcasted initial scan operation state for ID: {OperationId}",
-                operationId
+            _backgroundTaskService.Enqueue(
+                MetadataScanTaskName,
+                async context =>
+                {
+                    var currentOperation = initialOperation;
+                    context.SetPayload(currentOperation);
+                    await BroadcastScanOperationAsync(currentOperation);
+
+                    await PerformScanOperationAsync(context, refreshExisting, currentOperation);
+                },
+                operationGuid
             );
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(
-                ex,
-                "Failed to broadcast initial scan operation state for ID: {OperationId}",
-                operationId
-            );
+            _logger.LogError(ex, "Failed to enqueue scan operation with ID: {OperationId}", operationId);
+            throw;
         }
 
-        return operationId;
-    }
-
-    public ScanOperationInfo[] GetScanOperations()
-    {
-        return _scanOperations.Values.ToArray();
-    }
-
-    public async Task<bool> CancelScanOperationAsync(string operationId)
-    {
-        if (_cancellationTokens.TryGetValue(operationId, out var cancellationTokenSource))
-        {
-            cancellationTokenSource.Cancel();
-
-            if (_scanOperations.TryGetValue(operationId, out var operation))
-            {
-                var cancelledOperation = operation with
-                {
-                    State = ScanOperationState.Cancelled,
-                    CompletedTime = DateTime.UtcNow,
-                };
-                _scanOperations.TryUpdate(operationId, cancelledOperation, operation);
-                await _hubContext.Clients.All.SendAsync("ScanOperationUpdated", cancelledOperation);
-
-                // Remove the cancelled operation after a short delay
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(3000); // Wait 3 seconds
-                    _scanOperations.TryRemove(operationId, out _);
-                    await _hubContext.Clients.All.SendAsync("ScanOperationDeleted", operationId);
-                });
-            }
-
-            return true;
-        }
-        return false;
+        return Task.FromResult(operationId);
     }
 
     private async Task PerformScanOperationAsync(
-        string operationId,
+        BackgroundTaskContext taskContext,
         bool refreshExisting,
-        CancellationToken cancellationToken
+        ScanOperationInfo initialOperation
     )
     {
+        var currentOperation = initialOperation;
+        var operationId = currentOperation.Id;
+        var cancellationToken = taskContext.CancellationToken;
+
         try
         {
             _logger.LogInformation(
                 "Starting background metadata scan operation: {OperationId}",
                 operationId
             );
+            taskContext.ReportStatus("Preparing library scan", currentOperation);
 
             var libraries = await GetLibrariesAsync();
             var allFiles = new List<(LibraryInfo library, List<string> files)>();
             var totalFiles = 0;
 
-            // First pass: count all files
             foreach (var library in libraries)
             {
+                taskContext.ThrowIfCancellationRequested();
+
                 var fullDirectoryPath = Path.Combine(_dataPath, library.DirectoryPath);
                 if (!Directory.Exists(fullDirectoryPath))
                 {
@@ -1140,194 +1095,200 @@ public class MetadataService : IMetadataApi, IHostedService
                 totalFiles += files.Count;
             }
 
-            // Update operation with total file count
-            if (_scanOperations.TryGetValue(operationId, out var currentOperation))
-            {
-                var updatedOperation = currentOperation with { TotalFiles = totalFiles };
-                _scanOperations.TryUpdate(operationId, updatedOperation, currentOperation);
-                await _hubContext.Clients.All.SendAsync("ScanOperationUpdated", updatedOperation);
-            }
+            currentOperation = currentOperation with { TotalFiles = totalFiles };
+            taskContext.SetPayload(currentOperation);
+            await BroadcastScanOperationAsync(currentOperation, cancellationToken);
 
             var processedFiles = 0;
             var foundMetadata = 0;
 
-            // Second pass: process files
             foreach (var (library, files) in allFiles)
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                taskContext.ThrowIfCancellationRequested();
 
                 var fullDirectoryPath = Path.Combine(_dataPath, library.DirectoryPath);
 
-                if (_scanOperations.TryGetValue(operationId, out var operation))
+                currentOperation = currentOperation with
                 {
-                    var libOperation = operation with
-                    {
-                        LibraryPath = library.DirectoryPath,
-                        LibraryTitle = library.Title,
-                        CurrentFile = $"Scanning {library.Title}...",
-                    };
-                    _scanOperations.TryUpdate(operationId, libOperation, operation);
-                    await _hubContext.Clients.All.SendAsync("ScanOperationUpdated", libOperation);
-                }
+                    LibraryPath = library.DirectoryPath,
+                    LibraryTitle = library.Title,
+                    CurrentFile = $"Scanning {library.Title}...",
+                };
+                taskContext.SetPayload(currentOperation);
+                taskContext.ReportStatus($"Scanning {library.Title}", currentOperation);
+                await BroadcastScanOperationAsync(currentOperation, cancellationToken);
 
-                int libraryProcessed = 0;
-                int libraryFound = 0;
+                int libraryProcessed;
+                int libraryFound;
 
                 if (library.Type == LibraryType.Movies)
                 {
-                    (libraryProcessed, libraryFound) = await ScanMovieLibraryWithProgressAsync(
-                        operationId,
+                    (libraryProcessed, libraryFound, currentOperation) = await ScanMovieLibraryWithProgressAsync(
+                        currentOperation,
+                        taskContext,
                         library,
                         fullDirectoryPath,
                         refreshExisting,
                         processedFiles,
-                        totalFiles,
-                        cancellationToken
+                        totalFiles
                     );
                 }
                 else if (library.Type == LibraryType.TVShows)
                 {
-                    // For TV shows, use the existing non-progress method as it has different scanning logic
                     (libraryProcessed, libraryFound) = await ScanTVShowLibraryAsync(
                         library,
                         fullDirectoryPath,
-                        refreshExisting
+                        refreshExisting,
+                        cancellationToken
                     );
+                }
+                else
+                {
+                    libraryProcessed = 0;
+                    libraryFound = 0;
                 }
 
                 processedFiles += libraryProcessed;
                 foundMetadata += libraryFound;
-            }
 
-            // Mark as completed
-            if (_scanOperations.TryGetValue(operationId, out var finalOperation))
-            {
-                var completedOperation = finalOperation with
+                var cumulativeProgress = totalFiles > 0
+                    ? (double)processedFiles / Math.Max(1, totalFiles) * 100.0
+                    : currentOperation.Progress;
+
+                currentOperation = currentOperation with
                 {
-                    State = ScanOperationState.Completed,
-                    Progress = 100.0,
                     ProcessedFiles = processedFiles,
                     FoundMetadata = foundMetadata,
-                    CompletedTime = DateTime.UtcNow,
-                    CurrentFile = "Scan completed",
-                    EstimatedTimeSeconds = 0,
+                    Progress = cumulativeProgress,
+                    CurrentFile = $"Scanned {library.Title}",
                 };
-                _scanOperations.TryUpdate(operationId, completedOperation, finalOperation);
-                await _hubContext.Clients.All.SendAsync("ScanOperationUpdated", completedOperation);
-
-                _logger.LogInformation(
-                    "Background scan completed: {OperationId}. Processed: {Processed}, Found metadata: {Found}",
-                    operationId,
-                    processedFiles,
-                    foundMetadata
+                taskContext.SetPayload(currentOperation);
+                taskContext.ReportProgress(
+                    currentOperation.Progress,
+                    currentOperation.CurrentFile,
+                    currentOperation
                 );
-
-                // Remove the completed operation after a short delay
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(3000); // Wait 3 seconds
-                    _scanOperations.TryRemove(operationId, out _);
-                    await _hubContext.Clients.All.SendAsync("ScanOperationDeleted", operationId);
-                });
+                await BroadcastScanOperationAsync(currentOperation, cancellationToken);
             }
+
+            currentOperation = currentOperation with
+            {
+                State = ScanOperationState.Completed,
+                Progress = 100.0,
+                ProcessedFiles = processedFiles,
+                FoundMetadata = foundMetadata,
+                CompletedTime = DateTime.UtcNow,
+                CurrentFile = "Scan completed",
+                EstimatedTimeSeconds = 0,
+            };
+            taskContext.SetPayload(currentOperation);
+            taskContext.ReportProgress(100, currentOperation.CurrentFile, currentOperation);
+            await BroadcastScanOperationAsync(currentOperation, CancellationToken.None);
+
+            _logger.LogInformation(
+                "Background scan completed: {OperationId}. Processed: {Processed}, Found metadata: {Found}",
+                operationId,
+                processedFiles,
+                foundMetadata
+            );
+
+            ScheduleScanOperationRemoval(operationId, TimeSpan.FromSeconds(3));
         }
         catch (OperationCanceledException)
         {
             _logger.LogInformation("Background scan cancelled: {OperationId}", operationId);
+
+            currentOperation = currentOperation with
+            {
+                State = ScanOperationState.Cancelled,
+                CompletedTime = DateTime.UtcNow,
+                CurrentFile = "Scan cancelled",
+            };
+            taskContext.SetPayload(currentOperation);
+            taskContext.ReportStatus("Scan cancelled", currentOperation);
+            await BroadcastScanOperationAsync(currentOperation, CancellationToken.None);
+
+            ScheduleScanOperationRemoval(operationId, TimeSpan.FromSeconds(3));
+
+            throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during background scan: {OperationId}", operationId);
 
-            if (_scanOperations.TryGetValue(operationId, out var operation))
+            currentOperation = currentOperation with
             {
-                var failedOperation = operation with
-                {
-                    State = ScanOperationState.Failed,
-                    CompletedTime = DateTime.UtcNow,
-                    ErrorMessage = ex.Message,
-                };
-                _scanOperations.TryUpdate(operationId, failedOperation, operation);
-                await _hubContext.Clients.All.SendAsync("ScanOperationUpdated", failedOperation);
+                State = ScanOperationState.Failed,
+                CompletedTime = DateTime.UtcNow,
+                ErrorMessage = ex.Message,
+                CurrentFile = "Scan failed",
+            };
+            taskContext.SetPayload(currentOperation);
+            taskContext.ReportStatus("Scan failed", currentOperation);
+            await BroadcastScanOperationAsync(currentOperation, CancellationToken.None);
 
-                // Remove the failed operation after a delay
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(10000); // Wait 10 seconds for errors
-                    _scanOperations.TryRemove(operationId, out _);
-                    await _hubContext.Clients.All.SendAsync("ScanOperationDeleted", operationId);
-                });
-            }
-        }
-        finally
-        {
-            _cancellationTokens.TryRemove(operationId, out _);
+            ScheduleScanOperationRemoval(operationId, TimeSpan.FromSeconds(10));
+
+            throw;
         }
     }
 
-    private async Task<(int processed, int found)> ScanMovieLibraryWithProgressAsync(
-        string operationId,
+    private async Task<(int processed, int found, ScanOperationInfo operation)> ScanMovieLibraryWithProgressAsync(
+        ScanOperationInfo operation,
+        BackgroundTaskContext taskContext,
         LibraryInfo library,
         string fullDirectoryPath,
         bool refreshExisting,
         int baseProcessedFiles,
-        int totalFiles,
-        CancellationToken cancellationToken
+        int totalFiles
     )
     {
         var mediaFiles = ScanDirectoryForMediaFiles(fullDirectoryPath);
         var processed = 0;
         var found = 0;
+        var currentOperation = operation;
 
         foreach (var filePath in mediaFiles)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            taskContext.ThrowIfCancellationRequested();
 
             var fileName = Path.GetFileName(filePath);
+            var totalProcessedSoFar = baseProcessedFiles + processed;
             var progress =
                 totalFiles > 0
-                    ? (double)(baseProcessedFiles + processed) / totalFiles * 100.0
+                    ? (double)totalProcessedSoFar / Math.Max(1, totalFiles) * 100.0
                     : 0.0;
 
-            // Update progress
-            if (_scanOperations.TryGetValue(operationId, out var operation))
+            var elapsedSeconds = (DateTime.UtcNow - currentOperation.StartTime).TotalSeconds;
+            var speed = elapsedSeconds > 0 ? totalProcessedSoFar / elapsedSeconds : 0;
+            double? eta = null;
+            if (speed > 0)
             {
-                var elapsedSeconds = (DateTime.UtcNow - operation.StartTime).TotalSeconds;
-                var speed =
-                    elapsedSeconds > 0 ? (baseProcessedFiles + processed) / elapsedSeconds : 0;
-                double? eta = null;
-                if (speed > 0)
-                {
-                    var remaining = Math.Max(0, totalFiles - (baseProcessedFiles + processed));
-                    eta = remaining / speed;
-                }
+                var remaining = Math.Max(0, totalFiles - totalProcessedSoFar);
+                eta = remaining / speed;
+            }
 
-                var updatedOperation = operation with
-                {
-                    ProcessedFiles = baseProcessedFiles + processed,
-                    Progress = progress,
-                    CurrentFile = fileName,
-                    SpeedFilesPerSecond = speed,
-                    EstimatedTimeSeconds = eta,
-                };
-                _scanOperations.TryUpdate(operationId, updatedOperation, operation);
+            currentOperation = currentOperation with
+            {
+                ProcessedFiles = totalProcessedSoFar,
+                Progress = progress,
+                CurrentFile = fileName,
+                SpeedFilesPerSecond = speed,
+                EstimatedTimeSeconds = eta,
+            };
+            taskContext.SetPayload(currentOperation);
 
-                // Broadcast progress update immediately (throttle to every 10 files to avoid spam)
-                if (processed % 10 == 0 || processed == 1)
-                {
-                    try
-                    {
-                        await _hubContext.Clients.All.SendAsync(
-                            "ScanOperationUpdated",
-                            updatedOperation,
-                            cancellationToken
-                        );
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to broadcast scan progress update");
-                    }
-                }
+            if (processed % 10 == 0 || processed == 1)
+            {
+                taskContext.ReportProgress(
+                    currentOperation.Progress,
+                    $"Processing {fileName}",
+                    currentOperation
+                );
+                await BroadcastScanOperationAsync(
+                    currentOperation,
+                    taskContext.CancellationToken
+                );
             }
 
             // Process the file
@@ -1356,14 +1317,14 @@ public class MetadataService : IMetadataApi, IHostedService
             {
                 var searchResults = await _tmdbClient.SearchMovieAsync(
                     movieTitle,
-                    cancellationToken: cancellationToken
+                    cancellationToken: taskContext.CancellationToken
                 );
                 if (searchResults.Results.Count > 0)
                 {
                     var movieResult = searchResults.Results[0];
                     var movieDetails = await _tmdbClient.GetMovieAsync(
                         movieResult.Id,
-                        cancellationToken: cancellationToken
+                        cancellationToken: taskContext.CancellationToken
                     );
 
                     if (existingMetadata != null)
@@ -1400,7 +1361,7 @@ public class MetadataService : IMetadataApi, IHostedService
             processed++;
 
             // Throttle to avoid overwhelming the API
-            await Task.Delay(250, cancellationToken);
+            await Task.Delay(250, taskContext.CancellationToken);
         }
 
         if (library.Id is { } libraryId)
@@ -1408,32 +1369,12 @@ public class MetadataService : IMetadataApi, IHostedService
             ClearMissingMovieFiles(libraryId);
         }
 
-        return (processed, found);
+        return (processed, found, currentOperation);
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Metadata service is starting");
-
-        // Start broadcast timer for scan operations
-        _broadcastTimer ??= new Timer(
-            async _ =>
-            {
-                try
-                {
-                    await BroadcastScanOperationsAsync();
-                    CleanupOldScanOperations();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error broadcasting scan operations");
-                }
-            },
-            null,
-            TimeSpan.Zero,
-            TimeSpan.FromSeconds(1)
-        );
-
         return Task.CompletedTask;
     }
 
@@ -1441,52 +1382,53 @@ public class MetadataService : IMetadataApi, IHostedService
     {
         _logger.LogInformation("Metadata service is stopping");
 
-        // Stop broadcast timer
-        _broadcastTimer?.Change(Timeout.Infinite, Timeout.Infinite);
-        _broadcastTimer?.Dispose();
-        _broadcastTimer = null;
-
-        // Cancel all active scan operations
-        foreach (var cancellationTokenSource in _cancellationTokens.Values)
+        foreach (var task in _backgroundTaskService.GetTasks())
         {
-            try
+            if (task.Name == MetadataScanTaskName)
             {
-                cancellationTokenSource.Cancel();
-                cancellationTokenSource.Dispose();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error cancelling scan operation");
+                _backgroundTaskService.TryCancel(task.Id);
             }
         }
 
-        _cancellationTokens.Clear();
         return Task.CompletedTask;
     }
 
-    private async Task BroadcastScanOperationsAsync()
+    private async Task BroadcastScanOperationAsync(
+        ScanOperationInfo operation,
+        CancellationToken cancellationToken = default
+    )
     {
-        foreach (var operation in _scanOperations.Values)
+        try
         {
-            await _hubContext.Clients.All.SendAsync("ScanOperationUpdated", operation);
+            await _hubContext.Clients.All.SendAsync("ScanOperationUpdated", operation, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Failed to broadcast scan operation update for {OperationId}",
+                operation.Id
+            );
         }
     }
 
-    private void CleanupOldScanOperations()
+    private void ScheduleScanOperationRemoval(string operationId, TimeSpan delay)
     {
-        var cutoffTime = DateTime.UtcNow.AddMinutes(-5); // Remove operations older than 5 minutes
-        var operationsToRemove = _scanOperations
-            .Values.Where(op =>
-                op.State != ScanOperationState.Running
-                && op.CompletedTime.HasValue
-                && op.CompletedTime.Value < cutoffTime
-            )
-            .Select(op => op.Id)
-            .ToList();
-
-        foreach (var operationId in operationsToRemove)
+        _ = Task.Run(async () =>
         {
-            _scanOperations.TryRemove(operationId, out _);
-        }
+            try
+            {
+                await Task.Delay(delay);
+                await _hubContext.Clients.All.SendAsync("ScanOperationDeleted", operationId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Failed to broadcast scan operation deletion for {OperationId}",
+                    operationId
+                );
+            }
+        });
     }
 }

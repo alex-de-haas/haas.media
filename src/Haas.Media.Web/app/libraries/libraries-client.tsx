@@ -24,7 +24,6 @@ export default function LibrariesClient() {
     updateLibrary,
     deleteLibrary,
     startBackgroundScan,
-    cancelScanOperation,
   } = useLibraries();
 
   const { notify } = useNotifications();
@@ -98,23 +97,21 @@ export default function LibrariesClient() {
   };
 
   const handleScanLibraries = async () => {
-    if (activeScanOperation) {
-      // Cancel the current scan
-      const result = await cancelScanOperation(activeScanOperation.id);
+    if (activeScanOperation && activeScanOperation.state === "Running") {
       notify({
-        title: result.success ? "Scan Cancelled" : "Cancel Failed",
-        message: result.message,
-        type: result.success ? "info" : "error",
+        title: "Scan In Progress",
+        message: "A library scan is already running. Please wait for it to finish before starting a new one.",
+        type: "info",
       });
-    } else {
-      // Start a new background scan
-      const result = await startBackgroundScan();
-      notify({
-        title: result.success ? "Scan Started" : "Scan Failed",
-        message: result.message,
-        type: result.success ? "success" : "error",
-      });
+      return;
     }
+
+    const result = await startBackgroundScan();
+    notify({
+      title: result.success ? "Scan Started" : "Scan Failed",
+      message: result.message,
+      type: result.success ? "success" : "error",
+    });
   };
 
   const formatProgress = (operation: ScanOperationInfo) => {
@@ -135,7 +132,7 @@ export default function LibrariesClient() {
     if (!activeScanOperation) return "Scan Libraries";
 
     if (activeScanOperation.state === "Running") {
-      return `Cancel Scan (${Math.round(activeScanOperation.progress)}%)`;
+      return `Scanning... (${Math.round(activeScanOperation.progress)}%)`;
     }
 
     return "Scan Libraries";
@@ -207,7 +204,7 @@ export default function LibrariesClient() {
             </button>
             <button
               onClick={handleScanLibraries}
-              disabled={loading}
+              disabled={loading || (activeScanOperation?.state === "Running")}
               className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-offset-gray-800"
             >
               {getScanButtonIcon()}

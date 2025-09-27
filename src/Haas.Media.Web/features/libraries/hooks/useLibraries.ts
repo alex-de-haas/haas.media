@@ -139,29 +139,6 @@ export function useLibraries() {
     }
   }, []);
 
-  const cancelScanOperation = useCallback(async (operationId: string): Promise<{ success: boolean; message: string }> => {
-    try {
-      const token = await getValidToken();
-      const headers = new Headers({
-        "Content-Type": "application/json",
-      });
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
-      const response = await fetch(`${downloaderApi}/api/metadata/scan/operations/${operationId}/cancel`, {
-        method: "POST",
-        headers,
-      });
-
-      if (response.ok) {
-        return { success: true, message: "Scan operation cancelled successfully" };
-      } else {
-        const errorText = await response.text();
-        return { success: false, message: errorText || "Failed to cancel scan operation" };
-      }
-    } catch (error) {
-      return { success: false, message: "Network error occurred while cancelling scan operation" };
-    }
-  }, []);
 
   useEffect(() => {
     fetchLibraries();
@@ -176,6 +153,5 @@ export function useLibraries() {
     updateLibrary,
     deleteLibrary,
     startBackgroundScan,
-    cancelScanOperation,
   };
 }

@@ -2,6 +2,7 @@ using Haas.Media.Core.FFMpeg;
 using Haas.Media.Downloader.Api.Encodings;
 using Haas.Media.Downloader.Api.Files;
 using Haas.Media.Downloader.Api.Infrastructure;
+using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 using Haas.Media.Downloader.Api.Metadata;
 using Haas.Media.Downloader.Api.Torrents;
 using Haas.Media.ServiceDefaults;
@@ -22,6 +23,8 @@ builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(k
 
 // Add default service configurations.
 builder.AddServiceDefaults();
+
+builder.Services.AddBackgroundTasks();
 
 var databaseDirectory = Path.Combine(dataDirectory, ".db");
 Directory.CreateDirectory(databaseDirectory);
