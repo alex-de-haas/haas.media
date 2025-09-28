@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 
@@ -9,13 +11,18 @@ public class BackgroundTaskService : IBackgroundTaskService, IHostedService, IDi
     private readonly ConcurrentDictionary<Guid, BackgroundTaskInfo> _tasks = new();
     private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _cancellationTokens = new();
     private readonly ILogger<BackgroundTaskService> _logger;
+    private readonly IHubContext<BackgroundTaskHub, IBackgroundTaskClient> _hubContext;
     private CancellationTokenSource? _stoppingCts;
     private Task? _processingTask;
     private bool _disposed;
 
-    public BackgroundTaskService(ILogger<BackgroundTaskService> logger)
+    public BackgroundTaskService(
+        ILogger<BackgroundTaskService> logger,
+        IHubContext<BackgroundTaskHub, IBackgroundTaskClient> hubContext
+    )
     {
         _logger = logger;
+        _hubContext = hubContext;
         _channel = Channel.CreateUnbounded<BackgroundTaskWorkItem>(
             new UnboundedChannelOptions
             {
@@ -335,6 +342,34 @@ public class BackgroundTaskService : IBackgroundTaskService, IHostedService, IDi
     private void OnTaskUpdated(BackgroundTaskInfo taskInfo)
     {
         TaskUpdated?.Invoke(this, taskInfo);
+        BroadcastTaskUpdate(taskInfo);
+    }
+
+    private void BroadcastTaskUpdate(BackgroundTaskInfo taskInfo)
+    {
+        static bool IsFastSuccess(Task task) => task.IsCompletedSuccessfully;
+
+        var broadcastTask = _hubContext.Clients.All.TaskUpdated(taskInfo);
+
+        if (IsFastSuccess(broadcastTask))
+        {
+            return;
+        }
+
+        _ = broadcastTask.ContinueWith(
+            t =>
+            {
+                if (t.IsFaulted && t.Exception is { } ex)
+                {
+                    _logger.LogWarning(
+                        ex.Flatten(),
+                        "Failed to broadcast background task update for {TaskId}",
+                        taskInfo.Id
+                    );
+                }
+            },
+            TaskScheduler.Default
+        );
     }
 
     private readonly record struct BackgroundTaskWorkItem(

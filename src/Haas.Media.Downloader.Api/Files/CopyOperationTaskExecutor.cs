@@ -1,10 +1,6 @@
-using System;
 using System.Collections.Concurrent;
-using System.IO;
-using System.Threading.Tasks;
 using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Logging;
 
 namespace Haas.Media.Downloader.Api.Files;
 

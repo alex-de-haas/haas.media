@@ -1,4 +1,5 @@
-**IMPORTANT:** This project was mostly written with the help of AI agents for the purpose of testing this technology. As progress is made, I will leave my comments and recommendations.
+> [!WARNING] 
+> This project was mostly written with the help of AI agents for the purpose of testing this technology. As progress is made, I will leave my comments and recommendations.
 
 # Haas.Media
 

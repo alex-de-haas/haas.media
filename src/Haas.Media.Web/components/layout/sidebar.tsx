@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useLayout } from "./layout-provider";
 import { useAuth } from "../../lib/hooks/useAuth";
 import ThemeSwitch from "../ui/theme-switch";
+import ActiveBackgroundTasks from "../background-tasks/active-background-tasks";
 
 interface SidebarProps {
   children?: React.ReactNode;
@@ -152,6 +153,11 @@ export default function Sidebar({ children }: SidebarProps) {
                   })}
                 </ul>
               </li>
+              {user && (
+                <li>
+                  <ActiveBackgroundTasks enabled={Boolean(user)} />
+                </li>
+              )}
             </ul>
           </nav>
           

@@ -119,6 +119,7 @@ app.MapDefaultEndpoints();
 app.MapControllers();
 
 app.UseEncoding();
+app.UseBackgroundTasks();
 app.UseFiles();
 app.UseMetadata();
 app.UseTorrent();

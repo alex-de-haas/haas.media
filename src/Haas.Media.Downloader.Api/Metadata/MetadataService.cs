@@ -2,7 +2,6 @@ using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 using LiteDB;
 using Microsoft.AspNetCore.SignalR;
 using TMDbLib.Client;
-using TMDbLib.Objects.Search;
 
 namespace Haas.Media.Downloader.Api.Metadata;
 

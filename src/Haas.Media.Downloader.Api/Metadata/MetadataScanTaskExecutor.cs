@@ -1,12 +1,6 @@
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 using LiteDB;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Logging;
 using TMDbLib.Client;
 using TMDbLib.Objects.Search;
 
