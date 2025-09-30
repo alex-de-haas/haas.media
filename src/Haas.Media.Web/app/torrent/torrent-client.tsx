@@ -56,19 +56,21 @@ export default function TorrentClient() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto space-y-10 px-4 py-8">
       <PageHeader
         title="Torrents"
         description="Upload new torrent files and monitor their progress."
       />
-      <TorrentUpload onUpload={handleUpload} isUploading={isUploading} />
-      <TorrentList
-        torrents={torrents}
-        onDelete={handleDelete}
-        onStart={handleStart}
-        onStop={handleStop}
-        onPause={handlePause}
-      />
+      <div className="space-y-8">
+        <TorrentUpload onUpload={handleUpload} isUploading={isUploading} />
+        <TorrentList
+          torrents={torrents}
+          onDelete={handleDelete}
+          onStart={handleStart}
+          onStop={handleStop}
+          onPause={handlePause}
+        />
+      </div>
     </div>
   );
 }

@@ -1,9 +1,25 @@
 "use client";
 
-import React from "react"; // Add React import
-import { TorrentState, type TorrentInfo } from "../../../types";
-import { TorrentFile } from "../../../types/torrent"; // Import TorrentFile
+import { useState, type ReactNode } from "react";
+import { ChevronDown, Magnet, Pause, Play, Square, Trash2 } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+
 import { formatSize, formatRate, formatPercentage } from "../../../lib/utils/format";
+import { TorrentState, type TorrentInfo } from "../../../types";
+import { TorrentFile } from "../../../types/torrent";
 
 interface TorrentListProps {
   torrents: TorrentInfo[];
@@ -24,8 +40,7 @@ export default function TorrentList({
     if (!onDelete) return;
 
     if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
-      const result = await onDelete(hash);
-      // Handle result if needed (notifications will be handled by the parent component)
+      await onDelete(hash);
     }
   };
 
@@ -38,6 +53,7 @@ export default function TorrentList({
     if (!onStop) return;
     await onStop(hash);
   };
+
   const handlePause = async (hash: string) => {
     if (!onPause) return;
     await onPause(hash);
@@ -45,46 +61,43 @@ export default function TorrentList({
 
   if (torrents.length === 0) {
     return (
-      <div className="text-center py-12">
-        <svg
-          className="mx-auto h-12 w-12 text-gray-400"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
-          />
-        </svg>
-        <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
-          No torrents
-        </h3>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Upload a torrent file to get started.
-        </p>
-      </div>
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center gap-4 py-12 text-center">
+          <div className="flex size-14 items-center justify-center rounded-full bg-muted">
+            <Magnet className="size-7 text-muted-foreground" aria-hidden="true" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold">No torrents yet</h3>
+            <p className="max-w-sm text-sm text-muted-foreground">
+              Upload a torrent file to start downloading and keep track of its progress here.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-        Active Torrents ({torrents.length})
-      </h2>
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <h2 className="text-xl font-semibold tracking-tight">Active Torrents</h2>
+          <p className="text-sm text-muted-foreground">
+            Monitor download progress and manage actions for each torrent.
+          </p>
+        </div>
+        <Badge variant="secondary" className="self-start px-3 py-1 text-xs font-semibold">
+          {torrents.length} active
+        </Badge>
+      </div>
 
-      <div className="space-y-3">
+      <div className="grid gap-4">
         {torrents.map((torrent) => (
           <TorrentCard
             key={torrent.hash}
             torrent={torrent}
             onDelete={
-              onDelete
-                ? () => handleDelete(torrent.hash, torrent.name)
-                : undefined
+              onDelete ? () => handleDelete(torrent.hash, torrent.name) : undefined
             }
             onStart={onStart ? () => handleStart(torrent.hash) : undefined}
             onStop={onStop ? () => handleStop(torrent.hash) : undefined}
@@ -105,198 +118,212 @@ interface TorrentCardProps {
 }
 
 function TorrentCard({ torrent, onDelete, onStart, onStop, onPause }: TorrentCardProps) {
+  const [filesOpen, setFilesOpen] = useState(false);
+
   const isRunning =
     torrent.state === TorrentState.Downloading ||
     torrent.state === TorrentState.Seeding;
 
-  // Media info now shown on dedicated page; keep only file toggle
   const statusInfo = getStatusInfo(torrent.state);
+  const showTransferRates =
+    torrent.state === TorrentState.Downloading || torrent.state === TorrentState.Seeding;
+  const hasEta = torrent.progress > 0 && torrent.estimatedTimeSeconds != null;
+
+  const toggleFiles = () => setFilesOpen((prev) => !prev);
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-              {torrent.name}
-            </h3>
-          </div>
-          <div className="mt-1 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+    <Card>
+      <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-2">
+          <CardTitle className="text-base font-semibold leading-tight">
+            {torrent.name}
+          </CardTitle>
+          <CardDescription className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm">
             <span>
-              {formatSize(torrent.downloaded)} from {formatSize(torrent.size)}
+              {formatSize(torrent.downloaded)} / {formatSize(torrent.size)}
             </span>
-            <span>•</span>
+            <span className="hidden text-muted-foreground sm:inline">•</span>
             <span>{formatPercentage(torrent.progress)} complete</span>
-            <span>•</span>
-            <span className={statusInfo.colorClass}>{statusInfo.label}</span>
-            {torrent.state === TorrentState.Downloading && (
+            {showTransferRates && (
               <>
-                <span>•</span>
+                <span className="hidden text-muted-foreground sm:inline">•</span>
                 <span>
                   ↓ {formatRate(torrent.downloadRate)} ↑ {formatRate(torrent.uploadRate)}
                 </span>
-                <span>•</span>
-                <span>
-                  ETA: {torrent.progress > 0 && torrent.estimatedTimeSeconds != null
-                    ? formatDuration(torrent.estimatedTimeSeconds)
-                    : "calculating…"}
-                </span>
+                <span className="hidden text-muted-foreground sm:inline">•</span>
+                <span>ETA {hasEta ? formatDuration(torrent.estimatedTimeSeconds!) : "—"}</span>
               </>
             )}
-          </div>
+          </CardDescription>
+        </div>
+        <Badge
+          variant="outline"
+          className={cn(
+            "border px-3 py-1 text-xs font-medium capitalize",
+            statusInfo.badgeClass
+          )}
+        >
+          {statusInfo.label}
+        </Badge>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 text-sm sm:grid-cols-3">
+          <Metric label="Downloaded" value={`${formatSize(torrent.downloaded)} of ${formatSize(torrent.size)}`} />
+          <Metric
+            label="Transfer"
+            value={
+              showTransferRates ? (
+                <span>
+                  ↓ {formatRate(torrent.downloadRate)} • ↑ {formatRate(torrent.uploadRate)}
+                </span>
+              ) : (
+                "—"
+              )
+            }
+          />
+          <Metric label="Files" value={`${torrent.files.length}`} />
         </div>
 
-        <div className="ml-4 flex items-center space-x-2">
-          {isRunning && onPause && (
+        {torrent.files.length > 0 && (
+          <div className="overflow-hidden rounded-lg border border-border/80 bg-muted/30">
             <button
+              type="button"
+              onClick={toggleFiles}
+              className="flex w-full items-center justify-between gap-2 px-4 py-3 text-sm font-medium transition hover:bg-muted"
+            >
+              <span>Files ({torrent.files.length})</span>
+              <ChevronDown
+                className={cn(
+                  "size-4 text-muted-foreground transition-transform",
+                  filesOpen && "rotate-180"
+                )}
+                aria-hidden="true"
+              />
+            </button>
+            {filesOpen && (
+              <ScrollArea className="h-44 border-t border-border bg-background/80">
+                <ul className="divide-y divide-border/70">
+                  {torrent.files.map((file: TorrentFile) => (
+                    <li key={file.path} className="px-4 py-3 text-xs">
+                      <p className="truncate font-medium" title={file.path}>
+                        {file.path}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {formatSize(file.downloaded)} of {formatSize(file.size)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </ScrollArea>
+            )}
+          </div>
+        )}
+      </CardContent>
+
+      <CardFooter className="flex flex-col gap-4 border-t border-border/80 bg-muted/20 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+        <div className="w-full space-y-2 sm:flex-1">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Progress</span>
+            <span>{formatPercentage(torrent.progress)}</span>
+          </div>
+          <Progress value={torrent.progress} className="h-2" />
+        </div>
+
+        <div className="flex items-center gap-2 self-stretch sm:self-auto">
+          {isRunning && onPause && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
               onClick={onPause}
-              className="p-1 text-yellow-600 hover:text-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 rounded"
               aria-label={`Pause ${torrent.name}`}
               title="Pause torrent"
             >
-              <span className="sr-only">Pause</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <rect x="6" y="5" width="4" height="14" rx="1" />
-                <rect x="14" y="5" width="4" height="14" rx="1" />
-              </svg>
-            </button>
+              <Pause className="size-4" aria-hidden="true" />
+            </Button>
           )}
-          {isRunning
-            ? onStop && (
-                <button
-                  onClick={onStop}
-                  className="p-1 text-orange-600 hover:text-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded"
-                  aria-label={`Stop ${torrent.name}`}
-                  title="Stop torrent"
-                >
-                  <span className="sr-only">Stop</span>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <rect x="6" y="6" width="12" height="12" rx="1" />
-                  </svg>
-                </button>
-              )
-            : !isRunning && torrent.state !== TorrentState.Stopping && onStart && (
-                <button
-                  onClick={onStart}
-                  className="p-1 text-green-600 hover:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 rounded"
-                  aria-label={`Start ${torrent.name}`}
-                  title="Start torrent"
-                >
-                  <span className="sr-only">Start</span>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path d="M5 3.868a1 1 0 011.52-.853l12 8.132a1 1 0 010 1.706l-12 8.132A1 1 0 015 20.132V3.868z" />
-                  </svg>
-                </button>
-              )}
+          {isRunning && onStop && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onStop}
+              aria-label={`Stop ${torrent.name}`}
+              title="Stop torrent"
+            >
+              <Square className="size-4" aria-hidden="true" />
+            </Button>
+          )}
+          {!isRunning && torrent.state !== TorrentState.Stopping && onStart && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onStart}
+              aria-label={`Start ${torrent.name}`}
+              title="Start torrent"
+            >
+              <Play className="size-4" aria-hidden="true" />
+            </Button>
+          )}
           {onDelete && (
-            <button
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
               onClick={onDelete}
-              className="p-1 text-gray-400 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 rounded"
               aria-label={`Delete ${torrent.name}`}
               title="Delete torrent"
             >
-              <span className="sr-only">Delete</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
-            </button>
+              <Trash2 className="size-4" aria-hidden="true" />
+            </Button>
           )}
         </div>
-      </div>
+      </CardFooter>
+    </Card>
+  );
+}
 
-      {/* Progress Bar */}
-      <div className="mt-3">
-        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-          <span>Progress</span>
-          <span>{formatPercentage(torrent.progress)}</span>
-        </div>
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-          <div
-            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${torrent.progress}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Files List */}
-      <details className="mt-3">
-        <summary className="text-sm text-blue-600 dark:text-blue-400 hover:underline focus:outline-none cursor-pointer">
-          Files
-        </summary>
-
-        <ul className="mt-2 space-y-1 text-xs text-gray-700 dark:text-gray-300">
-          {torrent.files.map((file: TorrentFile) => (
-            <li
-              key={file.path}
-              className="flex justify-between items-center gap-2"
-            >
-              <div className="flex-1 min-w-0">
-                <span className="truncate block" title={file.path}>
-                  {file.path}
-                </span>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {formatSize(file.downloaded)} from {formatSize(file.size)}
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </details>
+function Metric({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="text-sm font-medium text-foreground">{value}</div>
     </div>
   );
 }
 
-function getStatusInfo(state: TorrentState): { label: string; colorClass: string } {
+function getStatusInfo(state: TorrentState): { label: string; badgeClass: string } {
   switch (state) {
     case TorrentState.Downloading:
-      return { label: "Downloading", colorClass: "text-green-600 dark:text-green-400" };
     case TorrentState.Seeding:
-      return { label: "Seeding", colorClass: "text-green-600 dark:text-green-400" };
     case TorrentState.Starting:
-      return { label: "Starting", colorClass: "text-green-600 dark:text-green-400" };
+      return {
+        label: "Downloading",
+        badgeClass: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600",
+      };
     case TorrentState.Paused:
-      return { label: "Paused", colorClass: "text-yellow-600 dark:text-yellow-400" };
     case TorrentState.Hashing:
-      return { label: "Checking", colorClass: "text-yellow-600 dark:text-yellow-400" };
     case TorrentState.HashingPaused:
-      return { label: "Checking (Paused)", colorClass: "text-yellow-600 dark:text-yellow-400" };
     case TorrentState.Stopping:
-      return { label: "Stopping", colorClass: "text-yellow-600 dark:text-yellow-400" };
     case TorrentState.Metadata:
-      return { label: "Fetching Metadata", colorClass: "text-yellow-600 dark:text-yellow-400" };
     case TorrentState.FetchingHashes:
-      return { label: "Fetching Hashes", colorClass: "text-yellow-600 dark:text-yellow-400" };
+      return {
+        label: "Queued",
+        badgeClass: "border-amber-500/30 bg-amber-500/10 text-amber-600",
+      };
     case TorrentState.Error:
-      return { label: "Error", colorClass: "text-red-600 dark:text-red-400" };
+      return {
+        label: "Error",
+        badgeClass: "border-destructive/30 bg-destructive/20 text-destructive",
+      };
     case TorrentState.Stopped:
     default:
-      return { label: "Stopped", colorClass: "text-gray-500 dark:text-gray-400" };
+      return {
+        label: "Stopped",
+        badgeClass: "border-border bg-muted text-muted-foreground",
+      };
   }
 }
 
