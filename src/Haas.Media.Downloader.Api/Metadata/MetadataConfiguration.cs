@@ -4,6 +4,32 @@ public static class MetadataConfiguration
 {
     public static WebApplicationBuilder AddMetadata(this WebApplicationBuilder builder)
     {
+        builder.Services
+            .AddOptions<Tmdb.TmdbClientOptions>()
+            .Bind(builder.Configuration.GetSection("Tmdb"))
+            .PostConfigure(options => options.Validate());
+
+        builder.Services.AddSingleton(TimeProvider.System);
+        builder.Services.AddSingleton<Tmdb.TmdbHttpClientAccessor>();
+
+        builder.Services.AddSingleton(sp =>
+        {
+            var configuration = sp.GetRequiredService<IConfiguration>();
+            var tmdbApiKey =
+                configuration["TMDB_API_KEY"]
+                ?? throw new ArgumentException("TMDB_API_KEY configuration is required.");
+
+            var client = new TMDbLib.Client.TMDbClient(tmdbApiKey)
+            {
+                DefaultLanguage = "en",
+            };
+
+            var httpClient = sp.GetRequiredService<Tmdb.TmdbHttpClientAccessor>().HttpClient;
+            Tmdb.TmdbClientConfigurator.UseHttpClient(client, httpClient);
+
+            return client;
+        });
+
         builder.Services.AddSingleton<MetadataService>();
         builder.Services.AddScoped<IMetadataApi>(sp => sp.GetRequiredService<MetadataService>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<MetadataService>());

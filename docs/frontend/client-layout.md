@@ -45,7 +45,7 @@ The layout system is organized into several key components:
 
 ### Basic Page with Header
 ```tsx
-import { PageHeader } from "../components/layout";
+import { PageHeader } from "@/components/layout";
 
 export default function MyPage() {
   return (
@@ -65,7 +65,7 @@ export default function MyPage() {
 
 ### Page with Actions and Breadcrumbs
 ```tsx
-import { PageHeader } from "../components/layout";
+import { PageHeader } from "@/components/layout";
 
 export default function DetailPage() {
   return (
@@ -100,7 +100,7 @@ export default function DetailPage() {
 ```tsx
 "use client";
 
-import { usePageTitle } from "../components/layout";
+import { usePageTitle } from "@/components/layout";
 
 export default function DynamicPage() {
   const [title, setTitle] = useState("Initial Title");
@@ -122,7 +122,7 @@ export default function DynamicPage() {
 ```tsx
 "use client";
 
-import { useLayout } from "../components/layout";
+import { useLayout } from "@/components/layout";
 
 export default function PageWithSidebarControl() {
   const { sidebarOpen, setSidebarOpen } = useLayout();

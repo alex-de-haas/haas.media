@@ -22,7 +22,8 @@ public class MetadataService : IMetadataApi, IHostedService
         ILogger<MetadataService> logger,
         LiteDatabase database,
         IHubContext<MetadataHub> hubContext,
-        IBackgroundTaskService backgroundTaskService
+        IBackgroundTaskService backgroundTaskService,
+        TMDbClient tmdbClient
     )
     {
         _dataPath =
@@ -35,12 +36,7 @@ public class MetadataService : IMetadataApi, IHostedService
         _logger = logger;
         _backgroundTaskService = backgroundTaskService;
 
-        var tmdbApiKey =
-            configuration["TMDB_API_KEY"]
-            ?? throw new ArgumentException("TMDB_API_KEY configuration is required.");
-
-        _tmdbClient = new TMDbClient(tmdbApiKey);
-        _tmdbClient.DefaultLanguage = "en"; // Default language as specified in METADATA.md
+        _tmdbClient = tmdbClient;
 
         _scanTaskExecutor = new MetadataScanTaskExecutor(
             _dataPath,

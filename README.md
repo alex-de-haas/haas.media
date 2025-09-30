@@ -120,17 +120,22 @@ The application will be available at:
 
 ## 📚 Documentation
 
-- [API Documentation](docs/API.md) - REST API endpoints and SignalR hubs
-- [Client Layout](docs/CLIENT_LAYOUT.md) - Frontend architecture
-- [Hardware Encoding](docs/HARDWARE_ENCODING.md) - Hardware acceleration setup
-- [LiteDB Integration](docs/LITEDB_INTEGRATION.md) - Database configuration
-- [Authentication](docs/README-AUTH.md) - Auth0 setup guide
-- [VAAPI Troubleshooting](docs/VAAPI_TROUBLESHOOTING.md) - Hardware acceleration issues
-
-### Module Documentation
-- [File Manager](docs/Modules/FILE_MANAGER.md)
-- [Metadata Scanning](docs/Modules/METADATA_SCANNING.md)
-- [Metadata Management](docs/Modules/METADATA.md)
+- [Documentation Index](docs/README.md)
+- Backend
+  - [API Reference](docs/API.md)
+  - [File Management Module](docs/backend/file-management.md)
+  - [Metadata Domain](docs/backend/metadata.md)
+  - [Metadata Scanning Pipeline](docs/backend/metadata-scanning.md)
+  - [TMDb Throttling](docs/backend/tmdb-throttling.md)
+- Frontend
+  - [Client Layout System](docs/frontend/client-layout.md)
+  - [TMDb Search Modal](docs/frontend/search-modal.md)
+- Infrastructure & Operations
+  - [Auth0 Integration](docs/infrastructure/auth0.md)
+  - [LiteDB Integration](docs/infrastructure/litedb.md)
+  - [Hardware Encoding](docs/infrastructure/hardware-encoding.md)
+  - [VAAPI Troubleshooting](docs/operations/vaapi-troubleshooting.md)
+  - [Ryzen AI 9 HX 370 VAAPI Notes](docs/operations/ryzen-ai-9-hx-370-vaapi.md)
 
 ## 🔧 Configuration
 
@@ -140,7 +145,7 @@ The application supports various hardware acceleration methods:
 - **NVENC** (NVIDIA) - For NVIDIA GPUs
 - **Quick Sync** (Intel) - For Intel integrated graphics
 
-See [HARDWARE_ENCODING.md](docs/HARDWARE_ENCODING.md) for detailed setup instructions.
+See [Hardware Encoding](docs/infrastructure/hardware-encoding.md) for detailed setup instructions.
 
 ### Docker Support
 Use the provided Docker Compose files for different environments:
