@@ -89,4 +89,33 @@ public static class MetadataHelper
 
         return cleanedTitle;
     }
+
+    public static int? ExtractYearFromString(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var matches = Regex.Matches(value, @"(?<!\d)(?:19|20)\d{2}(?!\d)");
+
+        foreach (Match match in matches)
+        {
+            if (!int.TryParse(match.Value, out var year))
+            {
+                continue;
+            }
+
+            var upperBound = System.DateTime.UtcNow.Year + 1;
+
+            if (year < 1900 || year > upperBound)
+            {
+                continue;
+            }
+
+            return year;
+        }
+
+        return null;
+    }
 }

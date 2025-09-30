@@ -2,6 +2,7 @@ using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 using LiteDB;
 using Microsoft.AspNetCore.SignalR;
 using TMDbLib.Client;
+using TMDbLib.Objects.General;
 using TMDbLib.Objects.Search;
 
 namespace Haas.Media.Downloader.Api.Metadata;
@@ -289,6 +290,7 @@ internal sealed class MetadataScanTaskExecutor
                 var showTitle = MetadataHelper.ExtractTVShowTitleFromDirectoryName(
                     directoryInfo.Name
                 );
+                var showYear = MetadataHelper.ExtractYearFromString(directoryInfo.Name);
                 if (string.IsNullOrEmpty(showTitle))
                 {
                     _logger.LogDebug(
@@ -318,7 +320,7 @@ internal sealed class MetadataScanTaskExecutor
                         showTitle
                     );
 
-                    var updatedTmdbResult = await SearchTMDbForTVShow(showTitle);
+                    var updatedTmdbResult = await SearchTMDbForTVShow(showTitle, showYear);
                     if (updatedTmdbResult != null)
                     {
                         var updatedTvShowMetadata = await CreateTVShowMetadata(
@@ -355,7 +357,7 @@ internal sealed class MetadataScanTaskExecutor
                 }
 
                 _logger.LogDebug("Searching TMDb for TV show: {ShowTitle}", showTitle);
-                var tmdbResult = await SearchTMDbForTVShow(showTitle);
+                var tmdbResult = await SearchTMDbForTVShow(showTitle, showYear);
 
                 if (tmdbResult != null)
                 {
@@ -401,11 +403,21 @@ internal sealed class MetadataScanTaskExecutor
         return (processed, found);
     }
 
-    private async Task<SearchTv?> SearchTMDbForTVShow(string tvShowTitle)
+    private async Task<SearchTv?> SearchTMDbForTVShow(string tvShowTitle, int? firstAirDateYear)
     {
         try
         {
-            var searchResults = await _tmdbClient.SearchTvShowAsync(tvShowTitle);
+            var searchResults = await SearchAsync(firstAirDateYear);
+
+            if ((searchResults?.Results?.Count ?? 0) == 0 && firstAirDateYear.HasValue)
+            {
+                _logger.LogDebug(
+                    "Retrying TMDb TV show search without year for {TVShowTitle}",
+                    tvShowTitle
+                );
+                searchResults = await SearchAsync(null);
+            }
+
             if (searchResults?.Results?.Count > 0)
             {
                 return searchResults
@@ -419,6 +431,20 @@ internal sealed class MetadataScanTaskExecutor
         {
             _logger.LogError(ex, "Error searching TMDb for TV show: {TVShowTitle}", tvShowTitle);
             return null;
+        }
+
+        async Task<SearchContainer<SearchTv>?> SearchAsync(int? year)
+        {
+            return year.HasValue
+                ? await _tmdbClient.SearchTvShowAsync(
+                    tvShowTitle,
+                    firstAirDateYear: year.Value,
+                    cancellationToken: CancellationToken.None
+                )
+                : await _tmdbClient.SearchTvShowAsync(
+                    tvShowTitle,
+                    cancellationToken: CancellationToken.None
+                );
         }
     }
 
@@ -711,8 +737,9 @@ internal sealed class MetadataScanTaskExecutor
                 );
             }
 
-            var movieTitle = MetadataHelper.ExtractMovieTitleFromFileName(
-                Path.GetFileName(filePath)
+            var movieTitle = MetadataHelper.ExtractMovieTitleFromFileName(fileName);
+            var releaseYear = MetadataHelper.ExtractYearFromString(
+                Path.GetFileNameWithoutExtension(filePath)
             );
             if (string.IsNullOrWhiteSpace(movieTitle))
             {
@@ -734,11 +761,37 @@ internal sealed class MetadataScanTaskExecutor
 
             try
             {
-                var searchResults = await _tmdbClient.SearchMovieAsync(
-                    movieTitle,
-                    cancellationToken: taskContext.CancellationToken
-                );
-                if (searchResults.Results.Count > 0)
+                SearchContainer<SearchMovie>? searchResults = null;
+
+                if (releaseYear.HasValue)
+                {
+                    searchResults = await _tmdbClient.SearchMovieAsync(
+                        movieTitle,
+                        year: releaseYear.Value,
+                        cancellationToken: taskContext.CancellationToken
+                    );
+
+                    if ((searchResults?.Results?.Count ?? 0) == 0)
+                    {
+                        _logger.LogDebug(
+                            "Retrying TMDb movie search without year for {MovieTitle}",
+                            movieTitle
+                        );
+                        searchResults = await _tmdbClient.SearchMovieAsync(
+                            movieTitle,
+                            cancellationToken: taskContext.CancellationToken
+                        );
+                    }
+                }
+                else
+                {
+                    searchResults = await _tmdbClient.SearchMovieAsync(
+                        movieTitle,
+                        cancellationToken: taskContext.CancellationToken
+                    );
+                }
+
+                if (searchResults?.Results?.Count > 0)
                 {
                     var movieResult = searchResults.Results[0];
                     var movieDetails = await _tmdbClient.GetMovieAsync(
