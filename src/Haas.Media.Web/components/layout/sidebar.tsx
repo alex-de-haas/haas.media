@@ -279,7 +279,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export default function Sidebar({ children }: SidebarProps) {
   const { sidebarOpen, setSidebarOpen, pageTitle } = useLayout();
-  const { user } = useAuth();
 
   return (
     <Fragment>
@@ -305,16 +304,9 @@ export default function Sidebar({ children }: SidebarProps) {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <div className="hidden text-sm font-semibold text-muted-foreground lg:block">
-              {user ? "Welcome back" : "Welcome"}
-            </div>
             <span className="text-lg font-semibold text-foreground">
               {pageTitle}
             </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <ThemeSwitch variant="toggle" size="sm" className="hidden lg:flex" />
-            <UserMenu variant="header" />
           </div>
         </header>
         <main className="flex-1 pb-10">
