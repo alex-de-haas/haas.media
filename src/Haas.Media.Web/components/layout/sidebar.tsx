@@ -2,10 +2,39 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Fragment } from "react";
+import {
+  LayoutDashboard,
+  CloudDownload,
+  Settings2,
+  Folder,
+  Library,
+  Clapperboard,
+  TvMinimalPlay,
+  Menu,
+  LogIn,
+  LogOut,
+  ChevronDown,
+  Activity,
+} from "lucide-react";
+
 import { useLayout } from "./layout-provider";
 import { useAuth } from "../../lib/hooks/useAuth";
-import ThemeSwitch from "../ui/theme-switch";
 import ActiveBackgroundTasks from "../background-tasks/active-background-tasks";
+import ThemeSwitch from "../ui/theme-switch";
+import { Button } from "../ui/button";
+import { Sheet, SheetContent } from "../ui/sheet";
+import { ScrollArea } from "../ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { cn } from "@/lib/utils";
 
 interface SidebarProps {
   children?: React.ReactNode;
@@ -15,307 +44,283 @@ const navigationItems = [
   {
     name: "Dashboard",
     href: "/",
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-      </svg>
-    ),
+    icon: LayoutDashboard,
   },
   {
     name: "Torrents",
     href: "/torrent",
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-      </svg>
-    ),
+    icon: CloudDownload,
   },
   {
     name: "Encodings",
     href: "/encodings",
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5V18M15 7.5V18M3 16.811V8.69c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.953l-7.108 4.061A1.125 1.125 0 0 1 3 16.811Z" />
-      </svg>
-    ),
+    icon: Settings2,
   },
   {
     name: "Files",
     href: "/files",
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25H11.69z" />
-      </svg>
-    ),
+    icon: Folder,
   },
   {
     name: "Libraries",
     href: "/libraries",
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-      </svg>
-    ),
+    icon: Library,
   },
   {
     name: "Movies",
     href: "/movies",
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
-      </svg>
-    ),
+    icon: Clapperboard,
   },
   {
     name: "TV Shows",
     href: "/tvshows",
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v15.125c0 .621.504 1.125 1.125 1.125z" />
-      </svg>
-    ),
+    icon: TvMinimalPlay,
   },
 ];
 
-export default function Sidebar({ children }: SidebarProps) {
+function getInitials(name?: string | null) {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
+
+function NavigationList({
+  pathname,
+  onNavigate,
+}: {
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  return (
+    <nav className="grid gap-1 px-2">
+      {navigationItems.map((item) => {
+        const Icon = item.icon;
+        const isActive =
+          item.href === "/"
+            ? pathname === "/"
+            : pathname.startsWith(item.href);
+
+        return (
+          <Link
+            key={item.name}
+            href={item.href}
+            onClick={onNavigate}
+            className={cn(
+              "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              isActive
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+          >
+            <Icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")}
+            />
+            <span className="truncate">{item.name}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+interface UserMenuProps {
+  variant?: "sidebar" | "header";
+}
+
+function UserMenu({ variant = "sidebar" }: UserMenuProps) {
+  const { user } = useAuth();
+  const displayName = user?.name || user?.email || "Guest";
+  const initials = getInitials(displayName);
+
+  if (!user) {
+    if (variant === "sidebar") {
+      return (
+        <Button variant="outline" className="w-full" asChild>
+          <Link href="/api/auth/login">
+            <LogIn className="h-4 w-4" />
+            Sign in
+          </Link>
+        </Button>
+      );
+    }
+
+    return (
+      <Button variant="outline" asChild>
+        <Link href="/api/auth/login">
+          <LogIn className="h-4 w-4" />
+          Sign in
+        </Link>
+      </Button>
+    );
+  }
+
+  if (variant === "header") {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            className="gap-2 px-1"
+          >
+            <Avatar className="h-9 w-9">
+              {user.picture ? (
+                <AvatarImage src={user.picture} alt={displayName} />
+              ) : (
+                <AvatarFallback>{initials}</AvatarFallback>
+              )}
+            </Avatar>
+            <span className="hidden text-sm font-medium sm:inline">
+              {displayName}
+            </span>
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuLabel>Signed in as</DropdownMenuLabel>
+          <div className="px-2 pb-2 text-sm text-muted-foreground">
+            <div className="font-medium text-foreground">{displayName}</div>
+            {user.email && <div className="truncate text-xs">{user.email}</div>}
+          </div>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/api/auth/logout">
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 px-2 py-2 text-left"
+        >
+          <Avatar className="h-9 w-9">
+            {user.picture ? (
+              <AvatarImage src={user.picture} alt={displayName} />
+            ) : (
+              <AvatarFallback>{initials}</AvatarFallback>
+            )}
+          </Avatar>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate text-sm font-semibold">{displayName}</span>
+            {user.email && (
+              <span className="truncate text-xs text-muted-foreground">
+                {user.email}
+              </span>
+            )}
+          </div>
+          <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-64">
+        <DropdownMenuLabel>Signed in as</DropdownMenuLabel>
+        <div className="px-2 pb-2 text-sm text-muted-foreground">
+          <div className="font-medium text-foreground">{displayName}</div>
+          {user.email && <div className="truncate text-xs">{user.email}</div>}
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/api/auth/logout">
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const { sidebarOpen, setSidebarOpen } = useLayout();
   const { user } = useAuth();
 
   return (
-    <>
-      {/* Mobile menu overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Mobile menu button */}
-      <div className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:gap-x-6 sm:px-6 lg:hidden">
-        <button
-          type="button"
-          className="-m-2.5 p-2.5 text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 lg:hidden"
-          onClick={() => setSidebarOpen(true)}
-        >
-          <span className="sr-only">Open sidebar</span>
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth="1.5"
-            stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-            />
-          </svg>
-        </button>
-        <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 lg:hidden" />
+    <div className="flex h-full flex-col">
+      <div className="px-6 pb-4 pt-6">
+        <Link href="/" onClick={onNavigate} className="flex flex-col">
+          <span className="text-sm font-semibold uppercase text-muted-foreground">
+            Haas Media Server
+          </span>
+          <span className="text-lg font-bold tracking-tight text-foreground">
+            Control Center
+          </span>
+        </Link>
       </div>
-
-      {/* Desktop sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6 pb-4 dark:border-gray-700 dark:bg-gray-800">
-          <nav className="flex flex-1 flex-col pt-6">
-            <ul role="list" className="flex flex-1 flex-col gap-y-7">
-              <li>
-                <ul role="list" className="-mx-2 space-y-1">
-                  {navigationItems.map((item) => {
-                    const isActive = pathname === item.href;
-                    return (
-                      <li key={item.name}>
-                        <Link
-                          href={item.href}
-                          className={`group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 transition-colors ${
-                            isActive
-                              ? "bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400"
-                              : "text-gray-700 hover:bg-gray-50 hover:text-blue-700 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-blue-400"
-                          }`}
-                        >
-                          <div
-                            className={`${
-                              isActive
-                                ? "text-blue-700 dark:text-blue-400"
-                                : "text-gray-400 group-hover:text-blue-700 dark:text-gray-500 dark:group-hover:text-blue-400"
-                            }`}
-                          >
-                            {item.icon}
-                          </div>
-                          {item.name}
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </li>
-              {user && (
-                <li>
-                  <ActiveBackgroundTasks enabled={Boolean(user)} />
-                </li>
-              )}
-            </ul>
-          </nav>
-          
-          {/* Bottom section with theme switch and user info */}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-4">
-            {/* Theme Switch */}
-            <div className="flex justify-center">
-              <ThemeSwitch variant="buttons" size="sm" />
+      <ScrollArea className="flex-1">
+        <NavigationList pathname={pathname} onNavigate={onNavigate} />
+        {user && (
+          <div className="px-4 py-6">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
+              <Activity className="h-3.5 w-3.5" />
+              Background Tasks
             </div>
-            
-            {/* User Info */}
-            {user ? (
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center gap-3 px-2">
-                  {user.picture && (
-                    <img
-                      src={user.picture}
-                      alt={user.name || user.email || "User avatar"}
-                      className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-700"
-                    />
-                  )}
-                  <div className="flex flex-col text-sm text-gray-700 dark:text-gray-200 min-w-0 flex-1">
-                    <span className="font-medium truncate">{user.name}</span>
-                    {user.email && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        {user.email}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <a
-                  href="/api/auth/logout"
-                  className="w-full px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors text-center"
-                >
-                  Logout
-                </a>
-              </div>
-            ) : (
-              <a
-                href="/api/auth/login"
-                className="w-full px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors text-center"
-              >
-                Login
-              </a>
-            )}
+            <div className="mt-3">
+              <ActiveBackgroundTasks enabled={Boolean(user)} />
+            </div>
           </div>
-        </div>
+        )}
+      </ScrollArea>
+      <div className="mt-auto space-y-4 border-t border-border px-6 py-5">
+        <ThemeSwitch variant="dropdown" className="w-full" />
+        <UserMenu variant="sidebar" />
       </div>
+    </div>
+  );
+}
 
-      {/* Mobile sidebar */}
-      <div
-        className={`relative z-50 lg:hidden ${
-          sidebarOpen ? "block" : "hidden"
-        }`}
-      >
-        <div className="fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto bg-white px-6 pb-4 dark:bg-gray-800">
-          <div className="flex h-16 shrink-0 items-center">
-            <button
-              type="button"
-              className="-m-2.5 p-2.5 text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
-              onClick={() => setSidebarOpen(false)}
+export default function Sidebar({ children }: SidebarProps) {
+  const { sidebarOpen, setSidebarOpen, pageTitle } = useLayout();
+  const { user } = useAuth();
+
+  return (
+    <Fragment>
+      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+        <SheetContent side="left" className="w-[18rem] border-r p-0">
+          <SidebarContent onNavigate={() => setSidebarOpen(false)} />
+        </SheetContent>
+      </Sheet>
+
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:w-72 lg:flex-col lg:border-r lg:bg-background">
+        <SidebarContent />
+      </aside>
+
+      <div className="flex min-h-screen flex-1 flex-col lg:pl-72">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:px-8">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              className="lg:hidden"
+              aria-label="Open navigation"
+              onClick={() => setSidebarOpen(true)}
             >
-              <span className="sr-only">Close sidebar</span>
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <nav className="flex flex-1 flex-col">
-            <ul role="list" className="flex flex-1 flex-col gap-y-7">
-              <li>
-                <ul role="list" className="-mx-2 space-y-1">
-                  {navigationItems.map((item) => {
-                    const isActive = pathname === item.href;
-                    return (
-                      <li key={item.name}>
-                        <Link
-                          href={item.href}
-                          className={`group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 transition-colors ${
-                            isActive
-                              ? "bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400"
-                              : "text-gray-700 hover:bg-gray-50 hover:text-blue-700 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-blue-400"
-                          }`}
-                          onClick={() => setSidebarOpen(false)}
-                        >
-                          <div
-                            className={`${
-                              isActive
-                                ? "text-blue-700 dark:text-blue-400"
-                                : "text-gray-400 group-hover:text-blue-700 dark:text-gray-500 dark:group-hover:text-blue-400"
-                            }`}
-                          >
-                            {item.icon}
-                          </div>
-                          {item.name}
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </li>
-            </ul>
-          </nav>
-          
-          {/* Bottom section with theme switch and user info for mobile */}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-4 mt-4">
-            {/* Theme Switch */}
-            <div className="flex justify-center">
-              <ThemeSwitch variant="buttons" size="sm" />
+              <Menu className="h-5 w-5" />
+            </Button>
+            <div className="hidden text-sm font-semibold text-muted-foreground lg:block">
+              {user ? "Welcome back" : "Welcome"}
             </div>
-            
-            {/* User Info */}
-            {user ? (
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center gap-3 px-2">
-                  {user.picture && (
-                    <img
-                      src={user.picture}
-                      alt={user.name || user.email || "User avatar"}
-                      className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-700"
-                    />
-                  )}
-                  <div className="flex flex-col text-sm text-gray-700 dark:text-gray-200 min-w-0 flex-1">
-                    <span className="font-medium truncate">{user.name}</span>
-                    {user.email && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        {user.email}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <a
-                  href="/api/auth/logout"
-                  className="w-full px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors text-center"
-                >
-                  Logout
-                </a>
-              </div>
-            ) : (
-              <a
-                href="/api/auth/login"
-                className="w-full px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors text-center"
-              >
-                Login
-              </a>
-            )}
+            <span className="text-lg font-semibold text-foreground">
+              {pageTitle}
+            </span>
           </div>
-        </div>
+          <div className="flex items-center gap-2">
+            <ThemeSwitch variant="toggle" size="sm" className="hidden lg:flex" />
+            <UserMenu variant="header" />
+          </div>
+        </header>
+        <main className="flex-1 pb-10">
+          {children}
+        </main>
       </div>
-
-      {children}
-    </>
+    </Fragment>
   );
 }

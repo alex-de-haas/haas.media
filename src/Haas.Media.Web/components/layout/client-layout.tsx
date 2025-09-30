@@ -15,13 +15,8 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
     <UserProvider>
       <NotificationsProvider>
         <LayoutProvider>
-          <div className="min-h-screen bg-white text-gray-900 antialiased transition-colors duration-0 dark:bg-gray-950 dark:text-gray-100">
-            <Sidebar>
-              {/* Main content area */}
-              <main className="lg:pl-72">
-                  {children}
-              </main>
-            </Sidebar>
+          <div className="min-h-screen bg-background text-foreground antialiased">
+            <Sidebar>{children}</Sidebar>
           </div>
         </LayoutProvider>
       </NotificationsProvider>
