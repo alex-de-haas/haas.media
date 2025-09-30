@@ -46,8 +46,7 @@ A modern web application for downloading torrents and encoding videos to various
 │   ├── Haas.Media.Aspire/        # Application orchestration
 │   └── Haas.Media.ServiceDefaults/ # Shared service configurations
 ├── docs/                         # Documentation
-├── data/                         # Media files and downloads
-└── docker-compose.*.yml          # Docker configuration
+└── data/                         # Media files and downloads
 ```
 
 ## 🚦 Getting Started
@@ -120,7 +119,6 @@ The application will be available at:
 
 ## 📚 Documentation
 
-- [Documentation Index](docs/README.md)
 - Backend
   - [API Reference](docs/API.md)
   - [File Management Module](docs/backend/file-management.md)
@@ -130,12 +128,11 @@ The application will be available at:
 - Frontend
   - [Client Layout System](docs/frontend/client-layout.md)
   - [TMDb Search Modal](docs/frontend/search-modal.md)
-- Infrastructure & Operations
+  - [Figma](https://www.figma.com/design/OQOX212YTk2I1LQYXcGo3K/Haas.Media)
+- Infrastructure
   - [Auth0 Integration](docs/infrastructure/auth0.md)
   - [LiteDB Integration](docs/infrastructure/litedb.md)
   - [Hardware Encoding](docs/infrastructure/hardware-encoding.md)
-  - [VAAPI Troubleshooting](docs/operations/vaapi-troubleshooting.md)
-  - [Ryzen AI 9 HX 370 VAAPI Notes](docs/operations/ryzen-ai-9-hx-370-vaapi.md)
 
 ## 🔧 Configuration
 
