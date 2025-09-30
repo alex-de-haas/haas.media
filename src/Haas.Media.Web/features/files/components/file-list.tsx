@@ -5,6 +5,19 @@ import { FileItemType } from "@/types/file";
 import type { FileItem } from "@/types/file";
 import { formatFileSize, formatDate } from "@/lib/utils/format";
 import { LoadingSpinner } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+import {
+  ArrowLeft,
+  ChevronRight,
+  File as FileIconOutline,
+  Folder,
+  Image as ImageIcon,
+  Music,
+  Video,
+} from "lucide-react";
 
 interface FileListProps {
   files: FileItem[];
@@ -16,90 +29,24 @@ interface FileListProps {
 
 function FileIcon({ item }: { item: FileItem }) {
   if (item.type === FileItemType.Directory) {
-    return (
-      <svg
-        className="w-5 h-5 text-blue-500"
-        fill="currentColor"
-        viewBox="0 0 20 20"
-      >
-        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-      </svg>
-    );
+    return <Folder className="h-5 w-5 text-primary" />;
   }
 
-  // File icon based on extension
   const extension = item.extension?.toLowerCase();
-  if (
-    extension &&
-    ["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(extension)
-  ) {
-    return (
-      <svg
-        className="w-5 h-5 text-green-500"
-        fill="currentColor"
-        viewBox="0 0 20 20"
-      >
-        <path
-          fillRule="evenodd"
-          d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-          clipRule="evenodd"
-        />
-      </svg>
-    );
+
+  if (extension && ["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(extension)) {
+    return <ImageIcon className="h-5 w-5 text-green-500" />;
   }
 
-  if (
-    extension &&
-    ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"].includes(extension)
-  ) {
-    return (
-      <svg
-        className="w-5 h-5 text-purple-500"
-        fill="currentColor"
-        viewBox="0 0 20 20"
-      >
-        <path
-          fillRule="evenodd"
-          d="M3 4a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm3 2v8l6-4-6-4z"
-          clipRule="evenodd"
-        />
-      </svg>
-    );
+  if (extension && ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"].includes(extension)) {
+    return <Video className="h-5 w-5 text-purple-500" />;
   }
 
-  if (
-    extension &&
-    ["mp3", "wav", "flac", "aac", "ogg", "m4a"].includes(extension)
-  ) {
-    return (
-      <svg
-        className="w-5 h-5 text-red-500"
-        fill="currentColor"
-        viewBox="0 0 20 20"
-      >
-        <path
-          fillRule="evenodd"
-          d="M18 3a1 1 0 00-1.447-.894L8.763 6H5a3 3 0 000 6h.28l1.771 5.316A1 1 0 008 18h1a1 1 0 001-1v-4.382l6.553 3.276A1 1 0 0018 15V3z"
-          clipRule="evenodd"
-        />
-      </svg>
-    );
+  if (extension && ["mp3", "wav", "flac", "aac", "ogg", "m4a"].includes(extension)) {
+    return <Music className="h-5 w-5 text-red-500" />;
   }
 
-  // Default file icon
-  return (
-    <svg
-      className="w-5 h-5 text-gray-500"
-      fill="currentColor"
-      viewBox="0 0 20 20"
-    >
-      <path
-        fillRule="evenodd"
-        d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
-        clipRule="evenodd"
-      />
-    </svg>
-  );
+  return <FileIconOutline className="h-5 w-5 text-muted-foreground" />;
 }
 
 export default function FileList({
@@ -124,120 +71,90 @@ export default function FileList({
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner size="lg" />;
-  }
-
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
-      {/* Breadcrumb */}
-      <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 rounded-t-lg dark:border-gray-700 dark:bg-gray-900 ">
-        <div className="flex items-center space-x-2 text-sm">
-          <button
-            onClick={() => onNavigate("")}
-            className="text-blue-600 hover:text-blue-800 font-medium dark:text-blue-400 dark:hover:text-blue-300"
-          >
+    <Card className="overflow-hidden">
+      <CardHeader className="space-y-4 border-b bg-muted/40 p-4 sm:p-6">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <Button variant="link" size="sm" className="h-7 px-0" onClick={() => onNavigate("")}>
             Files
-          </button>
-          {pathParts.map((part, index) => (
-            <div key={index} className="flex items-center space-x-2">
-              <span className="text-gray-400 dark:text-gray-600">/</span>
-              <button
-                onClick={() =>
-                  onNavigate(pathParts.slice(0, index + 1).join("/"))
-                }
-                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                {part}
-              </button>
-            </div>
-          ))}
+          </Button>
+          {pathParts.map((part, index) => {
+            const pathToHere = pathParts.slice(0, index + 1).join("/");
+            const isLast = index === pathParts.length - 1;
+            return (
+              <div key={pathToHere} className="flex items-center gap-2">
+                <ChevronRight className="h-3 w-3" />
+                {isLast ? (
+                  <span className="font-medium text-foreground">{part}</span>
+                ) : (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-7 px-0"
+                    onClick={() => onNavigate(pathToHere)}
+                  >
+                    {part}
+                  </Button>
+                )}
+              </div>
+            );
+          })}
         </div>
-      </div>
 
-      {/* File listing */}
-      <div className="divide-y divide-gray-200 dark:divide-gray-700">
-        {/* Back button */}
         {currentPath && (
-          <div className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
-            <button
-              onClick={navigateUp}
-              className="flex items-center space-x-3 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>Back</span>
-            </button>
+          <div>
+            <Button variant="secondary" size="sm" onClick={navigateUp} className="inline-flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Up one level
+            </Button>
           </div>
         )}
-
-        {/* Files and directories */}
-        {files.length === 0 ? (
-          <div className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
-            <div className="flex flex-col items-center justify-center space-y-3">
-              <svg
-                className="w-16 h-16 text-gray-300 dark:text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M9 12h6m-6 4h6"
-                  opacity={0.5}
-                />
-              </svg>
-              <span className="text-sm">This directory is empty</span>
-            </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        {loading ? (
+          <div className="flex h-48 items-center justify-center">
+            <LoadingSpinner size="lg" />
+          </div>
+        ) : files.length === 0 ? (
+          <div className="flex h-48 flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground">
+            <Folder className="h-10 w-10 text-muted-foreground/30" />
+            <span>This directory is empty</span>
           </div>
         ) : (
-          files.map((item) => (
-            <div
-              key={item.relativePath}
-              className="px-4 py-3 hover:bg-gray-50 flex items-center justify-between dark:hover:bg-gray-700"
-            >
-              <div
-                className={`flex items-center space-x-3 flex-1 min-w-0 ${
-                  item.type === FileItemType.Directory ? "cursor-pointer" : ""
-                }`}
-                onClick={() => handleItemClick(item)}
-              >
-                <FileIcon item={item} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate dark:text-gray-100">
-                    {item.name}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1 dark:text-gray-400">
-                    {item.type === FileItemType.Directory ? (
-                      "Directory"
-                    ) : (
-                      <span className="flex space-x-2">
-                        <span>{formatFileSize(item.size || 0)}</span>
-                        <span>•</span>
-                        <span>{formatDate(item.lastModified)}</span>
-                      </span>
+          <ScrollArea className="max-h-[60vh]">
+            <div className="divide-y">
+              {files.map((item) => (
+                <div key={item.relativePath} className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
+                  <div
+                    className={cn(
+                      "flex flex-1 items-center gap-3 overflow-hidden",
+                      item.type === FileItemType.Directory && "cursor-pointer hover:text-foreground"
                     )}
+                    onClick={() => handleItemClick(item)}
+                  >
+                    <FileIcon item={item} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        {item.type === FileItemType.Directory ? (
+                          <></>
+                        ) : (
+                          <>
+                            <span>{formatFileSize(item.size || 0)}</span>
+                            <span className="text-muted-foreground/40">•</span>
+                            <span>{formatDate(item.lastModified)}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
+                  {renderActions && renderActions(item)}
                 </div>
-              </div>
-              {renderActions && renderActions(item)}
+              ))}
             </div>
-          ))
+          </ScrollArea>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

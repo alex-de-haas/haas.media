@@ -1,42 +1,30 @@
 "use client";
 
-import { formatSize, formatRate, formatDuration } from "@/lib/utils";
+import { cn, formatDuration, formatRate, formatSize } from "@/lib/utils";
 import type { CopyOperationInfo } from "@/types/file";
 import { CopyOperationState } from "@/types/file";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 
 interface CopyOperationsListProps {
   operations: CopyOperationInfo[];
   onCancel: (operationId: string) => Promise<{ success: boolean; message: string }>;
 }
 
-const getStateColor = (state: CopyOperationState): string => {
-  switch (state) {
-    case CopyOperationState.Running:
-      return "text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/40";
-    case CopyOperationState.Completed:
-      return "text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/40";
-    case CopyOperationState.Failed:
-      return "text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/40";
-    case CopyOperationState.Cancelled:
-      return "text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-700";
-    default:
-      return "text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-700";
-  }
+const stateLabel: Record<CopyOperationState, string> = {
+  [CopyOperationState.Running]: "Running",
+  [CopyOperationState.Completed]: "Completed",
+  [CopyOperationState.Failed]: "Failed",
+  [CopyOperationState.Cancelled]: "Cancelled",
 };
 
-const getStateName = (state: CopyOperationState): string => {
-  switch (state) {
-    case CopyOperationState.Running:
-      return "Running";
-    case CopyOperationState.Completed:
-      return "Completed";
-    case CopyOperationState.Failed:
-      return "Failed";
-    case CopyOperationState.Cancelled:
-      return "Cancelled";
-    default:
-      return "Unknown";
-  }
+const stateBadgeClass: Record<CopyOperationState, string> = {
+  [CopyOperationState.Running]: "border-blue-200 bg-blue-500/10 text-blue-600 dark:border-blue-400/20 dark:text-blue-300",
+  [CopyOperationState.Completed]: "border-green-200 bg-green-500/10 text-green-600 dark:border-green-400/20 dark:text-green-300",
+  [CopyOperationState.Failed]: "border-red-200 bg-red-500/10 text-red-600 dark:border-red-400/20 dark:text-red-300",
+  [CopyOperationState.Cancelled]: "border-muted bg-muted text-muted-foreground",
 };
 
 export default function CopyOperationsList({ operations, onCancel }: CopyOperationsListProps) {
@@ -45,111 +33,102 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
   }
 
   return (
-    <div className="bg-white shadow rounded-lg dark:bg-gray-800">
-      <div className="px-4 py-5 sm:p-6">
-        <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4 dark:text-gray-100">
-          Copy Operations ({operations.length})
-        </h3>
-        <div className="space-y-4">
-          {operations.map((operation) => (
-            <div
-              key={operation.id}
-              className="border border-gray-200 rounded-lg p-4 space-y-3 dark:border-gray-700"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStateColor(
-                      operation.state
-                    )}`}
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Copy operations ({operations.length})</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {operations.map((operation) => (
+          <div key={operation.id} className="space-y-3 rounded-lg border p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className={cn("text-xs", stateBadgeClass[operation.state])}>
+                  {stateLabel[operation.state] ?? "Unknown"}
+                </Badge>
+                {operation.state === CopyOperationState.Running && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onCancel(operation.id)}
+                    className="text-destructive hover:text-destructive"
                   >
-                    {getStateName(operation.state)}
-                  </span>
-                  {operation.state === CopyOperationState.Running && (
-                    <button
-                      onClick={() => onCancel(operation.id)}
-                      className="text-sm text-red-600 hover:text-red-800 font-medium dark:text-red-400 dark:hover:text-red-300"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  {new Date(operation.startTime).toLocaleTimeString()}
-                </div>
+                    Cancel
+                  </Button>
+                )}
               </div>
-
-              <div className="space-y-1">
-                <div className="text-sm text-gray-900 dark:text-gray-100">
-                  <span className="font-medium">From:</span> <span className="font-mono text-gray-500 dark:text-gray-400">{operation.sourcePath}</span>
-                </div>
-                <div className="text-sm text-gray-900 dark:text-gray-100">
-                  <span className="font-medium">To:</span> <span className="font-mono text-gray-500 dark:text-gray-400">{operation.destinationPath}</span>
-                </div>
+              <div className="text-xs text-muted-foreground">
+                Started at {new Date(operation.startTime).toLocaleTimeString()}
               </div>
-
-              {operation.state === CopyOperationState.Running && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                    <span>
-                      {formatSize(operation.copiedBytes)} / {formatSize(operation.totalBytes)}
-                      {operation.isDirectory && operation.totalFiles && (
-                        <span className="ml-2">
-                          ({operation.copiedFiles || 0} / {operation.totalFiles} files)
-                        </span>
-                      )}
-                    </span>
-                    <span>
-                      {operation.progress.toFixed(1)}%
-                      {typeof operation.speedBytesPerSecond === "number" && operation.speedBytesPerSecond > 0 && (
-                        <span className="ml-2">• {formatRate(operation.speedBytesPerSecond)}</span>
-                      )}
-                      {typeof operation.estimatedTimeSeconds === "number" && isFinite(operation.estimatedTimeSeconds) && operation.estimatedTimeSeconds >= 0 && (
-                        <span className="ml-2">• ETA {formatDuration(operation.estimatedTimeSeconds)}</span>
-                      )}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300 dark:bg-blue-500"
-                      style={{ width: `${operation.progress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {operation.state === CopyOperationState.Completed && (
-                <div className="text-sm text-green-600 dark:text-green-400">
-                  ✓ Completed {formatSize(operation.totalBytes)}
-                  {operation.isDirectory && operation.totalFiles && (
-                    <span> ({operation.totalFiles} files)</span>
-                  )}
-                  {operation.completedTime && (
-                    <span>
-                      {" "}in{" "}
-                      {Math.round(
-                        (new Date(operation.completedTime).getTime() -
-                          new Date(operation.startTime).getTime()) /
-                          1000
-                      )}s
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {operation.state === CopyOperationState.Failed && operation.errorMessage && (
-                <div className="text-sm text-red-600 dark:text-red-400">
-                  ✗ Failed: {operation.errorMessage}
-                </div>
-              )}
-
-              {operation.state === CopyOperationState.Cancelled && (
-                <div className="text-sm text-gray-600 dark:text-gray-400">⊗ Operation was cancelled</div>
-              )}
             </div>
-          ))}
-        </div>
-      </div>
-    </div>
+
+            <div className="space-y-1 text-sm">
+              <div>
+                <span className="font-medium text-foreground">From:</span>{" "}
+                <span className="font-mono text-xs text-muted-foreground">{operation.sourcePath}</span>
+              </div>
+              <div>
+                <span className="font-medium text-foreground">To:</span>{" "}
+                <span className="font-mono text-xs text-muted-foreground">{operation.destinationPath}</span>
+              </div>
+            </div>
+
+            {operation.state === CopyOperationState.Running && (
+              <div className="space-y-2">
+                <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
+                  <span>
+                    {formatSize(operation.copiedBytes)} / {formatSize(operation.totalBytes)}
+                    {operation.isDirectory && operation.totalFiles && (
+                      <span className="ml-2">
+                        ({operation.copiedFiles || 0} / {operation.totalFiles} files)
+                      </span>
+                    )}
+                  </span>
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span>{operation.progress.toFixed(1)}%</span>
+                    {typeof operation.speedBytesPerSecond === "number" && operation.speedBytesPerSecond > 0 && (
+                      <span>• {formatRate(operation.speedBytesPerSecond)}</span>
+                    )}
+                    {typeof operation.estimatedTimeSeconds === "number" &&
+                      isFinite(operation.estimatedTimeSeconds) &&
+                      operation.estimatedTimeSeconds >= 0 && (
+                        <span>• ETA {formatDuration(operation.estimatedTimeSeconds)}</span>
+                      )}
+                  </span>
+                </div>
+                <Progress value={operation.progress} className="h-2" />
+              </div>
+            )}
+
+            {operation.state === CopyOperationState.Completed && (
+              <div className="text-xs text-green-600 dark:text-green-400">
+                Completed {formatSize(operation.totalBytes)}
+                {operation.isDirectory && operation.totalFiles && (
+                  <span> ({operation.totalFiles} files)</span>
+                )}
+                {operation.completedTime && (
+                  <span>
+                    {" "}in{" "}
+                    {Math.round(
+                      (new Date(operation.completedTime).getTime() -
+                        new Date(operation.startTime).getTime()) /
+                        1000
+                    )}s
+                  </span>
+                )}
+              </div>
+            )}
+
+            {operation.state === CopyOperationState.Failed && operation.errorMessage && (
+              <div className="text-xs text-destructive">Failed: {operation.errorMessage}</div>
+            )}
+
+            {operation.state === CopyOperationState.Cancelled && (
+              <div className="text-xs text-muted-foreground">Operation was cancelled</div>
+            )}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
