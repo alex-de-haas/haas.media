@@ -57,6 +57,6 @@ var web = builder
     .WithExternalHttpEndpoints()
     .PublishAsDockerFile();
 
-downloaderApi.WithEnvironment("AllowedCorsOrigins__0", web.GetEndpoint("http"));
+downloaderApi.WithEnvironment("ALLOWED_CORS_ORIGINS", web.GetEndpoint("http"));
 
 builder.Build().Run();

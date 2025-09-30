@@ -97,6 +97,9 @@ packages/
 .azure/**
 !azure.yaml
 
+# Aspire specific
+*/compose-output/
+
 # Project-specific: torrent cache and data
 data/
 

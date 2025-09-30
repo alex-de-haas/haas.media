@@ -80,7 +80,7 @@ if (!string.IsNullOrWhiteSpace(auth0Domain) && !string.IsNullOrWhiteSpace(auth0A
     builder.Services.AddAuthorization();
 }
 
-var origins = builder.Configuration.GetSection("AllowedCorsOrigins").Get<string[]>() ?? [];
+var origins = builder.Configuration["ALLOWED_CORS_ORIGINS"]?.Split(',') ?? [];
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
