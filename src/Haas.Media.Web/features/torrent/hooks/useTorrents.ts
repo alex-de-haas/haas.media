@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { HubConnectionBuilder, HubConnection } from "@microsoft/signalr";
+import {
+  HubConnectionBuilder,
+  HubConnection,
+  HubConnectionState,
+} from "@microsoft/signalr";
 import type { TorrentInfo } from "../../../types";
 import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
@@ -35,7 +39,7 @@ export function useTorrents() {
       .withAutomaticReconnect()
       .build();
 
-    hubConnection.on("TorrentUpdated", (info: TorrentInfo) => {
+    const handleTorrentUpdated = (info: TorrentInfo) => {
       setTorrents((prev) => {
         const idx = prev.findIndex((t) => t.hash === info.hash);
         if (idx !== -1) {
@@ -46,17 +50,39 @@ export function useTorrents() {
           return [...prev, info];
         }
       });
-    });
+    };
 
-    hubConnection.on("TorrentDeleted", (hash: string) => {
+    const handleTorrentDeleted = (hash: string) => {
       setTorrents((prev) => prev.filter((t) => t.hash !== hash));
+    };
+
+    hubConnection.on("TorrentUpdated", handleTorrentUpdated);
+    hubConnection.on("TorrentDeleted", handleTorrentDeleted);
+
+    let disposed = false;
+
+    // Track the initial connect attempt so cleanup does not abort it when React StrictMode replays effects.
+    const startPromise = hubConnection.start();
+
+    void startPromise.catch((error) => {
+      if (!disposed) {
+        console.error("Failed to start torrents hub connection:", error);
+      }
     });
 
-    hubConnection.start().catch(console.error);
     setConnection(hubConnection);
 
     return () => {
-      hubConnection.stop();
+      disposed = true;
+      void startPromise
+        .catch(() => undefined)
+        .finally(async () => {
+          if (hubConnection.state !== HubConnectionState.Disconnected) {
+            await hubConnection.stop();
+          }
+        });
+      hubConnection.off("TorrentUpdated", handleTorrentUpdated);
+      hubConnection.off("TorrentDeleted", handleTorrentDeleted);
     };
   }, []);
 

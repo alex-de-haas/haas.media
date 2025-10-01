@@ -5,10 +5,14 @@
 
 A modern web application for downloading torrents and encoding videos to various formats with hardware acceleration support.
 
-## AI Models
+## AI Agents
 
-- Claude Sonnet 4 (GitHub Copilot)
-- GPT-5 (GitHub Copilot, OpenAI Codex)
+- [GitHub Copilot](https://github.com/features/copilot)
+- [OpenAI Codex](https://openai.com/codex/)
+
+## MCP Servers
+
+- [ShadCN MCP](https://ui.shadcn.com/docs/mcp)
 
 ## 🚀 Features
 
