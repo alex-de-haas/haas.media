@@ -169,7 +169,7 @@ export default function FilesPage() {
   };
 
   return (
-    <div className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
+    <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
       <PageHeader
         title="Files"
         description="Manage your files and folders."
@@ -228,6 +228,6 @@ export default function FilesPage() {
         currentPath={currentPath}
         onConfirm={handleModalConfirm}
       />
-    </div>
+    </main>
   );
 }

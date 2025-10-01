@@ -1,11 +1,32 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Library } from "@/types/library";
 import { LibraryType } from "@/types/library";
 import { formatDate } from "@/lib/utils/format";
 import { LoadingSpinner } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  CalendarClock,
+  Eye,
+  Film,
+  LibraryBig,
+  MoreVertical,
+  PencilLine,
+  Trash2,
+  TvMinimal,
+} from "lucide-react";
 
 interface LibraryListProps {
   libraries: Library[];
@@ -15,204 +36,125 @@ interface LibraryListProps {
   loading?: boolean;
 }
 
-interface LibraryActionsProps {
-  library: Library;
-  onEdit: () => void;
-  onDelete: () => void;
-  onView?: () => void;
-}
-
-function LibraryActions({ library, onEdit, onDelete, onView }: LibraryActionsProps) {
-  const [showActions, setShowActions] = useState(false);
-
+function LibraryActions({ onEdit, onDelete, onView }: { onEdit: () => void; onDelete: () => void; onView?: () => void }) {
   return (
-    <div className="relative">
-      <button
-        onClick={() => setShowActions(!showActions)}
-        className="p-1 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded dark:text-gray-400 dark:hover:text-gray-300"
-        aria-label="Library actions"
-      >
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-        </svg>
-      </button>
-
-      {showActions && (
-        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10 dark:bg-gray-800 dark:border-gray-700">
-          <div className="py-1">
-            {onView && (
-              <button
-                onClick={() => {
-                  onView();
-                  setShowActions(false);
-                }}
-                className="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-              >
-                <svg
-                  className="w-4 h-4 mr-3"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                  <path
-                    fillRule="evenodd"
-                    d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                View Content
-              </button>
-            )}
-            <button
-              onClick={() => {
-                onEdit();
-                setShowActions(false);
-              }}
-              className="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-            >
-              <svg
-                className="w-4 h-4 mr-3"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-              </svg>
-              Edit
-            </button>
-            <button
-              onClick={() => {
-                onDelete();
-                setShowActions(false);
-              }}
-              className="flex items-center w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-            >
-              <svg
-                className="w-4 h-4 mr-3"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Delete
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <MoreVertical className="h-4 w-4" />
+          <span className="sr-only">Open library actions</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+        {onView && (
+          <DropdownMenuItem onSelect={(event) => { event.preventDefault(); onView(); }}>
+            <Eye className="mr-2 h-4 w-4" />
+            View Content
+          </DropdownMenuItem>
+        )}
+        {onView && <DropdownMenuSeparator />}
+        <DropdownMenuItem onSelect={(event) => { event.preventDefault(); onEdit(); }}>
+          <PencilLine className="mr-2 h-4 w-4" />
+          Edit Library
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={(event) => { event.preventDefault(); onDelete(); }} className="text-destructive focus:text-destructive">
+          <Trash2 className="mr-2 h-4 w-4" />
+          Delete Library
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
-function LibraryIcon() {
+function LibraryTypeBadge({ type }: { type: LibraryType }) {
+  const icon = type === LibraryType.Movies ? <Film className="h-3.5 w-3.5" /> : <TvMinimal className="h-3.5 w-3.5" />;
+  const label = type === LibraryType.Movies ? "Movies" : "TV Shows";
+
   return (
-    <svg
-      className="w-5 h-5 text-blue-500"
-      fill="currentColor"
-      viewBox="0 0 20 20"
-    >
-      <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-    </svg>
+    <Badge variant="secondary" className="gap-1">
+      {icon}
+      {label}
+    </Badge>
   );
 }
 
-function getLibraryTypeDisplayName(type: LibraryType): string {
-  switch (type) {
-    case LibraryType.Movies:
-      return "Movies";
-    case LibraryType.TVShows:
-      return "TV Shows";
-    default:
-      return "Unknown";
-  }
-}
-
-export default function LibraryList({
-  libraries,
-  onEdit,
-  onDelete,
-  onView,
-  loading,
-}: LibraryListProps) {
+export default function LibraryList({ libraries, onEdit, onDelete, onView, loading }: LibraryListProps) {
   const router = useRouter();
 
   const handleViewLibrary = (library: Library) => {
     if (onView) {
       onView(library);
-    } else {
-      // Default navigation based on library type
-      const route = library.type === LibraryType.Movies ? '/movies' : '/tvshows';
-      router.push(`${route}?libraryId=${library.id}`);
+      return;
     }
+
+    const route = library.type === LibraryType.Movies ? "/movies" : "/tvshows";
+    router.push(`${route}?libraryId=${library.id}`);
   };
 
   if (loading) {
-    return <LoadingSpinner size="lg" />;
+    return (
+      <div className="flex h-48 items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
-      {/* Library listing */}
-      <div className="divide-y divide-gray-200 dark:divide-gray-700">
+    <Card>
+      <CardContent className="p-0">
         {libraries.length === 0 ? (
-          <div className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
-            <div className="flex flex-col items-center justify-center space-y-3">
-              <svg
-                className="w-16 h-16 text-gray-300 dark:text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
-                />
-              </svg>
-              <span className="text-sm">No libraries found</span>
-            </div>
+          <div className="flex flex-col items-center justify-center gap-3 py-16 text-center text-sm text-muted-foreground">
+            <LibraryBig className="h-12 w-12 text-muted-foreground/30" />
+            <div>No libraries found yet.</div>
+            <div className="text-xs">Start by creating a library to organise your media.</div>
           </div>
         ) : (
-          libraries.map((library) => (
-            <div
-              key={library.id}
-              className="px-4 py-3 hover:bg-gray-50 flex items-center justify-between dark:hover:bg-gray-700"
-            >
-              <div className="flex items-center space-x-3 flex-1 min-w-0">
-                <LibraryIcon />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate dark:text-gray-100">
-                    {library.title}
+          <div className="divide-y">
+            {libraries.map((library) => (
+              <div key={library.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <div className="flex flex-1 items-start gap-3">
+                  <div className="mt-1 hidden rounded-md border bg-muted/60 p-2 text-muted-foreground sm:block">
+                    <LibraryBig className="h-5 w-5" />
                   </div>
-                  <div className="text-xs text-gray-500 mt-1 dark:text-gray-400">
-                    <div className="flex flex-col gap-1">
-                      <span className="truncate">{library.directoryPath}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                          {getLibraryTypeDisplayName(library.type)}
-                        </span>
-                        {library.description && (
-                          <span className="truncate">{library.description}</span>
-                        )}
-                      </div>
-                      <span>Created {formatDate(library.createdAt)}</span>
+                  <div className="flex-1 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-base font-semibold text-foreground">{library.title}</p>
+                      <LibraryTypeBadge type={library.type} />
+                    </div>
+                    {library.description && (
+                      <p className="text-sm text-muted-foreground">{library.description}</p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                      <span className="break-all">{library.directoryPath}</span>
+                      <Separator orientation="vertical" className="hidden h-4 sm:block" />
+                      <span className="inline-flex items-center gap-1">
+                        <CalendarClock className="h-3.5 w-3.5" />
+                        Created {formatDate(library.createdAt)}
+                      </span>
                     </div>
                   </div>
                 </div>
+                <div className="flex items-center justify-end gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handleViewLibrary(library)} className="hidden sm:inline-flex">
+                    <Eye className="mr-2 h-4 w-4" />
+                    View
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => onEdit(library)} className="hidden sm:inline-flex">
+                    <PencilLine className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                  <LibraryActions
+                    onEdit={() => onEdit(library)}
+                    onDelete={() => onDelete(library)}
+                    onView={() => handleViewLibrary(library)}
+                  />
+                </div>
               </div>
-              <LibraryActions
-                library={library}
-                onEdit={() => onEdit(library)}
-                onDelete={() => onDelete(library)}
-                onView={() => handleViewLibrary(library)}
-              />
-            </div>
-          ))
+            ))}
+          </div>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -118,7 +118,7 @@ export default function EncodingsPage() {
   }, []);
 
   return (
-    <main className="container space-y-6 px-4 py-8">
+    <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
       <PageHeader
         title="Encodings"
         description="Monitor your encoding tasks."

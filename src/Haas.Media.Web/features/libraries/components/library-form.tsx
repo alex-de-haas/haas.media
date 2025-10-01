@@ -1,12 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFiles } from "@/features/files";
 import FileList from "@/features/files/components/file-list";
-import type { Library, CreateLibraryRequest, UpdateLibraryRequest } from "@/types/library";
+import type { CreateLibraryRequest, Library, UpdateLibraryRequest } from "@/types/library";
 import { LibraryType } from "@/types/library";
-import type { FileItem } from "@/types/file";
 import { FileItemType } from "@/types/file";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { FolderOpen, FolderPlus, Loader2 } from "lucide-react";
 
 interface LibraryFormProps {
   library?: Library;
@@ -15,219 +29,183 @@ interface LibraryFormProps {
   isLoading?: boolean;
 }
 
-export default function LibraryForm({
-  library,
-  onSubmit,
-  onCancel,
-  isLoading,
-}: LibraryFormProps) {
-  const [title, setTitle] = useState(library?.title || "");
-  const [description, setDescription] = useState(library?.description || "");
-  const [selectedPath, setSelectedPath] = useState(library?.directoryPath || "");
-  const [libraryType, setLibraryType] = useState<LibraryType>(library?.type || LibraryType.Movies);
+export default function LibraryForm({ library, onSubmit, onCancel, isLoading }: LibraryFormProps) {
+  const [title, setTitle] = useState(library?.title ?? "");
+  const [description, setDescription] = useState(library?.description ?? "");
+  const [selectedPath, setSelectedPath] = useState(library?.directoryPath ?? "");
+  const [libraryType, setLibraryType] = useState<LibraryType>(library?.type ?? LibraryType.Movies);
   const [showDirectoryPicker, setShowDirectoryPicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const {
-    files,
-    currentPath,
-    loading: filesLoading,
-    navigateToPath,
-  } = useFiles("");
+
+  const { files, currentPath, loading: filesLoading, navigateToPath } = useFiles("");
 
   useEffect(() => {
-    if (library) {
-      setTitle(library.title);
-      setDescription(library.description || "");
-      setSelectedPath(library.directoryPath);
-      setLibraryType(library.type);
-    }
+    if (!library) return;
+
+    setTitle(library.title);
+    setDescription(library.description ?? "");
+    setSelectedPath(library.directoryPath);
+    setLibraryType(library.type);
   }, [library]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !selectedPath.trim()) return;
+  const isSubmitDisabled = useMemo(() => {
+    return !title.trim() || !selectedPath.trim() || isSubmitting || Boolean(isLoading);
+  }, [isLoading, isSubmitting, selectedPath, title]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (isSubmitDisabled) return;
 
     setIsSubmitting(true);
     try {
-      const data = {
+      const payload: CreateLibraryRequest | UpdateLibraryRequest = {
         type: libraryType,
         title: title.trim(),
         directoryPath: selectedPath.trim(),
         ...(description.trim() ? { description: description.trim() } : {}),
       };
-      await onSubmit(data);
+
+      await onSubmit(payload);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDirectorySelect = (item: FileItem) => {
-    if (item.type === FileItemType.Directory) {
-      setSelectedPath(item.relativePath);
-      setShowDirectoryPicker(false);
-    }
-  };
-
-  const openDirectoryPicker = () => {
-    setShowDirectoryPicker(true);
-  };
-
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 dark:bg-gray-800 dark:border-gray-700">
-      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-6">
-        {library ? "Edit Library" : "Create New Library"}
-      </h3>
-
+    <>
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label
-            htmlFor="title"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            Title
-          </label>
-          <input
-            type="text"
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-500"
-            placeholder="Enter library title"
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="description"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            Description (Optional)
-          </label>
-          <textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm resize-vertical focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-500"
-            placeholder="Enter library description"
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="directoryPath"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            Directory Path
-          </label>
-          <div className="mt-1 flex gap-2">
-            <input
-              type="text"
-              id="directoryPath"
-              value={selectedPath}
-              onChange={(e) => setSelectedPath(e.target.value)}
+        <div className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="title">Title</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="Enter library title"
+              autoFocus
               required
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-500"
-              placeholder="Enter directory path or use the picker"
             />
-            <button
-              type="button"
-              onClick={openDirectoryPicker}
-              className="px-4 py-2 text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:bg-gray-600 dark:text-gray-200 dark:border-gray-500 dark:hover:bg-gray-500"
+          </div>
+
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Badge variant="outline">Optional</Badge>
+            </div>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder="Describe what this library contains"
+              rows={3}
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="directoryPath">Directory Path</Label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                id="directoryPath"
+                value={selectedPath}
+                onChange={(event) => setSelectedPath(event.target.value)}
+                placeholder="Enter directory path or browse"
+                required
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="sm:w-[160px]"
+                onClick={() => setShowDirectoryPicker(true)}
+              >
+                <FolderOpen className="mr-2 h-4 w-4" />
+                Browse
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="libraryType">Library Type</Label>
+            <Select
+              value={libraryType.toString()}
+              onValueChange={(value) => setLibraryType(Number(value) as LibraryType)}
             >
-              Browse
-            </button>
+              <SelectTrigger id="libraryType">
+                <SelectValue placeholder="Select a library type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={LibraryType.Movies.toString()}>Movies</SelectItem>
+                <SelectItem value={LibraryType.TVShows.toString()}>TV Shows</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
-        <div>
-          <label
-            htmlFor="libraryType"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            Library Type
-          </label>
-          <select
-            id="libraryType"
-            value={libraryType}
-            onChange={(e) => setLibraryType(Number(e.target.value) as LibraryType)}
-            required
-            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-          >
-            <option value={LibraryType.Movies}>Movies</option>
-            <option value={LibraryType.TVShows}>TV Shows</option>
-          </select>
-        </div>
+        <Separator />
 
-        <div className="flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="px-4 py-2 text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-600 dark:text-gray-200 dark:border-gray-500 dark:hover:bg-gray-500"
-          >
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={isSubmitting}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={!title.trim() || !selectedPath.trim() || isSubmitting || isLoading}
-            className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting || isLoading ? "Saving..." : (library ? "Update" : "Create")}
-          </button>
+          </Button>
+          <Button type="submit" disabled={isSubmitDisabled}>
+            {isSubmitting || isLoading ? (
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving
+              </span>
+            ) : library ? (
+              "Update Library"
+            ) : (
+              "Create Library"
+            )}
+          </Button>
         </div>
       </form>
 
-      {/* Directory Picker Modal */}
-      {showDirectoryPicker && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden dark:bg-gray-800">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                  Select Directory
-                </h3>
-                <button
-                  onClick={() => setShowDirectoryPicker(false)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+      <Dialog open={showDirectoryPicker} onOpenChange={setShowDirectoryPicker}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader className="text-left">
+            <DialogTitle>Select Directory</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <FileList
+              files={files.filter((file) => file.type === FileItemType.Directory)}
+              currentPath={currentPath}
+              onNavigate={navigateToPath}
+              loading={filesLoading}
+            />
+
+            <Separator />
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <FolderPlus className="h-4 w-4" />
+                <span>
+                  Current path:
+                  <span className="ml-1 font-medium text-foreground">
+                    {currentPath || "Root"}
+                  </span>
+                </span>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setShowDirectoryPicker(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    setSelectedPath(currentPath);
+                    setShowDirectoryPicker(false);
+                  }}
+                  disabled={!currentPath}
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                  Use This Directory
+                </Button>
               </div>
             </div>
-            <div className="p-6 overflow-y-auto max-h-[70vh]">
-              <FileList
-                files={files.filter(file => file.type === FileItemType.Directory)}
-                currentPath={currentPath}
-                onNavigate={navigateToPath}
-                loading={filesLoading}
-              />
-              {currentPath && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md dark:bg-blue-900/20 dark:border-blue-800">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-blue-700 dark:text-blue-300">
-                      Current path: {currentPath}
-                    </span>
-                    <button
-                      onClick={() => {
-                        setSelectedPath(currentPath);
-                        setShowDirectoryPicker(false);
-                      }}
-                      className="px-3 py-1 text-sm text-white bg-blue-600 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    >
-                      Select This Directory
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
-        </div>
-      )}
-    </div>
+
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

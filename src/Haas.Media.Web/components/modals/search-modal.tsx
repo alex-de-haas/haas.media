@@ -1,13 +1,34 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { SearchResult } from "@/types/metadata";
 import { LibraryType } from "@/types/library";
 import { useSearch, useAddToLibrary } from "@/features/media/hooks/useMetadata";
 import { useLibraries } from "@/features/libraries/hooks/useLibraries";
 import { getPosterUrl } from "@/lib/tmdb";
-import { LoadingSpinner } from "@/components/ui";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Library } from "@/types/library";
+import { Film, Search, Star, Tv } from "lucide-react";
+import { Loader2, PlusCircle } from "lucide-react";
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -27,45 +48,25 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
   const { search, loading: isSearching } = useSearch();
   const { addToLibrary } = useAddToLibrary();
 
-  // Filter libraries by media type
-  const filteredLibraries = useMemo(() => {
-    return libraries.filter(library => library.type === mediaType);
-  }, [libraries, mediaType]);
+  const filteredLibraries = useMemo(
+    () => libraries.filter((library) => library.type === mediaType),
+    [libraries, mediaType]
+  );
 
-  // Set default library if only one exists
   useEffect(() => {
-    if (filteredLibraries.length === 1 && !selectedLibraryId) {
-      const firstLibrary = filteredLibraries[0];
-      if (firstLibrary?.id) {
-        setSelectedLibraryId(firstLibrary.id);
+    if (!isOpen) return;
+
+    setSearchQuery("");
+    setSearchResults([]);
+    setError(null);
+
+    if (filteredLibraries.length === 1) {
+      const [library] = filteredLibraries;
+      if (library?.id) {
+        setSelectedLibraryId(library.id);
       }
     }
-  }, [filteredLibraries, selectedLibraryId]);
-
-  // Reset state when modal opens/closes
-  useEffect(() => {
-    if (isOpen) {
-      setSearchQuery("");
-      setSearchResults([]);
-      setError(null);
-    }
-  }, [isOpen]);
-
-  // Handle ESC key to close modal
-  useEffect(() => {
-    const handleEscKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscKey);
-      return () => document.removeEventListener("keydown", handleEscKey);
-    }
-    
-    return () => {}; // Return empty cleanup function for when not open
-  }, [isOpen, onClose]);
+  }, [filteredLibraries, isOpen]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -81,7 +82,7 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
 
   const handleAddToLibrary = async (result: SearchResult) => {
     if (!selectedLibraryId) {
-      setError("Please select a library");
+      setError("Choose a library before adding content");
       return;
     }
 
@@ -93,8 +94,6 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
         libraryId: selectedLibraryId,
         tmdbId: result.tmdbId.toString(),
       });
-      
-      // Close modal on success
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add to library");
@@ -103,177 +102,168 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !isSearching) {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" && !isSearching) {
+      event.preventDefault();
       handleSearch();
     }
   };
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
+  const libraryIcon = mediaType === LibraryType.Movies ? <Film className="h-4 w-4" /> : <Tv className="h-4 w-4" />;
+
+  const handleLibraryChange = (value: string) => {
+    setSelectedLibraryId(value);
+  };
+
+  const handleDialogChange = (open: boolean) => {
+    if (!open) {
       onClose();
     }
   };
 
-  if (!isOpen) return null;
+  const renderLibraryOption = (library: Library) => (
+    <SelectItem key={library.id} value={library.id ?? ""}>
+      {library.title}
+    </SelectItem>
+  );
 
   return (
-    <div 
-      className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4"
-      onClick={handleBackdropClick}
-    >
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden dark:bg-gray-800">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {title}
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
+    <Dialog open={isOpen} onOpenChange={handleDialogChange}>
+      <DialogContent className="max-w-4xl space-y-6">
+        <DialogHeader className="text-left">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription className="flex items-center gap-2 text-sm">
+            {libraryIcon}
+            <span>Search The Movie Database and add items directly to your selected library.</span>
+          </DialogDescription>
+        </DialogHeader>
 
-        {/* Search Section */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          {/* Library Selection */}
+        <div className="flex flex-col gap-4">
           {filteredLibraries.length > 1 && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Select Library
-              </label>
-              <select
-                value={selectedLibraryId}
-                onChange={(e) => setSelectedLibraryId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-              >
-                <option value="">Select a library</option>
-                {filteredLibraries.map((library) => (
-                  <option key={library.id} value={library.id}>
-                    {library.title}
-                  </option>
-                ))}
-              </select>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">Destination library</label>
+              <Select value={selectedLibraryId} onValueChange={handleLibraryChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a library" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredLibraries.map(renderLibraryOption)}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
-          {/* Search Input */}
-          <div className="flex gap-2">
-            <input
-              type="text"
+          {filteredLibraries.length === 1 && selectedLibraryId && (
+            <Badge variant="outline" className="w-fit gap-2">
+              <PlusCircle className="h-3.5 w-3.5" />
+              Adding to {filteredLibraries[0]?.title}
+            </Badge>
+          )}
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Input
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={`Search for ${mediaType === LibraryType.Movies ? 'movies' : 'TV shows'}...`}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 placeholder-gray-400"
+              onChange={(event) => setSearchQuery(event.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={`Search for ${mediaType === LibraryType.Movies ? "movies" : "TV shows"}…`}
+              className="flex-1"
             />
-            <button
+            <Button
               onClick={handleSearch}
               disabled={isSearching || !searchQuery.trim()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="whitespace-nowrap"
             >
               {isSearching ? (
-                <LoadingSpinner size="sm" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                "Search"
+                <Search className="mr-2 h-4 w-4" />
               )}
-            </button>
+              Search
+            </Button>
           </div>
 
           {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900/20 dark:border-red-800">
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-            </div>
+            <Alert variant="destructive">
+              <AlertTitle>Something went wrong</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
         </div>
 
-        {/* Results Section */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <ScrollArea className="max-h-[60vh] pr-2">
           {searchResults.length === 0 && !isSearching ? (
-            <div className="text-center py-12">
-              <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <p className="text-gray-500 dark:text-gray-400">
-                {searchQuery ? "No results found" : "Search for content to add to your library"}
-              </p>
+            <div className="flex flex-col items-center justify-center gap-3 py-16 text-center text-sm text-muted-foreground">
+              <Search className="h-10 w-10 text-muted-foreground/30" />
+              <span>{searchQuery ? "No results found" : "Start typing to search The Movie Database."}</span>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid gap-4">
               {searchResults.map((result) => (
-                <div
-                  key={result.tmdbId}
-                  className="flex gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/50"
-                >
-                  {/* Poster */}
+                <div key={result.tmdbId} className="flex flex-col gap-4 rounded-lg border bg-card p-4 shadow-sm transition hover:border-primary/40 sm:flex-row">
                   <div className="flex-shrink-0">
                     {result.posterPath ? (
                       <Image
-                        src={getPosterUrl(result.posterPath) || ''}
+                        src={getPosterUrl(result.posterPath) || ""}
                         alt={result.title}
-                        width={80}
-                        height={120}
-                        className="rounded-md object-cover"
+                        width={120}
+                        height={180}
+                        className="h-[180px] w-[120px] rounded-md object-cover"
                       />
                     ) : (
-                      <div className="w-20 h-30 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center">
-                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
+                      <div className="flex h-[180px] w-[120px] items-center justify-center rounded-md bg-muted">
+                        <Search className="h-8 w-8 text-muted-foreground" />
                       </div>
                     )}
                   </div>
 
-                  {/* Details */}
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
-                      {result.title}
-                    </h4>
-                    {result.originalTitle !== result.title && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                        {result.originalTitle}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        <span>{result.voteAverage.toFixed(1)}</span>
+                  <div className="flex flex-1 flex-col gap-4">
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="text-lg font-semibold leading-tight text-foreground">
+                          {result.title}
+                        </h4>
+                        <Badge variant="secondary" className="gap-1 text-xs">
+                          <Star className="h-3.5 w-3.5 text-yellow-400" />
+                          {result.voteAverage.toFixed(1)}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {result.voteCount} votes
+                        </Badge>
                       </div>
-                      <span>({result.voteCount} votes)</span>
-                    </div>
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
-                      {result.overview}
-                    </p>
-                  </div>
-
-                  {/* Add Button */}
-                  <div className="flex-shrink-0 flex items-center">
-                    <button
-                      onClick={() => handleAddToLibrary(result)}
-                      disabled={!selectedLibraryId || isAdding === result.tmdbId.toString()}
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isAdding === result.tmdbId.toString() ? (
-                        <LoadingSpinner size="sm" />
-                      ) : (
-                        "Add to Library"
+                      {result.originalTitle !== result.title && (
+                        <p className="text-sm text-muted-foreground">{result.originalTitle}</p>
                       )}
-                    </button>
+                    </div>
+
+                    <p className="line-clamp-4 text-sm text-muted-foreground">
+                      {result.overview || "No overview available."}
+                    </p>
+
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        {result.releaseDate && <span>Released {result.releaseDate}</span>}
+                        {result.language && <span className="uppercase">{result.language}</span>}
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleAddToLibrary(result)}
+                        disabled={!selectedLibraryId || isAdding === result.tmdbId.toString()}
+                      >
+                        {isAdding === result.tmdbId.toString() ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                        )}
+                        Add to library
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
-      </div>
-    </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
   );
 }
