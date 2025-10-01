@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace Haas.Media.Downloader.Api.Files;
 
 public static class FilesConfiguration
@@ -26,6 +28,64 @@ public static class FilesConfiguration
                 }
             )
             .WithName("GetFiles")
+            .RequireAuthorization();
+
+        app.MapPost(
+                "api/files/upload",
+                async (HttpRequest request, IFilesApi filesApi) =>
+                {
+                    if (!request.HasFormContentType)
+                    {
+                        return Results.BadRequest("Multipart form data is required.");
+                    }
+
+                    var form = await request.ReadFormAsync();
+                    var targetPath =
+                        request.Query.TryGetValue("path", out var queryPath)
+                            ? queryPath.FirstOrDefault()
+                            : form.TryGetValue("path", out var formPath)
+                                ? formPath.FirstOrDefault()
+                                : null;
+
+                    var overwrite = false;
+                    if (
+                        request.Query.TryGetValue("overwrite", out var queryOverwrite)
+                        && bool.TryParse(queryOverwrite, out var queryOverwriteParsed)
+                    )
+                    {
+                        overwrite = queryOverwriteParsed;
+                    }
+                    else if (
+                        form.TryGetValue("overwrite", out var formOverwrite)
+                        && bool.TryParse(formOverwrite, out var formOverwriteParsed)
+                    )
+                    {
+                        overwrite = formOverwriteParsed;
+                    }
+
+                    if (form.Files.Count == 0)
+                    {
+                        return Results.BadRequest("No files provided.");
+                    }
+
+                    var result = await filesApi.UploadAsync(targetPath, form.Files, overwrite);
+
+                    var response = new
+                    {
+                        uploaded = result.Uploaded,
+                        skipped = result.Skipped,
+                        errors = result.Errors,
+                    };
+
+                    if (result.Uploaded == 0 && result.Errors.Count > 0)
+                    {
+                        return Results.BadRequest(response);
+                    }
+
+                    return Results.Ok(response);
+                }
+            )
+            .WithName("UploadFiles")
             .RequireAuthorization();
 
         app.MapGet(

@@ -7,26 +7,32 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useNotifications } from "../../../lib/notifications";
-import { useFileUpload } from "@/features/files";
+import { useNotifications } from "@/lib/notifications";
+import { useFileUpload } from "../hooks/useFileUpload";
 
-interface TorrentUploadProps {
-  onUpload: (files: File[]) => Promise<{ success: boolean; message: string }>;
+export interface FileUploadCardProps {
+  onUpload: (files: File[]) => Promise<{
+    success: boolean;
+    message: string;
+    uploaded: number;
+    skipped: number;
+    errors: string[];
+  }>;
   isUploading?: boolean;
+  currentPath?: string;
+  acceptExtensions?: string[];
 }
 
-export default function TorrentUpload({
+export function FileUploadCard({
   onUpload,
   isUploading = false,
-}: TorrentUploadProps) {
+  currentPath,
+  acceptExtensions,
+}: FileUploadCardProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { notify } = useNotifications();
   const {
@@ -38,51 +44,53 @@ export default function TorrentUpload({
     handleDrop,
     clearFiles,
     removeFile,
-  } = useFileUpload([".torrent"]);
+  } = useFileUpload(acceptExtensions);
 
   const formatSize = (bytes: number) => {
     if (bytes >= 1024 * 1024) {
       return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
     }
-    return `${(bytes / 1024).toFixed(1)} KB`;
-  };
-
-  const handleUpload = async () => {
-    if (!files.length) return;
-
-    const result = await onUpload(files);
-
-    notify({
-      title: result.success ? "Upload Success" : "Upload Failed",
-      message: result.message,
-      type: result.success ? "success" : "error",
-    });
-    if (result.success) clearFiles();
+    if (bytes >= 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    return `${bytes} B`;
   };
 
   const handleInvalidFile = (message: string) => {
     notify({ title: "Invalid File", message, type: "warning" });
   };
 
-  const totalSize = files.reduce((acc, file) => acc + file.size, 0);
+  const handleUpload = async () => {
+    if (!files.length) return;
+
+    const result = await onUpload(files);
+    const hasPartialSuccess = result.uploaded > 0 && result.errors.length > 0;
+    notify({
+      title: result.success
+        ? "Upload Complete"
+        : hasPartialSuccess
+        ? "Upload Partial"
+        : "Upload Failed",
+      message: result.message,
+      type: result.success
+        ? "success"
+        : hasPartialSuccess
+        ? "warning"
+        : "error",
+    });
+    if (result.success || hasPartialSuccess) {
+      clearFiles();
+    }
+  };
 
   const openFileDialog = () => fileInputRef.current?.click();
 
+  const acceptAttribute = acceptExtensions?.length
+    ? acceptExtensions.join(",")
+    : undefined;
+
   return (
     <Card className="border-dashed">
-      <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <CardTitle className="text-xl">Upload Torrents</CardTitle>
-          <CardDescription>
-            Drop .torrent files or browse to queue new downloads.
-          </CardDescription>
-        </div>
-        {files.length > 0 && (
-          <Badge variant="secondary" className="px-3 py-1 text-xs font-medium">
-            {files.length} file{files.length > 1 ? "s" : ""} • {formatSize(totalSize)}
-          </Badge>
-        )}
-      </CardHeader>
       <CardContent className="space-y-4">
         <div
           role="button"
@@ -107,7 +115,7 @@ export default function TorrentUpload({
             <UploadCloud className="size-6" aria-hidden="true" />
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium">Drop your .torrent files here</p>
+            <p className="text-sm font-medium">Drop your files here</p>
             <p className="text-sm text-muted-foreground">
               or
               <Button
@@ -122,15 +130,17 @@ export default function TorrentUpload({
                 browse from your device
               </Button>
             </p>
-            <p className="text-xs text-muted-foreground">Duplicates are skipped automatically.</p>
+            <p className="text-xs text-muted-foreground">
+              Duplicates are skipped automatically.
+            </p>
           </div>
           <input
             ref={fileInputRef}
-            id="torrent-upload"
+            id="file-upload"
             type="file"
             className="hidden"
-            accept=".torrent"
             multiple
+            accept={acceptAttribute}
             onChange={(event) => handleFileChange(event, handleInvalidFile)}
           />
         </div>
@@ -140,15 +150,26 @@ export default function TorrentUpload({
             <ScrollArea className="h-44">
               <ul className="divide-y divide-border/60">
                 {files.map((file, index) => (
-                  <li key={`${file.name}-${file.lastModified}-${index}`} className="flex items-center gap-3 px-4 py-3">
+                  <li
+                    key={`${file.name}-${file.lastModified}-${index}`}
+                    className="flex items-center gap-3 px-4 py-3"
+                  >
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
-                      <FileText className="size-4 text-muted-foreground" aria-hidden="true" />
+                      <FileText
+                        className="size-4 text-muted-foreground"
+                        aria-hidden="true"
+                      />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground" title={file.name}>
+                      <p
+                        className="truncate text-sm font-medium text-foreground"
+                        title={file.name}
+                      >
                         {file.name}
                       </p>
-                      <p className="text-xs text-muted-foreground">{formatSize(file.size)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatSize(file.size)}
+                      </p>
                     </div>
                     <Button
                       type="button"
@@ -171,7 +192,7 @@ export default function TorrentUpload({
         )}
       </CardContent>
       <CardFooter className="flex flex-col gap-3 border-t border-dashed border-border/80 bg-muted/20 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-        <span>Accepted format: .torrent</span>
+        <span>Target directory: {currentPath ? `/${currentPath}` : "/"}</span>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <Button
             type="button"
@@ -190,7 +211,8 @@ export default function TorrentUpload({
           >
             {isUploading ? (
               <>
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Uploading
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />{" "}
+                Uploading
               </>
             ) : (
               "Upload"

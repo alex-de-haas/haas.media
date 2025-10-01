@@ -23,7 +23,7 @@ import { useAuth } from "../../lib/hooks/useAuth";
 import ActiveBackgroundTasks from "../background-tasks/active-background-tasks";
 import ThemeSwitch from "../ui/theme-switch";
 import { Button } from "../ui/button";
-import { Sheet, SheetContent } from "../ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "../ui/sheet";
 import { ScrollArea } from "../ui/scroll-area";
 import {
   DropdownMenu,
@@ -35,6 +35,7 @@ import {
 } from "../ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { cn } from "@/lib/utils";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface SidebarProps {
   children?: React.ReactNode;
@@ -284,6 +285,9 @@ export default function Sidebar({ children }: SidebarProps) {
     <Fragment>
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetContent side="left" className="w-[18rem] border-r p-0">
+          <VisuallyHidden>
+            <SheetTitle>Navigation</SheetTitle>
+          </VisuallyHidden>
           <SidebarContent onNavigate={() => setSidebarOpen(false)} />
         </SheetContent>
       </Sheet>

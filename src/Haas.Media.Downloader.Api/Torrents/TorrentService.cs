@@ -71,6 +71,83 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
         await manager.StartAsync();
     }
 
+    public async Task<TorrentFromFileResult> StartFromFileAsync(
+        string relativePath,
+        bool overwriteExisting = false
+    )
+    {
+        EnsureStarted();
+
+        if (string.IsNullOrWhiteSpace(relativePath))
+        {
+            return new TorrentFromFileResult(false, "Path is required.");
+        }
+
+        try
+        {
+            var fullSourcePath = GetValidatedFullPath(relativePath);
+
+            if (!File.Exists(fullSourcePath))
+            {
+                return new TorrentFromFileResult(false, "Torrent file not found.");
+            }
+
+            if (
+                !string.Equals(
+                    Path.GetExtension(fullSourcePath),
+                    ".torrent",
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                return new TorrentFromFileResult(false, "Only .torrent files can be used.");
+            }
+
+            Directory.CreateDirectory(_torrentsPath);
+
+            var destinationPath = Path.Combine(_torrentsPath, Path.GetFileName(fullSourcePath));
+            var fullDestinationPath = Path.GetFullPath(destinationPath);
+            var fullOriginalPath = Path.GetFullPath(fullSourcePath);
+
+            var sameFile = string.Equals(
+                fullDestinationPath,
+                fullOriginalPath,
+                StringComparison.OrdinalIgnoreCase
+            );
+
+            if (!sameFile)
+            {
+                try
+                {
+                    File.Copy(fullOriginalPath, fullDestinationPath, overwriteExisting);
+                }
+                catch (IOException) when (!overwriteExisting && File.Exists(fullDestinationPath))
+                {
+                    // Keep existing file if overwrite is not allowed.
+                }
+            }
+
+            await using (var stream = new FileStream(
+                       fullDestinationPath,
+                       FileMode.Open,
+                       FileAccess.Read,
+                       FileShare.Read
+                   ))
+            {
+                await UploadTorrent(stream);
+            }
+
+            var torrent = await Torrent.LoadAsync(fullDestinationPath);
+            var hash = torrent.InfoHashes.V1OrV2.ToHex();
+
+            return new TorrentFromFileResult(true, "Torrent download started.", hash);
+        }
+        catch (Exception ex)
+        {
+            return new TorrentFromFileResult(false, ex.Message);
+        }
+    }
+
     public async Task BroadcastTorrentStatesAsync()
     {
         if (_engine is null)
@@ -294,6 +371,30 @@ public class TorrentService : ITorrentApi, IHostedService, IAsyncDisposable
     }
 
     // TorrentInfo record moved to separate file for reuse
+
+    private string GetValidatedFullPath(string relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+        {
+            throw new ArgumentException("Path cannot be null or empty.", nameof(relativePath));
+        }
+
+        if (Path.IsPathRooted(relativePath) || relativePath.Contains(".."))
+        {
+            throw new ArgumentException("Invalid path.", nameof(relativePath));
+        }
+
+        var combined = Path.Combine(_dataPath, relativePath);
+        var resolved = Path.GetFullPath(combined);
+        var root = Path.GetFullPath(_dataPath);
+
+        if (!resolved.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UnauthorizedAccessException("Access to path outside root directory is not allowed");
+        }
+
+        return resolved;
+    }
 
     // IHostedService implementation
     public async Task StartAsync(CancellationToken cancellationToken)

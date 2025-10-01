@@ -4,6 +4,7 @@ public interface ITorrentApi
 {
     TorrentInfo[] GetUploadedTorrents();
     Task UploadTorrent(Stream torrentFileData);
+    Task<TorrentFromFileResult> StartFromFileAsync(string relativePath, bool overwriteExisting = false);
     Task<bool> StartAsync(string hash);
     Task<bool> PauseAsync(string hash);
     Task<bool> StopAsync(string hash);

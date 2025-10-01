@@ -7,12 +7,12 @@ import { useTVShows } from "@/features/media/hooks";
 import type { TVShowMetadata } from "@/types/metadata";
 import { LoadingSpinner } from "@/components/ui";
 import { getPosterUrl } from "@/lib/tmdb";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Calendar, HardDrive, Layers, PackageOpen, RefreshCw, Star, Tv } from "lucide-react";
+import { HardDrive, Layers, PackageOpen, RefreshCw, Star, Tv } from "lucide-react";
 
 interface TVShowCardProps {
   tvShow: TVShowMetadata;
@@ -56,12 +56,6 @@ function TVShowCard({ tvShow }: TVShowCardProps) {
             <h3 className="line-clamp-2 text-base font-semibold leading-tight text-foreground">
               {tvShow.title}
             </h3>
-            {tvShow.firstAired && (
-              <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Calendar className="h-3.5 w-3.5" />
-                {new Date(tvShow.firstAired).getFullYear()}
-              </p>
-            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -80,14 +74,6 @@ function TVShowCard({ tvShow }: TVShowCardProps) {
             {tvShow.voteCount > 0 && <span>({tvShow.voteCount} votes)</span>}
           </div>
         </CardContent>
-
-        <CardFooter className="flex items-center justify-between border-t bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <Tv className="h-3.5 w-3.5" />
-            Details
-          </span>
-          <span className="text-primary">View</span>
-        </CardFooter>
       </Card>
     </Link>
   );
@@ -150,7 +136,7 @@ export default function TVShowsList({ libraryId }: TVShowsListProps) {
       </div>
       <div className={cn(
         "grid gap-6",
-        "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+        "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
       )}>
         {tvShows.map((tvShow) => (
           <TVShowCard key={tvShow.id} tvShow={tvShow} />

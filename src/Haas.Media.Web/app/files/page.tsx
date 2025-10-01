@@ -6,6 +6,7 @@ import { useNotifications } from "@/lib/notifications";
 import FileList from "@/features/files/components/file-list";
 import FileActionsModal from "@/features/files/components/file-actions-modal";
 import CopyOperationsList from "@/features/files/components/copy-operations-list";
+import { FileUploadCard } from "@/features/files";
 import type {
   CopyRequest,
   CreateDirectoryRequest,
@@ -27,6 +28,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Copy,
+  Download,
   ExternalLink,
   FolderPlus,
   Info,
@@ -42,6 +44,7 @@ interface FileActionsProps {
   onCopy: () => void;
   onMove: () => void;
   onRename: () => void;
+  onDownloadTorrent?: () => void;
 }
 
 function FileActions({
@@ -50,7 +53,9 @@ function FileActions({
   onCopy,
   onMove,
   onRename,
+  onDownloadTorrent,
 }: FileActionsProps) {
+  const isTorrent = item.extension?.toLowerCase() === ".torrent";
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -74,6 +79,15 @@ function FileActions({
         )}
         {(item.type === FileItemType.Media || item.type === FileItemType.Directory) && (
           <DropdownMenuSeparator />
+        )}
+        {isTorrent && onDownloadTorrent && (
+          <>
+            <DropdownMenuItem onSelect={onDownloadTorrent} className="cursor-pointer">
+              <Download className="h-4 w-4" />
+              Download torrent
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
         )}
         <DropdownMenuItem onSelect={onCopy} className="cursor-pointer">
           <Copy className="h-4 w-4" />
@@ -111,6 +125,8 @@ export default function FilesPage() {
     deleteItem,
     createDirectory,
     rename,
+    upload,
+    downloadTorrentFromFile,
   } = useFiles();
 
   const { notify } = useNotifications();
@@ -123,6 +139,8 @@ export default function FilesPage() {
     isOpen: false,
     action: null,
   });
+
+  const [isUploading, setIsUploading] = useState(false);
 
   const openModal = (
     action: "copy" | "move" | "delete" | "create-directory" | "rename",
@@ -168,6 +186,35 @@ export default function FilesPage() {
     return result;
   };
 
+  const handleFileUpload = async (selectedFiles: File[]) => {
+    if (!selectedFiles.length) {
+      return {
+        success: false,
+        message: "No files selected.",
+        uploaded: 0,
+        skipped: 0,
+        errors: [],
+      };
+    }
+
+    setIsUploading(true);
+    try {
+      return await upload(selectedFiles);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDownloadTorrent = async (path: string, name: string) => {
+    const result = await downloadTorrentFromFile(path);
+    notify({
+      title: result.success ? "Torrent download started" : "Torrent start failed",
+      message: result.success ? `${name} — ${result.message}` : `${name}: ${result.message}`,
+      type: result.success ? "success" : "error",
+    });
+    return result;
+  };
+
   return (
     <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
       <PageHeader
@@ -189,6 +236,12 @@ export default function FilesPage() {
         </Alert>
       )}
 
+      <FileUploadCard
+        onUpload={handleFileUpload}
+        isUploading={isUploading}
+        currentPath={currentPath}
+      />
+
       {/* File list */}
       <FileList
         files={files}
@@ -202,6 +255,11 @@ export default function FilesPage() {
             onCopy={() => openModal("copy", item)}
             onMove={() => openModal("move", item)}
             onRename={() => openModal("rename", item)}
+            onDownloadTorrent={
+              item.extension?.toLowerCase() === ".torrent"
+                ? () => handleDownloadTorrent(item.relativePath, item.name)
+                : undefined
+            }
           />
         )}
       />

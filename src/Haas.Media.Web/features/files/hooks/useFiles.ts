@@ -87,6 +87,156 @@ export function useFiles(initialPath?: string) {
     }
   };
 
+  const upload = async (
+    filesToUpload: File[],
+    options?: { overwriteExisting?: boolean; targetPath?: string }
+  ): Promise<{
+    success: boolean;
+    message: string;
+    uploaded: number;
+    skipped: number;
+    errors: string[];
+  }> => {
+    if (!filesToUpload.length) {
+      return {
+        success: false,
+        message: "No files selected.",
+        uploaded: 0,
+        skipped: 0,
+        errors: [],
+      };
+    }
+
+    try {
+      const token = await getValidToken();
+      const headers = new Headers();
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+
+      const formData = new FormData();
+      filesToUpload.forEach((file) => {
+        formData.append("files", file);
+      });
+
+      if (options?.overwriteExisting) {
+        formData.append("overwrite", "true");
+      }
+
+      const url = new URL(`${downloaderApi}/api/files/upload`);
+      const target = options?.targetPath ?? currentPath;
+      if (target) {
+        url.searchParams.set("path", target);
+      }
+
+      const response = await fetch(url.toString(), {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+
+      let payload: any = null;
+      try {
+        payload = await response.json();
+      } catch (error) {
+        payload = null;
+      }
+
+      if (!response.ok) {
+        const message =
+          typeof payload?.message === "string"
+            ? payload.message
+            : Array.isArray(payload?.errors) && payload.errors.length > 0
+              ? payload.errors.join("; ")
+              : "Upload failed.";
+        return {
+          success: false,
+          message,
+          uploaded: Number(payload?.uploaded) || 0,
+          skipped: Number(payload?.skipped) || 0,
+          errors: Array.isArray(payload?.errors) ? payload.errors : [],
+        };
+      }
+
+      await fetchFiles(currentPath); // Refresh listing after upload
+
+      const uploaded = Number(payload?.uploaded) || filesToUpload.length;
+      const skipped = Number(payload?.skipped) || 0;
+      const errors = Array.isArray(payload?.errors) ? payload.errors : [];
+
+      let message = `Uploaded ${uploaded} file${uploaded === 1 ? "" : "s"}.`;
+      if (skipped > 0) {
+        message += ` Skipped ${skipped}.`;
+      }
+      if (errors.length > 0) {
+        message += ` Errors: ${errors.join("; ")}`;
+      }
+
+      return {
+        success: errors.length === 0,
+        message,
+        uploaded,
+        skipped,
+        errors,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: "Network error occurred.",
+        uploaded: 0,
+        skipped: 0,
+        errors: [],
+      };
+    }
+  };
+
+  const downloadTorrentFromFile = async (
+    path: string
+  ): Promise<{ success: boolean; message: string; hash?: string }> => {
+    if (!path) {
+      return { success: false, message: "Path is required." };
+    }
+
+    try {
+      const token = await getValidToken();
+      const headers = new Headers({ "Content-Type": "application/json" });
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+
+      const response = await fetch(`${downloaderApi}/api/torrents/from-file`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ path }),
+      });
+
+      let payload: any = null;
+      try {
+        payload = await response.json();
+      } catch (error) {
+        payload = null;
+      }
+
+      if (!response.ok) {
+        const message =
+          typeof payload?.message === "string"
+            ? payload.message
+            : "Failed to start torrent download.";
+        return { success: false, message };
+      }
+
+      const hash = typeof payload?.hash === "string" ? payload.hash : undefined;
+      const message =
+        typeof payload?.message === "string"
+          ? payload.message
+          : "Torrent download started.";
+
+      return {
+        success: true,
+        message: hash ? `${message} (hash ${hash})` : message,
+        hash,
+      };
+    } catch (error) {
+      return { success: false, message: "Network error occurred." };
+    }
+  };
+
   const fetchCopyOperations = async () => {
     try {
       const token = await getValidToken();
@@ -275,6 +425,8 @@ export function useFiles(initialPath?: string) {
     deleteItem,
     createDirectory,
     rename,
+    upload,
+    downloadTorrentFromFile,
     refresh: () => fetchFiles(currentPath),
     // Legacy aliases for backward compatibility
     copyFile: copy,

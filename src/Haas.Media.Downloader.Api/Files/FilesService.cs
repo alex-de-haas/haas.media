@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Haas.Media.Core.Helpers;
 using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Haas.Media.Downloader.Api.Files;
@@ -277,6 +278,106 @@ public class FilesService : IFilesApi, IHostedService
         }
     }
 
+    public async Task<FileUploadResult> UploadAsync(
+        string? directoryPath,
+        IFormFileCollection files,
+        bool overwriteExisting = false
+    )
+    {
+        if (files is null || files.Count == 0)
+        {
+            return FileUploadResult.None;
+        }
+
+        var targetDirectory = GetValidatedDirectoryPath(directoryPath);
+        Directory.CreateDirectory(targetDirectory);
+
+        var uploaded = 0;
+        var skipped = 0;
+        var errors = new List<string>();
+
+        foreach (var formFile in files)
+        {
+            if (formFile is null)
+            {
+                continue;
+            }
+
+            var originalName = formFile.FileName ?? string.Empty;
+            var sanitizedName = Path.GetFileName(originalName);
+
+            if (string.IsNullOrWhiteSpace(sanitizedName))
+            {
+                errors.Add(
+                    string.IsNullOrWhiteSpace(originalName)
+                        ? "Encountered a file with an empty name."
+                        : $"{originalName} has an invalid name."
+                );
+                continue;
+            }
+
+            if (formFile.Length <= 0)
+            {
+                errors.Add($"{sanitizedName} is empty or unreadable.");
+                continue;
+            }
+
+            var destinationPath = Path.Combine(targetDirectory, sanitizedName);
+
+            if (!overwriteExisting && File.Exists(destinationPath))
+            {
+                skipped++;
+                continue;
+            }
+
+            try
+            {
+                var fileMode = overwriteExisting ? FileMode.Create : FileMode.CreateNew;
+
+                await using var destinationStream = new FileStream(
+                    destinationPath,
+                    fileMode,
+                    FileAccess.Write,
+                    FileShare.None
+                );
+                await formFile.CopyToAsync(destinationStream);
+                uploaded++;
+            }
+            catch (IOException ex) when (!overwriteExisting && File.Exists(destinationPath))
+            {
+                // Another upload might have created the file in the meantime; treat as skipped
+                skipped++;
+                _logger.LogDebug(
+                    ex,
+                    "Skipping upload for existing file {FilePath}",
+                    destinationPath
+                );
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"{sanitizedName}: {ex.Message}");
+                _logger.LogError(
+                    ex,
+                    "Failed to upload file {FilePath} to {TargetDirectory}",
+                    sanitizedName,
+                    directoryPath ?? "(root)"
+                );
+            }
+        }
+
+        if (uploaded > 0)
+        {
+            _logger.LogInformation(
+                "Uploaded {Uploaded} file(s) (skipped {Skipped}) to {Directory}",
+                uploaded,
+                skipped,
+                directoryPath ?? "(root)"
+            );
+        }
+
+        return new FileUploadResult(uploaded, skipped, errors);
+    }
+
     public void Move(string sourcePath, string destinationPath)
     {
         var sourceFullPath = GetValidatedFullPath(sourcePath);
@@ -506,5 +607,15 @@ public class FilesService : IFilesApi, IHostedService
         }
 
         return resolvedPath;
+    }
+
+    private string GetValidatedDirectoryPath(string? relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath))
+        {
+            return Path.GetFullPath(_dataPath);
+        }
+
+        return GetValidatedFullPath(relativePath);
     }
 }

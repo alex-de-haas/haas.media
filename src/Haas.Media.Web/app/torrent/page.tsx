@@ -1,34 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { TorrentUpload, TorrentList, useTorrents } from "@/features/torrent";
+import { TorrentList, useTorrents } from "@/features/torrent";
 import { useNotifications } from "@/lib/notifications";
 import { PageHeader } from "@/components/layout";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function TorrentPage() {
-  const [isUploading, setIsUploading] = useState(false);
   const {
     torrents,
-    uploadTorrent,
     deleteTorrent,
     startTorrent,
     stopTorrent,
     pauseTorrent,
   } = useTorrents();
   const { notify } = useNotifications();
-
-  const handleUpload = async (files: File[]) => {
-    if (!files.length) {
-      return { success: false, message: "No files selected." };
-    }
-    setIsUploading(true);
-    try {
-      return await uploadTorrent(files);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   const report = (
     result: { success: boolean; message: string },
     labels: { success: string; fail: string },
@@ -63,13 +49,17 @@ export default function TorrentPage() {
   };
 
   return (
-    <div className="container mx-auto space-y-10 px-4 py-8">
+    <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
       <PageHeader
         title="Torrents"
         description="Upload new torrent files and monitor their progress."
+        actions={
+          <Button asChild size="sm">
+            <Link href="/files">Open files</Link>
+          </Button>
+        }
       />
       <div className="space-y-8">
-        <TorrentUpload onUpload={handleUpload} isUploading={isUploading} />
         <TorrentList
           torrents={torrents}
           onDelete={handleDelete}
@@ -78,6 +68,6 @@ export default function TorrentPage() {
           onPause={handlePause}
         />
       </div>
-    </div>
+    </main>
   );
 }

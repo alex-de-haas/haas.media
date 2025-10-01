@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace Haas.Media.Downloader.Api.Torrents;
 
 public static class TorrentConfiguration
@@ -56,6 +58,31 @@ public static class TorrentConfiguration
                 }
             )
             .WithName("UploadTorrent")
+            .RequireAuthorization();
+
+        app.MapPost(
+                "api/torrents/from-file",
+                async (StartTorrentFromFileRequest request, ITorrentApi torrentService) =>
+                {
+                    if (string.IsNullOrWhiteSpace(request.Path))
+                    {
+                        return Results.BadRequest("Path is required.");
+                    }
+
+                    var result = await torrentService.StartFromFileAsync(
+                        request.Path,
+                        request.OverwriteExisting
+                    );
+
+                    if (!result.Success)
+                    {
+                        return Results.BadRequest(new { result.Message });
+                    }
+
+                    return Results.Ok(new { result.Message, result.Hash });
+                }
+            )
+            .WithName("StartTorrentFromFile")
             .RequireAuthorization();
 
         app.MapGet(
