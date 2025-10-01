@@ -10,7 +10,7 @@ import {
   HubConnectionBuilder,
   LogLevel,
 } from "@microsoft/signalr";
-import { PageHeader } from "@/components/layout";
+import { usePageTitle } from "@/components/layout";
 import { EncodingOverview, EncodingQueue } from "@/components/encoding";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -117,13 +117,10 @@ export default function EncodingsPage() {
     };
   }, []);
 
+  usePageTitle("Encodings");
+
   return (
     <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
-      <PageHeader
-        title="Encodings"
-        description="Monitor your encoding tasks."
-      />
-
       <EncodingOverview encodings={encodings} loading={loading} />
 
       <div className="space-y-4">

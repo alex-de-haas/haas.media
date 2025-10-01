@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMediaFiles, useEncodeStreams } from "@/features/media";
 import { MediaFilesList } from "@/features/media";
 import { LoadingSpinner } from "@/components/ui";
-import { PageHeader } from "@/components/layout";
+import { usePageTitle, usePageActions } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -19,13 +19,13 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { HardwareAcceleration } from "@/types/encoding";
 import { StreamCodec } from "@/types/media-info";
 import { Loader2, PlayCircle } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 interface PageProps {
   params: Promise<{ path: string }>;
@@ -139,13 +139,25 @@ export default function MediaInfoPage({ params }: PageProps) {
     }
   }, [encodeAll, router]);
 
+  usePageTitle("Media Info");
+  usePageActions(null);
+
+  const pageIntro = (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Media Info</h1>
+        <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
+          Media file information and encoding options.
+        </p>
+      </div>
+      <Separator />
+    </div>
+  );
+
   if (!decodedPath) {
     return (
       <main className="container space-y-6 px-4 py-8">
-        <PageHeader
-          title="Media Info"
-          description="Media file information and encoding options."
-        />
+        {pageIntro}
         <Alert variant="destructive">
           <AlertTitle>No file path provided</AlertTitle>
           <AlertDescription>
@@ -158,10 +170,7 @@ export default function MediaInfoPage({ params }: PageProps) {
 
   return (
     <main className="container space-y-6 px-4 py-8">
-      <PageHeader
-        title="Media Info"
-        description="Media file information and encoding options."
-      />
+      {pageIntro}
 
       <Card>
         <CardHeader className="space-y-3">

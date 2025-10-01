@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useLibraries, LibraryForm, LibraryList } from "@/features/libraries";
 import { useNotifications } from "@/lib/notifications";
 import { useMetadataSignalR } from "@/lib/signalr/useMetadataSignalR";
-import { PageHeader } from "@/components/layout";
+import { usePageTitle } from "@/components/layout";
 import type { CreateLibraryRequest, Library, UpdateLibraryRequest } from "@/types/library";
 import {
   Dialog,
@@ -126,28 +126,24 @@ export default function LibrariesPage() {
     ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
     : <Scan className="mr-2 h-4 w-4" />;
 
+  usePageTitle("Libraries");
+
   return (
     <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
-      <PageHeader
-        title="Libraries"
-        description="Manage your media libraries and organize your content collections."
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={() => { setSelectedLibrary(null); setIsFormOpen(true); }}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Library
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleScanLibraries}
-              disabled={loading || activeScanOperation?.state === "Running"}
-            >
-              {scanIcon}
-              {scanButtonLabel}
-            </Button>
-          </div>
-        }
-      />
+      <div className="flex flex-wrap items-center gap-2">
+      <Button onClick={() => { setSelectedLibrary(null); setIsFormOpen(true); }}>
+        <Plus className="mr-2 h-4 w-4" />
+        Create Library
+      </Button>
+      <Button
+        variant="outline"
+        onClick={handleScanLibraries}
+        disabled={loading || activeScanOperation?.state === "Running"}
+      >
+        {scanIcon}
+        {scanButtonLabel}
+      </Button>
+    </div>
 
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <Badge variant="secondary" className="h-6 px-3 text-xs">

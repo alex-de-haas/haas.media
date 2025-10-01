@@ -2,9 +2,7 @@
 
 import { TorrentList, useTorrents } from "@/features/torrent";
 import { useNotifications } from "@/lib/notifications";
-import { PageHeader } from "@/components/layout";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { usePageTitle } from "@/components/layout";
 
 export default function TorrentPage() {
   const {
@@ -48,17 +46,10 @@ export default function TorrentPage() {
     return res;
   };
 
+  usePageTitle("Torrents");
+
   return (
     <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
-      <PageHeader
-        title="Torrents"
-        description="Upload new torrent files and monitor their progress."
-        actions={
-          <Button asChild size="sm">
-            <Link href="/files">Open files</Link>
-          </Button>
-        }
-      />
       <div className="space-y-8">
         <TorrentList
           torrents={torrents}

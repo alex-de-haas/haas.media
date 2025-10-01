@@ -91,7 +91,7 @@ export function FileUploadCard({
 
   return (
     <Card className="border-dashed">
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-6">
         <div
           role="button"
           tabIndex={0}

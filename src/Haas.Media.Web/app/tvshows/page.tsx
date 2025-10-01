@@ -5,7 +5,7 @@ import { TVShowsList } from "@/features/media/components";
 import { LoadingSpinner } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { PageHeader } from "@/components/layout";
+import { usePageTitle } from "@/components/layout";
 import { SearchModal } from "@/components/modals";
 import { LibraryType } from "@/types/library";
 import { PlusCircle } from "lucide-react";
@@ -13,18 +13,14 @@ import { PlusCircle } from "lucide-react";
 export default function TVShowsPage() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
+  usePageTitle("TV Shows");
+
   return (
     <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
-      <PageHeader
-        title="TV Shows"
-        description="Explore and maintain every series in your collection."
-        actions={
-          <Button onClick={() => setIsSearchModalOpen(true)}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add TV Show
-          </Button>
-        }
-      />
+      <Button onClick={() => setIsSearchModalOpen(true)}>
+        <PlusCircle className="mr-2 h-4 w-4" />
+        Add TV Show
+      </Button>
 
       <Suspense
         fallback={

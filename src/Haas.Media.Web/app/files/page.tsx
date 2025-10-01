@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useFiles } from "@/features/files";
 import { useNotifications } from "@/lib/notifications";
 import FileList from "@/features/files/components/file-list";
@@ -15,7 +15,7 @@ import type {
   RenameRequest,
 } from "@/types/file";
 import { FileItemType } from "@/types/file";
-import { PageHeader } from "@/components/layout";
+import { usePageTitle } from "@/components/layout";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -59,12 +59,18 @@ function FileActions({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="File actions">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          aria-label="File actions"
+        >
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        {(item.type === FileItemType.Media || item.type === FileItemType.Directory) && (
+        {(item.type === FileItemType.Media ||
+          item.type === FileItemType.Directory) && (
           <DropdownMenuItem asChild>
             <Link
               prefetch={false}
@@ -77,12 +83,14 @@ function FileActions({
             </Link>
           </DropdownMenuItem>
         )}
-        {(item.type === FileItemType.Media || item.type === FileItemType.Directory) && (
-          <DropdownMenuSeparator />
-        )}
+        {(item.type === FileItemType.Media ||
+          item.type === FileItemType.Directory) && <DropdownMenuSeparator />}
         {isTorrent && onDownloadTorrent && (
           <>
-            <DropdownMenuItem onSelect={onDownloadTorrent} className="cursor-pointer">
+            <DropdownMenuItem
+              onSelect={onDownloadTorrent}
+              className="cursor-pointer"
+            >
               <Download className="h-4 w-4" />
               Download torrent
             </DropdownMenuItem>
@@ -102,7 +110,10 @@ function FileActions({
           Rename
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={onDelete} className="cursor-pointer text-destructive focus:text-destructive">
+        <DropdownMenuItem
+          onSelect={onDelete}
+          className="cursor-pointer text-destructive focus:text-destructive"
+        >
           <Trash2 className="h-4 w-4" />
           Delete
         </DropdownMenuItem>
@@ -142,18 +153,26 @@ export default function FilesPage() {
 
   const [isUploading, setIsUploading] = useState(false);
 
-  const openModal = (
-    action: "copy" | "move" | "delete" | "create-directory" | "rename",
-    item?: FileItem
-  ) => {
-    setModalState({ isOpen: true, action, ...(item && { item }) });
-  };
+  const openModal = useCallback(
+    (
+      action: "copy" | "move" | "delete" | "create-directory" | "rename",
+      item?: FileItem
+    ) => {
+      setModalState({ isOpen: true, action, ...(item && { item }) });
+    },
+    []
+  );
 
   const closeModal = () => {
     setModalState({ isOpen: false, action: null });
   };
 
-  type ModalPayload = CopyRequest | MoveRequest | CreateDirectoryRequest | RenameRequest | string;
+  type ModalPayload =
+    | CopyRequest
+    | MoveRequest
+    | CreateDirectoryRequest
+    | RenameRequest
+    | string;
 
   const handleModalConfirm = async (data: ModalPayload) => {
     const { action } = modalState;
@@ -208,25 +227,25 @@ export default function FilesPage() {
   const handleDownloadTorrent = async (path: string, name: string) => {
     const result = await downloadTorrentFromFile(path);
     notify({
-      title: result.success ? "Torrent download started" : "Torrent start failed",
-      message: result.success ? `${name} — ${result.message}` : `${name}: ${result.message}`,
+      title: result.success
+        ? "Torrent download started"
+        : "Torrent start failed",
+      message: result.success
+        ? `${name} — ${result.message}`
+        : `${name}: ${result.message}`,
       type: result.success ? "success" : "error",
     });
     return result;
   };
 
+  usePageTitle("Files");
+
   return (
     <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
-      <PageHeader
-        title="Files"
-        description="Manage your files and folders."
-        actions={
-          <Button onClick={() => openModal("create-directory")} size="sm">
-            <FolderPlus className="mr-2 h-4 w-4" />
-            Create directory
-          </Button>
-        }
-      />
+      <Button onClick={() => openModal("create-directory")} size="sm">
+        <FolderPlus className="mr-2 h-4 w-4" />
+        Create directory
+      </Button>
 
       {/* Error state */}
       {error && (

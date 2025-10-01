@@ -80,12 +80,6 @@ export default function TorrentList({
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <h2 className="text-xl font-semibold tracking-tight">Active Torrents</h2>
-          <p className="text-sm text-muted-foreground">
-            Monitor download progress and manage actions for each torrent.
-          </p>
-        </div>
         <Badge variant="secondary" className="self-start px-3 py-1 text-xs font-semibold">
           {torrents.length} active
         </Badge>

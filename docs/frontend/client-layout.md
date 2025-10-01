@@ -19,8 +19,8 @@ The layout system is organized into several key components:
 ### 3. Layout Provider (`components/layout/layout-provider.tsx`)
 - Context provider for layout-related state
 - Manages sidebar open/close state
-- Provides page title management
-- Exports hooks: `useLayout()` and `usePageTitle()`
+- Provides page title and action management
+- Exports hooks: `useLayout()`, `usePageTitle()`, and `usePageActions()`
 
 ### 4. Sidebar (`components/layout/sidebar.tsx`)
 - Responsive navigation sidebar
@@ -36,60 +36,21 @@ The layout system is organized into several key components:
 - Site footer with branding and links
 - Responsive design
 
-### 7. Page Header (`components/layout/page-header.tsx`)
-- Reusable page header component
-- Supports title, description, actions, and breadcrumbs
-- Automatically updates layout context with page title
-
 ## Usage Examples
 
-### Basic Page with Header
+### Basic Page Structure
 ```tsx
-import { PageHeader } from "@/components/layout";
+"use client";
+
+import { usePageTitle } from "@/components/layout";
 
 export default function MyPage() {
-  return (
-    <div className="space-y-8">
-      <PageHeader
-        title="My Page"
-        description="Description of what this page does"
-      />
-      
-      <div>
-        {/* Page content */}
-      </div>
-    </div>
-  );
-}
-```
+  usePageTitle("My Page");
 
-### Page with Actions and Breadcrumbs
-```tsx
-import { PageHeader } from "@/components/layout";
-
-export default function DetailPage() {
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Video Details"
-        description="Manage your video file"
-        breadcrumbs={[
-          { name: "Dashboard", href: "/" },
-          { name: "Videos", href: "/videos" },
-          { name: "Video Details", current: true }
-        ]}
-        actions={
-          <div className="flex gap-x-3">
-            <button className="btn-secondary">Edit</button>
-            <button className="btn-primary">Encode</button>
-          </div>
-        }
-      />
-      
-      <div>
-        {/* Page content */}
-      </div>
-    </div>
+    <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
+      <div>{/* Page content */}</div>
+    </main>
   );
 }
 ```
@@ -104,17 +65,10 @@ import { usePageTitle } from "@/components/layout";
 
 export default function DynamicPage() {
   const [title, setTitle] = useState("Initial Title");
-  
-  // This will automatically update the layout title
+
   usePageTitle(title);
-  
-  return (
-    <div>
-      <button onClick={() => setTitle("Updated Title")}>
-        Change Title
-      </button>
-    </div>
-  );
+
+  return <div>{/* Page content */}</div>;
 }
 ```
 
@@ -168,14 +122,13 @@ components/
     ├── layout-provider.tsx   # Context and hooks
     ├── sidebar.tsx           # Navigation sidebar
     ├── header.tsx            # Header component
-    ├── footer.tsx            # Site footer
-    └── page-header.tsx       # Reusable page header
+    └── footer.tsx            # Site footer
 ```
 
 ## Best Practices
 
-1. **Use PageHeader for consistency**: Always use the `PageHeader` component for page titles
-2. **Leverage layout hooks**: Use `usePageTitle()` for dynamic titles and `useLayout()` for sidebar control
+1. **Sync layout metadata**: Use `usePageTitle()` to keep the sticky header in sync with the current page
+2. **Surface important actions**: Push primary page actions to the global header with `usePageActions()`
 3. **Follow responsive patterns**: Test layouts on mobile and desktop
 4. **Maintain accessibility**: Include proper ARIA labels and keyboard support
 5. **Use semantic HTML**: Leverage proper HTML elements for better accessibility
@@ -183,7 +136,7 @@ components/
 ## Migration Guide
 
 ### From Old Layout
-If you have existing pages, update them to use the new `PageHeader` component:
+If you have existing pages with inline headings, update them to set layout metadata and optionally surface quick actions:
 
 ```tsx
 // Old approach
@@ -193,10 +146,25 @@ If you have existing pages, update them to use the new `PageHeader` component:
 </div>
 
 // New approach
-<div className="space-y-8">
-  <PageHeader title="Page Title" />
-  <div>Content</div>
-</div>
+"use client";
+
+import { usePageTitle } from "@/components/layout";
+import { Separator } from "@/components/ui/separator";
+
+export default function Page() {
+  usePageTitle("Page Title");
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-semibold tracking-tight">Page Title</h1>
+        <p className="text-sm text-muted-foreground">Optional description.</p>
+      </div>
+      <Separator />
+      <div>Content</div>
+    </div>
+  );
+}
 ```
 
 ### Adding New Navigation Items

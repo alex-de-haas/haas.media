@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   ArrowRight,
@@ -8,7 +10,7 @@ import {
   BadgeCheck,
 } from "lucide-react";
 
-import { PageHeader } from "@/components/layout";
+import { usePageTitle } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -52,26 +54,10 @@ const quickActions = [
 ];
 
 export default function HomePage() {
+  usePageTitle("Dashboard");
+
   return (
     <div className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
-      <PageHeader
-        title="Dashboard"
-        description="Monitor automated downloads, encodings, and your media catalog from a single place."
-        actions={
-          <div className="flex gap-2">
-            <Button asChild>
-              <Link href="/torrent">
-                Start download
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/encodings">View queue</Link>
-            </Button>
-          </div>
-        }
-      />
-
       <section className="grid gap-6 lg:grid-cols-[2fr,1fr]">
         <Card className="overflow-hidden border-none bg-gradient-to-br from-primary/10 via-background to-background shadow-lg">
           <CardHeader className="gap-4">
