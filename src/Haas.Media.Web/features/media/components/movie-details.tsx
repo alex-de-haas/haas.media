@@ -9,7 +9,6 @@ import { MoreVertical, Trash2, Star, ArrowLeft, Film } from "lucide-react";
 import { useMovie, useDeleteMovieMetadata } from "@/features/media/hooks";
 import { LoadingSpinner } from "@/components/ui";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
-import { CrewMember, CastMember } from "@/types/metadata";
 import { useNotifications } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,83 +37,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { PersonCard } from "@/features/media/components/person-card";
 
 interface MovieDetailsProps {
   movieId: string;
-}
-
-interface CrewMemberCardProps {
-  crewMember: CrewMember;
-}
-
-interface CastMemberCardProps {
-  castMember: CastMember;
-}
-
-function getInitials(name?: string) {
-  if (!name) {
-    return "?";
-  }
-
-  const parts = name.trim().split(/\s+/);
-  const [first = "", second = ""] = parts;
-  return `${first.charAt(0)}${second.charAt(0)}`.toUpperCase();
-}
-
-function CastMemberCard({ castMember }: CastMemberCardProps) {
-  return (
-    <Card>
-      <CardContent className="flex items-center gap-3 p-4">
-        <Avatar className="h-12 w-12">
-          {castMember.profilePath ? (
-            <AvatarImage
-              src={`https://image.tmdb.org/t/p/w92${castMember.profilePath}`}
-              alt={castMember.name}
-            />
-          ) : (
-            <AvatarFallback>{getInitials(castMember.name)}</AvatarFallback>
-          )}
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{castMember.name}</p>
-          <p className="text-xs text-muted-foreground truncate">
-            as {castMember.character}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function CrewMemberCard({ crewMember }: CrewMemberCardProps) {
-  return (
-    <Card>
-      <CardContent className="flex items-center gap-3 p-4">
-        <Avatar className="h-12 w-12">
-          {crewMember.profilePath ? (
-            <AvatarImage
-              src={`https://image.tmdb.org/t/p/w92${crewMember.profilePath}`}
-              alt={crewMember.name}
-            />
-          ) : (
-            <AvatarFallback>{getInitials(crewMember.name)}</AvatarFallback>
-          )}
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{crewMember.name}</p>
-          <p className="text-xs text-muted-foreground truncate">
-            {crewMember.job}
-          </p>
-          <p className="text-xs text-muted-foreground truncate">
-            {crewMember.department}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  );
 }
 
 export default function MovieDetails({ movieId }: MovieDetailsProps) {
@@ -125,6 +53,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
   const { notify } = useNotifications();
   const { deleteMovie, loading: deletingMovie } = useDeleteMovieMetadata();
 
+  const CREDIT_DISPLAY_LIMIT = 20;
   const releaseYear = useMemo(() => {
     if (!movie?.releaseDate) {
       return null;
@@ -186,6 +115,8 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
 
   const posterUrl = getPosterUrl(movie.posterPath);
   const backdropUrl = getBackdropUrl(movie.backdropPath);
+  const hasCast = Boolean(movie.cast && movie.cast.length > 0);
+  const hasCrew = Boolean(movie.crew && movie.crew.length > 0);
 
   return (
     <div>
@@ -224,7 +155,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
       </div>
 
       <div className="relative z-10 -mt-32 px-4 py-8">
-        <div className="mx-auto flex max-w-7xl flex-col gap-8 lg:flex-row">
+        <div className="mx-auto flex w-full max-w-screen-xl flex-col gap-8 lg:flex-row">
           <div className="flex-shrink-0">
             <Card className="w-64 overflow-hidden shadow-2xl">
               {posterUrl ? (
@@ -244,7 +175,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
             </Card>
           </div>
 
-          <div className="flex-1 space-y-6">
+          <div className="flex-1 space-y-6 w-full lg:max-w-4xl">
             <Card className="shadow-lg">
               <CardHeader className="space-y-4">
                 <div className="flex items-start justify-between gap-4">
@@ -252,11 +183,12 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                     <CardTitle className="text-3xl md:text-4xl">
                       {movie.title}
                     </CardTitle>
-                    {movie.originalTitle && movie.originalTitle !== movie.title && (
-                      <CardDescription className="text-base">
-                        {movie.originalTitle}
-                      </CardDescription>
-                    )}
+                    {movie.originalTitle &&
+                      movie.originalTitle !== movie.title && (
+                        <CardDescription className="text-base">
+                          {movie.originalTitle}
+                        </CardDescription>
+                      )}
                     <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                       {releaseYear && <span>{releaseYear}</span>}
                       {movie.originalLanguage && (
@@ -267,10 +199,17 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                     </div>
                   </div>
 
-                  <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                  <AlertDialog
+                    open={deleteDialogOpen}
+                    onOpenChange={setDeleteDialogOpen}
+                  >
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="rounded-full">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="rounded-full"
+                        >
                           <MoreVertical className="h-4 w-4" />
                           <span className="sr-only">Open movie actions</span>
                         </Button>
@@ -291,18 +230,21 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>
-                          Delete "{movie.title}"?
+                          Delete {movie.title}?
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                          This action cannot be undone. The metadata for this movie will
-                          be permanently removed.
+                          This action cannot be undone. The metadata for this
+                          movie will be permanently removed.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel disabled={deletingMovie}>
                           Cancel
                         </AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} disabled={deletingMovie}>
+                        <AlertDialogAction
+                          onClick={handleDelete}
+                          disabled={deletingMovie}
+                        >
                           {deletingMovie ? "Deleting..." : "Delete"}
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -312,7 +254,10 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
 
                 {movie.voteAverage > 0 && (
                   <div className="flex flex-wrap items-center gap-4 text-sm">
-                    <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1">
+                    <Badge
+                      variant="secondary"
+                      className="flex items-center gap-2 px-3 py-1"
+                    >
                       <Star className="h-4 w-4 text-yellow-500" />
                       <span className="font-semibold text-foreground">
                         {movie.voteAverage.toFixed(1)}
@@ -356,7 +301,9 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                           <span className="font-medium text-muted-foreground">
                             Release Date
                           </span>
-                          <p>{new Date(movie.releaseDate).toLocaleDateString()}</p>
+                          <p>
+                            {new Date(movie.releaseDate).toLocaleDateString()}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -375,79 +322,74 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
               </CardContent>
             </Card>
 
-            <div className="grid gap-6 lg:grid-cols-2">
-              {movie.cast && movie.cast.length > 0 && (
+            <div className="space-y-6">
+              {(hasCast || hasCrew) && (
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Cast</CardTitle>
-                    <CardDescription>Top billed cast members</CardDescription>
+                  <CardHeader className="space-y-4">
+                    <div>
+                      <CardTitle className="text-lg">Credits</CardTitle>
+                      <CardDescription>
+                        Browse cast and crew details
+                      </CardDescription>
+                    </div>
                   </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-80 pr-4">
-                      <div className="space-y-3">
-                        {movie.cast
-                          .slice()
-                          .sort((a, b) => a.order - b.order)
-                          .slice(0, 20)
-                          .map((castMember) => (
-                            <CastMemberCard
-                              key={`${castMember.tmdbId}-${castMember.order}`}
-                              castMember={castMember}
-                            />
-                          ))}
+                  <CardContent className="space-y-4">
+                    {hasCast && (
+                      <div className="space-y-2">
+                        <ScrollArea className="w-full overflow-hidden">
+                          <div className="flex w-max gap-3 pb-2">
+                            {movie.cast
+                              .slice()
+                              .sort((a, b) => a.order - b.order)
+                              .slice(0, CREDIT_DISPLAY_LIMIT)
+                              .map((castMember) => (
+                                <PersonCard
+                                  key={`${castMember.tmdbId}-${castMember.order}`}
+                                  name={castMember.name}
+                                  description={
+                                    castMember.character || undefined
+                                  }
+                                  profilePath={castMember.profilePath}
+                                  className="w-40 sm:w-44 md:w-48 lg:w-52 xl:w-56"
+                                />
+                              ))}
+                          </div>
+                          <ScrollBar orientation="horizontal" className="mt-1" />
+                        </ScrollArea>
+                        {movie.cast.length > CREDIT_DISPLAY_LIMIT && (
+                          <p className="text-xs text-muted-foreground">
+                            Showing {CREDIT_DISPLAY_LIMIT} of {movie.cast.length} cast members
+                          </p>
+                        )}
                       </div>
-                      {movie.cast.length > 20 && (
-                        <p className="mt-3 text-xs text-muted-foreground">
-                          Showing 20 of {movie.cast.length} cast members
-                        </p>
-                      )}
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
-              )}
+                    )}
 
-              {movie.crew && movie.crew.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Crew</CardTitle>
-                    <CardDescription>Key production members</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-80 pr-4">
-                      <div className="space-y-3">
-                        {movie.crew
-                          .slice()
-                          .sort((a, b) => {
-                            const importantJobs = [
-                              "Director",
-                              "Producer",
-                              "Executive Producer",
-                              "Writer",
-                              "Screenplay",
-                            ];
-                            const aIndex = importantJobs.indexOf(a.job);
-                            const bIndex = importantJobs.indexOf(b.job);
-
-                            if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-                            if (aIndex !== -1) return -1;
-                            if (bIndex !== -1) return 1;
-
-                            return a.name.localeCompare(b.name);
-                          })
-                          .slice(0, 20)
-                          .map((crewMember) => (
-                            <CrewMemberCard
-                              key={`${crewMember.tmdbId}-${crewMember.job}`}
-                              crewMember={crewMember}
-                            />
-                          ))}
+                    {hasCrew && (
+                      <div className="space-y-2">
+                        <ScrollArea className="w-full overflow-hidden">
+                          <div className="flex w-max gap-3 pb-2">
+                            {movie.crew
+                              .slice(0, CREDIT_DISPLAY_LIMIT)
+                              .map((crewMember) => (
+                                <PersonCard
+                                  key={`${crewMember.tmdbId}-${crewMember.job}`}
+                                  name={crewMember.name}
+                                  description={crewMember.job}
+                                  meta={crewMember.department}
+                                  profilePath={crewMember.profilePath}
+                                  className="w-40 sm:w-44 md:w-48 lg:w-52 xl:w-56"
+                                />
+                              ))}
+                          </div>
+                          <ScrollBar orientation="horizontal" className="mt-1" />
+                        </ScrollArea>
+                        {movie.crew.length > CREDIT_DISPLAY_LIMIT && (
+                          <p className="text-xs text-muted-foreground">
+                            Showing {CREDIT_DISPLAY_LIMIT} of {movie.crew.length} crew members
+                          </p>
+                        )}
                       </div>
-                      {movie.crew.length > 20 && (
-                        <p className="mt-3 text-xs text-muted-foreground">
-                          Showing 20 of {movie.crew.length} crew members
-                        </p>
-                      )}
-                    </ScrollArea>
+                    )}
                   </CardContent>
                 </Card>
               )}

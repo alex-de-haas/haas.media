@@ -9,12 +9,7 @@ import { ArrowLeft, MoreVertical, Trash2, Tv, Star } from "lucide-react";
 import { useTVShow, useDeleteTVShowMetadata } from "@/features/media/hooks";
 import { LoadingSpinner } from "@/components/ui";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
-import type {
-  TVSeasonMetadata,
-  TVEpisodeMetadata,
-  CrewMember,
-  CastMember,
-} from "@/types/metadata";
+import type { TVEpisodeMetadata } from "@/types/metadata";
 import { useNotifications } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,8 +38,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
   Accordion,
@@ -52,84 +46,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { PersonCard } from "@/features/media/components/person-card";
 
 interface TVShowDetailsProps {
   tvShowId: string;
 }
 
-interface CrewMemberCardProps {
-  crewMember: CrewMember;
-}
-
-interface CastMemberCardProps {
-  castMember: CastMember;
-}
-
 interface EpisodeCardProps {
   episode: TVEpisodeMetadata;
-}
-
-function getInitials(name?: string) {
-  if (!name) {
-    return "?";
-  }
-
-  const parts = name.trim().split(/\s+/);
-  const [first = "", second = ""] = parts;
-  return `${first.charAt(0)}${second.charAt(0)}`.toUpperCase();
-}
-
-function CastMemberCard({ castMember }: CastMemberCardProps) {
-  return (
-    <Card>
-      <CardContent className="flex items-center gap-3 p-4">
-        <Avatar className="h-12 w-12">
-          {castMember.profilePath ? (
-            <AvatarImage
-              src={`https://image.tmdb.org/t/p/w92${castMember.profilePath}`}
-              alt={castMember.name}
-            />
-          ) : (
-            <AvatarFallback>{getInitials(castMember.name)}</AvatarFallback>
-          )}
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{castMember.name}</p>
-          <p className="text-xs text-muted-foreground truncate">
-            as {castMember.character}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function CrewMemberCard({ crewMember }: CrewMemberCardProps) {
-  return (
-    <Card>
-      <CardContent className="flex items-center gap-3 p-4">
-        <Avatar className="h-12 w-12">
-          {crewMember.profilePath ? (
-            <AvatarImage
-              src={`https://image.tmdb.org/t/p/w92${crewMember.profilePath}`}
-              alt={crewMember.name}
-            />
-          ) : (
-            <AvatarFallback>{getInitials(crewMember.name)}</AvatarFallback>
-          )}
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{crewMember.name}</p>
-          <p className="text-xs text-muted-foreground truncate">
-            {crewMember.job}
-          </p>
-          <p className="text-xs text-muted-foreground truncate">
-            {crewMember.department}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  );
 }
 
 function EpisodeCard({ episode }: EpisodeCardProps) {
@@ -143,7 +67,10 @@ function EpisodeCard({ episode }: EpisodeCardProps) {
             </p>
           </div>
           {episode.voteAverage > 0 && (
-            <Badge variant="secondary" className="flex items-center gap-1 px-2 py-1">
+            <Badge
+              variant="secondary"
+              className="flex items-center gap-1 px-2 py-1"
+            >
               <Star className="h-3 w-3 text-yellow-500" />
               {episode.voteAverage.toFixed(1)}
             </Badge>
@@ -187,7 +114,8 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
   }, [tvShow?.seasons]);
 
   const seasonValues = useMemo(
-    () => tvShow?.seasons?.map((season) => season.seasonNumber.toString()) ?? [],
+    () =>
+      tvShow?.seasons?.map((season) => season.seasonNumber.toString()) ?? [],
     [tvShow?.seasons]
   );
 
@@ -256,6 +184,9 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
   const posterUrl = getPosterUrl(tvShow.posterPath);
   const backdropUrl = getBackdropUrl(tvShow.backdropPath);
   const seasonCount = tvShow.seasons?.length ?? 0;
+  const CREDIT_DISPLAY_LIMIT = 20;
+  const hasCast = Boolean(tvShow.cast && tvShow.cast.length > 0);
+  const hasCrew = Boolean(tvShow.crew && tvShow.crew.length > 0);
 
   return (
     <div>
@@ -294,7 +225,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
       </div>
 
       <div className="relative z-10 -mt-32 px-4 py-8">
-        <div className="mx-auto flex max-w-7xl flex-col gap-8 lg:flex-row">
+        <div className="mx-auto flex w-full max-w-screen-xl flex-col gap-8 lg:flex-row">
           <div className="flex-shrink-0">
             <Card className="w-64 overflow-hidden shadow-2xl">
               {posterUrl ? (
@@ -314,7 +245,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
             </Card>
           </div>
 
-          <div className="flex-1 space-y-6">
+          <div className="flex-1 space-y-6 w-full lg:max-w-4xl">
             <Card className="shadow-lg">
               <CardHeader className="space-y-4">
                 <div className="flex items-start justify-between gap-4">
@@ -322,14 +253,17 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                     <CardTitle className="text-3xl md:text-4xl">
                       {tvShow.title}
                     </CardTitle>
-                    {tvShow.originalTitle && tvShow.originalTitle !== tvShow.title && (
-                      <CardDescription className="text-base">
-                        {tvShow.originalTitle}
-                      </CardDescription>
-                    )}
+                    {tvShow.originalTitle &&
+                      tvShow.originalTitle !== tvShow.title && (
+                        <CardDescription className="text-base">
+                          {tvShow.originalTitle}
+                        </CardDescription>
+                      )}
                     <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                       {tvShow.originalLanguage && (
-                        <span className="uppercase">{tvShow.originalLanguage}</span>
+                        <span className="uppercase">
+                          {tvShow.originalLanguage}
+                        </span>
                       )}
                       {seasonCount > 0 && (
                         <span>
@@ -338,16 +272,24 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                       )}
                       {totalEpisodes > 0 && (
                         <span>
-                          {totalEpisodes} episode{totalEpisodes === 1 ? "" : "s"}
+                          {totalEpisodes} episode
+                          {totalEpisodes === 1 ? "" : "s"}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                  <AlertDialog
+                    open={deleteDialogOpen}
+                    onOpenChange={setDeleteDialogOpen}
+                  >
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="rounded-full">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="rounded-full"
+                        >
                           <MoreVertical className="h-4 w-4" />
                           <span className="sr-only">Open TV show actions</span>
                         </Button>
@@ -368,18 +310,21 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>
-                          Delete "{tvShow.title}"?
+                          Delete {tvShow.title}?
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                          This action cannot be undone. The metadata for this TV show
-                          will be permanently removed.
+                          This action cannot be undone. The metadata for this TV
+                          show will be permanently removed.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel disabled={deletingTVShow}>
                           Cancel
                         </AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} disabled={deletingTVShow}>
+                        <AlertDialogAction
+                          onClick={handleDelete}
+                          disabled={deletingTVShow}
+                        >
                           {deletingTVShow ? "Deleting..." : "Delete"}
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -389,7 +334,10 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
 
                 {tvShow.voteAverage > 0 && (
                   <div className="flex flex-wrap items-center gap-4 text-sm">
-                    <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1">
+                    <Badge
+                      variant="secondary"
+                      className="flex items-center gap-2 px-3 py-1"
+                    >
                       <Star className="h-4 w-4 text-yellow-500" />
                       <span className="font-semibold text-foreground">
                         {tvShow.voteAverage.toFixed(1)}
@@ -449,53 +397,46 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                     )}
                     <Separator />
                     <p className="text-xs text-muted-foreground">
-                      Metadata last updated: {new Date(tvShow.updatedAt).toLocaleString()}
+                      Metadata last updated:{" "}
+                      {new Date(tvShow.updatedAt).toLocaleString()}
                     </p>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            <div className="grid gap-6 lg:grid-cols-2">
-              {tvShow.cast && tvShow.cast.length > 0 && (
+            <div className="space-y-6">
+              {(hasCast || hasCrew) && (
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Cast</CardTitle>
-                    <CardDescription>Top billed cast members</CardDescription>
+                  <CardHeader className="space-y-4">
+                    <div>
+                      <CardTitle className="text-lg">Credits</CardTitle>
+                      <CardDescription>
+                        Browse cast and crew details
+                      </CardDescription>
+                    </div>
                   </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-80 pr-4">
-                      <div className="space-y-3">
+                  <CardContent className="space-y-4">
+                    <ScrollArea className="w-full overflow-hidden">
+                      <div className="flex w-max gap-3 pb-2">
                         {tvShow.cast
                           .slice()
                           .sort((a, b) => a.order - b.order)
-                          .slice(0, 20)
+                          .slice(0, CREDIT_DISPLAY_LIMIT)
                           .map((castMember) => (
-                            <CastMemberCard
+                            <PersonCard
                               key={`${castMember.tmdbId}-${castMember.order}`}
-                              castMember={castMember}
+                              name={castMember.name}
+                              description={castMember.character || undefined}
+                              profilePath={castMember.profilePath}
+                              className="w-40 sm:w-44 md:w-48 lg:w-52 xl:w-56"
                             />
                           ))}
                       </div>
-                      {tvShow.cast.length > 20 && (
-                        <p className="mt-3 text-xs text-muted-foreground">
-                          Showing 20 of {tvShow.cast.length} cast members
-                        </p>
-                      )}
+                      <ScrollBar orientation="horizontal" className="mt-1" />
                     </ScrollArea>
-                  </CardContent>
-                </Card>
-              )}
-
-              {tvShow.crew && tvShow.crew.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Crew</CardTitle>
-                    <CardDescription>Key production members</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-80 pr-4">
-                      <div className="space-y-3">
+                    <ScrollArea className="w-full overflow-hidden">
+                      <div className="flex w-max gap-3 pb-2">
                         {tvShow.crew
                           .slice()
                           .sort((a, b) => {
@@ -510,25 +451,26 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                             const aIndex = importantJobs.indexOf(a.job);
                             const bIndex = importantJobs.indexOf(b.job);
 
-                            if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+                            if (aIndex !== -1 && bIndex !== -1)
+                              return aIndex - bIndex;
                             if (aIndex !== -1) return -1;
                             if (bIndex !== -1) return 1;
 
                             return a.name.localeCompare(b.name);
                           })
-                          .slice(0, 20)
+                          .slice(0, CREDIT_DISPLAY_LIMIT)
                           .map((crewMember) => (
-                            <CrewMemberCard
+                            <PersonCard
                               key={`${crewMember.tmdbId}-${crewMember.job}`}
-                              crewMember={crewMember}
+                              name={crewMember.name}
+                              description={crewMember.job}
+                              meta={crewMember.department}
+                              profilePath={crewMember.profilePath}
+                              className="w-40 sm:w-44 md:w-48 lg:w-52 xl:w-56"
                             />
                           ))}
                       </div>
-                      {tvShow.crew.length > 20 && (
-                        <p className="mt-3 text-xs text-muted-foreground">
-                          Showing 20 of {tvShow.crew.length} crew members
-                        </p>
-                      )}
+                      <ScrollBar orientation="horizontal" className="mt-1" />
                     </ScrollArea>
                   </CardContent>
                 </Card>
@@ -539,14 +481,19 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
               <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <CardTitle className="text-lg">Seasons</CardTitle>
-                  <CardDescription>Browse episodes and linked files</CardDescription>
+                  <CardDescription>
+                    Browse episodes and linked files
+                  </CardDescription>
                 </div>
                 <div className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={expandAllSeasons}
-                    disabled={seasonValues.length === 0 || expandedSeasons.length === seasonValues.length}
+                    disabled={
+                      seasonValues.length === 0 ||
+                      expandedSeasons.length === seasonValues.length
+                    }
                   >
                     Expand all
                   </Button>
@@ -573,7 +520,11 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                       const value = season.seasonNumber.toString();
 
                       return (
-                        <AccordionItem key={value} value={value} className="rounded-lg border">
+                        <AccordionItem
+                          key={value}
+                          value={value}
+                          className="rounded-lg border"
+                        >
                           <AccordionTrigger className="px-4 py-3">
                             <div className="flex flex-col gap-2 text-left">
                               <div className="flex flex-wrap items-center gap-3">
@@ -581,14 +532,18 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                                   Season {season.seasonNumber}
                                 </span>
                                 {season.voteAverage > 0 && (
-                                  <Badge variant="secondary" className="flex items-center gap-1 px-2 py-1">
+                                  <Badge
+                                    variant="secondary"
+                                    className="flex items-center gap-1 px-2 py-1"
+                                  >
                                     <Star className="h-3 w-3 text-yellow-500" />
                                     {season.voteAverage.toFixed(1)}
                                   </Badge>
                                 )}
                               </div>
                               <div className="text-sm text-muted-foreground">
-                                {episodeCount} episode{episodeCount === 1 ? "" : "s"}
+                                {episodeCount} episode
+                                {episodeCount === 1 ? "" : "s"}
                               </div>
                             </div>
                           </AccordionTrigger>
