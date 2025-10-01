@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
-  ArrowLeft,
   ChevronRight,
   File as FileIconOutline,
   Folder,
@@ -64,13 +63,6 @@ export default function FileList({
     }
   };
 
-  const navigateUp = () => {
-    if (pathParts.length > 0) {
-      const parentPath = pathParts.slice(0, -1).join("/");
-      onNavigate(parentPath);
-    }
-  };
-
   return (
     <Card className="overflow-hidden">
       <CardHeader className="space-y-4 border-b bg-muted/40 p-4 sm:p-6">
@@ -100,15 +92,6 @@ export default function FileList({
             );
           })}
         </div>
-
-        {currentPath && (
-          <div>
-            <Button variant="secondary" size="sm" onClick={navigateUp} className="inline-flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Up one level
-            </Button>
-          </div>
-        )}
       </CardHeader>
       <CardContent className="p-0">
         {loading ? (

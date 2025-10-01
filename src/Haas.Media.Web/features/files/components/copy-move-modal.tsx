@@ -14,13 +14,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw } from "lucide-react";
 
@@ -32,8 +25,6 @@ interface CopyMoveModalProps {
   onConfirm: (data: CopyFileRequest | MoveFileRequest) => Promise<{ success: boolean; message: string }>;
 }
 
-type DestinationMode = "browser" | "manual";
-
 export default function CopyMoveModal({
   isOpen,
   onClose,
@@ -41,13 +32,10 @@ export default function CopyMoveModal({
   item,
   onConfirm,
 }: CopyMoveModalProps) {
-  const [destinationPath, setDestinationPath] = useState("");
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [currentPath, setCurrentPath] = useState("");
   const [filesLoading, setFilesLoading] = useState(false);
-  const [selectedDestination, setSelectedDestination] = useState("");
-  const [mode, setMode] = useState<DestinationMode>("browser");
 
   const actionTitle = useMemo(() => (action === "copy" ? "Copy" : "Move"), [action]);
   const loadingLabel = useMemo(() => (action === "copy" ? "Copying..." : "Moving..."), [action]);
@@ -80,17 +68,8 @@ export default function CopyMoveModal({
   useEffect(() => {
     if (isOpen) {
       fetchFiles("");
-      setSelectedDestination("");
-      setDestinationPath("");
-      setMode("browser");
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    if (mode === "browser") {
-      setSelectedDestination(currentPath);
-    }
-  }, [currentPath, mode]);
 
   const handleNavigate = (path: string) => {
     fetchFiles(path);
@@ -99,9 +78,6 @@ export default function CopyMoveModal({
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       setLoading(false);
-      setDestinationPath("");
-      setSelectedDestination("");
-      setMode("browser");
       onClose();
     }
   };
@@ -109,8 +85,7 @@ export default function CopyMoveModal({
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const basePath = mode === "manual" ? destinationPath.trim() : selectedDestination.trim();
-    if (!basePath) return;
+    const basePath = currentPath.trim();
 
     setLoading(true);
     try {
@@ -128,7 +103,7 @@ export default function CopyMoveModal({
     }
   };
 
-  const summaryDestination = mode === "manual" ? destinationPath.trim() : selectedDestination.trim();
+  const summaryDestination = currentPath.trim();
   const finalDestinationSummary = summaryDestination ? `${summaryDestination}/${item.name}` : item.name;
 
   return (
@@ -148,9 +123,7 @@ export default function CopyMoveModal({
             <div className="space-y-1">
               <p className="text-sm font-medium text-foreground">Choose destination</p>
               <p className="text-xs text-muted-foreground">
-                {summaryDestination
-                  ? "The selected directory below will be used as the destination."
-                  : "Browse files or enter a path manually to select the destination directory."}
+                Navigate to the desired directory. The current view will be used as the destination.
               </p>
             </div>
             <Button
@@ -165,44 +138,14 @@ export default function CopyMoveModal({
             </Button>
           </div>
 
-          <Tabs value={mode} onValueChange={(value) => setMode(value as DestinationMode)}>
-            <TabsList className="w-fit">
-              <TabsTrigger value="browser">Browse</TabsTrigger>
-              <TabsTrigger value="manual">Manual input</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="browser" className="space-y-4">
-              <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
-                {selectedDestination ? (
-                  <span>
-                    Destination directory: <span className="font-medium text-foreground">{selectedDestination || "root"}</span>
-                  </span>
-                ) : (
-                  "Navigate to the desired directory. The current view is selected automatically."
-                )}
-              </div>
-              <FileList
-                files={files}
-                currentPath={currentPath}
-                onNavigate={handleNavigate}
-                loading={filesLoading}
-              />
-            </TabsContent>
-
-            <TabsContent value="manual" className="space-y-4">
-              <div className="space-y-2">
-                <Input
-                  value={destinationPath}
-                  onChange={(event) => setDestinationPath(event.target.value)}
-                  placeholder={`Enter destination directory path (${item.name} will be appended)`}
-                  autoFocus
-                />
-                <p className="text-xs text-muted-foreground">
-                  Provide the directory path where the item should be {action === "copy" ? "copied" : "moved"}.
-                </p>
-              </div>
-            </TabsContent>
-          </Tabs>
+          <div className="space-y-4">
+            <FileList
+              files={files}
+              currentPath={currentPath}
+              onNavigate={handleNavigate}
+              loading={filesLoading}
+            />
+          </div>
 
           <div className="rounded-md border bg-background p-3 text-sm">
             <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
@@ -222,11 +165,7 @@ export default function CopyMoveModal({
             </Button>
             <Button
               type="submit"
-              disabled={
-                loading ||
-                (mode === "browser" && !selectedDestination) ||
-                (mode === "manual" && !destinationPath.trim())
-              }
+              disabled={loading || filesLoading}
             >
               {loading ? loadingLabel : actionTitle}
             </Button>
