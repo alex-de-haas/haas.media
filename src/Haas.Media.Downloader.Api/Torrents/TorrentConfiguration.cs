@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Haas.Media.Downloader.Api.Torrents;
 
@@ -40,7 +41,7 @@ public static class TorrentConfiguration
                         try
                         {
                             await using var stream = file.OpenReadStream();
-                            await torrentService.UploadTorrent(stream);
+                            await torrentService.StartFromStreamAsync(stream);
                             uploaded++;
                         }
                         catch (Exception ex)
@@ -62,24 +63,16 @@ public static class TorrentConfiguration
 
         app.MapPost(
                 "api/torrents/from-file",
-                async (StartTorrentFromFileRequest request, ITorrentApi torrentService) =>
+                async ([FromQuery] string path, ITorrentApi torrentService) =>
                 {
-                    if (string.IsNullOrWhiteSpace(request.Path))
+                    if (string.IsNullOrWhiteSpace(path))
                     {
                         return Results.BadRequest("Path is required.");
                     }
 
-                    var result = await torrentService.StartFromFileAsync(
-                        request.Path,
-                        request.OverwriteExisting
-                    );
+                    await torrentService.StartFromFileAsync(path);
 
-                    if (!result.Success)
-                    {
-                        return Results.BadRequest(new { result.Message });
-                    }
-
-                    return Results.Ok(new { result.Message, result.Hash });
+                    return Results.Ok();
                 }
             )
             .WithName("StartTorrentFromFile")

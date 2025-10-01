@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;

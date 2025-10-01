@@ -197,13 +197,17 @@ export function useFiles(initialPath?: string) {
 
     try {
       const token = await getValidToken();
-      const headers = new Headers({ "Content-Type": "application/json" });
+      const headers = new Headers();
       if (token) headers.set("Authorization", `Bearer ${token}`);
 
-      const response = await fetch(`${downloaderApi}/api/torrents/from-file`, {
+      const url = new URL(
+        `${downloaderApi}/api/torrents/from-file`
+      );
+      url.searchParams.set("path", path);
+
+      const response = await fetch(url.toString(), {
         method: "POST",
         headers,
-        body: JSON.stringify({ path }),
       });
 
       let payload: any = null;
