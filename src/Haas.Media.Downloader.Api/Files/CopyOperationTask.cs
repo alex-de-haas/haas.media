@@ -16,28 +16,19 @@ public sealed class CopyOperationTask : BackgroundTaskBase
         string destinationPath,
         string sourceFullPath,
         string destinationFullPath,
-        long totalBytes,
-        int totalFiles,
-        bool isDirectory,
-        string displayName,
-        Guid? id = null
+        bool isDirectory
     )
-        : base(id)
+        : base()
     {
         Kind = kind;
         SourcePath = sourcePath;
         DestinationPath = destinationPath;
         SourceFullPath = sourceFullPath;
         DestinationFullPath = destinationFullPath;
-        TotalBytes = totalBytes;
-        TotalFiles = totalFiles;
         IsDirectory = isDirectory;
-        DisplayNameOverride = displayName;
     }
 
-    private string DisplayNameOverride { get; }
-
-    public override string Name => DisplayNameOverride;
+    public override string Name => "File copy operation";
 
     public CopyOperationTaskKind Kind { get; }
 
@@ -48,10 +39,6 @@ public sealed class CopyOperationTask : BackgroundTaskBase
     public string SourceFullPath { get; }
 
     public string DestinationFullPath { get; }
-
-    public long TotalBytes { get; }
-
-    public int TotalFiles { get; }
 
     public bool IsDirectory { get; }
 }

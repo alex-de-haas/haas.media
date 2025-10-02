@@ -87,7 +87,18 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
     [backgroundTasks]
   );
 
-  if (operations.length === 0) {
+  const visibleOperations = useMemo(() => {
+    return operations.filter(operation => {
+      const task = tasksById.get(operation.id);
+      const inferredStatus = operation.completedTime
+        ? BackgroundTaskStatus.Completed
+        : BackgroundTaskStatus.Running;
+      const status = task?.status ?? inferredStatus;
+      return status !== BackgroundTaskStatus.Completed;
+    });
+  }, [operations, tasksById]);
+
+  if (visibleOperations.length === 0) {
     return null;
   }
 
@@ -95,10 +106,10 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
     <section className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold tracking-tight">File transfers</h2>
-        <span className="text-sm text-muted-foreground">{operations.length}</span>
+        <span className="text-sm text-muted-foreground">{visibleOperations.length}</span>
       </div>
       <div className="space-y-4">
-        {operations.map(operation => {
+        {visibleOperations.map(operation => {
           const task = tasksById.get(operation.id);
           const inferredStatus = operation.completedTime
             ? BackgroundTaskStatus.Completed

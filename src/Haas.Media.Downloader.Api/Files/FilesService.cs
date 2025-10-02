@@ -5,7 +5,6 @@ namespace Haas.Media.Downloader.Api.Files;
 
 public class FilesService : IFilesApi
 {
-    private const string CopyTaskName = "File copy operation";
     private readonly string _dataPath;
     private readonly ILogger<FilesService> _logger;
     private readonly IBackgroundTaskManager _backgroundTaskManager;
@@ -125,21 +124,7 @@ public class FilesService : IFilesApi
             Directory.CreateDirectory(destinationDir);
         }
 
-        long totalBytes;
-        int totalFiles;
         
-        if (isDirectory)
-        {
-            var dirInfo = CalculateDirectorySize(sourceFullPath);
-            totalBytes = dirInfo.TotalBytes;
-            totalFiles = dirInfo.TotalFiles;
-        }
-        else
-        {
-            var fileInfo = new FileInfo(sourceFullPath);
-            totalBytes = fileInfo.Length;
-            totalFiles = 1;
-        }
 
         var copyTask = new CopyOperationTask(
             isDirectory ? CopyOperationTaskKind.Directory : CopyOperationTaskKind.File,
@@ -147,10 +132,7 @@ public class FilesService : IFilesApi
             destinationPath,
             sourceFullPath,
             destinationFullPath,
-            totalBytes,
-            totalFiles,
-            isDirectory,
-            CopyTaskName
+            isDirectory
         );
 
         _backgroundTaskManager.RunTask<CopyOperationTask, CopyOperationInfo>(copyTask);
@@ -386,33 +368,6 @@ public class FilesService : IFilesApi
 
         Directory.CreateDirectory(fullPath);
         _logger.LogInformation("Directory created: {Path}", relativePath);
-    }
-
-    private (long TotalBytes, int TotalFiles) CalculateDirectorySize(string directoryPath)
-    {
-        long totalBytes = 0;
-        int totalFiles = 0;
-
-        try
-        {
-            var files = Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories);
-            foreach (var file in files)
-            {
-                var fileInfo = new FileInfo(file);
-                totalBytes += fileInfo.Length;
-                totalFiles++;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(
-                ex,
-                "Error calculating directory size for {DirectoryPath}",
-                directoryPath
-            );
-        }
-
-        return (totalBytes, totalFiles);
     }
 
     private string GetValidatedFullPath(string relativePath)
