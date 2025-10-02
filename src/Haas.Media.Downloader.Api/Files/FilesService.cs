@@ -1,27 +1,19 @@
-using System.Collections.Concurrent;
 using Haas.Media.Core.Helpers;
 using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.SignalR;
 
 namespace Haas.Media.Downloader.Api.Files;
 
-public class FilesService : IFilesApi, IHostedService
+public class FilesService : IFilesApi
 {
     private const string CopyTaskName = "File copy operation";
     private readonly string _dataPath;
     private readonly ILogger<FilesService> _logger;
-    private readonly IHubContext<FileHub> _hubContext;
-    private readonly IBackgroundTaskService _backgroundTaskService;
-    private readonly ConcurrentDictionary<string, CopyOperationInfo> _copyOperations;
-    private readonly CopyOperationTaskExecutor _copyTaskExecutor;
-    private Timer? _broadcastTimer;
+    private readonly IBackgroundTaskManager _backgroundTaskManager;
 
     public FilesService(
         IConfiguration configuration,
         ILogger<FilesService> logger,
-        IHubContext<FileHub> hubContext,
-        IBackgroundTaskService backgroundTaskService
+        IBackgroundTaskManager backgroundTaskManager
     )
     {
         _dataPath =
@@ -29,14 +21,7 @@ public class FilesService : IFilesApi, IHostedService
             ?? throw new ArgumentException("DATA_DIRECTORY configuration is required.");
 
         _logger = logger;
-        _hubContext = hubContext;
-        _backgroundTaskService = backgroundTaskService;
-        _copyOperations = new ConcurrentDictionary<string, CopyOperationInfo>();
-        _copyTaskExecutor = new CopyOperationTaskExecutor(
-            _copyOperations,
-            _hubContext,
-            logger
-        );
+        _backgroundTaskManager = backgroundTaskManager;
 
         // Ensure root directory exists
         Directory.CreateDirectory(_dataPath);
@@ -118,7 +103,7 @@ public class FilesService : IFilesApi, IHostedService
             .ToArray();
     }
 
-    public async Task<string> StartCopyAsync(string sourcePath, string destinationPath)
+    public Task<string> StartCopyAsync(string sourcePath, string destinationPath)
     {
         var sourceFullPath = GetValidatedFullPath(sourcePath);
         var destinationFullPath = GetValidatedFullPath(destinationPath);
@@ -140,11 +125,9 @@ public class FilesService : IFilesApi, IHostedService
             Directory.CreateDirectory(destinationDir);
         }
 
-        var operationGuid = Guid.NewGuid();
-        var operationId = operationGuid.ToString();
-        long totalBytes = 0;
-        int totalFiles = 0;
-
+        long totalBytes;
+        int totalFiles;
+        
         if (isDirectory)
         {
             var dirInfo = CalculateDirectorySize(sourceFullPath);
@@ -158,124 +141,21 @@ public class FilesService : IFilesApi, IHostedService
             totalFiles = 1;
         }
 
-        var copyOperation = new CopyOperationInfo(
-            operationId,
+        var copyTask = new CopyOperationTask(
+            isDirectory ? CopyOperationTaskKind.Directory : CopyOperationTaskKind.File,
             sourcePath,
             destinationPath,
+            sourceFullPath,
+            destinationFullPath,
             totalBytes,
-            0,
-            0.0,
-            CopyOperationState.Running,
-            DateTime.UtcNow,
-            IsDirectory: isDirectory,
-            TotalFiles: totalFiles,
-            CopiedFiles: 0,
-            SpeedBytesPerSecond: 0,
-            EstimatedTimeSeconds: null
+            totalFiles,
+            isDirectory,
+            CopyTaskName
         );
 
-        _copyOperations.TryAdd(operationId, copyOperation);
+        _backgroundTaskManager.RunTask<CopyOperationTask, CopyOperationInfo>(copyTask);
 
-        if (isDirectory)
-        {
-            _backgroundTaskService.Enqueue(
-                CopyTaskName,
-                context => _copyTaskExecutor.ExecuteDirectoryCopyAsync(
-                    context,
-                    operationId,
-                    sourceFullPath,
-                    destinationFullPath
-                ),
-                operationGuid
-            );
-        }
-        else
-        {
-            _backgroundTaskService.Enqueue(
-                CopyTaskName,
-                context => _copyTaskExecutor.ExecuteFileCopyAsync(
-                    context,
-                    operationId,
-                    sourceFullPath,
-                    destinationFullPath,
-                    totalBytes
-                ),
-                operationGuid
-            );
-        }
-
-        // Broadcast initial operation state
-        await _hubContext.Clients.All.SendAsync("CopyOperationUpdated", copyOperation);
-
-        return operationId;
-    }
-
-    public CopyOperationInfo[] GetCopyOperations()
-    {
-        return _copyOperations.Values.ToArray();
-    }
-
-    public async Task<bool> CancelCopyOperationAsync(string operationId)
-    {
-        if (!Guid.TryParse(operationId, out var taskId))
-        {
-            return false;
-        }
-
-        var cancelled = _backgroundTaskService.TryCancel(taskId);
-        if (!cancelled)
-        {
-            return false;
-        }
-
-        if (_copyOperations.TryGetValue(operationId, out var operation))
-        {
-            if (operation.State == CopyOperationState.Running)
-            {
-                var cancelledOperation = operation with
-                {
-                    State = CopyOperationState.Cancelled,
-                    CompletedTime = DateTime.UtcNow,
-                };
-                _copyOperations.TryUpdate(operationId, cancelledOperation, operation);
-                await _hubContext.Clients.All.SendAsync("CopyOperationUpdated", cancelledOperation);
-
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(3000);
-                    _copyOperations.TryRemove(operationId, out _);
-                    await _hubContext.Clients.All.SendAsync("CopyOperationDeleted", operationId);
-                });
-            }
-        }
-
-        return true;
-    }
-
-    public async Task BroadcastCopyOperationsAsync()
-    {
-        foreach (var operation in _copyOperations.Values)
-        {
-            await _hubContext.Clients.All.SendAsync("CopyOperationUpdated", operation);
-        }
-    }
-
-    private void CleanupOldOperations()
-    {
-        var cutoffTime = DateTime.UtcNow.AddMinutes(-5); // Remove operations older than 5 minutes that weren't auto-removed
-        var operationsToRemove = _copyOperations
-            .Values.Where(op =>
-                op.State != CopyOperationState.Running
-                && op.CompletedTime.HasValue
-                && op.CompletedTime.Value < cutoffTime
-            )
-            .Select(op => op.Id)
-            .ToList();
-
-        foreach (var operationId in operationsToRemove)
-        {
-            _copyOperations.TryRemove(operationId, out _);
-        }
+        return Task.FromResult(copyTask.Id.ToString());
     }
 
     public async Task<FileUploadResult> UploadAsync(
@@ -533,52 +413,6 @@ public class FilesService : IFilesApi, IHostedService
         }
 
         return (totalBytes, totalFiles);
-    }
-
-    public Task StartAsync(CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Files service is starting");
-
-        // Start broadcast timer for copy operations
-        _broadcastTimer ??= new Timer(
-            async _ =>
-            {
-                try
-                {
-                    await BroadcastCopyOperationsAsync();
-                    CleanupOldOperations();
-                }
-                catch
-                {
-                    // swallow to avoid crashing the timer thread
-                }
-            },
-            null,
-            TimeSpan.Zero,
-            TimeSpan.FromSeconds(1)
-        );
-
-        return Task.CompletedTask;
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Files service is stopping");
-
-        // Stop broadcast timer
-        _broadcastTimer?.Change(Timeout.Infinite, Timeout.Infinite);
-        _broadcastTimer?.Dispose();
-        _broadcastTimer = null;
-
-        // Cancel all active copy operations
-        foreach (var operationId in _copyOperations.Keys)
-        {
-            if (Guid.TryParse(operationId, out var taskId))
-            {
-                _backgroundTaskService.TryCancel(taskId);
-            }
-        }
-        return Task.CompletedTask;
     }
 
     private string GetValidatedFullPath(string relativePath)

@@ -15,12 +15,10 @@ import {
   LogIn,
   LogOut,
   ChevronDown,
-  Activity,
 } from "lucide-react";
 
 import { useLayout } from "./layout-provider";
 import { useAuth } from "../../lib/hooks/useAuth";
-import ActiveBackgroundTasks from "../background-tasks/active-background-tasks";
 import ThemeSwitch from "../ui/theme-switch";
 import { Button } from "../ui/button";
 import { Sheet, SheetContent, SheetTitle } from "../ui/sheet";
@@ -242,7 +240,6 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const { user } = useAuth();
 
   return (
     <div className="flex h-full flex-col">
@@ -258,17 +255,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </div>
       <ScrollArea className="flex-1">
         <NavigationList pathname={pathname} onNavigate={onNavigate} />
-        {user && (
-          <div className="px-4 py-6">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
-              <Activity className="h-3.5 w-3.5" />
-              Background Tasks
-            </div>
-            <div className="mt-3">
-              <ActiveBackgroundTasks enabled={Boolean(user)} />
-            </div>
-          </div>
-        )}
       </ScrollArea>
       <div className="mt-auto space-y-4 border-t border-border px-6 py-5">
         <ThemeSwitch variant="dropdown" className="w-full" />

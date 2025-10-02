@@ -27,15 +27,15 @@ The Haas.Media backend exposes REST endpoints grouped by domain. Every endpoint 
 All file system paths are rooted at the configured `DATA_DIRECTORY`; the service rejects traversal attempts.
 
 - `GET /api/files?path=<relative>` — list files and directories. Returns `FileItem[]` with metadata and optional `MediaInfo` for media files.
-- `GET /api/files/copy-operations` — inspect background copy/move operations.
 - `POST /api/files/copy` — enqueue a copy. Body: `{ "sourcePath": "...", "destinationPath": "..." }`. Response contains `OperationId`.
-- `DELETE /api/files/copy-operations/{operationId}` — cancel a pending or running copy job.
+- `GET /api/background-tasks/CopyOperationTask` — inspect active and completed copy jobs. Each task exposes a `CopyOperationInfo` payload with byte counts, progress, and current path details.
+- `DELETE /api/background-tasks/{operationId}` — cancel a pending or running copy job by task id.
 - `POST /api/files/move` — synchronous move/rename between two relative paths.
 - `PUT /api/files/rename` — rename a single item inside its directory. Body: `{ "path": "media/video.mp4", "newName": "video-final.mp4" }`.
 - `POST /api/files/directory` — create a directory tree relative to the root.
 - `DELETE /api/files?path=<relative>` — delete a single file.
 - `DELETE /api/files/directory?path=<relative>` — delete a directory and contents.
-- SignalR: `/hub/files` shares copy operation lifecycle events.
+- SignalR: connect to `/hub/background-tasks?type=CopyOperationTask` for live `TaskUpdated` events carrying `CopyOperationInfo` payloads.
 
 ## Metadata Libraries & Catalog
 Metadata is stored in LiteDB collections inside `common.db`. Responses include LiteDB string IDs.
@@ -67,7 +67,7 @@ Metadata is stored in LiteDB collections inside `common.db`. Responses include L
   }
   ```
   Responses include the created `MovieMetadata` or `TVShowMetadata` document. Duplicate insertions return `409 Conflict`.
-- SignalR: `/hub/metadata` emits scan operation updates (`ScanOperationUpdated` and `ScanOperationDeleted`).
+- SignalR: connect to `/hub/background-tasks?type=MetadataScanTask` for live scan updates delivered through `TaskUpdated` payloads.
 
 ## Error Payload Shape
 Errors follow a basic JSON contract:

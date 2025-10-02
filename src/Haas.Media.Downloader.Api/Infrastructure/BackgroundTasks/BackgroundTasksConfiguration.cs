@@ -10,9 +10,9 @@ public static class BackgroundTasksConfiguration
 
         app.MapGet(
                 "api/background-tasks",
-                (IBackgroundTaskService backgroundTaskService) =>
+                (IBackgroundTaskManager backgroundTaskManager) =>
                 {
-                    var tasks = backgroundTaskService.GetTasks();
+                    var tasks = backgroundTaskManager.GetTasks();
                     return Results.Ok(tasks);
                 }
             )
@@ -20,10 +20,21 @@ public static class BackgroundTasksConfiguration
             .RequireAuthorization();
 
         app.MapGet(
-                "api/background-tasks/{taskId:guid}",
-                (Guid taskId, IBackgroundTaskService backgroundTaskService) =>
+                "api/background-tasks/{type}",
+                (string type, IBackgroundTaskManager backgroundTaskManager) =>
                 {
-                    return backgroundTaskService.TryGetTask(taskId, out var taskInfo)
+                    var tasks = backgroundTaskManager.GetTasks(type);
+                    return Results.Ok(tasks);
+                }
+            )
+            .WithName("GetBackgroundTasksByType")
+            .RequireAuthorization();
+
+        app.MapGet(
+                "api/background-tasks/{taskId:guid}",
+                (Guid taskId, IBackgroundTaskManager backgroundTaskManager) =>
+                {
+                    return backgroundTaskManager.TryGetTask(taskId, out var taskInfo)
                         ? Results.Ok(taskInfo)
                         : Results.NotFound();
                 }
@@ -33,9 +44,9 @@ public static class BackgroundTasksConfiguration
 
         app.MapDelete(
                 "api/background-tasks/{taskId:guid}",
-                (Guid taskId, IBackgroundTaskService backgroundTaskService) =>
+                (Guid taskId, IBackgroundTaskManager backgroundTaskManager) =>
                 {
-                    return backgroundTaskService.TryCancel(taskId)
+                    return backgroundTaskManager.CancelTask(taskId)
                         ? Results.Ok()
                         : Results.NotFound();
                 }

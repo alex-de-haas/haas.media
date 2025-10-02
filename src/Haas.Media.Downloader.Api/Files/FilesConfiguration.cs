@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 
 namespace Haas.Media.Downloader.Api.Files;
 
@@ -9,16 +9,14 @@ public static class FilesConfiguration
         // Register FilesService and expose as IFilesApi
         builder.Services.AddSingleton<FilesService>();
         builder.Services.AddSingleton<IFilesApi>(sp => sp.GetRequiredService<FilesService>());
-        builder.Services.AddHostedService(sp => sp.GetRequiredService<FilesService>());
+
+        builder.Services.AddBackgroundTask<CopyOperationTask, CopyOperationInfo, CopyOperationTaskExecutor>();
 
         return builder;
     }
 
     public static WebApplication UseFiles(this WebApplication app)
     {
-        // Map FileHub
-        app.MapHub<FileHub>("/hub/files");
-
         app.MapGet(
                 "api/files",
                 (string? path, IFilesApi filesApi) =>
@@ -88,17 +86,6 @@ public static class FilesConfiguration
             .WithName("UploadFiles")
             .RequireAuthorization();
 
-        app.MapGet(
-                "api/files/copy-operations",
-                (IFilesApi filesApi) =>
-                {
-                    var operations = filesApi.GetCopyOperations();
-                    return Results.Ok(operations);
-                }
-            )
-            .WithName("GetCopyOperations")
-            .RequireAuthorization();
-
         app.MapPost(
                 "api/files/copy",
                 async (CopyFileRequest request, IFilesApi filesApi) =>
@@ -108,17 +95,6 @@ public static class FilesConfiguration
                 }
             )
             .WithName("StartCopy")
-            .RequireAuthorization();
-
-        app.MapDelete(
-                "api/files/copy-operations/{operationId}",
-                async (string operationId, IFilesApi filesApi) =>
-                {
-                    var cancelled = await filesApi.CancelCopyOperationAsync(operationId);
-                    return cancelled ? Results.Ok() : Results.NotFound();
-                }
-            )
-            .WithName("CancelCopyOperation")
             .RequireAuthorization();
 
         app.MapPost(

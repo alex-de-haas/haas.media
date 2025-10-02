@@ -1,11 +1,13 @@
+using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
+
 namespace Haas.Media.Downloader.Api.Metadata;
 
 public static class MetadataConfiguration
 {
     public static WebApplicationBuilder AddMetadata(this WebApplicationBuilder builder)
     {
-        builder.Services
-            .AddOptions<Tmdb.TmdbClientOptions>()
+        builder
+            .Services.AddOptions<Tmdb.TmdbClientOptions>()
             .Bind(builder.Configuration.GetSection("Tmdb"))
             .PostConfigure(options => options.Validate());
 
@@ -19,10 +21,7 @@ public static class MetadataConfiguration
                 configuration["TMDB_API_KEY"]
                 ?? throw new ArgumentException("TMDB_API_KEY configuration is required.");
 
-            var client = new TMDbLib.Client.TMDbClient(tmdbApiKey)
-            {
-                DefaultLanguage = "en",
-            };
+            var client = new TMDbLib.Client.TMDbClient(tmdbApiKey) { DefaultLanguage = "en" };
 
             var httpClient = sp.GetRequiredService<Tmdb.TmdbHttpClientAccessor>().HttpClient;
             Tmdb.TmdbClientConfigurator.UseHttpClient(client, httpClient);
@@ -32,7 +31,12 @@ public static class MetadataConfiguration
 
         builder.Services.AddSingleton<MetadataService>();
         builder.Services.AddScoped<IMetadataApi>(sp => sp.GetRequiredService<MetadataService>());
-        builder.Services.AddHostedService(sp => sp.GetRequiredService<MetadataService>());
+
+        builder.Services.AddBackgroundTask<
+            MetadataScanTask,
+            ScanOperationInfo,
+            MetadataScanTaskExecutor
+        >();
 
         return builder;
     }
@@ -118,15 +122,14 @@ public static class MetadataConfiguration
                 "api/metadata/scan/start",
                 async (IMetadataApi metadataService, bool refreshExisting = true) =>
                 {
-                    var operationId = await metadataService.StartScanLibrariesAsync(refreshExisting);
+                    var operationId = await metadataService.StartScanLibrariesAsync(
+                        refreshExisting
+                    );
                     return Results.Ok(new { operationId, message = "Background scan started" });
                 }
             )
             .WithName("StartBackgroundScan")
             .RequireAuthorization();
-
-        // Map SignalR hub
-        app.MapHub<MetadataHub>("/hub/metadata");
 
         app.MapGet(
                 "api/metadata/movies",
@@ -196,7 +199,11 @@ public static class MetadataConfiguration
 
         app.MapGet(
                 "api/metadata/search",
-                async (IMetadataApi metadataService, string query, LibraryType? libraryType = null) =>
+                async (
+                    IMetadataApi metadataService,
+                    string query,
+                    LibraryType? libraryType = null
+                ) =>
                 {
                     if (string.IsNullOrWhiteSpace(query))
                     {

@@ -5,7 +5,7 @@ The metadata service provides library management, TMDb search, and catalog stora
 ## Dependencies
 - [TMDbLib](https://github.com/LordMike/TMDbLib) powers all TMDb queries. The client is configured with `DefaultLanguage = "en"` and runs through the custom throttled HTTP client described in [tmdb-throttling.md](tmdb-throttling.md).
 - LiteDB stores libraries, movie metadata, and TV show metadata inside `common.db` under the `DATA_DIRECTORY` root.
-- SignalR hub `/hub/metadata` delivers scan progress events.
+- Progress updates stream through `/hub/background-tasks?type=MetadataScanTask`, which replays active scans on connect and pushes `TaskUpdated` payloads.
 
 ## Configuration
 - `DATA_DIRECTORY` (required): used to resolve library roots and database location (`.db/common.db`).
@@ -172,4 +172,4 @@ Failures:
 The `MetadataScanTaskExecutor` is responsible for filesystem scans and TMDb lookups. Details live in [metadata-scanning.md](metadata-scanning.md).
 
 ## Security
-All metadata operations honour JWT authentication. The SignalR hub reuses the same bearer tokens (via query string when necessary).
+All metadata operations honour JWT authentication. The background task hub reuses the same bearer tokens (via query string when necessary).

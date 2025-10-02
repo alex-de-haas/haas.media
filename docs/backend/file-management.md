@@ -7,7 +7,7 @@ The file service wraps all file-system access for the downloader API. It exposes
 - Protect the host from path traversal with strict absolute-path validation.
 - Run long-running copy operations on the background task scheduler while tracking progress.
 - Provide cancellation and monitoring for asynchronous copy jobs.
-- Broadcast file activity to connected clients through `/hub/files`.
+- Broadcast file activity to connected clients through `/hub/background-tasks?type=CopyOperationTask`.
 
 ## Root Path & Validation
 - `DATA_DIRECTORY` is required at startup. The service creates it if needed.
@@ -30,22 +30,20 @@ public record FileItem(
 
 ## Copy & Move Operations
 - `StartCopyAsync` validates source and destination paths, computes aggregate size/ file count, then enqueues a background task identified by a GUID.
-- Each operation is stored in a `ConcurrentDictionary<string, CopyOperationInfo>` which also feeds the `/api/files/copy-operations` endpoint.
-- `CopyOperationTaskExecutor` streams bytes in 80 KB chunks, updating progress, instantaneous speed, estimated remaining time, and copied file count.
-- Completion, failure, and cancellation change the `CopyOperationState` and set `CompletedTime`. Completed operations are evicted a few seconds after the final broadcast.
+- Each operation is tracked by the background task manager; clients query `/api/background-tasks/CopyOperationTask` to hydrate `CopyOperationInfo` payloads and monitor progress.
+- `CopyOperationTaskExecutor` streams bytes in 80 KB chunks, updating payload fields (copied bytes/files, instantaneous speed, ETA) while reporting progress through the background task context.
+- Completion, failure, and cancellation are reflected by the background task lifecycle; the payload's `CompletedTime` marks when byte transfer finished. Completed operations remain queryable for auditing until the service restarts.
 - Directory copies preserve the relative path structure and create directories on demand.
-- `CancelCopyOperationAsync` signals the background task so the executor can mark the job as cancelled.
+- Cancellation goes through `IBackgroundTaskManager.CancelTask`, exposed to clients as `DELETE /api/background-tasks/{taskId}`.
 
 Moving and renaming is synchronous:
 - `Move` handles arbitrary path changes (including moving directories) and creates missing destination folders.
 - `RenameFile` only changes the filename component inside the same folder and validates collisions.
 
 ## SignalR Contracts
-The `/hub/files` hub pushes operation lifecycle events:
-- `CopyOperationUpdated` — emitted whenever progress, speed, or state change.
-- `CopyOperationDeleted` — sent when an operation record is removed after completion or cancellation cleanup.
+Subscribe to `/hub/background-tasks?type=CopyOperationTask` to receive `TaskUpdated` events that include the latest `CopyOperationInfo` payload. The hub only replays active copy operations on connect; subsequent updates stream as progress changes.
 
-Clients can subscribe globally or filter by convention on the client side. Copy progress is also available through polling `GET /api/files/copy-operations` for environments where SignalR is unavailable.
+Clients can subscribe globally or filter by convention on the client side. Copy progress is also available through polling `GET /api/background-tasks/CopyOperationTask` when SignalR is unavailable.
 
 ## Deletion & Directory Creation
 - File deletion uses `File.Delete` guarded by root validation.

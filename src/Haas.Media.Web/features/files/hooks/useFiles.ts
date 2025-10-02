@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import * as signalR from "@microsoft/signalr";
 import type { FileItem, CopyRequest, MoveRequest, CreateDirectoryRequest, RenameRequest, CopyOperationInfo } from "@/types/file";
+import type { BackgroundTaskInfo } from "@/types";
 import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
 
@@ -14,6 +15,91 @@ export function useFiles(initialPath?: string) {
   const [error, setError] = useState<string | null>(null);
   const connectionRef = useRef<signalR.HubConnection | null>(null);
 
+  const mapTaskToCopyOperation = useCallback((task: BackgroundTaskInfo): CopyOperationInfo | null => {
+    if (task.type !== "CopyOperationTask" || !task.payload || typeof task.payload !== "object") {
+      return null;
+    }
+
+    const raw = task.payload as Record<string, unknown>;
+    const id = typeof raw.id === "string" ? raw.id : task.id;
+    const sourcePath = typeof raw.sourcePath === "string" ? raw.sourcePath : "";
+    const destinationPath = typeof raw.destinationPath === "string" ? raw.destinationPath : "";
+
+    if (!sourcePath || !destinationPath) {
+      return null;
+    }
+
+    const startTimeRaw = typeof raw.startTime === "string" ? raw.startTime : null;
+    const startTime = startTimeRaw ?? task.startedAt ?? task.createdAt;
+    const completedTimeRaw = typeof raw.completedTime === "string" ? raw.completedTime : null;
+    const completedTime = completedTimeRaw ?? task.completedAt ?? undefined;
+
+    const toNumber = (value: unknown): number => (typeof value === "number" ? value : Number(value ?? 0));
+
+    return {
+      id,
+      sourcePath,
+      destinationPath,
+      totalBytes: toNumber(raw.totalBytes),
+      copiedBytes: toNumber(raw.copiedBytes),
+      startTime,
+      completedTime: completedTime ?? undefined,
+      isDirectory: typeof raw.isDirectory === "boolean" ? raw.isDirectory : undefined,
+      totalFiles: typeof raw.totalFiles === "number" ? raw.totalFiles : undefined,
+      copiedFiles: typeof raw.copiedFiles === "number" ? raw.copiedFiles : undefined,
+      speedBytesPerSecond:
+        typeof raw.speedBytesPerSecond === "number" ? raw.speedBytesPerSecond : undefined,
+      estimatedTimeSeconds:
+        typeof raw.estimatedTimeSeconds === "number" ? raw.estimatedTimeSeconds : undefined,
+      currentPath: typeof raw.currentPath === "string" ? raw.currentPath : undefined,
+    };
+  }, []);
+
+  const upsertCopyOperation = useCallback((operation: CopyOperationInfo) => {
+    setCopyOperations(prev => {
+      const lookup = new Map(prev.map(existing => [existing.id, existing]));
+      lookup.set(operation.id, operation);
+      return Array.from(lookup.values()).sort(
+        (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+      );
+    });
+  }, []);
+
+  const removeCopyOperation = useCallback((operationId: string) => {
+    setCopyOperations(prev => prev.filter(operation => operation.id !== operationId));
+  }, []);
+
+  const fetchCopyOperations = useCallback(async () => {
+    try {
+      const token = await getValidToken();
+      const headers = new Headers();
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+
+      const response = await fetch(
+        `${downloaderApi}/api/background-tasks/CopyOperationTask`,
+        { headers }
+      );
+
+      if (!response.ok) {
+        console.error("Failed to fetch copy operations:", response.statusText);
+        return;
+      }
+
+      const payload = (await response.json()) as BackgroundTaskInfo[];
+      const operations = payload
+        .map(mapTaskToCopyOperation)
+        .filter((operation): operation is CopyOperationInfo => Boolean(operation));
+
+      setCopyOperations(
+        operations.sort(
+          (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+        )
+      );
+    } catch (err) {
+      console.error("Failed to fetch copy operations:", err);
+    }
+  }, [mapTaskToCopyOperation]);
+
   // Initialize SignalR connection
   useEffect(() => {
     const initializeConnection = async () => {
@@ -21,27 +107,23 @@ export function useFiles(initialPath?: string) {
         const token = await getValidToken();
         
         const connection = new signalR.HubConnectionBuilder()
-          .withUrl(`${downloaderApi}/hub/files`, {
+          .withUrl(`${downloaderApi}/hub/background-tasks?type=CopyOperationTask`, {
             accessTokenFactory: () => token || "",
           })
           .withAutomaticReconnect()
           .build();
 
-        connection.on("CopyOperationUpdated", (operation: CopyOperationInfo) => {
-          setCopyOperations(prev => {
-            const existingIndex = prev.findIndex(op => op.id === operation.id);
-            if (existingIndex >= 0) {
-              const updated = [...prev];
-              updated[existingIndex] = operation;
-              return updated;
-            } else {
-              return [...prev, operation];
-            }
-          });
-        });
+        connection.on("TaskUpdated", (task: BackgroundTaskInfo) => {
+          if (task.type !== "CopyOperationTask") {
+            return;
+          }
 
-        connection.on("CopyOperationDeleted", (operationId: string) => {
-          setCopyOperations(prev => prev.filter(op => op.id !== operationId));
+          const operation = mapTaskToCopyOperation(task);
+          if (operation) {
+            upsertCopyOperation(operation);
+          } else if (!task.payload) {
+            removeCopyOperation(task.id);
+          }
         });
 
         await connection.start();
@@ -59,7 +141,7 @@ export function useFiles(initialPath?: string) {
     return () => {
       connectionRef.current?.stop();
     };
-  }, []);
+  }, [fetchCopyOperations, mapTaskToCopyOperation, removeCopyOperation, upsertCopyOperation]);
 
   const fetchFiles = async (path?: string) => {
     setLoading(true);
@@ -241,22 +323,6 @@ export function useFiles(initialPath?: string) {
     }
   };
 
-  const fetchCopyOperations = async () => {
-    try {
-      const token = await getValidToken();
-      const headers = new Headers();
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-      
-      const response = await fetch(`${downloaderApi}/api/files/copy-operations`, { headers });
-      if (response.ok) {
-        const operations = await response.json();
-        setCopyOperations(operations);
-      }
-    } catch (err) {
-      console.error("Failed to fetch copy operations:", err);
-    }
-  };
-
   useEffect(() => {
     fetchFiles(currentPath);
   }, [currentPath]);
@@ -297,7 +363,7 @@ export function useFiles(initialPath?: string) {
       const headers = new Headers();
       if (token) headers.set("Authorization", `Bearer ${token}`);
 
-      const response = await fetch(`${downloaderApi}/api/files/copy-operations/${operationId}`, {
+      const response = await fetch(`${downloaderApi}/api/background-tasks/${operationId}`, {
         method: "DELETE",
         headers,
       });

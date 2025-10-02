@@ -40,23 +40,14 @@ export interface CopyOperationInfo {
   destinationPath: string;
   totalBytes: number;
   copiedBytes: number;
-  progress: number;
-  state: CopyOperationState;
   startTime: string;
   completedTime?: string;
-  errorMessage?: string;
   isDirectory?: boolean;
   totalFiles?: number;
   copiedFiles?: number;
   speedBytesPerSecond?: number;
   estimatedTimeSeconds?: number;
-}
-
-export enum CopyOperationState {
-  Running = 0,
-  Completed = 1,
-  Failed = 2,
-  Cancelled = 3,
+  currentPath?: string;
 }
 
 // Legacy type aliases for backward compatibility

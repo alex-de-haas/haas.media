@@ -1,35 +1,62 @@
-using System.Collections.Concurrent;
 using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
-using Microsoft.AspNetCore.SignalR;
 
 namespace Haas.Media.Downloader.Api.Files;
 
 internal sealed class CopyOperationTaskExecutor
+    : IBackgroundWorker<CopyOperationTask, CopyOperationInfo>
 {
-    private readonly ConcurrentDictionary<string, CopyOperationInfo> _copyOperations;
-    private readonly IHubContext<FileHub> _hubContext;
-    private readonly ILogger _logger;
+    private readonly ILogger<CopyOperationTaskExecutor> _logger;
 
-    public CopyOperationTaskExecutor(
-        ConcurrentDictionary<string, CopyOperationInfo> copyOperations,
-        IHubContext<FileHub> hubContext,
-        ILogger logger
-    )
+    public CopyOperationTaskExecutor(ILogger<CopyOperationTaskExecutor> logger)
     {
-        _copyOperations = copyOperations;
-        _hubContext = hubContext;
         _logger = logger;
     }
 
-    public async Task ExecuteFileCopyAsync(
-        BackgroundTaskContext taskContext,
-        string operationId,
-        string sourceFullPath,
-        string destinationFullPath,
-        long totalBytes
+    public Task ExecuteAsync(
+        BackgroundWorkerContext<CopyOperationTask, CopyOperationInfo> context
     )
     {
-        var cancellationToken = taskContext.CancellationToken;
+        var task = context.Task;
+        var operationId = task.Id.ToString();
+        var initialOperation = new CopyOperationInfo(
+            operationId,
+            task.SourcePath,
+            task.DestinationPath,
+            task.TotalBytes,
+            CopiedBytes: 0,
+            StartTime: DateTime.UtcNow,
+            CompletedTime: null,
+            IsDirectory: task.IsDirectory,
+            TotalFiles: task.TotalFiles,
+            CopiedFiles: 0,
+            SpeedBytesPerSecond: 0,
+            EstimatedTimeSeconds: null,
+            CurrentPath: null
+        );
+
+        context.SetPayload(initialOperation);
+
+        return task.Kind switch
+        {
+            CopyOperationTaskKind.File => ExecuteFileCopyAsync(context, task),
+            CopyOperationTaskKind.Directory => ExecuteDirectoryCopyAsync(context, task),
+            _
+                => throw new InvalidOperationException(
+                    $"Unsupported copy operation kind: {task.Kind}"
+                ),
+        };
+    }
+
+    private async Task ExecuteFileCopyAsync(
+        BackgroundWorkerContext<CopyOperationTask, CopyOperationInfo> context,
+        CopyOperationTask task
+    )
+    {
+        var cancellationToken = context.CancellationToken;
+        var operationId = task.Id.ToString();
+        var sourceFullPath = task.SourceFullPath;
+        var destinationFullPath = task.DestinationFullPath;
+        var totalBytes = task.TotalBytes;
 
         try
         {
@@ -58,62 +85,32 @@ internal sealed class CopyOperationTaskExecutor
                 await destinationStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
                 totalCopied += bytesRead;
 
-                if (_copyOperations.TryGetValue(operationId, out var currentOperation))
-                {
-                    var progress = totalBytes > 0 ? (double)totalCopied / totalBytes * 100.0 : 0.0;
-                    var elapsedSeconds = (DateTime.UtcNow - currentOperation.StartTime).TotalSeconds;
-                    var speed = elapsedSeconds > 0 ? totalCopied / elapsedSeconds : 0;
-                    double? eta = null;
-                    if (speed > 0)
-                    {
-                        var remaining = Math.Max(0L, totalBytes - totalCopied);
-                        eta = remaining / speed;
-                    }
-
-                    var updatedOperation = currentOperation with
-                    {
-                        CopiedBytes = totalCopied,
-                        Progress = progress,
-                        CopiedFiles = totalCopied == totalBytes ? 1 : 0,
-                        SpeedBytesPerSecond = speed,
-                        EstimatedTimeSeconds = eta,
-                    };
-
-                    _copyOperations.TryUpdate(operationId, updatedOperation, currentOperation);
-                    taskContext.SetPayload(updatedOperation);
-                }
-            }
-
-            if (_copyOperations.TryGetValue(operationId, out var operation))
-            {
-                var completedOperation = operation with
-                {
-                    State = CopyOperationState.Completed,
-                    Progress = 100.0,
-                    CopiedBytes = totalBytes,
-                    CopiedFiles = 1,
-                    CompletedTime = DateTime.UtcNow,
-                    EstimatedTimeSeconds = 0,
-                };
-                _copyOperations.TryUpdate(operationId, completedOperation, operation);
-                taskContext.SetPayload(completedOperation);
-                taskContext.ReportProgress(100, "Copy completed", completedOperation);
-                await _hubContext.Clients.All.SendAsync("CopyOperationUpdated", completedOperation);
-
-                _logger.LogInformation(
-                    "File copy completed: {OperationId} from {Source} to {Destination}",
-                    operationId,
-                    sourceFullPath,
-                    destinationFullPath
+                UpdateProgress(
+                    context,
+                    task,
+                    totalBytes,
+                    totalCopied,
+                    totalCopied == totalBytes ? 1 : 0,
+                    Path.GetFileName(destinationFullPath)
                 );
-
-                ScheduleOperationRemoval(operationId, TimeSpan.FromSeconds(3));
             }
+
+            context.ReportProgress(100);
+            context.ReportStatus(BackgroundTaskStatus.Completed);
+
+            _logger.LogInformation(
+                "File copy completed: {OperationId} from {Source} to {Destination}",
+                operationId,
+                sourceFullPath,
+                destinationFullPath
+            );
         }
         catch (OperationCanceledException)
         {
             _logger.LogInformation("File copy cancelled: {OperationId}", operationId);
-            await MarkCancelledAsync(operationId);
+
+            context.ReportStatus(BackgroundTaskStatus.Cancelled);
+
             throw;
         }
         catch (Exception ex)
@@ -125,137 +122,97 @@ internal sealed class CopyOperationTaskExecutor
                 sourceFullPath,
                 destinationFullPath
             );
-            await MarkFailedAsync(operationId, ex.Message);
+
+            context.ReportStatus(BackgroundTaskStatus.Failed);
+
             throw;
         }
     }
 
-    public async Task ExecuteDirectoryCopyAsync(
-        BackgroundTaskContext taskContext,
-        string operationId,
-        string sourceFullPath,
-        string destinationFullPath
+    private async Task ExecuteDirectoryCopyAsync(
+        BackgroundWorkerContext<CopyOperationTask, CopyOperationInfo> context,
+        CopyOperationTask task
     )
     {
-        var cancellationToken = taskContext.CancellationToken;
+        var cancellationToken = context.CancellationToken;
+        var operationId = task.Id.ToString();
+        var sourceFullPath = task.SourceFullPath;
+        var destinationFullPath = task.DestinationFullPath;
 
         try
         {
             var files = Directory.GetFiles(sourceFullPath, "*", SearchOption.AllDirectories);
             long totalCopied = 0;
-            int filesCopied = 0;
+            var filesCopied = 0;
 
-            if (_copyOperations.TryGetValue(operationId, out var initialOperation))
+            foreach (var sourceFile in files)
             {
-                foreach (var sourceFile in files)
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var relativePath = Path.GetRelativePath(sourceFullPath, sourceFile);
+                var destinationFile = Path.Combine(destinationFullPath, relativePath);
+                var destinationDir = Path.GetDirectoryName(destinationFile);
+
+                if (!string.IsNullOrEmpty(destinationDir))
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    Directory.CreateDirectory(destinationDir);
+                }
 
-                    var relativePath = Path.GetRelativePath(sourceFullPath, sourceFile);
-                    var destinationFile = Path.Combine(destinationFullPath, relativePath);
-                    var destinationDir = Path.GetDirectoryName(destinationFile);
+                using var sourceStream = new FileStream(
+                    sourceFile,
+                    FileMode.Open,
+                    FileAccess.Read
+                );
+                using var destinationStream = new FileStream(
+                    destinationFile,
+                    FileMode.CreateNew,
+                    FileAccess.Write
+                );
 
-                    if (!string.IsNullOrEmpty(destinationDir))
-                    {
-                        Directory.CreateDirectory(destinationDir);
-                    }
+                var buffer = new byte[81920];
+                int bytesRead;
 
-                    using var sourceStream = new FileStream(
-                        sourceFile,
-                        FileMode.Open,
-                        FileAccess.Read
-                    );
-                    using var destinationStream = new FileStream(
-                        destinationFile,
-                        FileMode.CreateNew,
-                        FileAccess.Write
-                    );
-
-                    var buffer = new byte[81920];
-                    int bytesRead;
-
-                    while (
-                        (
-                            bytesRead = await sourceStream.ReadAsync(
-                                buffer,
-                                0,
-                                buffer.Length,
-                                cancellationToken
+                while (
+                    (
+                        bytesRead = await sourceStream.ReadAsync(
+                            buffer,
+                            0,
+                            buffer.Length,
+                            cancellationToken
                         )
                     ) > 0
-                    )
-                    {
-                        await destinationStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
-                        totalCopied += bytesRead;
-
-                        if (_copyOperations.TryGetValue(operationId, out var currentOperation))
-                        {
-                            var progress = initialOperation.TotalBytes > 0
-                                ? (double)totalCopied / initialOperation.TotalBytes * 100.0
-                                : 0.0;
-                            var elapsedSeconds = (DateTime.UtcNow - currentOperation.StartTime).TotalSeconds;
-                            var speed = elapsedSeconds > 0 ? totalCopied / elapsedSeconds : 0;
-                            double? eta = null;
-                            if (speed > 0)
-                            {
-                                var remaining = Math.Max(
-                                    0L,
-                                    initialOperation.TotalBytes - totalCopied
-                                );
-                                eta = remaining / speed;
-                            }
-
-                            var updatedOperation = currentOperation with
-                            {
-                                CopiedBytes = totalCopied,
-                                Progress = progress,
-                                CopiedFiles = filesCopied,
-                                SpeedBytesPerSecond = speed,
-                                EstimatedTimeSeconds = eta,
-                            };
-
-                            _copyOperations.TryUpdate(operationId, updatedOperation, currentOperation);
-                            taskContext.SetPayload(updatedOperation);
-                        }
-                    }
-
-                    filesCopied++;
-                }
-
-                if (_copyOperations.TryGetValue(operationId, out var operation))
+                )
                 {
-                    var completedOperation = operation with
-                    {
-                        State = CopyOperationState.Completed,
-                        Progress = 100.0,
-                        CopiedBytes = totalCopied,
-                        CopiedFiles = filesCopied,
-                        CompletedTime = DateTime.UtcNow,
-                        EstimatedTimeSeconds = 0,
-                    };
-                    _copyOperations.TryUpdate(operationId, completedOperation, operation);
-                    taskContext.SetPayload(completedOperation);
-                    taskContext.ReportProgress(100, "Copy completed", completedOperation);
-                    await _hubContext.Clients.All.SendAsync(
-                        "CopyOperationUpdated",
-                        completedOperation
-                    );
+                    await destinationStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+                    totalCopied += bytesRead;
 
-                    _logger.LogInformation(
-                        "Directory copy completed: {OperationId} from {Source} to {Destination}",
-                        operationId,
-                        sourceFullPath,
-                        destinationFullPath
+                    UpdateProgress(
+                        context,
+                        task,
+                        task.TotalBytes,
+                        totalCopied,
+                        filesCopied,
+                        Path.Combine(task.DestinationPath, relativePath)
                     );
-
-                    ScheduleOperationRemoval(operationId, TimeSpan.FromSeconds(3));
                 }
+
+                filesCopied++;
             }
+
+            context.ReportProgress(100);
+            context.ReportStatus(BackgroundTaskStatus.Completed);
+
+            _logger.LogInformation(
+                "Directory copy completed: {OperationId} from {Source} to {Destination}",
+                operationId,
+                sourceFullPath,
+                destinationFullPath
+            );
         }
         catch (OperationCanceledException)
         {
             _logger.LogInformation("Directory copy cancelled: {OperationId}", operationId);
-            await MarkCancelledAsync(operationId);
+            context.ReportStatus(BackgroundTaskStatus.Cancelled);
             throw;
         }
         catch (Exception ex)
@@ -267,64 +224,56 @@ internal sealed class CopyOperationTaskExecutor
                 sourceFullPath,
                 destinationFullPath
             );
-            await MarkFailedAsync(operationId, ex.Message);
+            context.ReportStatus(BackgroundTaskStatus.Failed);
             throw;
         }
     }
 
-    private async Task MarkCancelledAsync(string operationId)
+    private void UpdateProgress(
+        BackgroundWorkerContext<CopyOperationTask, CopyOperationInfo> context,
+        CopyOperationTask task,
+        long totalBytes,
+        long copiedBytes,
+        int copiedFiles,
+        string? currentPath
+    )
     {
-        if (_copyOperations.TryGetValue(operationId, out var operation))
+        var startedAt = context.State.StartedAt?.UtcDateTime ?? DateTime.UtcNow;
+        var elapsedSeconds = (DateTime.UtcNow - startedAt).TotalSeconds;
+        var speed = elapsedSeconds > 0 ? copiedBytes / elapsedSeconds : 0;
+        double? eta = null;
+        if (speed > 0)
         {
-            var cancelledOperation = operation with
-            {
-                State = CopyOperationState.Cancelled,
-                CompletedTime = DateTime.UtcNow,
-            };
-            if (_copyOperations.TryUpdate(operationId, cancelledOperation, operation))
-            {
-                await _hubContext.Clients.All.SendAsync("CopyOperationUpdated", cancelledOperation);
-                ScheduleOperationRemoval(operationId, TimeSpan.FromSeconds(3));
-            }
+            var remainingBytes = Math.Max(0L, totalBytes - copiedBytes);
+            eta = remainingBytes / speed;
         }
-    }
 
-    private async Task MarkFailedAsync(string operationId, string errorMessage)
-    {
-        if (_copyOperations.TryGetValue(operationId, out var operation))
-        {
-            var failedOperation = operation with
-            {
-                State = CopyOperationState.Failed,
-                CompletedTime = DateTime.UtcNow,
-                ErrorMessage = errorMessage,
-            };
-            if (_copyOperations.TryUpdate(operationId, failedOperation, operation))
-            {
-                await _hubContext.Clients.All.SendAsync("CopyOperationUpdated", failedOperation);
-                ScheduleOperationRemoval(operationId, TimeSpan.FromSeconds(10));
-            }
-        }
-    }
+        var baseOperation = context.State.Payload
+            ?? new CopyOperationInfo(
+                task.Id.ToString(),
+                task.SourcePath,
+                task.DestinationPath,
+                task.TotalBytes,
+                0,
+                startedAt,
+                IsDirectory: task.IsDirectory,
+                TotalFiles: task.TotalFiles
+            );
 
-    private void ScheduleOperationRemoval(string operationId, TimeSpan delay)
-    {
-        _ = Task.Run(async () =>
+        var updatedOperation = baseOperation with
         {
-            try
-            {
-                await Task.Delay(delay);
-                _copyOperations.TryRemove(operationId, out _);
-                await _hubContext.Clients.All.SendAsync("CopyOperationDeleted", operationId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(
-                    ex,
-                    "Failed to clean up copy operation {OperationId}",
-                    operationId
-                );
-            }
-        });
+            CopiedBytes = copiedBytes,
+            CopiedFiles = copiedFiles,
+            SpeedBytesPerSecond = speed,
+            EstimatedTimeSeconds = eta,
+            CurrentPath = currentPath,
+        };
+        context.SetPayload(updatedOperation);
+
+        var progress = totalBytes > 0
+            ? (double)copiedBytes / Math.Max(1, totalBytes) * 100.0
+            : 0.0;
+
+        context.ReportProgress(progress);
     }
 }

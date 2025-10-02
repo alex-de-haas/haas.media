@@ -2,10 +2,16 @@
 
 import { useMemo, useState } from "react";
 import { useLibraries, LibraryForm, LibraryList } from "@/features/libraries";
+import { useBackgroundTasks } from "@/features/background-tasks/hooks/useBackgroundTasks";
 import { useNotifications } from "@/lib/notifications";
 import { useMetadataSignalR } from "@/lib/signalr/useMetadataSignalR";
 import { usePageTitle } from "@/components/layout";
 import type { CreateLibraryRequest, Library, UpdateLibraryRequest } from "@/types/library";
+import {
+  BackgroundTaskStatus,
+  backgroundTaskStatusLabel,
+  isActiveBackgroundTask,
+} from "@/types";
 import {
   Dialog,
   DialogContent,
@@ -47,11 +53,29 @@ export default function LibrariesPage() {
 
   const { notify } = useNotifications();
   const { scanOperations, isConnected } = useMetadataSignalR();
+  const { tasks: backgroundTasks } = useBackgroundTasks();
 
-  const activeScanOperation = useMemo(
-    () => scanOperations.find((operation) => operation.state === "Running"),
-    [scanOperations]
+  const metadataTasks = useMemo(
+    () => backgroundTasks.filter(task => task.type === "MetadataScanTask"),
+    [backgroundTasks]
   );
+
+  const activeTask = useMemo(
+    () => metadataTasks.find(isActiveBackgroundTask),
+    [metadataTasks]
+  );
+
+  const activeOperation = useMemo(
+    () =>
+      activeTask
+        ? scanOperations.find(operation => operation.id === activeTask.id)
+        : undefined,
+    [scanOperations, activeTask]
+  );
+
+  const activeScan = activeTask
+    ? { task: activeTask, operation: activeOperation }
+    : null;
 
   const closeForm = () => {
     setIsFormOpen(false);
@@ -101,7 +125,7 @@ export default function LibrariesPage() {
   };
 
   const handleScanLibraries = async () => {
-    if (activeScanOperation?.state === "Running") {
+    if (activeScan?.task && isActiveBackgroundTask(activeScan.task)) {
       notify({
         title: "Scan In Progress",
         message: "A library scan is already running. Please wait for it to finish before starting a new one.",
@@ -118,13 +142,35 @@ export default function LibrariesPage() {
     });
   };
 
-  const scanButtonLabel = activeScanOperation?.state === "Running"
-    ? `Scanning… (${Math.round(activeScanOperation.progress)}%)`
+  const fallbackProgress = activeOperation && activeOperation.totalFiles > 0
+    ? Math.round((activeOperation.processedFiles / Math.max(1, activeOperation.totalFiles)) * 100)
+    : 0;
+
+  const progressPercentage = activeScan?.task
+    ? Math.round(activeScan.task.progress)
+    : fallbackProgress;
+
+  const isScanRunning = activeScan?.task ? isActiveBackgroundTask(activeScan.task) : false;
+
+  const scanButtonLabel = isScanRunning
+    ? `Scanning… (${progressPercentage}%)`
     : "Scan Libraries";
 
-  const scanIcon = activeScanOperation?.state === "Running"
+  const scanIcon = isScanRunning
     ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
     : <Scan className="mr-2 h-4 w-4" />;
+
+  const statusLabel = activeScan?.task
+    ? backgroundTaskStatusLabel(activeScan.task.status)
+    : backgroundTaskStatusLabel(BackgroundTaskStatus.Pending);
+
+  const statusMessage = activeScan?.task?.statusMessage
+    ?? activeOperation?.currentFile
+    ?? statusLabel;
+
+  const fileProgressSummary = activeOperation
+    ? `${activeOperation.processedFiles} of ${activeOperation.totalFiles} files processed • ${activeOperation.foundMetadata} metadata records found`
+    : statusMessage;
 
   usePageTitle("Libraries");
 
@@ -138,7 +184,7 @@ export default function LibrariesPage() {
       <Button
         variant="outline"
         onClick={handleScanLibraries}
-        disabled={loading || activeScanOperation?.state === "Running"}
+        disabled={loading || isScanRunning}
       >
         {scanIcon}
         {scanButtonLabel}
@@ -157,7 +203,7 @@ export default function LibrariesPage() {
         )}
       </div>
 
-      {activeScanOperation && (
+      {activeScan && (
         <Card className={cn("border-primary/40 bg-primary/5", !isConnected && "border-dashed")}> 
           <CardHeader className="space-y-2">
             <CardTitle className="flex items-center gap-2 text-primary">
@@ -165,25 +211,23 @@ export default function LibrariesPage() {
               Scan in Progress
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              {activeScanOperation.processedFiles} of {activeScanOperation.totalFiles} files processed •
-              {" "}
-              {activeScanOperation.foundMetadata} metadata records found
+              {fileProgressSummary}
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Progress</span>
-                <span>{Math.round(activeScanOperation.progress)}%</span>
+                <span>{progressPercentage}%</span>
+                <span>{statusLabel}</span>
               </div>
-              <Progress value={Math.min(100, Math.max(0, activeScanOperation.progress))} />
+              <Progress value={Math.min(100, Math.max(0, progressPercentage))} />
             </div>
 
-            {activeScanOperation.currentFile && (
+            {statusMessage && (
               <Alert>
                 <AlertTitle>Processing</AlertTitle>
                 <AlertDescription className="truncate">
-                  {activeScanOperation.currentFile}
+                  {statusMessage}
                 </AlertDescription>
               </Alert>
             )}

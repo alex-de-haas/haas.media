@@ -18,10 +18,10 @@
    - Broadcasts progress increments including files processed, matches found, instantaneous speed, and ETA.
 5. For TV libraries, `ScanTVShowLibraryAsync` walks multi-level folder structures, fetches TMDb show, season, and episode details, and links episodes to file paths when available.
 6. After processing a library, stale LiteDB records whose files disappeared are removed via `ClearMissingMovieFiles`/`ClearMissingTvShowFiles`.
-7. When all libraries finish, the executor marks the operation `Completed` and schedules removal of the in-memory operation record a few seconds later.
+7. When all libraries finish, the background task infrastructure transitions the task to `Completed`; operations remain available for auditing until the service restarts.
 
 ## ScanOperationInfo Contract
-SignalR broadcasts instances of:
+SignalR `TaskUpdated` events carry instances of:
 ```csharp
 public record ScanOperationInfo(
     string Id,
@@ -30,17 +30,13 @@ public record ScanOperationInfo(
     int TotalFiles,
     int ProcessedFiles,
     int FoundMetadata,
-    double Progress,
-    ScanOperationState State,
     DateTime StartTime,
-    DateTime? CompletedTime = null,
-    string? ErrorMessage = null,
     string? CurrentFile = null,
     double? SpeedFilesPerSecond = null,
     double? EstimatedTimeSeconds = null
 );
 ```
-Updates use the `ScanOperationUpdated` event; once the executor trims the record, `ScanOperationDeleted` is published with the operation id. There is no REST polling endpoint at present—clients listen to the hub for live updates.
+Progress, status, and error details are sourced from the associated `BackgroundTaskInfo` messages exposed through `/hub/background-tasks?type=MetadataScanTask`.
 
 ## Rate Limiting & TMDb Usage
 - Every TMDb request path goes through the throttled HTTP client (token bucket + retries).

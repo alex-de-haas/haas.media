@@ -1,11 +1,10 @@
 using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 using LiteDB;
-using Microsoft.AspNetCore.SignalR;
 using TMDbLib.Client;
 
 namespace Haas.Media.Downloader.Api.Metadata;
 
-public class MetadataService : IMetadataApi, IHostedService
+public class MetadataService : IMetadataApi
 {
     private const string MetadataScanTaskName = "Metadata library scan";
     private readonly string _dataPath;
@@ -14,15 +13,13 @@ public class MetadataService : IMetadataApi, IHostedService
     private readonly ILiteCollection<TVShowMetadata> _tvShowMetadataCollection;
     private readonly ILogger<MetadataService> _logger;
     private readonly TMDbClient _tmdbClient;
-    private readonly IBackgroundTaskService _backgroundTaskService;
-    private readonly MetadataScanTaskExecutor _scanTaskExecutor;
+    private readonly IBackgroundTaskManager _backgroundTaskManager;
 
     public MetadataService(
         IConfiguration configuration,
         ILogger<MetadataService> logger,
         LiteDatabase database,
-        IHubContext<MetadataHub> hubContext,
-        IBackgroundTaskService backgroundTaskService,
+        IBackgroundTaskManager backgroundTaskManager,
         TMDbClient tmdbClient
     )
     {
@@ -34,19 +31,9 @@ public class MetadataService : IMetadataApi, IHostedService
         _movieMetadataCollection = database.GetCollection<MovieMetadata>("movieMetadata");
         _tvShowMetadataCollection = database.GetCollection<TVShowMetadata>("tvShowMetadata");
         _logger = logger;
-        _backgroundTaskService = backgroundTaskService;
+        _backgroundTaskManager = backgroundTaskManager;
 
         _tmdbClient = tmdbClient;
-
-        _scanTaskExecutor = new MetadataScanTaskExecutor(
-            _dataPath,
-            _librariesCollection,
-            _movieMetadataCollection,
-            _tvShowMetadataCollection,
-            _tmdbClient,
-            hubContext,
-            logger
-        );
 
         CreateIndexes();
 
@@ -565,65 +552,27 @@ public class MetadataService : IMetadataApi, IHostedService
 
     public Task<string> StartScanLibrariesAsync(bool refreshExisting = true)
     {
-        var operationGuid = Guid.NewGuid();
-        var operationId = operationGuid.ToString();
+        var task = new MetadataScanTask(refreshExisting);
+        var operationId = task.Id.ToString();
         _logger.LogInformation(
             "Starting background scan operation with ID: {OperationId}",
             operationId
         );
 
-        var initialOperation = new ScanOperationInfo(
-            operationId,
-            "All Libraries",
-            "Scanning all libraries",
-            0,
-            0,
-            0,
-            0.0,
-            ScanOperationState.Running,
-            DateTime.UtcNow
-        );
-
         try
         {
-            _backgroundTaskService.Enqueue(
-                MetadataScanTaskName,
-                context => _scanTaskExecutor.ExecuteAsync(
-                    context,
-                    refreshExisting,
-                    initialOperation
-                ),
-                operationGuid
-            );
+            _backgroundTaskManager.RunTask<MetadataScanTask, ScanOperationInfo>(task);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to enqueue scan operation with ID: {OperationId}", operationId);
+            _logger.LogError(
+                ex,
+                "Failed to enqueue scan operation with ID: {OperationId}",
+                operationId
+            );
             throw;
         }
 
         return Task.FromResult(operationId);
     }
-
-    public Task StartAsync(CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Metadata service is starting");
-        return Task.CompletedTask;
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Metadata service is stopping");
-
-        foreach (var task in _backgroundTaskService.GetTasks())
-        {
-            if (task.Name == MetadataScanTaskName)
-            {
-                _backgroundTaskService.TryCancel(task.Id);
-            }
-        }
-
-        return Task.CompletedTask;
-    }
-
 }

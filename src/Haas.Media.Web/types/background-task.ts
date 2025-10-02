@@ -1,4 +1,4 @@
-export enum BackgroundTaskState {
+export enum BackgroundTaskStatus {
   Pending = 0,
   Running = 1,
   Completed = 2,
@@ -8,8 +8,9 @@ export enum BackgroundTaskState {
 
 export interface BackgroundTaskInfo {
   id: string;
+  type: string;
   name: string;
-  state: BackgroundTaskState;
+  status: BackgroundTaskStatus;
   progress: number;
   statusMessage?: string | null;
   createdAt: string;
@@ -20,19 +21,20 @@ export interface BackgroundTaskInfo {
 }
 
 export const isActiveBackgroundTask = (task: BackgroundTaskInfo): boolean =>
-  task.state === BackgroundTaskState.Pending || task.state === BackgroundTaskState.Running;
+  task.status === BackgroundTaskStatus.Pending ||
+  task.status === BackgroundTaskStatus.Running;
 
-export const backgroundTaskStateLabel = (state: BackgroundTaskState): string => {
-  switch (state) {
-    case BackgroundTaskState.Pending:
+export const backgroundTaskStatusLabel = (status: BackgroundTaskStatus): string => {
+  switch (status) {
+    case BackgroundTaskStatus.Pending:
       return "Pending";
-    case BackgroundTaskState.Running:
+    case BackgroundTaskStatus.Running:
       return "Running";
-    case BackgroundTaskState.Completed:
+    case BackgroundTaskStatus.Completed:
       return "Completed";
-    case BackgroundTaskState.Failed:
+    case BackgroundTaskStatus.Failed:
       return "Failed";
-    case BackgroundTaskState.Cancelled:
+    case BackgroundTaskStatus.Cancelled:
       return "Cancelled";
     default:
       return "Unknown";
