@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import * as signalR from "@microsoft/signalr";
 import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
@@ -20,8 +20,9 @@ export interface ScanOperationInfo {
 }
 
 export function useMetadataSignalR() {
-  const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
+  const connectionRef = useRef<signalR.HubConnection | null>(null);
   const [scanOperations, setScanOperations] = useState<ScanOperationInfo[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
 
   const mapTaskToScanOperation = useCallback((task: BackgroundTaskInfo): ScanOperationInfo | null => {
     if (task.type !== "MetadataScanTask" || !task.payload || typeof task.payload !== "object") {
@@ -102,24 +103,33 @@ export function useMetadataSignalR() {
   }, [mapTaskToScanOperation]);
 
   const connectToHub = useCallback(async () => {
+    if (connectionRef.current) {
+      return;
+    }
+
+    let newConnection: signalR.HubConnection | null = null;
+
     try {
       const token = await getValidToken();
       
       if (!token || !downloaderApi) {
         console.log("No token or downloader API available for SignalR connection");
         setScanOperations([]);
+        setIsConnected(false);
         return;
       }
 
       await fetchOperations();
 
-      const newConnection = new signalR.HubConnectionBuilder()
+      newConnection = new signalR.HubConnectionBuilder()
         .withUrl(`${downloaderApi}/hub/background-tasks?type=MetadataScanTask`, {
           accessTokenFactory: () => token,
           withCredentials: true,
         })
         .withAutomaticReconnect()
         .build();
+
+      connectionRef.current = newConnection;
 
       newConnection.on("TaskUpdated", (task: BackgroundTaskInfo) => {
         if (task.type !== "MetadataScanTask") {
@@ -134,36 +144,72 @@ export function useMetadataSignalR() {
         }
       });
 
+      newConnection.onclose(() => {
+        if (connectionRef.current === newConnection) {
+          connectionRef.current = null;
+          setIsConnected(false);
+        }
+      });
+
+      newConnection.onreconnecting(() => {
+        setIsConnected(false);
+      });
+
+      newConnection.onreconnected(() => {
+        setIsConnected(true);
+        void fetchOperations();
+      });
+
       await newConnection.start();
-      setConnection(newConnection);
+
+      if (connectionRef.current !== newConnection) {
+        await newConnection.stop();
+        return;
+      }
+
+      setIsConnected(true);
     } catch (error) {
       console.error("Error connecting to metadata SignalR hub:", error);
+      setIsConnected(false);
+      if (newConnection) {
+        try {
+          await newConnection.stop();
+        } catch (stopError) {
+          console.error("Failed to stop metadata SignalR connection after error:", stopError);
+        }
+      }
+      connectionRef.current = null;
     }
   }, [fetchOperations, mapTaskToScanOperation, removeScanOperation, upsertScanOperation]);
 
   const disconnect = useCallback(async () => {
-    if (connection) {
-      try {
-        await connection.stop();
-        setConnection(null);
-        setScanOperations([]);
-      } catch (error) {
-        console.error("Error disconnecting from metadata SignalR hub:", error);
-      }
+    const activeConnection = connectionRef.current;
+    if (!activeConnection) {
+      return;
     }
-  }, [connection]);
+    connectionRef.current = null;
+
+    try {
+      await activeConnection.stop();
+    } catch (error) {
+      console.error("Error disconnecting from metadata SignalR hub:", error);
+    }
+
+    setIsConnected(false);
+    setScanOperations([]);
+  }, []);
 
   useEffect(() => {
-    connectToHub();
+    void connectToHub();
 
     return () => {
-      disconnect();
+      void disconnect();
     };
   }, [connectToHub, disconnect]);
 
   return {
-    connection,
+    connection: connectionRef.current,
     scanOperations,
-    isConnected: connection?.state === signalR.HubConnectionState.Connected,
+    isConnected,
   };
 }
