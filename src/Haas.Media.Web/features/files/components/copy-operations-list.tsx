@@ -10,29 +10,75 @@ import {
   isActiveBackgroundTask,
 } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { CheckCircle2, Loader2, XCircle, Ban, Clock } from "lucide-react";
 
 interface CopyOperationsListProps {
   operations: CopyOperationInfo[];
   onCancel: (operationId: string) => Promise<{ success: boolean; message: string }>;
 }
 
-const statusBadgeClass: Record<BackgroundTaskStatus, string> = {
-  [BackgroundTaskStatus.Pending]:
-    "border-amber-200 bg-amber-500/10 text-amber-600 dark:border-amber-400/20 dark:text-amber-300",
-  [BackgroundTaskStatus.Running]:
-    "border-blue-200 bg-blue-500/10 text-blue-600 dark:border-blue-400/20 dark:text-blue-300",
-  [BackgroundTaskStatus.Completed]:
-    "border-green-200 bg-green-500/10 text-green-600 dark:border-green-400/20 dark:text-green-300",
-  [BackgroundTaskStatus.Failed]:
-    "border-red-200 bg-red-500/10 text-red-600 dark:border-red-400/20 dark:text-red-300",
-  [BackgroundTaskStatus.Cancelled]: "border-muted bg-muted text-muted-foreground",
-};
-
 const clampProgress = (value: number): number =>
   Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : 0;
+
+const statusStyles: Record<BackgroundTaskStatus, { card: string; title: string }> = {
+  [BackgroundTaskStatus.Pending]: {
+    card: "border-primary/40 bg-primary/5",
+    title: "text-primary",
+  },
+  [BackgroundTaskStatus.Running]: {
+    card: "border-primary/40 bg-primary/5",
+    title: "text-primary",
+  },
+  [BackgroundTaskStatus.Completed]: {
+    card: "border-emerald-400/30 bg-emerald-500/5",
+    title: "text-emerald-600 dark:text-emerald-300",
+  },
+  [BackgroundTaskStatus.Failed]: {
+    card: "border-destructive/40 bg-destructive/10",
+    title: "text-destructive",
+  },
+  [BackgroundTaskStatus.Cancelled]: {
+    card: "border-muted bg-muted/20",
+    title: "text-muted-foreground",
+  },
+};
+
+const statusIcon = (status: BackgroundTaskStatus) => {
+  switch (status) {
+    case BackgroundTaskStatus.Completed:
+      return <CheckCircle2 className="h-4 w-4" />;
+    case BackgroundTaskStatus.Failed:
+      return <XCircle className="h-4 w-4" />;
+    case BackgroundTaskStatus.Cancelled:
+      return <Ban className="h-4 w-4" />;
+    default:
+      return <Loader2 className="h-4 w-4 animate-spin" />;
+  }
+};
+
+const statusTitle = (
+  status: BackgroundTaskStatus,
+  operation: CopyOperationInfo,
+  isActive: boolean
+) => {
+  if (isActive) {
+    return operation.isDirectory ? "Copying directory" : "Copying files";
+  }
+
+  switch (status) {
+    case BackgroundTaskStatus.Completed:
+      return "Copy completed";
+    case BackgroundTaskStatus.Failed:
+      return "Copy failed";
+    case BackgroundTaskStatus.Cancelled:
+      return "Copy cancelled";
+    default:
+      return "Copy status";
+  }
+};
 
 export default function CopyOperationsList({ operations, onCancel }: CopyOperationsListProps) {
   const { tasks: backgroundTasks } = useBackgroundTasks({ enabled: operations.length > 0 });
@@ -46,11 +92,12 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Copy operations ({operations.length})</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold tracking-tight">File transfers</h2>
+        <span className="text-sm text-muted-foreground">{operations.length}</span>
+      </div>
+      <div className="space-y-4">
         {operations.map(operation => {
           const task = tasksById.get(operation.id);
           const inferredStatus = operation.completedTime
@@ -59,12 +106,14 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
           const status = task?.status ?? inferredStatus;
           const statusLabel = backgroundTaskStatusLabel(status);
           const canCancel = task ? isActiveBackgroundTask(task) : false;
+          const style = statusStyles[status] ?? statusStyles[BackgroundTaskStatus.Running];
+          const isActive = canCancel || (!operation.completedTime && status !== BackgroundTaskStatus.Cancelled);
 
-          const bytesProgress = operation.totalBytes > 0
+          const baseProgress = operation.totalBytes > 0
             ? (operation.copiedBytes / Math.max(1, operation.totalBytes)) * 100
             : 0;
-          const progressValue = clampProgress(task ? task.progress : bytesProgress);
-          const progressLabel = progressValue.toFixed(1);
+          const progressValue = clampProgress(task ? task.progress : baseProgress);
+          const progressPercentage = Math.round(progressValue);
 
           const statusMessage = task?.statusMessage ?? operation.currentPath ?? null;
           const errorMessage = task?.errorMessage ?? null;
@@ -73,106 +122,150 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
             && isFinite(operation.estimatedTimeSeconds)
             && operation.estimatedTimeSeconds >= 0;
 
+          const sizeSummary = `${formatSize(operation.copiedBytes)} / ${formatSize(operation.totalBytes)}`;
+          const fileSummary = operation.isDirectory && operation.totalFiles
+            ? `${operation.copiedFiles ?? 0} / ${operation.totalFiles} files`
+            : null;
+          const speedSummary = typeof operation.speedBytesPerSecond === "number"
+            && operation.speedBytesPerSecond > 0
+              ? formatRate(operation.speedBytesPerSecond)
+              : null;
+          const etaSummary = showEta ? `ETA ${formatDuration(operation.estimatedTimeSeconds!)}` : null;
+
+          const activeSummary = [sizeSummary, fileSummary, speedSummary, etaSummary]
+            .filter(Boolean)
+            .join(" • ");
+
+          const completionDurationSeconds = operation.completedTime
+            ? Math.max(
+                0,
+                Math.round(
+                  (new Date(operation.completedTime).getTime() -
+                    new Date(operation.startTime).getTime()) /
+                    1000
+                )
+              )
+            : null;
+
+          const completedSummary = [
+            `Copied ${formatSize(operation.totalBytes)}`,
+            operation.isDirectory && operation.totalFiles
+              ? `${operation.totalFiles} files`
+              : null,
+            completionDurationSeconds ? `Finished in ${formatDuration(completionDurationSeconds)}` : null,
+          ]
+            .filter(Boolean)
+            .join(" • ");
+
+          const summaryText = (isActive ? activeSummary : completedSummary) || statusLabel;
+
+          const startedAt = new Date(operation.startTime).toLocaleTimeString();
+          const completedAt = operation.completedTime
+            ? new Date(operation.completedTime).toLocaleTimeString()
+            : null;
+
+          const alertVariant = status === BackgroundTaskStatus.Failed ? "destructive" : "default";
+          const alertDescription = (() => {
+            if (status === BackgroundTaskStatus.Failed) {
+              return errorMessage ?? statusMessage ?? "The transfer encountered an unexpected error.";
+            }
+            if (status === BackgroundTaskStatus.Cancelled) {
+              return statusMessage ?? "Operation was cancelled.";
+            }
+            return statusMessage;
+          })();
+
+          const showAlert = Boolean(alertDescription);
+
+          const alertTitleText = (() => {
+            switch (status) {
+              case BackgroundTaskStatus.Failed:
+                return "Transfer failed";
+              case BackgroundTaskStatus.Cancelled:
+                return "Transfer cancelled";
+              default:
+                return "Current file";
+            }
+          })();
+
           return (
-            <div key={operation.id} className="space-y-3 rounded-lg border p-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className={cn("text-xs", statusBadgeClass[status])}
-                  >
-                    {statusLabel}
-                  </Badge>
+            <Card
+              key={operation.id}
+              className={cn(
+                "overflow-hidden border shadow-sm transition-colors",
+                style.card
+              )}
+            >
+              <CardHeader className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <CardTitle className={cn("flex items-center gap-2 text-base", style.title)}>
+                    {statusIcon(status)}
+                    {statusTitle(status, operation, isActive)}
+                  </CardTitle>
                   {canCancel && (
                     <Button
                       type="button"
-                      variant="ghost"
                       size="sm"
-                      onClick={() => onCancel(operation.id)}
-                      className="text-destructive hover:text-destructive"
+                      variant="outline"
+                      className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                      onClick={() => {
+                        void onCancel(operation.id);
+                      }}
                     >
                       Cancel
                     </Button>
                   )}
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  Started at {new Date(operation.startTime).toLocaleTimeString()}
+                <p className="text-sm text-muted-foreground">{summaryText}</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>Started {startedAt}</span>
+                    {completedAt && <span>• Finished {completedAt}</span>}
+                  </div>
+                  <div className="grid gap-3 rounded-md border border-border/60 bg-background/80 p-3 sm:grid-cols-2">
+                    <div>
+                      <div className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Source
+                      </div>
+                      <div className="mt-1 break-words font-mono text-[11px] text-foreground sm:text-xs">
+                        {operation.sourcePath}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Destination
+                      </div>
+                      <div className="mt-1 break-words font-mono text-[11px] text-foreground sm:text-xs">
+                        {operation.destinationPath}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-1 text-sm">
-                <div>
-                  <span className="font-medium text-foreground">From:</span>{" "}
-                  <span className="font-mono text-xs text-muted-foreground">{operation.sourcePath}</span>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{progressPercentage}%</span>
+                    <span>{statusLabel}</span>
+                  </div>
+                  <Progress value={progressValue} className="h-2" />
                 </div>
-                <div>
-                  <span className="font-medium text-foreground">To:</span>{" "}
-                  <span className="font-mono text-xs text-muted-foreground">{operation.destinationPath}</span>
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
-                  <span>
-                    {formatSize(operation.copiedBytes)} / {formatSize(operation.totalBytes)}
-                    {operation.isDirectory && operation.totalFiles && (
-                      <span className="ml-2">
-                        ({operation.copiedFiles ?? 0} / {operation.totalFiles} files)
-                      </span>
-                    )}
-                  </span>
-                  <span className="flex flex-wrap items-center gap-2">
-                    <span>{progressLabel}%</span>
-                    {typeof operation.speedBytesPerSecond === "number"
-                      && operation.speedBytesPerSecond > 0 && (
-                        <span>• {formatRate(operation.speedBytesPerSecond)}</span>
-                      )}
-                    {showEta && (
-                      <span>• ETA {formatDuration(operation.estimatedTimeSeconds!)}</span>
-                    )}
-                  </span>
-                </div>
-                <Progress value={progressValue} className="h-2" />
-              </div>
-
-              {statusMessage && (
-                <div className="text-xs text-muted-foreground">{statusMessage}</div>
-              )}
-
-              {status === BackgroundTaskStatus.Completed && (
-                <div className="text-xs text-green-600 dark:text-green-400">
-                  Completed {formatSize(operation.totalBytes)}
-                  {operation.isDirectory && operation.totalFiles && (
-                    <span> ({operation.totalFiles} files)</span>
-                  )}
-                  {operation.completedTime && (
-                    <span>
-                      {" "}in{" "}
-                      {Math.max(
-                        0,
-                        Math.round(
-                          (new Date(operation.completedTime).getTime() -
-                            new Date(operation.startTime).getTime()) /
-                            1000
-                        )
-                      )}s
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {status === BackgroundTaskStatus.Failed && errorMessage && (
-                <div className="text-xs text-destructive">Failed: {errorMessage}</div>
-              )}
-
-              {status === BackgroundTaskStatus.Cancelled && (
-                <div className="text-xs text-muted-foreground">Operation was cancelled</div>
-              )}
-            </div>
+                {showAlert && (
+                  <Alert variant={alertVariant}>
+                    <AlertTitle>{alertTitleText}</AlertTitle>
+                    <AlertDescription className="break-words text-xs">
+                      {alertDescription}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
           );
         })}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }
-
