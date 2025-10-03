@@ -15,6 +15,7 @@ import {
   LogIn,
   LogOut,
   ChevronDown,
+  CalendarDays,
 } from "lucide-react";
 
 import { useLayout } from "./layout-provider";
@@ -74,6 +75,11 @@ const navigationItems = [
     name: "TV Shows",
     href: "/tvshows",
     icon: TvMinimalPlay,
+  },
+  {
+    name: "Digital Releases",
+    href: "/releases",
+    icon: CalendarDays,
   },
 ];
 

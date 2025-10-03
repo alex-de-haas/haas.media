@@ -4,3 +4,4 @@ export { default as MovieDetails } from "./movie-details";
 export { default as TVShowsList } from "./tvshows-list";
 export { default as TVShowDetails } from "./tvshow-details";
 export { default as AddToLibraryProgress } from "./add-to-library-progress";
+export { default as DigitalReleaseCalendar } from "./digital-release-calendar";
