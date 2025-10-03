@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Instances;
 
@@ -24,6 +25,11 @@ public class MediaEncodingBuilder
     protected StreamCodec VideoCodec { get; set; }
     protected HardwareAcceleration HardwareAccel { get; set; } = HardwareAcceleration.None;
     protected string? HardwareDevice { get; set; }
+    protected MediaInfo.Stream? PrimaryVideoStream { get; set; }
+    protected long? VideoBitrate { get; set; }
+    protected bool VideoBitrateExplicitlySet { get; set; }
+    protected double? VideoCrf { get; set; }
+    protected bool VideoCrfExplicitlySet { get; set; }
 
     public static MediaEncodingBuilder Create()
     {
@@ -92,9 +98,57 @@ public class MediaEncodingBuilder
         return possibleDevices.FirstOrDefault(File.Exists);
     }
 
+    public MediaEncodingBuilder WithVideoBitrate(long bitrate)
+    {
+        if (bitrate <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(bitrate), "Bitrate must be greater than zero");
+        }
+
+        VideoBitrate = bitrate;
+        VideoBitrateExplicitlySet = true;
+        VideoCrf = null;
+        VideoCrfExplicitlySet = false;
+        return this;
+    }
+
+    public MediaEncodingBuilder WithVideoConstantRateFactor(double crf)
+    {
+        if (double.IsNaN(crf) || double.IsInfinity(crf))
+        {
+            throw new ArgumentOutOfRangeException(nameof(crf), "CRF must be a finite number");
+        }
+
+        if (crf < 0 || crf > 51)
+        {
+            throw new ArgumentOutOfRangeException(nameof(crf), "CRF must be between 0 (lossless) and 51 (lowest quality)");
+        }
+
+        VideoCrf = crf;
+        VideoCrfExplicitlySet = true;
+        VideoBitrate = null;
+        VideoBitrateExplicitlySet = false;
+        return this;
+    }
+
     public MediaEncodingBuilder WithStream(MediaInfo.Stream stream)
     {
         Streams.Add(stream);
+
+        if (stream.Type == StreamType.Video)
+        {
+            PrimaryVideoStream ??= stream;
+
+            if (!VideoBitrateExplicitlySet && !VideoCrfExplicitlySet)
+            {
+                var suggestedBitrate = GetSuggestedVideoBitrate(stream);
+                if (suggestedBitrate.HasValue)
+                {
+                    VideoBitrate = suggestedBitrate.Value;
+                }
+            }
+        }
+
         return this;
     }
 
@@ -135,7 +189,11 @@ public class MediaEncodingBuilder
             }
         }
 
-        command.Append($" -c:v {GetFFMpegCodec(VideoCodec, HardwareAccel)}");
+        var videoCodec = GetFFMpegCodec(VideoCodec, HardwareAccel);
+        command.Append($" -c:v {videoCodec}");
+
+        AppendVideoQualityArgs(command, videoCodec);
+
         command.Append(" -c:a copy");
 
         command.Append($" \"{Outputs.First()}\"");
@@ -219,6 +277,137 @@ public class MediaEncodingBuilder
                 $"Codec {codec} is not supported for software encoding"
             ),
         };
+    }
+
+    private void AppendVideoQualityArgs(StringBuilder command, string videoCodec)
+    {
+        if (string.Equals(videoCodec, "copy", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (VideoCrf.HasValue)
+        {
+            if (!SupportsCrf(videoCodec))
+            {
+                throw new NotSupportedException(
+                    $"Codec {videoCodec} does not support CRF encoding"
+                );
+            }
+
+            command.Append(
+                $" -crf {VideoCrf.Value.ToString(CultureInfo.InvariantCulture)}"
+            );
+            return;
+        }
+
+        var resolvedBitrate = ResolveVideoBitrate();
+        if (resolvedBitrate.HasValue)
+        {
+            command.Append(
+                $" -b:v {Math.Max(1, resolvedBitrate.Value).ToString(CultureInfo.InvariantCulture)}"
+            );
+        }
+    }
+
+    private static bool SupportsCrf(string videoCodec)
+    {
+        return videoCodec switch
+        {
+            "libx264" => true,
+            "libx265" => true,
+            "libaom-av1" => true,
+            "libvpx-vp9" => true,
+            "libvpx" => true,
+            _ => false,
+        };
+    }
+
+    private long? ResolveVideoBitrate()
+    {
+        if (VideoCrf.HasValue)
+        {
+            return null;
+        }
+
+        if (VideoBitrate.HasValue && VideoBitrate.Value > 0)
+        {
+            return VideoBitrate.Value;
+        }
+
+        if (PrimaryVideoStream is not null)
+        {
+            var suggestedBitrate = GetSuggestedVideoBitrate(PrimaryVideoStream);
+            if (suggestedBitrate.HasValue)
+            {
+                return suggestedBitrate.Value;
+            }
+        }
+
+        if (RequiresBitrateFallback())
+        {
+            return 5_000_000; // 5 Mbps fallback
+        }
+
+        return null;
+    }
+
+    private bool RequiresBitrateFallback()
+    {
+        if (HardwareAccel == HardwareAcceleration.VideoToolbox)
+        {
+            return true;
+        }
+
+        if (HardwareAccel == HardwareAcceleration.Auto && OperatingSystem.IsMacOS())
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static long? GetSuggestedVideoBitrate(MediaInfo.Stream stream)
+    {
+        if (stream.BitRate.HasValue && stream.BitRate.Value > 0)
+        {
+            return stream.BitRate.Value;
+        }
+
+        if (stream.Width.HasValue || stream.Height.HasValue)
+        {
+            var width = stream.Width ?? 0;
+            var height = stream.Height ?? 0;
+
+            if (width >= 3840 || height >= 2160)
+            {
+                return 35_000_000; // 35 Mbps for 4K
+            }
+
+            if (width >= 2560 || height >= 1440)
+            {
+                return 16_000_000; // 16 Mbps for 1440p
+            }
+
+            if (width >= 1920 || height >= 1080)
+            {
+                return 8_000_000; // 8 Mbps for 1080p
+            }
+
+            if (width >= 1280 || height >= 720)
+            {
+                return 5_000_000; // 5 Mbps for 720p
+            }
+
+            if (width >= 854 || height >= 480)
+            {
+                return 2_500_000; // 2.5 Mbps for SD
+            }
+
+            return 1_000_000; // fallback for lower resolutions
+        }
+
+        return null;
     }
 
     private string GetHardwareCodec(StreamCodec codec, HardwareAcceleration hwAccel)
