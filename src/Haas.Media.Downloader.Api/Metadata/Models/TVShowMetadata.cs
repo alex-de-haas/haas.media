@@ -63,5 +63,5 @@ static partial class TVShowMetadataMapper
     [MapperIgnoreTarget(nameof(TVShowMetadata.LibraryId))]
     [MapperIgnoreTarget(nameof(TVShowMetadata.CreatedAt))]
     [MapperIgnoreTarget(nameof(TVShowMetadata.UpdatedAt))]
-    public static partial TVShowMetadata Update(this TVShowMetadata target, TvShow source);
+    public static partial void Update(this TvShow source, TVShowMetadata target);
 }

@@ -245,7 +245,7 @@ internal sealed class MetadataRefreshTaskExecutor
             cancellationToken: cancellationToken
         );
 
-        movie.Update(movieDetails);
+        movieDetails.Update(movie);
 
         movie.Genres = movieDetails.Genres?.Select(g => g.Name).ToArray() ?? [];
         movie.Crew = movieCredits?.Crew?.Select(c => c.Map()).ToArray() ?? Array.Empty<CrewMember>();
@@ -353,7 +353,7 @@ internal sealed class MetadataRefreshTaskExecutor
             await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
         }
 
-        tvShow.Update(tvShowDetails);
+        tvShowDetails.Update(tvShow);
 
         tvShow.Genres = tvShowDetails.Genres?.Select(g => g.Name).ToArray() ?? [];
         tvShow.Networks = tvShowDetails.Networks?.Select(n => n.Map()).ToArray() ?? [];

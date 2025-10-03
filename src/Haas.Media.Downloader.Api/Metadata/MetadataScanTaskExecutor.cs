@@ -856,11 +856,11 @@ internal sealed class MetadataScanTaskExecutor
 
                     if (existingMetadata != null)
                     {
-                        var movieMetadata = existingMetadata.Update(movieDetails);
-                        movieMetadata.LibraryId = library.Id;
-                        movieMetadata.FilePath = relativePath;
-                        movieMetadata.UpdatedAt = DateTime.UtcNow;
-                        _movieMetadataCollection.Update(movieMetadata);
+                        movieDetails.Update(existingMetadata);
+                        existingMetadata.LibraryId = library.Id;
+                        existingMetadata.FilePath = relativePath;
+                        existingMetadata.UpdatedAt = DateTime.UtcNow;
+                        _movieMetadataCollection.Update(existingMetadata);
                     }
                     else
                     {

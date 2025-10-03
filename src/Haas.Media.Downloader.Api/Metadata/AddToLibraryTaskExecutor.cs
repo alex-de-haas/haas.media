@@ -171,7 +171,7 @@ internal sealed class AddToLibraryTaskExecutor
 
         if (existingMovie is not null)
         {
-            existingMovie.Update(movieDetails);
+            movieDetails.Update(existingMovie);
 
             existingMovie.Genres = movieDetails.Genres?.Select(g => g.Name).ToArray() ?? [];
             existingMovie.Crew = crew;
@@ -387,7 +387,7 @@ internal sealed class AddToLibraryTaskExecutor
 
         if (existingTVShow is not null)
         {
-            existingTVShow.Update(tvShowDetails);
+            tvShowDetails.Update(existingTVShow);
 
             existingTVShow.Genres = genres;
             existingTVShow.Networks = networks;
