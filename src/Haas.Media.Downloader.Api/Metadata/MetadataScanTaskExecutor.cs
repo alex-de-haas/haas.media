@@ -49,7 +49,6 @@ internal sealed class MetadataScanTaskExecutor
             StartTime: DateTime.UtcNow,
             CurrentFile: "Preparing library scan"
         );
-        var cancellationToken = context.CancellationToken;
         var refreshExisting = task.RefreshExisting;
 
         context.SetPayload(currentOperation);
@@ -122,11 +121,18 @@ internal sealed class MetadataScanTaskExecutor
                 }
                 else if (library.Type == LibraryType.TVShows)
                 {
-                    (libraryProcessed, libraryFound) = await ScanTVShowLibraryAsync(
+                    (
+                        libraryProcessed,
+                        libraryFound,
+                        currentOperation
+                    ) = await ScanTVShowLibraryWithProgressAsync(
+                        currentOperation,
+                        context,
                         library,
                         fullDirectoryPath,
                         refreshExisting,
-                        cancellationToken
+                        processedFiles,
+                        totalFiles
                     );
                 }
                 else
@@ -229,11 +235,18 @@ internal sealed class MetadataScanTaskExecutor
         return mediaFiles;
     }
 
-    private async Task<(int processed, int found)> ScanTVShowLibraryAsync(
+    private async Task<(
+        int processed,
+        int found,
+        ScanOperationInfo operation
+    )> ScanTVShowLibraryWithProgressAsync(
+        ScanOperationInfo operation,
+        BackgroundWorkerContext<MetadataScanTask, ScanOperationInfo> context,
         LibraryInfo library,
         string fullDirectoryPath,
         bool refreshExisting,
-        CancellationToken cancellationToken
+        int baseProcessedFiles,
+        int totalFiles
     )
     {
         var showDirectories = Directory.GetDirectories(
@@ -247,28 +260,63 @@ internal sealed class MetadataScanTaskExecutor
             library.Title
         );
 
-        var processed = 0;
+        var processedEpisodeFiles = 0;
         var found = 0;
+        var currentOperation = operation;
 
         foreach (var showDirectory in showDirectories)
         {
+            context.ThrowIfCancellationRequested();
+
+            var directoryInfo = new DirectoryInfo(showDirectory);
+            var showTitle = MetadataHelper.ExtractTVShowTitleFromDirectoryName(
+                directoryInfo.Name
+            );
+            var showYear = MetadataHelper.ExtractYearFromString(directoryInfo.Name);
+            if (string.IsNullOrEmpty(showTitle))
+            {
+                _logger.LogDebug(
+                    "Could not extract TV show title from directory: {DirectoryPath}",
+                    showDirectory
+                );
+                continue;
+            }
+
+            var episodeFiles = ScanDirectoryForMediaFiles(showDirectory);
+            var episodeCount = episodeFiles.Count;
+
+            var totalProcessedSoFar = baseProcessedFiles + processedEpisodeFiles;
+            var progress = totalFiles > 0
+                ? (double)totalProcessedSoFar / Math.Max(1, totalFiles) * 100.0
+                : 0.0;
+            var elapsedSeconds = (DateTime.UtcNow - currentOperation.StartTime).TotalSeconds;
+            var speed = elapsedSeconds > 0 ? totalProcessedSoFar / elapsedSeconds : 0;
+            double? eta = null;
+            if (speed > 0)
+            {
+                var remaining = Math.Max(0, totalFiles - totalProcessedSoFar);
+                eta = remaining / speed;
+            }
+
+            currentOperation = currentOperation with
+            {
+                ProcessedFiles = totalProcessedSoFar,
+                CurrentFile = $"Scanning {showTitle}",
+                SpeedFilesPerSecond = speed,
+                EstimatedTimeSeconds = eta,
+            };
+            context.SetPayload(currentOperation);
+
+            if (processedEpisodeFiles == 0 || processedEpisodeFiles % 10 == 0)
+            {
+                context.ReportProgress(progress);
+            }
+
+            var skipShow = false;
+            var shouldDelay = false;
+
             try
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var directoryInfo = new DirectoryInfo(showDirectory);
-                var showTitle = MetadataHelper.ExtractTVShowTitleFromDirectoryName(
-                    directoryInfo.Name
-                );
-                var showYear = MetadataHelper.ExtractYearFromString(directoryInfo.Name);
-                if (string.IsNullOrEmpty(showTitle))
-                {
-                    _logger.LogDebug(
-                        "Could not extract TV show title from directory: {DirectoryPath}",
-                        showDirectory
-                    );
-                    continue;
-                }
-
                 var existingMetadata = _tvShowMetadataCollection.FindOne(tv =>
                     tv.LibraryId == library.Id && tv.Title == showTitle
                 );
@@ -281,32 +329,66 @@ internal sealed class MetadataScanTaskExecutor
                             "Metadata already exists for TV show: {ShowTitle} (skipping due to refreshExisting=false)",
                             showTitle
                         );
-                        continue;
+                        skipShow = true;
                     }
-
-                    _logger.LogDebug(
-                        "Updating existing metadata for TV show: {ShowTitle}",
-                        showTitle
-                    );
-
-                    var updatedTmdbResult = await SearchTMDbForTVShow(showTitle, showYear);
-                    if (updatedTmdbResult != null)
+                    else
                     {
-                        var updatedTvShowMetadata = await CreateTVShowMetadata(
-                            updatedTmdbResult.Id,
+                        _logger.LogDebug(
+                            "Updating existing metadata for TV show: {ShowTitle}",
+                            showTitle
+                        );
+
+                        var updatedTmdbResult = await SearchTMDbForTVShow(showTitle, showYear);
+                        if (updatedTmdbResult != null)
+                        {
+                            var updatedTvShowMetadata = await CreateTVShowMetadata(
+                                updatedTmdbResult.Id,
+                                library.Id!,
+                                showDirectory
+                            );
+
+                            updatedTvShowMetadata.Id = existingMetadata.Id;
+                            updatedTvShowMetadata.CreatedAt = existingMetadata.CreatedAt;
+                            updatedTvShowMetadata.UpdatedAt = DateTime.UtcNow;
+
+                            _tvShowMetadataCollection.Update(updatedTvShowMetadata);
+
+                            _logger.LogInformation(
+                                "Updated metadata for TV show: {Title} - Directory: {DirectoryName}",
+                                updatedTvShowMetadata.Title,
+                                Path.GetFileName(showDirectory)
+                            );
+
+                            found++;
+                        }
+                        else
+                        {
+                            _logger.LogDebug(
+                                "No TMDb results found for TV show: {ShowTitle} (existing show)",
+                                showTitle
+                            );
+                        }
+
+                        shouldDelay = true;
+                    }
+                }
+                else
+                {
+                    _logger.LogDebug("Searching TMDb for TV show: {ShowTitle}", showTitle);
+                    var tmdbResult = await SearchTMDbForTVShow(showTitle, showYear);
+
+                    if (tmdbResult != null)
+                    {
+                        var tvShowMetadata = await CreateTVShowMetadata(
+                            tmdbResult.Id,
                             library.Id!,
                             showDirectory
                         );
-
-                        updatedTvShowMetadata.Id = existingMetadata.Id;
-                        updatedTvShowMetadata.CreatedAt = existingMetadata.CreatedAt;
-                        updatedTvShowMetadata.UpdatedAt = DateTime.UtcNow;
-
-                        _tvShowMetadataCollection.Update(updatedTvShowMetadata);
+                        _tvShowMetadataCollection.Insert(tvShowMetadata);
 
                         _logger.LogInformation(
-                            "Updated metadata for TV show: {Title} - Directory: {DirectoryName}",
-                            updatedTvShowMetadata.Title,
+                            "Added metadata for TV show: {Title} - Directory: {DirectoryName}",
+                            tvShowMetadata.Title,
                             Path.GetFileName(showDirectory)
                         );
 
@@ -315,44 +397,22 @@ internal sealed class MetadataScanTaskExecutor
                     else
                     {
                         _logger.LogDebug(
-                            "No TMDb results found for TV show: {ShowTitle} (existing show)",
+                            "No TMDb results found for TV show: {ShowTitle}",
                             showTitle
                         );
                     }
 
-                    processed++;
-                    await Task.Delay(250, cancellationToken);
-                    continue;
+                    shouldDelay = true;
                 }
 
-                _logger.LogDebug("Searching TMDb for TV show: {ShowTitle}", showTitle);
-                var tmdbResult = await SearchTMDbForTVShow(showTitle, showYear);
-
-                if (tmdbResult != null)
+                if (shouldDelay)
                 {
-                    var tvShowMetadata = await CreateTVShowMetadata(
-                        tmdbResult.Id,
-                        library.Id!,
-                        showDirectory
-                    );
-                    _tvShowMetadataCollection.Insert(tvShowMetadata);
-
-                    _logger.LogInformation(
-                        "Added metadata for TV show: {Title} - Directory: {DirectoryName}",
-                        tvShowMetadata.Title,
-                        Path.GetFileName(showDirectory)
-                    );
-
-                    found++;
+                    await Task.Delay(250, context.CancellationToken);
                 }
-                else
-                {
-                    _logger.LogDebug("No TMDb results found for TV show: {ShowTitle}", showTitle);
-                }
-
-                processed++;
-
-                await Task.Delay(250, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -362,6 +422,37 @@ internal sealed class MetadataScanTaskExecutor
                     showDirectory
                 );
             }
+            finally
+            {
+                processedEpisodeFiles += episodeCount;
+
+                var totalProcessedAfterShow = baseProcessedFiles + processedEpisodeFiles;
+                var progressAfter = totalFiles > 0
+                    ? (double)totalProcessedAfterShow / Math.Max(1, totalFiles) * 100.0
+                    : 0.0;
+                var elapsedAfter = (DateTime.UtcNow - currentOperation.StartTime).TotalSeconds;
+                var speedAfter = elapsedAfter > 0 ? totalProcessedAfterShow / elapsedAfter : 0;
+                double? etaAfter = null;
+                if (speedAfter > 0)
+                {
+                    var remaining = Math.Max(0, totalFiles - totalProcessedAfterShow);
+                    etaAfter = remaining / speedAfter;
+                }
+
+                var completionLabel = skipShow
+                    ? $"Skipped {showTitle}"
+                    : $"Scanned {showTitle}";
+
+                currentOperation = currentOperation with
+                {
+                    ProcessedFiles = totalProcessedAfterShow,
+                    CurrentFile = completionLabel,
+                    SpeedFilesPerSecond = speedAfter,
+                    EstimatedTimeSeconds = etaAfter,
+                };
+                context.SetPayload(currentOperation);
+                context.ReportProgress(progressAfter);
+            }
         }
 
         if (library.Id is { } libraryId)
@@ -369,7 +460,7 @@ internal sealed class MetadataScanTaskExecutor
             ClearMissingTvShowFiles(libraryId);
         }
 
-        return (processed, found);
+        return (processedEpisodeFiles, found, currentOperation);
     }
 
     private async Task<SearchTv?> SearchTMDbForTVShow(string tvShowTitle, int? firstAirDateYear)

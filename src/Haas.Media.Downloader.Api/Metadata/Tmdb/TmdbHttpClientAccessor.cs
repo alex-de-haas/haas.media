@@ -1,7 +1,3 @@
-using System;
-using System.Net.Http;
-using Microsoft.Extensions.DependencyInjection;
-
 namespace Haas.Media.Downloader.Api.Metadata.Tmdb;
 
 internal sealed class TmdbHttpClientAccessor : IDisposable

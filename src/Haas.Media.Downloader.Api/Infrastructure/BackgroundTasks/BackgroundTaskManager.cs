@@ -17,7 +17,7 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IHostedService
     private readonly IHubContext<BackgroundTaskHub, IBackgroundTaskClient> _hubContext;
     private readonly IServiceProvider _serviceProvider;
 
-    private static readonly TimeSpan BroadcastThrottleInterval = TimeSpan.FromMilliseconds(500);
+    private static readonly TimeSpan BroadcastThrottleInterval = TimeSpan.FromMilliseconds(200);
 
     public BackgroundTaskManager(
         ILogger<BackgroundTaskManager> logger,
@@ -56,14 +56,14 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IHostedService
             );
         }
 
-        OnTaskUpdated(taskState);
+        BroadcastTaskUpdate(taskState);
 
         _cancellationTokens[task.Id] = cancellationTokenSource;
 
         var context = new BackgroundWorkerContext<TTask, TPayload>(
             task,
             taskState,
-            OnTaskUpdated,
+            BroadcastTaskUpdate,
             cancellationTokenSource.Token
         );
 
@@ -76,14 +76,14 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IHostedService
                 taskState.Status = BackgroundTaskStatus.Completed;
                 taskState.Progress = 100;
                 taskState.CompletedAt = DateTimeOffset.UtcNow;
-                OnTaskUpdated(taskState);
+                BroadcastTaskUpdate(taskState);
             }
             catch (OperationCanceledException)
                 when (cancellationTokenSource.IsCancellationRequested)
             {
                 taskState.Status = BackgroundTaskStatus.Cancelled;
                 taskState.CompletedAt = DateTimeOffset.UtcNow;
-                OnTaskUpdated(taskState);
+                BroadcastTaskUpdate(taskState);
             }
             catch (Exception ex)
             {
@@ -97,7 +97,7 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IHostedService
                 taskState.Status = BackgroundTaskStatus.Failed;
                 taskState.ErrorMessage = ex.Message;
                 taskState.CompletedAt = DateTimeOffset.UtcNow;
-                OnTaskUpdated(taskState);
+                BroadcastTaskUpdate(taskState);
             }
             finally
             {
@@ -163,11 +163,6 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IHostedService
         _pendingBroadcastStates.Clear();
 
         return Task.CompletedTask;
-    }
-
-    private void OnTaskUpdated(BackgroundTaskState taskState)
-    {
-        BroadcastTaskUpdate(taskState);
     }
 
     private void BroadcastTaskUpdate(BackgroundTaskState taskState)

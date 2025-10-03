@@ -1,8 +1,5 @@
-using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Threading;
 using System.Threading.RateLimiting;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 
 namespace Haas.Media.Downloader.Api.Metadata.Tmdb;

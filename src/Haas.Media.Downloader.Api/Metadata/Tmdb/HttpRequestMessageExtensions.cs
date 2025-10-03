@@ -1,6 +1,3 @@
-using System.IO;
-using System.Net.Http;
-
 namespace Haas.Media.Downloader.Api.Metadata.Tmdb;
 
 internal static class HttpRequestMessageExtensions
