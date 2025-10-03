@@ -67,6 +67,8 @@ export interface MovieMetadata {
   voteAverage: number;
   voteCount: number;
   releaseDate?: string;
+  budget?: number | null;
+  revenue?: number | null;
   genres: string[];
   crew: CrewMember[];
   cast: CastMember[];

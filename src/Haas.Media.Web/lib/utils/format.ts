@@ -29,6 +29,17 @@ export function formatPercentage(value: number): string {
 }
 
 /**
+ * Formats a currency value in USD with grouping separators
+ */
+export function formatCurrency(amount: number, locale = "en-US", currency = "USD"): string {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+/**
  * Formats a duration in seconds to h:mm:ss or m:ss
  */
 export function formatDuration(totalSeconds: number): string {

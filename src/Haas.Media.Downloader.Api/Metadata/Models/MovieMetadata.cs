@@ -17,6 +17,8 @@ public class MovieMetadata
     public required double VoteAverage { get; set; }
     public required int VoteCount { get; set; }
     public DateTime? ReleaseDate { get; set; }
+    public long Budget { get; set; }
+    public long Revenue { get; set; }
     
     // TMDB image paths
     public required string PosterPath { get; set; }
@@ -47,6 +49,8 @@ static partial class MovieMetadataMapper
     [MapperIgnoreTarget(nameof(MovieMetadata.FilePath))]
     [MapperIgnoreTarget(nameof(MovieMetadata.CreatedAt))]
     [MapperIgnoreTarget(nameof(MovieMetadata.UpdatedAt))]
+    [MapProperty(nameof(Movie.Budget), nameof(MovieMetadata.Budget))]
+    [MapProperty(nameof(Movie.Revenue), nameof(MovieMetadata.Revenue))]
     public static partial MovieMetadata Create(this Movie source, string id);
 
     [MapProperty(nameof(Movie.Id), nameof(MovieMetadata.TmdbId))]

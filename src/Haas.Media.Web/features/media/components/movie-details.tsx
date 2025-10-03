@@ -9,6 +9,7 @@ import { MoreVertical, Trash2, Star, ArrowLeft, Film } from "lucide-react";
 import { useMovie, useDeleteMovieMetadata } from "@/features/media/hooks";
 import { LoadingSpinner } from "@/components/ui";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
+import { formatCurrency } from "@/lib/utils";
 import { useNotifications } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -240,13 +241,25 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                   </div>
                 )}
 
-                {(movie.releaseDate || movie.filePath) && (
+                {(movie.releaseDate || movie.budget || movie.revenue || movie.filePath) && (
                   <div className="space-y-4">
                     <div className="grid gap-4 text-sm sm:grid-cols-2">
                       {movie.releaseDate && (
                         <div className="space-y-1">
                           <span className="font-medium text-muted-foreground">Release Date</span>
                           <p>{new Date(movie.releaseDate).toLocaleDateString()}</p>
+                        </div>
+                      )}
+                      {typeof movie.budget === "number" && movie.budget > 0 && (
+                        <div className="space-y-1">
+                          <span className="font-medium text-muted-foreground">Budget</span>
+                          <p>{formatCurrency(movie.budget)}</p>
+                        </div>
+                      )}
+                      {typeof movie.revenue === "number" && movie.revenue > 0 && (
+                        <div className="space-y-1">
+                          <span className="font-medium text-muted-foreground">Revenue</span>
+                          <p>{formatCurrency(movie.revenue)}</p>
                         </div>
                       )}
                     </div>
