@@ -20,7 +20,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Copy, Download, ExternalLink, FolderPlus, Info, MoreHorizontal, MoveRight, Pencil, Trash2 } from "lucide-react";
+import { Copy, Download, ExternalLink, FolderPlus, Info, MoreHorizontal, MoveRight, Pencil, Play, Trash2 } from "lucide-react";
+import { VideoPlayerDialog } from "@/components/ui/video-player-dialog";
+import { useVideoPlayer } from "@/features/files/hooks/use-video-player";
 
 interface FileActionsProps {
   item: FileItem;
@@ -29,10 +31,15 @@ interface FileActionsProps {
   onMove: () => void;
   onRename: () => void;
   onDownloadTorrent?: () => void;
+  onPlayVideo?: () => void;
 }
 
-function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorrent }: FileActionsProps) {
+function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorrent, onPlayVideo }: FileActionsProps) {
   const isTorrent = item.extension?.toLowerCase() === ".torrent";
+  const isVideo = item.extension && ["mp4", "mkv", "webm", "avi", "mov", "wmv", "flv", "m4v", "mpg", "mpeg", "ogv", "3gp"].includes(
+    item.extension.toLowerCase().replace(".", "")
+  );
+  
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -41,6 +48,15 @@ function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorre
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
+        {isVideo && onPlayVideo && (
+          <>
+            <DropdownMenuItem onSelect={onPlayVideo} className="cursor-pointer">
+              <Play className="h-4 w-4" />
+              Play video
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         {(item.type === FileItemType.Media || item.type === FileItemType.Directory) && (
           <DropdownMenuItem asChild>
             <Link prefetch={false} href={`/media-info/${encodeURIComponent(item.relativePath)}`} className="flex items-center gap-2">
@@ -83,6 +99,8 @@ function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorre
 }
 
 export default function FilesPage() {
+  const { isOpen, videoUrl, videoTitle, openVideo, setIsOpen } = useVideoPlayer();
+  
   const {
     files,
     copyOperations,
@@ -223,9 +241,13 @@ export default function FilesPage() {
                   },
                 }
               : {})}
+            onPlayVideo={() => openVideo(item.relativePath, item.name)}
           />
         )}
       />
+
+      {/* Video Player Dialog */}
+      <VideoPlayerDialog open={isOpen} onOpenChange={setIsOpen} videoUrl={videoUrl} title={videoTitle} />
 
       {/* Copy operations list */}
       <CopyOperationsList

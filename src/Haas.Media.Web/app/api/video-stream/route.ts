@@ -1,0 +1,116 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getAccessToken, withApiAuthRequired } from "@/lib/auth0";
+
+const audience = process.env.AUTH0_AUDIENCE;
+
+async function handler(req: NextRequest) {
+  try {
+    // Get the file path from query params
+    const { searchParams } = new URL(req.url);
+    const path = searchParams.get("path");
+
+    if (!path) {
+      return NextResponse.json({ error: "Path parameter is required" }, { status: 400 });
+    }
+
+    // Get the access token for the downstream API
+    const tokenRequest = audience ? { authorizationParams: { audience } } : undefined;
+    const session = tokenRequest ? await getAccessToken(tokenRequest) : await getAccessToken();
+    const token = session?.accessToken;
+
+    if (!token) {
+      console.error("No access token available for video stream request");
+      return NextResponse.json({ error: "Unauthorized - No access token" }, { status: 401 });
+    }
+
+    // Build the downstream API URL
+    const downloaderApi = process.env.NEXT_PUBLIC_DOWNLOADER_API || "http://localhost:5000";
+    const apiUrl = `${downloaderApi}/api/files/stream?path=${encodeURIComponent(path)}`;
+    
+    console.log(`[video-stream] Streaming video from: ${apiUrl}`);
+    console.log(`[video-stream] Using audience: ${audience || 'none'}`);
+    console.log(`[video-stream] Token (first 50 chars): ${token.substring(0, 50)}...`);
+
+    // Get range header from incoming request
+    const range = req.headers.get("range");
+
+    // Prepare headers for the downstream request
+    const headers: HeadersInit = {
+      Authorization: `Bearer ${token}`,
+    };
+
+    if (range) {
+      headers.Range = range;
+    }
+
+    // Fetch from downstream API
+    const response = await fetch(apiUrl, {
+      headers,
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => response.statusText);
+      console.error(`[video-stream] Failed to fetch video from ${apiUrl}`);
+      console.error(`[video-stream] Status: ${response.status} ${response.statusText}`);
+      console.error(`[video-stream] Response body: ${errorText}`);
+      
+      const isDev = process.env.NODE_ENV === "development";
+      return NextResponse.json(
+        { 
+          error: `Failed to fetch video: ${response.statusText}`, 
+          details: errorText,
+          ...(isDev && { 
+            debugInfo: {
+              url: apiUrl,
+              status: response.status,
+              hasToken: !!token,
+              audience: audience || 'none'
+            }
+          })
+        },
+        { status: response.status },
+      );
+    }
+
+    // Get response body as array buffer
+    const buffer = await response.arrayBuffer();
+
+    // Create response with appropriate headers
+    const responseHeaders = new Headers();
+    
+    // Copy important headers from downstream response
+    const headersToProxy = [
+      "content-type",
+      "content-length",
+      "content-range",
+      "accept-ranges",
+      "cache-control",
+    ];
+
+    headersToProxy.forEach((headerName) => {
+      const value = response.headers.get(headerName);
+      if (value) {
+        responseHeaders.set(headerName, value);
+      }
+    });
+
+    // Return the video stream
+    return new NextResponse(buffer, {
+      status: response.status,
+      headers: responseHeaders,
+    });
+  } catch (error) {
+    console.error("Error streaming video:", error);
+    const isDev = process.env.NODE_ENV === "development";
+    return NextResponse.json(
+      { 
+        error: "Internal server error",
+        ...(isDev && { details: error instanceof Error ? error.message : String(error) })
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export const GET = withApiAuthRequired(handler);

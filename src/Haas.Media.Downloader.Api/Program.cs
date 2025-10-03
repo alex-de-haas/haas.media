@@ -74,6 +74,36 @@ if (!string.IsNullOrWhiteSpace(auth0Domain) && !string.IsNullOrWhiteSpace(auth0A
                     }
                     return Task.CompletedTask;
                 },
+                OnAuthenticationFailed = context =>
+                {
+                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    logger.LogError(
+                        "Authentication failed for {Path}: {Exception}",
+                        context.HttpContext.Request.Path,
+                        context.Exception.Message
+                    );
+                    return Task.CompletedTask;
+                },
+                OnTokenValidated = context =>
+                {
+                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    logger.LogInformation(
+                        "Token validated successfully for {Path}",
+                        context.HttpContext.Request.Path
+                    );
+                    return Task.CompletedTask;
+                },
+                OnChallenge = context =>
+                {
+                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    logger.LogWarning(
+                        "Auth challenge for {Path}: {Error} - {ErrorDescription}",
+                        context.HttpContext.Request.Path,
+                        context.Error,
+                        context.ErrorDescription
+                    );
+                    return Task.CompletedTask;
+                },
             };
         });
 
@@ -94,6 +124,19 @@ var app = builder.Build();
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation(Environment.CurrentDirectory);
 logger.LogInformation(GlobalFFOptions.Current.BinaryFolder);
+
+// Log Auth0 configuration
+if (!string.IsNullOrWhiteSpace(auth0Domain) && !string.IsNullOrWhiteSpace(auth0Audience))
+{
+    logger.LogInformation("🔐 Auth0 Authentication ENABLED");
+    logger.LogInformation("   Domain: {Domain}", auth0Domain);
+    logger.LogInformation("   Audience: {Audience}", auth0Audience);
+    logger.LogInformation("   Authority: https://{Domain}", auth0Domain);
+}
+else
+{
+    logger.LogWarning("⚠️  Auth0 Authentication DISABLED - Missing AUTH0_DOMAIN or AUTH0_AUDIENCE");
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
