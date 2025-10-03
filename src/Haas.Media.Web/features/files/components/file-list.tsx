@@ -24,6 +24,7 @@ interface FileListProps {
   onNavigate: (path: string) => void;
   loading?: boolean;
   renderActions?: (item: FileItem) => ReactNode;
+  headerActions?: ReactNode;
 }
 
 function FileIcon({ item }: { item: FileItem }) {
@@ -63,6 +64,7 @@ export default function FileList({
   onNavigate,
   loading,
   renderActions,
+  headerActions,
 }: FileListProps) {
   const pathParts = currentPath ? currentPath.split("/").filter(Boolean) : [];
 
@@ -74,34 +76,39 @@ export default function FileList({
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="space-y-4 border-b bg-muted/40 p-4 sm:p-6">
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <Button
-            type="button"
-            variant="link"
-            size="sm"
-            className="h-7 px-0"
-            onClick={() => onNavigate("")}
-          >
-            Files
-          </Button>
-          {pathParts.map((part, index) => {
-            const pathToHere = pathParts.slice(0, index + 1).join("/");
-            return (
-              <div key={pathToHere} className="flex items-center gap-2">
-                <ChevronRight className="h-3 w-3" />
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  className="h-7 px-0"
-                  onClick={() => onNavigate(pathToHere)}
-                >
-                  {part}
-                </Button>
-              </div>
-            );
-          })}
+      <CardHeader className="border-b bg-muted/40 p-4 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="h-7 px-0"
+              onClick={() => onNavigate("")}
+            >
+              Files
+            </Button>
+            {pathParts.map((part, index) => {
+              const pathToHere = pathParts.slice(0, index + 1).join("/");
+              return (
+                <div key={pathToHere} className="flex items-center gap-2">
+                  <ChevronRight className="h-3 w-3" />
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-7 px-0"
+                    onClick={() => onNavigate(pathToHere)}
+                  >
+                    {part}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+          {headerActions ? (
+            <div className="flex items-center gap-2">{headerActions}</div>
+          ) : null}
         </div>
       </CardHeader>
       <CardContent className="p-0">

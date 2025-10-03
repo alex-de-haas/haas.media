@@ -242,11 +242,6 @@ export default function FilesPage() {
 
   return (
     <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
-      <Button onClick={() => openModal("create-directory")} size="sm">
-        <FolderPlus className="mr-2 h-4 w-4" />
-        Create directory
-      </Button>
-
       {/* Error state */}
       {error && (
         <Alert variant="destructive">
@@ -267,6 +262,16 @@ export default function FilesPage() {
         currentPath={currentPath}
         onNavigate={navigateToPath}
         loading={loading}
+        headerActions={
+          <Button
+            onClick={() => openModal("create-directory")}
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <FolderPlus className="h-4 w-4" />
+            Create directory
+          </Button>
+        }
         renderActions={(item: FileItem) => (
           <FileActions
             item={item}
@@ -274,11 +279,13 @@ export default function FilesPage() {
             onCopy={() => openModal("copy", item)}
             onMove={() => openModal("move", item)}
             onRename={() => openModal("rename", item)}
-            onDownloadTorrent={
-              item.extension?.toLowerCase() === ".torrent"
-                ? () => handleDownloadTorrent(item.relativePath, item.name)
-                : undefined
-            }
+            {...(item.extension?.toLowerCase() === ".torrent"
+              ? {
+                  onDownloadTorrent: () => {
+                    void handleDownloadTorrent(item.relativePath, item.name);
+                  },
+                }
+              : {})}
           />
         )}
       />
