@@ -1,6 +1,6 @@
 # Project Overview
 
-This project is a web application that allows users to download torrent files and encode videos to various formats.
+This project is a web application that allows users to download torrent files and encode videos to various formats. Also allows users to manage media libraries with metadata scanning and organization.
 
 ## Folder Structure
 
@@ -9,5 +9,5 @@ This project is a web application that allows users to download torrent files an
 
 ## Libraries and Frameworks
 
-- React and Tailwind CSS for the frontend.
+- Next.js, ShadCN UI, Tailwind CSS for the frontend.
 - .NET for the backend.
