@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { TVShowsList } from "@/features/media/components";
+import { AddToLibraryProgress, TVShowsList } from "@/features/media/components";
 import { LoadingSpinner } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,6 +17,7 @@ export default function TVShowsPage() {
 
   return (
     <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
+      <AddToLibraryProgress libraryType={LibraryType.TVShows} />
       <Button onClick={() => setIsSearchModalOpen(true)}>
         <PlusCircle className="mr-2 h-4 w-4" />
         Add TV Show
