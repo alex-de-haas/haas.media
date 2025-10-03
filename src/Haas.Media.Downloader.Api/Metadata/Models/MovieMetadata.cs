@@ -51,7 +51,8 @@ static partial class MovieMetadataMapper
     [MapperIgnoreTarget(nameof(MovieMetadata.UpdatedAt))]
     public static partial MovieMetadata Create(this Movie source, string id);
 
-    [MapProperty(nameof(Movie.Id), nameof(MovieMetadata.TmdbId))]
+    [MapperIgnoreTarget(nameof(MovieMetadata.Id))]
+    [MapperIgnoreTarget(nameof(MovieMetadata.TmdbId))]
     [MapperIgnoreTarget(nameof(MovieMetadata.Genres))]
     [MapperIgnoreTarget(nameof(MovieMetadata.Cast))]
     [MapperIgnoreTarget(nameof(MovieMetadata.Crew))]

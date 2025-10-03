@@ -248,14 +248,11 @@ internal sealed class MetadataRefreshTaskExecutor
         movieDetails.Update(movie);
 
         movie.Genres = movieDetails.Genres?.Select(g => g.Name).ToArray() ?? [];
-        movie.Crew = movieCredits?.Crew?.Select(c => c.Map()).ToArray() ?? Array.Empty<CrewMember>();
-        movie.Cast = movieCredits?.Cast?.Select(c => c.Map()).ToArray() ?? Array.Empty<CastMember>();
+        movie.Crew = movieCredits?.Crew?.Select(c => c.Map()).ToArray() ?? [];
+        movie.Cast = movieCredits?.Cast?.Select(c => c.Map()).ToArray() ?? [];
         movie.UpdatedAt = DateTime.UtcNow;
 
-        if (!_movieMetadataCollection.Update(movie))
-        {
-            _movieMetadataCollection.Upsert(movie);
-        }
+        _movieMetadataCollection.Update(movie);
     }
 
     private async Task RefreshTvShowAsync(
@@ -362,9 +359,6 @@ internal sealed class MetadataRefreshTaskExecutor
         tvShow.Seasons = seasons.ToArray();
         tvShow.UpdatedAt = DateTime.UtcNow;
 
-        if (!_tvShowMetadataCollection.Update(tvShow))
-        {
-            _tvShowMetadataCollection.Upsert(tvShow);
-        }
+        _tvShowMetadataCollection.Update(tvShow);
     }
 }

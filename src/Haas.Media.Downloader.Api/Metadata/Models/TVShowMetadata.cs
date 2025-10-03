@@ -52,9 +52,10 @@ static partial class TVShowMetadataMapper
     [MapperIgnoreTarget(nameof(TVShowMetadata.UpdatedAt))]
     public static partial TVShowMetadata Create(this TvShow tvShow, string id);
 
-    [MapProperty(nameof(TvShow.Id), nameof(TVShowMetadata.TmdbId))]
     [MapProperty(nameof(TvShow.OriginalName), nameof(TVShowMetadata.OriginalTitle))]
     [MapProperty(nameof(TvShow.Name), nameof(TVShowMetadata.Title))]
+    [MapperIgnoreTarget(nameof(TVShowMetadata.Id))]
+    [MapperIgnoreTarget(nameof(TVShowMetadata.TmdbId))]
     [MapperIgnoreTarget(nameof(TVShowMetadata.Genres))]
     [MapperIgnoreTarget(nameof(TVShowMetadata.Cast))]
     [MapperIgnoreTarget(nameof(TVShowMetadata.Crew))]
