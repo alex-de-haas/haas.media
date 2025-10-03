@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format, isAfter, startOfDay } from "date-fns";
+import Link from "next/link";
 
 import {
   CalendarBody,
@@ -381,7 +382,14 @@ export default function DigitalReleaseCalendar() {
                 <Card key={feature.id} className={cn("border-border/70", isUpcoming ? "border-primary/40" : undefined)}>
                   <CardHeader className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <CardTitle className="text-xl font-semibold leading-tight">{feature.name}</CardTitle>
+                      <CardTitle className="text-xl font-semibold leading-tight">
+                        <Link 
+                          href={`/movies/${movie.id}`}
+                          className="hover:underline hover:text-primary transition-colors"
+                        >
+                          {feature.name}
+                        </Link>
+                      </CardTitle>
                       <Badge variant={isUpcoming ? "outline" : "secondary"}>{feature.status.name}</Badge>
                       <Badge variant="secondary" className={cn(isDigital ? "bg-purple-500/10 text-purple-700 dark:text-purple-300" : "bg-blue-500/10 text-blue-700 dark:text-blue-300")}>
                         {isDigital ? "Digital" : "Theatrical"}
