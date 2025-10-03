@@ -5,6 +5,7 @@ using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 using LiteDB;
 using Microsoft.Extensions.Logging;
 using TMDbLib.Client;
+using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.Search;
 
 namespace Haas.Media.Downloader.Api.Metadata;
@@ -230,6 +231,7 @@ internal sealed class MetadataRefreshTaskExecutor
     {
         var movieDetails = await _tmdbClient.GetMovieAsync(
             movie.TmdbId,
+            extraMethods: MovieMethods.ReleaseDates,
             cancellationToken: cancellationToken
         );
 
@@ -250,6 +252,7 @@ internal sealed class MetadataRefreshTaskExecutor
         movie.Genres = movieDetails.Genres?.Select(g => g.Name).ToArray() ?? [];
         movie.Crew = movieCredits?.Crew?.Select(c => c.Map()).ToArray() ?? [];
         movie.Cast = movieCredits?.Cast?.Select(c => c.Map()).ToArray() ?? [];
+    movie.DigitalReleaseDate = MovieReleaseDateHelper.GetDigitalReleaseDate(movieDetails);
         movie.UpdatedAt = DateTime.UtcNow;
 
         _movieMetadataCollection.Update(movie);

@@ -2,6 +2,7 @@ using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 using LiteDB;
 using TMDbLib.Client;
 using TMDbLib.Objects.General;
+using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.Search;
 
 namespace Haas.Media.Downloader.Api.Metadata;
@@ -851,6 +852,7 @@ internal sealed class MetadataScanTaskExecutor
                     var movieResult = searchResults.Results[0];
                     var movieDetails = await _tmdbClient.GetMovieAsync(
                         movieResult.Id,
+                        extraMethods: MovieMethods.ReleaseDates,
                         cancellationToken: context.CancellationToken
                     );
 
@@ -859,6 +861,7 @@ internal sealed class MetadataScanTaskExecutor
                         movieDetails.Update(existingMetadata);
                         existingMetadata.LibraryId = library.Id;
                         existingMetadata.FilePath = relativePath;
+                        existingMetadata.DigitalReleaseDate = MovieReleaseDateHelper.GetDigitalReleaseDate(movieDetails);
                         existingMetadata.UpdatedAt = DateTime.UtcNow;
                         _movieMetadataCollection.Update(existingMetadata);
                     }
@@ -867,6 +870,7 @@ internal sealed class MetadataScanTaskExecutor
                         var movieMetadata = movieDetails.Create(ObjectId.NewObjectId().ToString());
                         movieMetadata.LibraryId = library.Id;
                         movieMetadata.FilePath = relativePath;
+                        movieMetadata.DigitalReleaseDate = MovieReleaseDateHelper.GetDigitalReleaseDate(movieDetails);
                         movieMetadata.CreatedAt = DateTime.UtcNow;
                         movieMetadata.UpdatedAt = DateTime.UtcNow;
                         _movieMetadataCollection.Insert(movieMetadata);

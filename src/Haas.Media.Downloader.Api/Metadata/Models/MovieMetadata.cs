@@ -17,6 +17,7 @@ public class MovieMetadata
     public required double VoteAverage { get; set; }
     public required int VoteCount { get; set; }
     public DateTime? ReleaseDate { get; set; }
+    public DateTime? DigitalReleaseDate { get; set; }
     public long Budget { get; set; }
     public long Revenue { get; set; }
     
@@ -45,6 +46,7 @@ static partial class MovieMetadataMapper
     [MapperIgnoreTarget(nameof(MovieMetadata.Genres))]
     [MapperIgnoreTarget(nameof(MovieMetadata.Cast))]
     [MapperIgnoreTarget(nameof(MovieMetadata.Crew))]
+    [MapperIgnoreTarget(nameof(MovieMetadata.DigitalReleaseDate))]
     [MapperIgnoreTarget(nameof(MovieMetadata.LibraryId))]
     [MapperIgnoreTarget(nameof(MovieMetadata.FilePath))]
     [MapperIgnoreTarget(nameof(MovieMetadata.CreatedAt))]
@@ -56,6 +58,7 @@ static partial class MovieMetadataMapper
     [MapperIgnoreTarget(nameof(MovieMetadata.Genres))]
     [MapperIgnoreTarget(nameof(MovieMetadata.Cast))]
     [MapperIgnoreTarget(nameof(MovieMetadata.Crew))]
+    [MapperIgnoreTarget(nameof(MovieMetadata.DigitalReleaseDate))]
     [MapperIgnoreTarget(nameof(MovieMetadata.LibraryId))]
     [MapperIgnoreTarget(nameof(MovieMetadata.FilePath))]
     [MapperIgnoreTarget(nameof(MovieMetadata.CreatedAt))]
