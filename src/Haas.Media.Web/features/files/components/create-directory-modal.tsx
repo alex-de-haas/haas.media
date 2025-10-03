@@ -2,14 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import type { CreateDirectoryRequest } from "@/types/file";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,12 +14,7 @@ interface CreateDirectoryModalProps {
   onConfirm: (data: CreateDirectoryRequest) => Promise<{ success: boolean; message: string }>;
 }
 
-export default function CreateDirectoryModal({
-  isOpen,
-  onClose,
-  currentPath,
-  onConfirm,
-}: CreateDirectoryModalProps) {
+export default function CreateDirectoryModal({ isOpen, onClose, currentPath, onConfirm }: CreateDirectoryModalProps) {
   const [directoryName, setDirectoryName] = useState("");
   const [loading, setLoading] = useState(false);
 

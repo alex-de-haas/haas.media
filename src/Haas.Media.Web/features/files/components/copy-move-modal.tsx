@@ -5,14 +5,7 @@ import type { FileItem, CopyFileRequest, MoveFileRequest } from "@/types/file";
 import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
 import FileList from "./file-list";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw } from "lucide-react";
@@ -25,13 +18,7 @@ interface CopyMoveModalProps {
   onConfirm: (data: CopyFileRequest | MoveFileRequest) => Promise<{ success: boolean; message: string }>;
 }
 
-export default function CopyMoveModal({
-  isOpen,
-  onClose,
-  action,
-  item,
-  onConfirm,
-}: CopyMoveModalProps) {
+export default function CopyMoveModal({ isOpen, onClose, action, item, onConfirm }: CopyMoveModalProps) {
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [currentPath, setCurrentPath] = useState("");
@@ -126,25 +113,14 @@ export default function CopyMoveModal({
                 Navigate to the desired directory. The current view will be used as the destination.
               </p>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => fetchFiles(currentPath)}
-              disabled={filesLoading}
-            >
+            <Button type="button" variant="outline" size="sm" onClick={() => fetchFiles(currentPath)} disabled={filesLoading}>
               <RefreshCw className={filesLoading ? "mr-2 h-3.5 w-3.5 animate-spin" : "mr-2 h-3.5 w-3.5"} />
               Refresh
             </Button>
           </div>
 
           <div className="space-y-4">
-            <FileList
-              files={files}
-              currentPath={currentPath}
-              onNavigate={handleNavigate}
-              loading={filesLoading}
-            />
+            <FileList files={files} currentPath={currentPath} onNavigate={handleNavigate} loading={filesLoading} />
           </div>
 
           <div className="rounded-md border bg-background p-3 text-sm">
@@ -163,10 +139,7 @@ export default function CopyMoveModal({
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={loading || filesLoading}
-            >
+            <Button type="submit" disabled={loading || filesLoading}>
               {loading ? loadingLabel : actionTitle}
             </Button>
           </DialogFooter>

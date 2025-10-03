@@ -7,7 +7,7 @@
 ## Goals
 
 - Make history easy to scan, search, and revert.
-- Communicate *why* a change exists, not just *what* changed.
+- Communicate _why_ a change exists, not just _what_ changed.
 - Keep messages consistent and machine‑friendly (release notes, changelogs, CI rules).
 
 ---
@@ -173,9 +173,7 @@ git config commit.template .gitmessage.txt
 
 ## Pre‑commit Checklist
 
--
-
----
+- ***
 
 ## Useful Hooks (optional)
 
@@ -213,5 +211,4 @@ Make it executable: `chmod +x .git/hooks/commit-msg`.
 
 ## TL;DR
 
-Use Conventional Commits with clear, imperative subjects. Explain the *why* in the body. Link issues. Mark breaking changes. Prefer one logical change per commit. Use the prompts above to get high‑quality suggestions from Copilot and then edit for accuracy.
-
+Use Conventional Commits with clear, imperative subjects. Explain the _why_ in the body. Link issues. Mark breaking changes. Prefer one logical change per commit. Use the prompts above to get high‑quality suggestions from Copilot and then edit for accuracy.

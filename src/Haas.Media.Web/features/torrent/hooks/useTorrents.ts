@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  HubConnectionBuilder,
-  HubConnection,
-  HubConnectionState,
-} from "@microsoft/signalr";
+import { HubConnectionBuilder, HubConnection, HubConnectionState } from "@microsoft/signalr";
 import type { TorrentInfo } from "../../../types";
 import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
@@ -86,9 +82,7 @@ export function useTorrents() {
     };
   }, []);
 
-  const uploadTorrent = async (
-    files: File[]
-  ): Promise<{ success: boolean; message: string }> => {
+  const uploadTorrent = async (files: File[]): Promise<{ success: boolean; message: string }> => {
     const formData = new FormData();
     files.forEach((file) => {
       formData.append("files", file);
@@ -127,17 +121,14 @@ export function useTorrents() {
       }
 
       const errors = Array.isArray(payload?.errors) ? payload.errors.join("; ") : undefined;
-      const fallbackMessage =
-        typeof payload?.message === "string" ? payload.message : "Upload failed";
+      const fallbackMessage = typeof payload?.message === "string" ? payload.message : "Upload failed";
       return { success: false, message: errors || fallbackMessage };
     } catch (error) {
       return { success: false, message: "Network error occurred" };
     }
   };
 
-  const deleteTorrent = async (
-    hash: string
-  ): Promise<{ success: boolean; message: string }> => {
+  const deleteTorrent = async (hash: string): Promise<{ success: boolean; message: string }> => {
     try {
       const t = await getValidToken();
       const headers = new Headers();
@@ -158,9 +149,7 @@ export function useTorrents() {
     }
   };
 
-  const startTorrent = async (
-    hash: string
-  ): Promise<{ success: boolean; message: string }> => {
+  const startTorrent = async (hash: string): Promise<{ success: boolean; message: string }> => {
     try {
       const t = await getValidToken();
       const headers = new Headers();
@@ -181,9 +170,7 @@ export function useTorrents() {
     }
   };
 
-  const stopTorrent = async (
-    hash: string
-  ): Promise<{ success: boolean; message: string }> => {
+  const stopTorrent = async (hash: string): Promise<{ success: boolean; message: string }> => {
     try {
       const t = await getValidToken();
       const headers = new Headers();
@@ -204,9 +191,7 @@ export function useTorrents() {
     }
   };
 
-  const pauseTorrent = async (
-    hash: string
-  ): Promise<{ success: boolean; message: string }> => {
+  const pauseTorrent = async (hash: string): Promise<{ success: boolean; message: string }> => {
     try {
       const t = await getValidToken();
       const headers = new Headers();

@@ -47,26 +47,22 @@ export function useFiles(initialPath?: string) {
       isDirectory: typeof raw.isDirectory === "boolean" ? raw.isDirectory : undefined,
       totalFiles: typeof raw.totalFiles === "number" ? raw.totalFiles : undefined,
       copiedFiles: typeof raw.copiedFiles === "number" ? raw.copiedFiles : undefined,
-      speedBytesPerSecond:
-        typeof raw.speedBytesPerSecond === "number" ? raw.speedBytesPerSecond : undefined,
-      estimatedTimeSeconds:
-        typeof raw.estimatedTimeSeconds === "number" ? raw.estimatedTimeSeconds : undefined,
+      speedBytesPerSecond: typeof raw.speedBytesPerSecond === "number" ? raw.speedBytesPerSecond : undefined,
+      estimatedTimeSeconds: typeof raw.estimatedTimeSeconds === "number" ? raw.estimatedTimeSeconds : undefined,
       currentPath: typeof raw.currentPath === "string" ? raw.currentPath : undefined,
     };
   }, []);
 
   const upsertCopyOperation = useCallback((operation: CopyOperationInfo) => {
-    setCopyOperations(prev => {
-      const lookup = new Map(prev.map(existing => [existing.id, existing]));
+    setCopyOperations((prev) => {
+      const lookup = new Map(prev.map((existing) => [existing.id, existing]));
       lookup.set(operation.id, operation);
-      return Array.from(lookup.values()).sort(
-        (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
-      );
+      return Array.from(lookup.values()).sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
     });
   }, []);
 
   const removeCopyOperation = useCallback((operationId: string) => {
-    setCopyOperations(prev => prev.filter(operation => operation.id !== operationId));
+    setCopyOperations((prev) => prev.filter((operation) => operation.id !== operationId));
   }, []);
 
   const fetchCopyOperations = useCallback(async () => {
@@ -75,10 +71,7 @@ export function useFiles(initialPath?: string) {
       const headers = new Headers();
       if (token) headers.set("Authorization", `Bearer ${token}`);
 
-      const response = await fetch(
-        `${downloaderApi}/api/background-tasks/CopyOperationTask`,
-        { headers }
-      );
+      const response = await fetch(`${downloaderApi}/api/background-tasks/CopyOperationTask`, { headers });
 
       if (!response.ok) {
         console.error("Failed to fetch copy operations:", response.statusText);
@@ -86,15 +79,9 @@ export function useFiles(initialPath?: string) {
       }
 
       const payload = (await response.json()) as BackgroundTaskInfo[];
-      const operations = payload
-        .map(mapTaskToCopyOperation)
-        .filter((operation): operation is CopyOperationInfo => Boolean(operation));
+      const operations = payload.map(mapTaskToCopyOperation).filter((operation): operation is CopyOperationInfo => Boolean(operation));
 
-      setCopyOperations(
-        operations.sort(
-          (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
-        )
-      );
+      setCopyOperations(operations.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()));
     } catch (err) {
       console.error("Failed to fetch copy operations:", err);
     }
@@ -105,7 +92,7 @@ export function useFiles(initialPath?: string) {
     const initializeConnection = async () => {
       try {
         const token = await getValidToken();
-        
+
         const connection = new signalR.HubConnectionBuilder()
           .withUrl(`${downloaderApi}/hub/background-tasks?type=CopyOperationTask`, {
             accessTokenFactory: () => token || "",
@@ -128,7 +115,7 @@ export function useFiles(initialPath?: string) {
 
         await connection.start();
         connectionRef.current = connection;
-        
+
         // Fetch initial copy operations
         await fetchCopyOperations();
       } catch (err) {
@@ -150,15 +137,15 @@ export function useFiles(initialPath?: string) {
       const token = await getValidToken();
       const headers = new Headers();
       if (token) headers.set("Authorization", `Bearer ${token}`);
-      
+
       const url = new URL(`${downloaderApi}/api/files`);
       if (path) url.searchParams.set("path", path);
-      
+
       const response = await fetch(url.toString(), { headers });
       if (!response.ok) {
         throw new Error(`Failed to fetch files: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       setFiles(data);
       setCurrentPath(path || "");
@@ -171,7 +158,7 @@ export function useFiles(initialPath?: string) {
 
   const upload = async (
     filesToUpload: File[],
-    options?: { overwriteExisting?: boolean; targetPath?: string }
+    options?: { overwriteExisting?: boolean; targetPath?: string },
   ): Promise<{
     success: boolean;
     message: string;
@@ -270,9 +257,7 @@ export function useFiles(initialPath?: string) {
     }
   };
 
-  const downloadTorrentFromFile = async (
-    path: string
-  ): Promise<{ success: boolean; message: string; hash?: string }> => {
+  const downloadTorrentFromFile = async (path: string): Promise<{ success: boolean; message: string; hash?: string }> => {
     if (!path) {
       return { success: false, message: "Path is required." };
     }
@@ -282,9 +267,7 @@ export function useFiles(initialPath?: string) {
       const headers = new Headers();
       if (token) headers.set("Authorization", `Bearer ${token}`);
 
-      const url = new URL(
-        `${downloaderApi}/api/torrents/from-file`
-      );
+      const url = new URL(`${downloaderApi}/api/torrents/from-file`);
       url.searchParams.set("path", path);
 
       const response = await fetch(url.toString(), {
@@ -300,18 +283,12 @@ export function useFiles(initialPath?: string) {
       }
 
       if (!response.ok) {
-        const message =
-          typeof payload?.message === "string"
-            ? payload.message
-            : "Failed to start torrent download.";
+        const message = typeof payload?.message === "string" ? payload.message : "Failed to start torrent download.";
         return { success: false, message };
       }
 
       const hash = typeof payload?.hash === "string" ? payload.hash : undefined;
-      const message =
-        typeof payload?.message === "string"
-          ? payload.message
-          : "Torrent download started.";
+      const message = typeof payload?.message === "string" ? payload.message : "Torrent download started.";
 
       return {
         success: true,

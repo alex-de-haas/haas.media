@@ -15,7 +15,7 @@ export function useEncodeStreams(
   hardwareAcceleration?: HardwareAcceleration | null,
   videoCodec?: StreamCodec | null,
   device?: string | null,
-  availableDevices?: string[]
+  availableDevices?: string[],
 ) {
   const [encoding, setEncoding] = React.useState(false);
   const [encodeError, setEncodeError] = React.useState<string | null>(null);
@@ -24,7 +24,7 @@ export function useEncodeStreams(
     if (!mediaFiles || !selectedStreams || !path || encoding) return;
     const hasAnySelection = Object.values(selectedStreams).some((s) => s && s.size > 0);
     if (!hasAnySelection) return;
-    
+
     // Validate required fields
     if (hardwareAcceleration === undefined || hardwareAcceleration === null) {
       throw new Error("Hardware acceleration must be selected");
@@ -33,25 +33,24 @@ export function useEncodeStreams(
       throw new Error("Video codec must be selected");
     }
     // Device is only required if hardware acceleration is not None AND devices are available
-    if (hardwareAcceleration !== HardwareAcceleration.None && 
-        availableDevices && availableDevices.length > 0 && !device) {
+    if (hardwareAcceleration !== HardwareAcceleration.None && availableDevices && availableDevices.length > 0 && !device) {
       throw new Error("Device must be selected for hardware acceleration");
     }
-    
+
     setEncoding(true);
     setEncodeError(null);
     try {
-      const streams: EncodeRequest['streams'] = [];
+      const streams: EncodeRequest["streams"] = [];
       for (const mf of mediaFiles) {
         const sel = selectedStreams[mf.relativePath];
         if (!sel || sel.size === 0) continue;
         for (const idx of sel.values()) {
           const stream = (mf as any).mediaInfo?.streams?.find((st: any) => st.index === idx);
           if (!stream) continue;
-          streams.push({ 
-            inputFilePath: mf.relativePath, 
-            streamIndex: idx, 
-            streamType: stream.type 
+          streams.push({
+            inputFilePath: mf.relativePath,
+            streamIndex: idx,
+            streamType: stream.type,
           });
         }
       }
@@ -61,7 +60,7 @@ export function useEncodeStreams(
         hardwareAcceleration,
         videoCodec,
         streams,
-        device: (device || null),
+        device: device || null,
       };
 
       const t = await getValidToken();

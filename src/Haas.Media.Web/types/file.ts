@@ -1,7 +1,7 @@
 export enum FileItemType {
   Directory = 1,
   Media = 2,
-  Other = 3
+  Other = 3,
 }
 
 export interface FileItem {

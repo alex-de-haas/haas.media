@@ -3,14 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { FileItemType } from "@/types/file";
 import type { FileItem, RenameRequest } from "@/types/file";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,12 +15,7 @@ interface RenameModalProps {
   onConfirm: (data: RenameRequest) => Promise<{ success: boolean; message: string }>;
 }
 
-export default function RenameModal({
-  isOpen,
-  onClose,
-  item,
-  onConfirm,
-}: RenameModalProps) {
+export default function RenameModal({ isOpen, onClose, item, onConfirm }: RenameModalProps) {
   const [newName, setNewName] = useState(item.name);
   const [loading, setLoading] = useState(false);
 

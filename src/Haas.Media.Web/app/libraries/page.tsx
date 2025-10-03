@@ -7,18 +7,8 @@ import { useNotifications } from "@/lib/notifications";
 import { useMetadataSignalR } from "@/lib/signalr/useMetadataSignalR";
 import { usePageTitle } from "@/components/layout";
 import type { CreateLibraryRequest, Library, UpdateLibraryRequest } from "@/types/library";
-import {
-  BackgroundTaskStatus,
-  backgroundTaskStatusLabel,
-  isActiveBackgroundTask,
-} from "@/types";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { BackgroundTaskStatus, backgroundTaskStatusLabel, isActiveBackgroundTask } from "@/types";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,40 +32,22 @@ export default function LibrariesPage() {
   const [selectedLibrary, setSelectedLibrary] = useState<Library | null>(null);
   const [libraryToDelete, setLibraryToDelete] = useState<Library | null>(null);
 
-  const {
-    libraries,
-    loading,
-    createLibrary,
-    updateLibrary,
-    deleteLibrary,
-    startBackgroundScan,
-  } = useLibraries();
+  const { libraries, loading, createLibrary, updateLibrary, deleteLibrary, startBackgroundScan } = useLibraries();
 
   const { notify } = useNotifications();
   const { scanOperations, isConnected } = useMetadataSignalR();
   const { tasks: backgroundTasks } = useBackgroundTasks();
 
-  const metadataTasks = useMemo(
-    () => backgroundTasks.filter(task => task.type === "MetadataScanTask"),
-    [backgroundTasks]
-  );
+  const metadataTasks = useMemo(() => backgroundTasks.filter((task) => task.type === "MetadataScanTask"), [backgroundTasks]);
 
-  const activeTask = useMemo(
-    () => metadataTasks.find(isActiveBackgroundTask),
-    [metadataTasks]
-  );
+  const activeTask = useMemo(() => metadataTasks.find(isActiveBackgroundTask), [metadataTasks]);
 
   const activeOperation = useMemo(
-    () =>
-      activeTask
-        ? scanOperations.find(operation => operation.id === activeTask.id)
-        : undefined,
-    [scanOperations, activeTask]
+    () => (activeTask ? scanOperations.find((operation) => operation.id === activeTask.id) : undefined),
+    [scanOperations, activeTask],
   );
 
-  const activeScan = activeTask
-    ? { task: activeTask, operation: activeOperation }
-    : null;
+  const activeScan = activeTask ? { task: activeTask, operation: activeOperation } : null;
 
   const closeForm = () => {
     setIsFormOpen(false);
@@ -142,31 +114,24 @@ export default function LibrariesPage() {
     });
   };
 
-  const fallbackProgress = activeOperation && activeOperation.totalFiles > 0
-    ? Math.round((activeOperation.processedFiles / Math.max(1, activeOperation.totalFiles)) * 100)
-    : 0;
+  const fallbackProgress =
+    activeOperation && activeOperation.totalFiles > 0
+      ? Math.round((activeOperation.processedFiles / Math.max(1, activeOperation.totalFiles)) * 100)
+      : 0;
 
-  const progressPercentage = activeScan?.task
-    ? Math.round(activeScan.task.progress)
-    : fallbackProgress;
+  const progressPercentage = activeScan?.task ? Math.round(activeScan.task.progress) : fallbackProgress;
 
   const isScanRunning = activeScan?.task ? isActiveBackgroundTask(activeScan.task) : false;
 
-  const scanButtonLabel = isScanRunning
-    ? `Scanning… (${progressPercentage}%)`
-    : "Scan Libraries";
+  const scanButtonLabel = isScanRunning ? `Scanning… (${progressPercentage}%)` : "Scan Libraries";
 
-  const scanIcon = isScanRunning
-    ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-    : <Scan className="mr-2 h-4 w-4" />;
+  const scanIcon = isScanRunning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Scan className="mr-2 h-4 w-4" />;
 
   const statusLabel = activeScan?.task
     ? backgroundTaskStatusLabel(activeScan.task.status)
     : backgroundTaskStatusLabel(BackgroundTaskStatus.Pending);
 
-  const statusMessage = activeScan?.task?.statusMessage
-    ?? activeOperation?.currentFile
-    ?? statusLabel;
+  const statusMessage = activeScan?.task?.statusMessage ?? activeOperation?.currentFile ?? statusLabel;
 
   const fileProgressSummary = activeOperation
     ? `${activeOperation.processedFiles} of ${activeOperation.totalFiles} files processed • ${activeOperation.foundMetadata} metadata records found`
@@ -177,19 +142,20 @@ export default function LibrariesPage() {
   return (
     <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
       <div className="flex flex-wrap items-center gap-2">
-      <Button onClick={() => { setSelectedLibrary(null); setIsFormOpen(true); }}>
-        <Plus className="mr-2 h-4 w-4" />
-        Create Library
-      </Button>
-      <Button
-        variant="outline"
-        onClick={handleScanLibraries}
-        disabled={loading || isScanRunning}
-      >
-        {scanIcon}
-        {scanButtonLabel}
-      </Button>
-    </div>
+        <Button
+          onClick={() => {
+            setSelectedLibrary(null);
+            setIsFormOpen(true);
+          }}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Create Library
+        </Button>
+        <Button variant="outline" onClick={handleScanLibraries} disabled={loading || isScanRunning}>
+          {scanIcon}
+          {scanButtonLabel}
+        </Button>
+      </div>
 
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <Badge variant="secondary" className="h-6 px-3 text-xs">
@@ -204,15 +170,13 @@ export default function LibrariesPage() {
       </div>
 
       {activeScan && (
-        <Card className={cn("border-primary/40 bg-primary/5", !isConnected && "border-dashed")}> 
+        <Card className={cn("border-primary/40 bg-primary/5", !isConnected && "border-dashed")}>
           <CardHeader className="space-y-2">
             <CardTitle className="flex items-center gap-2 text-primary">
               <Loader2 className="h-4 w-4 animate-spin" />
               Scan in Progress
             </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              {fileProgressSummary}
-            </p>
+            <p className="text-sm text-muted-foreground">{fileProgressSummary}</p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -226,18 +190,14 @@ export default function LibrariesPage() {
             {statusMessage && (
               <Alert>
                 <AlertTitle>Processing</AlertTitle>
-                <AlertDescription className="truncate">
-                  {statusMessage}
-                </AlertDescription>
+                <AlertDescription className="truncate">{statusMessage}</AlertDescription>
               </Alert>
             )}
 
             {!isConnected && (
               <Alert variant="destructive">
                 <AlertTitle>Connection lost</AlertTitle>
-                <AlertDescription>
-                  We will resume updates once the realtime connection is restored.
-                </AlertDescription>
+                <AlertDescription>We will resume updates once the realtime connection is restored.</AlertDescription>
               </Alert>
             )}
           </CardContent>
@@ -269,9 +229,7 @@ export default function LibrariesPage() {
           <DialogHeader className="text-left">
             <DialogTitle>{selectedLibrary ? "Edit Library" : "Create Library"}</DialogTitle>
             <DialogDescription>
-              {selectedLibrary
-                ? "Update the details of your existing library."
-                : "Create a library to group related media files."}
+              {selectedLibrary ? "Update the details of your existing library." : "Create a library to group related media files."}
             </DialogDescription>
           </DialogHeader>
           <LibraryForm
@@ -291,9 +249,7 @@ export default function LibrariesPage() {
               This will remove <strong>{libraryToDelete?.title}</strong>. Any downloads in progress will continue to exist on disk.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="text-xs text-muted-foreground">
-            Location: {libraryToDelete?.directoryPath}
-          </div>
+          <div className="text-xs text-muted-foreground">Location: {libraryToDelete?.directoryPath}</div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeleteLibrary}>

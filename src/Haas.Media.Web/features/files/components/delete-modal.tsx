@@ -22,12 +22,7 @@ interface DeleteModalProps {
   onConfirm: (path: string) => Promise<{ success: boolean; message: string }>;
 }
 
-export default function DeleteModal({
-  isOpen,
-  onClose,
-  item,
-  onConfirm,
-}: DeleteModalProps) {
+export default function DeleteModal({ isOpen, onClose, item, onConfirm }: DeleteModalProps) {
   const [loading, setLoading] = useState(false);
 
   const handleOpenChange = (open: boolean) => {

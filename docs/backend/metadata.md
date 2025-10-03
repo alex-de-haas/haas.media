@@ -3,20 +3,23 @@
 The metadata service provides library management, TMDb search, and catalog storage. It is implemented by `MetadataService`, which is both an `IMetadataApi` and an `IHostedService` so it can schedule background scan tasks.
 
 ## Dependencies
+
 - [TMDbLib](https://github.com/LordMike/TMDbLib) powers all TMDb queries. The client is configured with `DefaultLanguage = "en"` and runs through the custom throttled HTTP client described in [tmdb-throttling.md](tmdb-throttling.md).
 - LiteDB stores libraries, movie metadata, and TV show metadata inside `common.db` under the `DATA_DIRECTORY` root.
 - Progress updates stream through `/hub/background-tasks?type=MetadataScanTask`, which replays active scans on connect and pushes `TaskUpdated` payloads.
 
 ## Configuration
+
 - `DATA_DIRECTORY` (required): used to resolve library roots and database location (`.db/common.db`).
 - `TMDB_API_KEY` (required): bound to `TMDbClient`. The application fails fast during startup when missing.
 - `Tmdb` options section: tunes retry and rate-limit behaviour.
 
 ## Collections & Indexes
-| Collection | Purpose | Key Indexes |
-| --- | --- | --- |
-| `libraries` | Library definitions | `DirectoryPath` (unique), `Title` |
-| `movieMetadata` | Movies synced from TMDb | `LibraryId`, `TmdbId` (unique), `Title` |
+
+| Collection       | Purpose                               | Key Indexes                             |
+| ---------------- | ------------------------------------- | --------------------------------------- |
+| `libraries`      | Library definitions                   | `DirectoryPath` (unique), `Title`       |
+| `movieMetadata`  | Movies synced from TMDb               | `LibraryId`, `TmdbId` (unique), `Title` |
 | `tvShowMetadata` | TV shows with nested seasons/episodes | `LibraryId`, `TmdbId` (unique), `Title` |
 
 Document identifiers are LiteDB `ObjectId` values stored as strings in API responses.
@@ -24,6 +27,7 @@ Document identifiers are LiteDB `ObjectId` values stored as strings in API respo
 ## Core Models
 
 ### LibraryInfo
+
 ```csharp
 public class LibraryInfo
 {
@@ -36,9 +40,11 @@ public class LibraryInfo
     public DateTime UpdatedAt { get; set; }
 }
 ```
+
 `LibraryType` distinguishes movie (`1`) and TV show (`2`) collections. Directory paths are relative to `DATA_DIRECTORY`.
 
 ### MovieMetadata
+
 ```csharp
 public class MovieMetadata
 {
@@ -64,6 +70,7 @@ public class MovieMetadata
 ```
 
 ### TVShowMetadata
+
 ```csharp
 public class TVShowMetadata
 {
@@ -87,9 +94,11 @@ public class TVShowMetadata
     public DateTime UpdatedAt { get; set; }
 }
 ```
+
 `TVSeasonMetadata` and `TVEpisodeMetadata` mirror TMDb data and keep optional `FilePath` associations when scans detect on-disk files.
 
 ### People & Networks
+
 ```csharp
 public class CrewMember
 {
@@ -117,10 +126,13 @@ public class Network
     public string? OriginCountry { get; set; }
 }
 ```
+
 Mapperly projections convert TMDb DTOs into these shapes while ignoring unwanted properties.
 
 ## Search Results
+
 `SearchAsync` builds `SearchResult` objects for the UI:
+
 ```csharp
 public class SearchResult
 {
@@ -135,23 +147,29 @@ public class SearchResult
     public string? BackdropPath { get; set; }
 }
 ```
+
 `LibraryType` is inferred from the TMDb result type so the client can pre-select a compatible library.
 
 ## Library & Catalog Operations
+
 See [API.md](../API.md) for endpoint shapes. Service-level behaviour includes:
+
 - Validating IDs loaded from LiteDB and logging misses.
 - Maintaining `CreatedAt`/`UpdatedAt` timestamps whenever documents change.
 - Enforcing unique TMDb ids across collections (`EnsureIndex`). Duplicate inserts surface as `InvalidOperationException` and return `409 Conflict` to clients.
 - `DeleteMovieMetadataAsync` and `DeleteTVShowMetadataAsync` remove documents by LiteDB id without touching on-disk media.
 
 ## Add-to-Library Workflow
+
 `AddToLibraryAsync` bridges TMDb and LiteDB:
+
 1. Validate that the target library exists and matches the requested `LibraryType`.
 2. Fetch the movie or TV show from TMDb using `TMDbClient` plus additional detail calls (credits, seasons).
 3. Project the TMDb payload into the LiteDB model, populating cast, crew, networks, and (for TV) full season structures.
 4. Persist the document and return it to the caller.
 
 Example payload:
+
 ```json
 {
   "type": 1,
@@ -159,17 +177,22 @@ Example payload:
   "tmdbId": "550"
 }
 ```
+
 The request accepts `tmdbId` as a string (mirroring TMDb identifiers returned to the UI) and parses it to an integer before inserting into LiteDB.
 
 Failures:
+
 - Invalid library id → `ArgumentException` → `400 Bad Request` with message.
 - Type mismatch or existing record → `InvalidOperationException` → `409 Conflict`.
 
 ## Image Helpers
+
 `MetadataService` exposes helper methods and extension methods that transform TMDb relative paths into full URLs (poster: `w500`, backdrop: `w1280`). Prefer these helpers to keep URL formatting consistent.
 
 ## Background Scans
+
 The `MetadataScanTaskExecutor` is responsible for filesystem scans and TMDb lookups. Details live in [metadata-scanning.md](metadata-scanning.md).
 
 ## Security
+
 All metadata operations honour JWT authentication. The background task hub reuses the same bearer tokens (via query string when necessary).

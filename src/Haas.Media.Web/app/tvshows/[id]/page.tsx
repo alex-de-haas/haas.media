@@ -1,7 +1,7 @@
-import { Suspense } from 'react';
-import { notFound } from 'next/navigation';
-import { TVShowDetails } from '@/features/media/components';
-import { LoadingSpinner } from '@/components/ui';
+import { Suspense } from "react";
+import { notFound } from "next/navigation";
+import { TVShowDetails } from "@/features/media/components";
+import { LoadingSpinner } from "@/components/ui";
 
 interface TVShowPageProps {
   params: {

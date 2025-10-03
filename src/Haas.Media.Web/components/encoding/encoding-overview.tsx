@@ -16,15 +16,15 @@ export function EncodingOverview({ encodings, loading }: EncodingOverviewProps) 
   const metrics = React.useMemo(() => {
     const items = encodings ?? [];
     const count = items.length;
-    const clampedProgress = items.map(x => clampProgress(x.progress));
+    const clampedProgress = items.map((x) => clampProgress(x.progress));
     const averageProgress = count > 0 ? clampedProgress.reduce((total, value) => total + value, 0) / count : 0;
 
-    const elapsed = items.map(x => Math.max(0, x.elapsedTimeSeconds));
+    const elapsed = items.map((x) => Math.max(0, x.elapsedTimeSeconds));
     const longestElapsed = elapsed.length > 0 ? Math.max(...elapsed) : null;
 
     const completionCandidates = items
-      .map(x => (x.progress > 0 ? Math.max(0, x.estimatedTimeSeconds) : Infinity))
-      .filter(value => Number.isFinite(value) && value > 0);
+      .map((x) => (x.progress > 0 ? Math.max(0, x.estimatedTimeSeconds) : Infinity))
+      .filter((value) => Number.isFinite(value) && value > 0);
     const nextCompletion = completionCandidates.length > 0 ? Math.min(...completionCandidates) : null;
 
     return {
@@ -47,9 +47,7 @@ export function EncodingOverview({ encodings, loading }: EncodingOverviewProps) 
             {showSkeleton ? <Skeleton className="h-7 w-16" /> : metrics.count}
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-0 text-sm text-muted-foreground">
-          Encodings currently tracked by the downloader worker.
-        </CardContent>
+        <CardContent className="pt-0 text-sm text-muted-foreground">Encodings currently tracked by the downloader worker.</CardContent>
       </Card>
 
       <Card>
@@ -72,9 +70,7 @@ export function EncodingOverview({ encodings, loading }: EncodingOverviewProps) 
           ) : (
             <Progress value={metrics.averageProgress} aria-label="Average encoding progress" />
           )}
-          <p className="mt-3 text-xs text-muted-foreground">
-            Progress across all active encodings.
-          </p>
+          <p className="mt-3 text-xs text-muted-foreground">Progress across all active encodings.</p>
         </CardContent>
       </Card>
 

@@ -13,19 +13,8 @@ import type { TVEpisodeMetadata } from "@/types/metadata";
 import { useNotifications } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,12 +29,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PersonCard } from "@/features/media/components/person-card";
 
 interface TVShowDetailsProps {
@@ -67,23 +51,14 @@ function EpisodeCard({ episode }: EpisodeCardProps) {
             </p>
           </div>
           {episode.voteAverage > 0 && (
-            <Badge
-              variant="secondary"
-              className="flex items-center gap-1 px-2 py-1"
-            >
+            <Badge variant="secondary" className="flex items-center gap-1 px-2 py-1">
               <Star className="h-3 w-3 text-yellow-500" />
               {episode.voteAverage.toFixed(1)}
             </Badge>
           )}
         </div>
-        {episode.overview && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {episode.overview}
-          </p>
-        )}
-        <p className="font-mono text-xs text-muted-foreground break-all">
-          {episode.filePath || "No local file linked"}
-        </p>
+        {episode.overview && <p className="text-sm text-muted-foreground line-clamp-2">{episode.overview}</p>}
+        <p className="font-mono text-xs text-muted-foreground break-all">{episode.filePath || "No local file linked"}</p>
       </CardContent>
     </Card>
   );
@@ -107,17 +82,10 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
       return 0;
     }
 
-    return tvShow.seasons.reduce(
-      (total, season) => total + (season.episodes?.length || 0),
-      0
-    );
+    return tvShow.seasons.reduce((total, season) => total + (season.episodes?.length || 0), 0);
   }, [tvShow?.seasons]);
 
-  const seasonValues = useMemo(
-    () =>
-      tvShow?.seasons?.map((season) => season.seasonNumber.toString()) ?? [],
-    [tvShow?.seasons]
-  );
+  const seasonValues = useMemo(() => tvShow?.seasons?.map((season) => season.seasonNumber.toString()) ?? [], [tvShow?.seasons]);
 
   const handleDelete = async () => {
     if (!tvShow || deletingTVShow) {
@@ -168,9 +136,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Alert variant="destructive">
           <AlertTitle>TV show not found</AlertTitle>
-          <AlertDescription>
-            {error || "The TV show you requested could not be found."}
-          </AlertDescription>
+          <AlertDescription>{error || "The TV show you requested could not be found."}</AlertDescription>
         </Alert>
         <Button asChild variant="outline" className="mt-4">
           <Link href="/tvshows" className="inline-flex items-center gap-2">
@@ -210,12 +176,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
         )}
 
         <div className="absolute left-6 top-6">
-          <Button
-            asChild
-            variant="secondary"
-            size="sm"
-            className="bg-black/60 text-white hover:bg-black/70"
-          >
+          <Button asChild variant="secondary" size="sm" className="bg-black/60 text-white hover:bg-black/70">
             <Link href="/tvshows" className="inline-flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
               Back to TV Shows
@@ -250,21 +211,12 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
               <CardHeader className="space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2">
-                    <CardTitle className="text-3xl md:text-4xl">
-                      {tvShow.title}
-                    </CardTitle>
-                    {tvShow.originalTitle &&
-                      tvShow.originalTitle !== tvShow.title && (
-                        <CardDescription className="text-base">
-                          {tvShow.originalTitle}
-                        </CardDescription>
-                      )}
+                    <CardTitle className="text-3xl md:text-4xl">{tvShow.title}</CardTitle>
+                    {tvShow.originalTitle && tvShow.originalTitle !== tvShow.title && (
+                      <CardDescription className="text-base">{tvShow.originalTitle}</CardDescription>
+                    )}
                     <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                      {tvShow.originalLanguage && (
-                        <span className="uppercase">
-                          {tvShow.originalLanguage}
-                        </span>
-                      )}
+                      {tvShow.originalLanguage && <span className="uppercase">{tvShow.originalLanguage}</span>}
                       {seasonCount > 0 && (
                         <span>
                           {seasonCount} season{seasonCount === 1 ? "" : "s"}
@@ -279,17 +231,10 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                     </div>
                   </div>
 
-                  <AlertDialog
-                    open={deleteDialogOpen}
-                    onOpenChange={setDeleteDialogOpen}
-                  >
+                  <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="rounded-full"
-                        >
+                        <Button variant="ghost" size="icon" className="rounded-full">
                           <MoreVertical className="h-4 w-4" />
                           <span className="sr-only">Open TV show actions</span>
                         </Button>
@@ -309,22 +254,14 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
 
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>
-                          Delete {tvShow.title}?
-                        </AlertDialogTitle>
+                        <AlertDialogTitle>Delete {tvShow.title}?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This action cannot be undone. The metadata for this TV
-                          show will be permanently removed.
+                          This action cannot be undone. The metadata for this TV show will be permanently removed.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel disabled={deletingTVShow}>
-                          Cancel
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleDelete}
-                          disabled={deletingTVShow}
-                        >
+                        <AlertDialogCancel disabled={deletingTVShow}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} disabled={deletingTVShow}>
                           {deletingTVShow ? "Deleting..." : "Delete"}
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -334,21 +271,12 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
 
                 {tvShow.voteAverage > 0 && (
                   <div className="flex flex-wrap items-center gap-4 text-sm">
-                    <Badge
-                      variant="secondary"
-                      className="flex items-center gap-2 px-3 py-1"
-                    >
+                    <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1">
                       <Star className="h-4 w-4 text-yellow-500" />
-                      <span className="font-semibold text-foreground">
-                        {tvShow.voteAverage.toFixed(1)}
-                      </span>
+                      <span className="font-semibold text-foreground">{tvShow.voteAverage.toFixed(1)}</span>
                       <span>/10</span>
                     </Badge>
-                    {tvShow.voteCount > 0 && (
-                      <span className="text-muted-foreground">
-                        {tvShow.voteCount.toLocaleString()} votes
-                      </span>
-                    )}
+                    {tvShow.voteCount > 0 && <span className="text-muted-foreground">{tvShow.voteCount.toLocaleString()} votes</span>}
                   </div>
                 )}
 
@@ -367,9 +295,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                 {tvShow.overview && (
                   <div className="space-y-2">
                     <h2 className="text-lg font-semibold">Overview</h2>
-                    <p className="text-muted-foreground leading-relaxed">
-                      {tvShow.overview}
-                    </p>
+                    <p className="text-muted-foreground leading-relaxed">{tvShow.overview}</p>
                   </div>
                 )}
 
@@ -390,16 +316,11 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                     {tvShow.libraryId && (
                       <div className="space-y-1 text-sm">
                         <h3 className="font-semibold">Library</h3>
-                        <p className="text-muted-foreground font-mono break-all">
-                          {tvShow.libraryId}
-                        </p>
+                        <p className="text-muted-foreground font-mono break-all">{tvShow.libraryId}</p>
                       </div>
                     )}
                     <Separator />
-                    <p className="text-xs text-muted-foreground">
-                      Metadata last updated:{" "}
-                      {new Date(tvShow.updatedAt).toLocaleString()}
-                    </p>
+                    <p className="text-xs text-muted-foreground">Metadata last updated: {new Date(tvShow.updatedAt).toLocaleString()}</p>
                   </div>
                 )}
               </CardContent>
@@ -411,9 +332,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                   <CardHeader className="space-y-4">
                     <div>
                       <CardTitle className="text-lg">Credits</CardTitle>
-                      <CardDescription>
-                        Browse cast and crew details
-                      </CardDescription>
+                      <CardDescription>Browse cast and crew details</CardDescription>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -440,19 +359,11 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                         {tvShow.crew
                           .slice()
                           .sort((a, b) => {
-                            const importantJobs = [
-                              "Creator",
-                              "Director",
-                              "Producer",
-                              "Executive Producer",
-                              "Writer",
-                              "Screenplay",
-                            ];
+                            const importantJobs = ["Creator", "Director", "Producer", "Executive Producer", "Writer", "Screenplay"];
                             const aIndex = importantJobs.indexOf(a.job);
                             const bIndex = importantJobs.indexOf(b.job);
 
-                            if (aIndex !== -1 && bIndex !== -1)
-                              return aIndex - bIndex;
+                            if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
                             if (aIndex !== -1) return -1;
                             if (bIndex !== -1) return 1;
 
@@ -481,61 +392,37 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
               <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <CardTitle className="text-lg">Seasons</CardTitle>
-                  <CardDescription>
-                    Browse episodes and linked files
-                  </CardDescription>
+                  <CardDescription>Browse episodes and linked files</CardDescription>
                 </div>
                 <div className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={expandAllSeasons}
-                    disabled={
-                      seasonValues.length === 0 ||
-                      expandedSeasons.length === seasonValues.length
-                    }
+                    disabled={seasonValues.length === 0 || expandedSeasons.length === seasonValues.length}
                   >
                     Expand all
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={collapseAllSeasons}
-                    disabled={expandedSeasons.length === 0}
-                  >
+                  <Button variant="ghost" size="sm" onClick={collapseAllSeasons} disabled={expandedSeasons.length === 0}>
                     Collapse all
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
                 {tvShow.seasons && tvShow.seasons.length > 0 ? (
-                  <Accordion
-                    type="multiple"
-                    value={expandedSeasons}
-                    onValueChange={setExpandedSeasons}
-                    className="space-y-2"
-                  >
+                  <Accordion type="multiple" value={expandedSeasons} onValueChange={setExpandedSeasons} className="space-y-2">
                     {tvShow.seasons.map((season) => {
                       const episodeCount = season.episodes?.length || 0;
                       const value = season.seasonNumber.toString();
 
                       return (
-                        <AccordionItem
-                          key={value}
-                          value={value}
-                          className="rounded-lg border"
-                        >
+                        <AccordionItem key={value} value={value} className="rounded-lg border">
                           <AccordionTrigger className="px-4 py-3">
                             <div className="flex flex-col gap-2 text-left">
                               <div className="flex flex-wrap items-center gap-3">
-                                <span className="text-base font-semibold">
-                                  Season {season.seasonNumber}
-                                </span>
+                                <span className="text-base font-semibold">Season {season.seasonNumber}</span>
                                 {season.voteAverage > 0 && (
-                                  <Badge
-                                    variant="secondary"
-                                    className="flex items-center gap-1 px-2 py-1"
-                                  >
+                                  <Badge variant="secondary" className="flex items-center gap-1 px-2 py-1">
                                     <Star className="h-3 w-3 text-yellow-500" />
                                     {season.voteAverage.toFixed(1)}
                                   </Badge>
@@ -548,29 +435,18 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                             </div>
                           </AccordionTrigger>
                           <AccordionContent className="space-y-4 px-4">
-                            {season.overview && (
-                              <p className="text-sm text-muted-foreground">
-                                {season.overview}
-                              </p>
-                            )}
+                            {season.overview && <p className="text-sm text-muted-foreground">{season.overview}</p>}
                             {season.directoryPath && (
-                              <p className="font-mono text-xs text-muted-foreground break-all">
-                                {season.directoryPath}
-                              </p>
+                              <p className="font-mono text-xs text-muted-foreground break-all">{season.directoryPath}</p>
                             )}
                             {episodeCount > 0 ? (
                               <div className="space-y-3">
                                 {season.episodes.map((episode) => (
-                                  <EpisodeCard
-                                    key={`${episode.seasonNumber}-${episode.episodeNumber}`}
-                                    episode={episode}
-                                  />
+                                  <EpisodeCard key={`${episode.seasonNumber}-${episode.episodeNumber}`} episode={episode} />
                                 ))}
                               </div>
                             ) : (
-                              <p className="text-sm italic text-muted-foreground">
-                                No episodes found for this season.
-                              </p>
+                              <p className="text-sm italic text-muted-foreground">No episodes found for this season.</p>
                             )}
                           </AccordionContent>
                         </AccordionItem>
@@ -578,9 +454,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                     })}
                   </Accordion>
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No seasons metadata available.
-                  </p>
+                  <p className="text-sm text-muted-foreground">No seasons metadata available.</p>
                 )}
               </CardContent>
             </Card>

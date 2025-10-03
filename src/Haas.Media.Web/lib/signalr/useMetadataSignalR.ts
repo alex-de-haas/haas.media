@@ -48,25 +48,21 @@ export function useMetadataSignalR() {
       foundMetadata: toNumber(raw.foundMetadata),
       startTime,
       currentFile: typeof raw.currentFile === "string" ? raw.currentFile : undefined,
-      speedFilesPerSecond:
-        typeof raw.speedFilesPerSecond === "number" ? raw.speedFilesPerSecond : undefined,
-      estimatedTimeSeconds:
-        typeof raw.estimatedTimeSeconds === "number" ? raw.estimatedTimeSeconds : undefined,
+      speedFilesPerSecond: typeof raw.speedFilesPerSecond === "number" ? raw.speedFilesPerSecond : undefined,
+      estimatedTimeSeconds: typeof raw.estimatedTimeSeconds === "number" ? raw.estimatedTimeSeconds : undefined,
     };
   }, []);
 
   const upsertScanOperation = useCallback((operation: ScanOperationInfo) => {
-    setScanOperations(prev => {
-      const lookup = new Map(prev.map(existing => [existing.id, existing]));
+    setScanOperations((prev) => {
+      const lookup = new Map(prev.map((existing) => [existing.id, existing]));
       lookup.set(operation.id, operation);
-      return Array.from(lookup.values()).sort(
-        (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
-      );
+      return Array.from(lookup.values()).sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
     });
   }, []);
 
   const removeScanOperation = useCallback((operationId: string) => {
-    setScanOperations(prev => prev.filter(operation => operation.id !== operationId));
+    setScanOperations((prev) => prev.filter((operation) => operation.id !== operationId));
   }, []);
 
   const fetchOperations = useCallback(async () => {
@@ -77,10 +73,7 @@ export function useMetadataSignalR() {
         headers.set("Authorization", `Bearer ${token}`);
       }
 
-      const response = await fetch(
-        `${downloaderApi}/api/background-tasks/MetadataScanTask`,
-        { headers }
-      );
+      const response = await fetch(`${downloaderApi}/api/background-tasks/MetadataScanTask`, { headers });
 
       if (!response.ok) {
         console.error("Failed to fetch metadata background tasks:", response.statusText);
@@ -88,15 +81,9 @@ export function useMetadataSignalR() {
       }
 
       const payload = (await response.json()) as BackgroundTaskInfo[];
-      const operations = payload
-        .map(mapTaskToScanOperation)
-        .filter((operation): operation is ScanOperationInfo => Boolean(operation));
+      const operations = payload.map(mapTaskToScanOperation).filter((operation): operation is ScanOperationInfo => Boolean(operation));
 
-      setScanOperations(
-        operations.sort(
-          (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
-        )
-      );
+      setScanOperations(operations.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()));
     } catch (error) {
       console.error("Failed to fetch metadata background tasks:", error);
     }
@@ -111,7 +98,7 @@ export function useMetadataSignalR() {
 
     try {
       const token = await getValidToken();
-      
+
       if (!token || !downloaderApi) {
         console.log("No token or downloader API available for SignalR connection");
         setScanOperations([]);

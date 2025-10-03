@@ -2,21 +2,8 @@
 
 import * as React from "react";
 import type { EncodingProcessInfo } from "@/types/encoding";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -89,9 +76,7 @@ function EncodingTable({ encodings, stoppingId, onStop }: EncodingTableProps) {
             <TableRow key={`${encoding.id}-${encoding.outputPath}`}>
               <TableCell className="max-w-[260px] align-top">
                 <div className="flex flex-col gap-1">
-                  <span className="truncate font-medium">
-                    {getFileName(encoding.outputPath)}
-                  </span>
+                  <span className="truncate font-medium">{getFileName(encoding.outputPath)}</span>
                   <span className="truncate text-xs text-muted-foreground" title={encoding.sourcePath}>
                     Source: {encoding.sourcePath}
                   </span>
@@ -126,12 +111,7 @@ function EncodingTable({ encodings, stoppingId, onStop }: EncodingTableProps) {
                 )}
               </TableCell>
               <TableCell className="align-top text-right">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  disabled={isStopping}
-                  onClick={() => onStop(encoding.id)}
-                >
+                <Button variant="destructive" size="sm" disabled={isStopping} onClick={() => onStop(encoding.id)}>
                   {isStopping ? "Stopping…" : "Stop"}
                 </Button>
               </TableCell>
@@ -170,9 +150,7 @@ function EmptyState() {
   return (
     <div className="flex flex-col items-center gap-2 px-6 py-12 text-center text-sm text-muted-foreground">
       <p className="font-medium text-foreground">No active encodings</p>
-      <p className="max-w-sm">
-        Start an encoding job from the media library. Running tasks will appear here with live progress updates.
-      </p>
+      <p className="max-w-sm">Start an encoding job from the media library. Running tasks will appear here with live progress updates.</p>
     </div>
   );
 }

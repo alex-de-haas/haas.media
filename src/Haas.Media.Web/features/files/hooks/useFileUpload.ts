@@ -5,10 +5,7 @@ import { useState } from "react";
 interface UseFileUploadReturn {
   files: File[];
   dragActive: boolean;
-  handleFileChange: (
-    e: React.ChangeEvent<HTMLInputElement>,
-    onInvalidFile?: (message: string) => void
-  ) => void;
+  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>, onInvalidFile?: (message: string) => void) => void;
   handleDragOver: (e: React.DragEvent<HTMLElement>) => void;
   handleDragLeave: (e: React.DragEvent<HTMLElement>) => void;
   handleDrop: (e: React.DragEvent<HTMLElement>, onInvalidFile?: (message: string) => void) => void;
@@ -21,10 +18,7 @@ export function useFileUpload(acceptedExtensions?: string[]): UseFileUploadRetur
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
 
-  const validateFiles = (
-    selectedFiles: File[],
-    onInvalidFile?: (message: string) => void
-  ) => {
+  const validateFiles = (selectedFiles: File[], onInvalidFile?: (message: string) => void) => {
     if (!acceptedExtensions || acceptedExtensions.length === 0) {
       return selectedFiles;
     }
@@ -33,9 +27,7 @@ export function useFileUpload(acceptedExtensions?: string[]): UseFileUploadRetur
     const invalid: string[] = [];
 
     for (const file of selectedFiles) {
-      const isValid = acceptedExtensions.some((ext) =>
-        file.name.toLowerCase().endsWith(ext.toLowerCase())
-      );
+      const isValid = acceptedExtensions.some((ext) => file.name.toLowerCase().endsWith(ext.toLowerCase()));
 
       if (isValid) {
         validFiles.push(file);
@@ -61,20 +53,15 @@ export function useFileUpload(acceptedExtensions?: string[]): UseFileUploadRetur
         (candidate) =>
           !prev.some(
             (existing) =>
-              existing.name === candidate.name &&
-              existing.size === candidate.size &&
-              existing.lastModified === candidate.lastModified
-          )
+              existing.name === candidate.name && existing.size === candidate.size && existing.lastModified === candidate.lastModified,
+          ),
       );
 
       return deduped.length > 0 ? [...prev, ...deduped] : prev;
     });
   };
 
-  const handleFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    onInvalidFile?: (message: string) => void
-  ) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, onInvalidFile?: (message: string) => void) => {
     if (e.target.files && e.target.files.length > 0) {
       const selected = Array.from(e.target.files);
       const valid = validateFiles(selected, onInvalidFile);

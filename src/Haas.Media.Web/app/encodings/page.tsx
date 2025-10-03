@@ -8,11 +8,7 @@ import { BackgroundTaskStatus } from "@/types";
 import type { EncodingProcessInfo } from "@/types/encoding";
 import { isEncodingInfo, isEncodingInfoArray } from "@/types/encoding";
 import { useEncodingActions } from "@/features/media/hooks";
-import {
-  HubConnection,
-  HubConnectionBuilder,
-  LogLevel,
-} from "@microsoft/signalr";
+import { HubConnection, HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import { usePageTitle } from "@/components/layout";
 import { EncodingOverview, EncodingQueue } from "@/components/encoding";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -24,17 +20,20 @@ export default function EncodingsPage() {
   const [stoppingId, setStoppingId] = React.useState<string | null>(null);
   const { stopEncoding, error: actionError } = useEncodingActions();
 
-  const handleStopEncoding = React.useCallback(async (hash: string) => {
-    setStoppingId(hash);
-    try {
-      await stopEncoding(hash);
-      // The encoding will be removed via SignalR
-    } catch (err) {
-      console.error("Failed to stop encoding:", err);
-    } finally {
-      setStoppingId((current) => (current === hash ? null : current));
-    }
-  }, [stopEncoding]);
+  const handleStopEncoding = React.useCallback(
+    async (hash: string) => {
+      setStoppingId(hash);
+      try {
+        await stopEncoding(hash);
+        // The encoding will be removed via SignalR
+      } catch (err) {
+        console.error("Failed to stop encoding:", err);
+      } finally {
+        setStoppingId((current) => (current === hash ? null : current));
+      }
+    },
+    [stopEncoding],
+  );
 
   React.useEffect(() => {
     let connection: HubConnection | null = null;
@@ -56,10 +55,7 @@ export default function EncodingsPage() {
         return;
       }
 
-      if (
-        task.status !== BackgroundTaskStatus.Pending &&
-        task.status !== BackgroundTaskStatus.Running
-      ) {
+      if (task.status !== BackgroundTaskStatus.Pending && task.status !== BackgroundTaskStatus.Running) {
         removeEncodingByTask(task);
         return;
       }
@@ -73,10 +69,7 @@ export default function EncodingsPage() {
 
       setEncodings((prev) => {
         const existing = prev ?? [];
-        const idx = existing.findIndex(
-          (encoding) =>
-            encoding.id === info.id && encoding.outputPath === info.outputPath
-        );
+        const idx = existing.findIndex((encoding) => encoding.id === info.id && encoding.outputPath === info.outputPath);
         if (idx === -1) {
           return [info, ...existing];
         }
@@ -96,10 +89,10 @@ export default function EncodingsPage() {
         if (token) headers.Authorization = `Bearer ${token}`;
         const res = await fetch(`${downloaderApi}/api/encodings`, { headers });
         if (!res.ok) throw new Error(res.statusText);
-  const data = await res.json();
+        const data = await res.json();
         if (!mounted) return;
-  const initialEncodings = isEncodingInfoArray(data) ? data : [];
-  setEncodings(initialEncodings);
+        const initialEncodings = isEncodingInfoArray(data) ? data : [];
+        setEncodings(initialEncodings);
 
         connection = new HubConnectionBuilder()
           .withUrl(`${downloaderApi}/hub/background-tasks?type=EncodingTask`, {
@@ -153,12 +146,7 @@ export default function EncodingsPage() {
           </Alert>
         )}
 
-        <EncodingQueue
-          encodings={encodings}
-          loading={loading}
-          stoppingId={stoppingId}
-          onStop={handleStopEncoding}
-        />
+        <EncodingQueue encodings={encodings} loading={loading} stoppingId={stoppingId} onStop={handleStopEncoding} />
       </div>
     </main>
   );

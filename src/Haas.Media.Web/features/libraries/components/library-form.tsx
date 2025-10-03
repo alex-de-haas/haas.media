@@ -11,13 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { FolderOpen, FolderPlus, Loader2 } from "lucide-react";
@@ -111,12 +105,7 @@ export default function LibraryForm({ library, onSubmit, onCancel, isLoading }: 
                 placeholder="Enter directory path or browse"
                 required
               />
-              <Button
-                type="button"
-                variant="outline"
-                className="sm:w-[160px]"
-                onClick={() => setShowDirectoryPicker(true)}
-              >
+              <Button type="button" variant="outline" className="sm:w-[160px]" onClick={() => setShowDirectoryPicker(true)}>
                 <FolderOpen className="mr-2 h-4 w-4" />
                 Browse
               </Button>
@@ -125,10 +114,7 @@ export default function LibraryForm({ library, onSubmit, onCancel, isLoading }: 
 
           <div className="grid gap-2">
             <Label htmlFor="libraryType">Library Type</Label>
-            <Select
-              value={libraryType.toString()}
-              onValueChange={(value) => setLibraryType(Number(value) as LibraryType)}
-            >
+            <Select value={libraryType.toString()} onValueChange={(value) => setLibraryType(Number(value) as LibraryType)}>
               <SelectTrigger id="libraryType">
                 <SelectValue placeholder="Select a library type" />
               </SelectTrigger>
@@ -182,9 +168,7 @@ export default function LibraryForm({ library, onSubmit, onCancel, isLoading }: 
                 <FolderPlus className="h-4 w-4" />
                 <span>
                   Current path:
-                  <span className="ml-1 font-medium text-foreground">
-                    {currentPath || "Root"}
-                  </span>
+                  <span className="ml-1 font-medium text-foreground">{currentPath || "Root"}</span>
                 </span>
               </div>
               <div className="flex justify-end gap-2">
@@ -203,7 +187,6 @@ export default function LibraryForm({ library, onSubmit, onCancel, isLoading }: 
               </div>
             </div>
           </div>
-
         </DialogContent>
       </Dialog>
     </>

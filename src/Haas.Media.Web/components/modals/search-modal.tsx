@@ -7,22 +7,10 @@ import { LibraryType } from "@/types/library";
 import { useSearch, useAddToLibrary } from "@/features/media/hooks/useMetadata";
 import { useLibraries } from "@/features/libraries/hooks/useLibraries";
 import { getPosterUrl } from "@/lib/tmdb";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -48,10 +36,7 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
   const { search, loading: isSearching } = useSearch();
   const { addToLibrary } = useAddToLibrary();
 
-  const filteredLibraries = useMemo(
-    () => libraries.filter((library) => library.type === mediaType),
-    [libraries, mediaType]
-  );
+  const filteredLibraries = useMemo(() => libraries.filter((library) => library.type === mediaType), [libraries, mediaType]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -146,9 +131,7 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
                 <SelectTrigger>
                   <SelectValue placeholder="Select a library" />
                 </SelectTrigger>
-                <SelectContent>
-                  {filteredLibraries.map(renderLibraryOption)}
-                </SelectContent>
+                <SelectContent>{filteredLibraries.map(renderLibraryOption)}</SelectContent>
               </Select>
             </div>
           )}
@@ -168,16 +151,8 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
               placeholder={`Search for ${mediaType === LibraryType.Movies ? "movies" : "TV shows"}…`}
               className="flex-1"
             />
-            <Button
-              onClick={handleSearch}
-              disabled={isSearching || !searchQuery.trim()}
-              className="whitespace-nowrap"
-            >
-              {isSearching ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Search className="mr-2 h-4 w-4" />
-              )}
+            <Button onClick={handleSearch} disabled={isSearching || !searchQuery.trim()} className="whitespace-nowrap">
+              {isSearching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
               Search
             </Button>
           </div>
@@ -199,7 +174,10 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
           ) : (
             <div className="grid gap-4">
               {searchResults.map((result) => (
-                <div key={result.tmdbId} className="flex flex-col gap-4 rounded-lg border bg-card p-4 shadow-sm transition hover:border-primary/40 sm:flex-row">
+                <div
+                  key={result.tmdbId}
+                  className="flex flex-col gap-4 rounded-lg border bg-card p-4 shadow-sm transition hover:border-primary/40 sm:flex-row"
+                >
                   <div className="flex-shrink-0">
                     {result.posterPath ? (
                       <Image
@@ -219,9 +197,7 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
                   <div className="flex flex-1 flex-col gap-4">
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="text-lg font-semibold leading-tight text-foreground">
-                          {result.title}
-                        </h4>
+                        <h4 className="text-lg font-semibold leading-tight text-foreground">{result.title}</h4>
                         <Badge variant="secondary" className="gap-1 text-xs">
                           <Star className="h-3.5 w-3.5 text-yellow-400" />
                           {result.voteAverage.toFixed(1)}
@@ -230,14 +206,10 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
                           {result.voteCount} votes
                         </Badge>
                       </div>
-                      {result.originalTitle !== result.title && (
-                        <p className="text-sm text-muted-foreground">{result.originalTitle}</p>
-                      )}
+                      {result.originalTitle !== result.title && <p className="text-sm text-muted-foreground">{result.originalTitle}</p>}
                     </div>
 
-                    <p className="line-clamp-4 text-sm text-muted-foreground">
-                      {result.overview || "No overview available."}
-                    </p>
+                    <p className="line-clamp-4 text-sm text-muted-foreground">{result.overview || "No overview available."}</p>
 
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

@@ -7,13 +7,7 @@ import FileList from "@/features/files/components/file-list";
 import FileActionsModal from "@/features/files/components/file-actions-modal";
 import CopyOperationsList from "@/features/files/components/copy-operations-list";
 import { FileUploadCard } from "@/features/files";
-import type {
-  CopyRequest,
-  CreateDirectoryRequest,
-  FileItem,
-  MoveRequest,
-  RenameRequest,
-} from "@/types/file";
+import type { CopyRequest, CreateDirectoryRequest, FileItem, MoveRequest, RenameRequest } from "@/types/file";
 import { FileItemType } from "@/types/file";
 import { usePageTitle } from "@/components/layout";
 import Link from "next/link";
@@ -26,17 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  Copy,
-  Download,
-  ExternalLink,
-  FolderPlus,
-  Info,
-  MoreHorizontal,
-  MoveRight,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import { Copy, Download, ExternalLink, FolderPlus, Info, MoreHorizontal, MoveRight, Pencil, Trash2 } from "lucide-react";
 
 interface FileActionsProps {
   item: FileItem;
@@ -47,50 +31,29 @@ interface FileActionsProps {
   onDownloadTorrent?: () => void;
 }
 
-function FileActions({
-  item,
-  onDelete,
-  onCopy,
-  onMove,
-  onRename,
-  onDownloadTorrent,
-}: FileActionsProps) {
+function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorrent }: FileActionsProps) {
   const isTorrent = item.extension?.toLowerCase() === ".torrent";
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          aria-label="File actions"
-        >
+        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="File actions">
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        {(item.type === FileItemType.Media ||
-          item.type === FileItemType.Directory) && (
+        {(item.type === FileItemType.Media || item.type === FileItemType.Directory) && (
           <DropdownMenuItem asChild>
-            <Link
-              prefetch={false}
-              href={`/media-info/${encodeURIComponent(item.relativePath)}`}
-              className="flex items-center gap-2"
-            >
+            <Link prefetch={false} href={`/media-info/${encodeURIComponent(item.relativePath)}`} className="flex items-center gap-2">
               <Info className="h-4 w-4" />
               Media info
               <ExternalLink className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
             </Link>
           </DropdownMenuItem>
         )}
-        {(item.type === FileItemType.Media ||
-          item.type === FileItemType.Directory) && <DropdownMenuSeparator />}
+        {(item.type === FileItemType.Media || item.type === FileItemType.Directory) && <DropdownMenuSeparator />}
         {isTorrent && onDownloadTorrent && (
           <>
-            <DropdownMenuItem
-              onSelect={onDownloadTorrent}
-              className="cursor-pointer"
-            >
+            <DropdownMenuItem onSelect={onDownloadTorrent} className="cursor-pointer">
               <Download className="h-4 w-4" />
               Download torrent
             </DropdownMenuItem>
@@ -110,10 +73,7 @@ function FileActions({
           Rename
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onSelect={onDelete}
-          className="cursor-pointer text-destructive focus:text-destructive"
-        >
+        <DropdownMenuItem onSelect={onDelete} className="cursor-pointer text-destructive focus:text-destructive">
           <Trash2 className="h-4 w-4" />
           Delete
         </DropdownMenuItem>
@@ -153,26 +113,15 @@ export default function FilesPage() {
 
   const [isUploading, setIsUploading] = useState(false);
 
-  const openModal = useCallback(
-    (
-      action: "copy" | "move" | "delete" | "create-directory" | "rename",
-      item?: FileItem
-    ) => {
-      setModalState({ isOpen: true, action, ...(item && { item }) });
-    },
-    []
-  );
+  const openModal = useCallback((action: "copy" | "move" | "delete" | "create-directory" | "rename", item?: FileItem) => {
+    setModalState({ isOpen: true, action, ...(item && { item }) });
+  }, []);
 
   const closeModal = () => {
     setModalState({ isOpen: false, action: null });
   };
 
-  type ModalPayload =
-    | CopyRequest
-    | MoveRequest
-    | CreateDirectoryRequest
-    | RenameRequest
-    | string;
+  type ModalPayload = CopyRequest | MoveRequest | CreateDirectoryRequest | RenameRequest | string;
 
   const handleModalConfirm = async (data: ModalPayload) => {
     const { action } = modalState;
@@ -227,12 +176,8 @@ export default function FilesPage() {
   const handleDownloadTorrent = async (path: string, name: string) => {
     const result = await downloadTorrentFromFile(path);
     notify({
-      title: result.success
-        ? "Torrent download started"
-        : "Torrent start failed",
-      message: result.success
-        ? `${name} — ${result.message}`
-        : `${name}: ${result.message}`,
+      title: result.success ? "Torrent download started" : "Torrent start failed",
+      message: result.success ? `${name} — ${result.message}` : `${name}: ${result.message}`,
       type: result.success ? "success" : "error",
     });
     return result;
@@ -250,11 +195,7 @@ export default function FilesPage() {
         </Alert>
       )}
 
-      <FileUploadCard
-        onUpload={handleFileUpload}
-        isUploading={isUploading}
-        currentPath={currentPath}
-      />
+      <FileUploadCard onUpload={handleFileUpload} isUploading={isUploading} currentPath={currentPath} />
 
       {/* File list */}
       <FileList
@@ -263,11 +204,7 @@ export default function FilesPage() {
         onNavigate={navigateToPath}
         loading={loading}
         headerActions={
-          <Button
-            onClick={() => openModal("create-directory")}
-            size="sm"
-            className="flex items-center gap-2"
-          >
+          <Button onClick={() => openModal("create-directory")} size="sm" className="flex items-center gap-2">
             <FolderPlus className="h-4 w-4" />
             Create directory
           </Button>

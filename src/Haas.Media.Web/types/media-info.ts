@@ -73,66 +73,66 @@ export interface MediaInfo {
 }
 
 export function isMediaInfo(value: unknown): value is MediaInfo {
-  if (!value || typeof value !== 'object') return false;
+  if (!value || typeof value !== "object") return false;
   const v = value as MediaInfo;
   return Array.isArray(v.streams);
 }
 
 // Human friendly mapping helpers
 const streamTypeNames: Record<StreamType, string> = {
-  [StreamType.Unknown]: 'Unknown',
-  [StreamType.Video]: 'Video',
-  [StreamType.Audio]: 'Audio',
-  [StreamType.Subtitle]: 'Subtitle',
+  [StreamType.Unknown]: "Unknown",
+  [StreamType.Video]: "Video",
+  [StreamType.Audio]: "Audio",
+  [StreamType.Subtitle]: "Subtitle",
 };
 
 export function streamTypeToString(type: StreamType | number | undefined | null): string {
-  if (typeof type !== 'number') return 'Unknown';
-  return streamTypeNames[type as StreamType] ?? 'Unknown';
+  if (typeof type !== "number") return "Unknown";
+  return streamTypeNames[type as StreamType] ?? "Unknown";
 }
 
 const streamCodecNames: Record<StreamCodec, string> = {
-  [StreamCodec.Unknown]: 'Unknown',
-  [StreamCodec.H264]: 'H.264',
-  [StreamCodec.HEVC]: 'HEVC',
-  [StreamCodec.Mpeg2Video]: 'MPEG-2 Video',
-  [StreamCodec.Mpeg4Part2]: 'MPEG-4 Part 2',
-  [StreamCodec.VP8]: 'VP8',
-  [StreamCodec.VP9]: 'VP9',
-  [StreamCodec.AV1]: 'AV1',
-  [StreamCodec.VC1]: 'VC-1',
-  [StreamCodec.ProRes]: 'Apple ProRes',
-  [StreamCodec.Theora]: 'Theora',
-  [StreamCodec.AdvancedAudioCoding]: 'AAC',
-  [StreamCodec.DolbyDigital]: 'Dolby Digital (AC-3)',
-  [StreamCodec.DolbyDigitalPlus]: 'Dolby Digital Plus (E-AC-3)',
-  [StreamCodec.DolbyTrueHD]: 'Dolby TrueHD',
-  [StreamCodec.MpegLayer3]: 'MP3',
-  [StreamCodec.Flac]: 'FLAC',
-  [StreamCodec.Opus]: 'Opus',
-  [StreamCodec.Vorbis]: 'Vorbis',
-  [StreamCodec.DTS]: 'DTS',
-  [StreamCodec.ALAC]: 'ALAC',
-  [StreamCodec.PCM]: 'PCM',
-  [StreamCodec.SubRip]: 'SubRip (SRT)',
-  [StreamCodec.WebVTT]: 'WebVTT',
-  [StreamCodec.AdvancedSubStationAlpha]: 'Advanced SubStation Alpha (ASS)',
-  [StreamCodec.SubStationAlpha]: 'SubStation Alpha (SSA)',
-  [StreamCodec.PGS]: 'PGS',
-  [StreamCodec.DvdSubtitle]: 'DVD Subtitle',
-  [StreamCodec.ClosedCaptionsEia608]: 'Closed Captions (CEA-608)',
-  [StreamCodec.ClosedCaptionsEia708]: 'Closed Captions (CEA-708)',
+  [StreamCodec.Unknown]: "Unknown",
+  [StreamCodec.H264]: "H.264",
+  [StreamCodec.HEVC]: "HEVC",
+  [StreamCodec.Mpeg2Video]: "MPEG-2 Video",
+  [StreamCodec.Mpeg4Part2]: "MPEG-4 Part 2",
+  [StreamCodec.VP8]: "VP8",
+  [StreamCodec.VP9]: "VP9",
+  [StreamCodec.AV1]: "AV1",
+  [StreamCodec.VC1]: "VC-1",
+  [StreamCodec.ProRes]: "Apple ProRes",
+  [StreamCodec.Theora]: "Theora",
+  [StreamCodec.AdvancedAudioCoding]: "AAC",
+  [StreamCodec.DolbyDigital]: "Dolby Digital (AC-3)",
+  [StreamCodec.DolbyDigitalPlus]: "Dolby Digital Plus (E-AC-3)",
+  [StreamCodec.DolbyTrueHD]: "Dolby TrueHD",
+  [StreamCodec.MpegLayer3]: "MP3",
+  [StreamCodec.Flac]: "FLAC",
+  [StreamCodec.Opus]: "Opus",
+  [StreamCodec.Vorbis]: "Vorbis",
+  [StreamCodec.DTS]: "DTS",
+  [StreamCodec.ALAC]: "ALAC",
+  [StreamCodec.PCM]: "PCM",
+  [StreamCodec.SubRip]: "SubRip (SRT)",
+  [StreamCodec.WebVTT]: "WebVTT",
+  [StreamCodec.AdvancedSubStationAlpha]: "Advanced SubStation Alpha (ASS)",
+  [StreamCodec.SubStationAlpha]: "SubStation Alpha (SSA)",
+  [StreamCodec.PGS]: "PGS",
+  [StreamCodec.DvdSubtitle]: "DVD Subtitle",
+  [StreamCodec.ClosedCaptionsEia608]: "Closed Captions (CEA-608)",
+  [StreamCodec.ClosedCaptionsEia708]: "Closed Captions (CEA-708)",
 };
 
 export function streamCodecToString(codec: StreamCodec | number | undefined | null): string {
-  if (typeof codec !== 'number') return 'Unknown';
-  return streamCodecNames[codec as StreamCodec] ?? 'Unknown';
+  if (typeof codec !== "number") return "Unknown";
+  return streamCodecNames[codec as StreamCodec] ?? "Unknown";
 }
 
 export function streamFeaturesToStrings(features: StreamFeatures | number | undefined | null): string[] {
-  if (typeof features !== 'number' || features === StreamFeatures.None) return [];
+  if (typeof features !== "number" || features === StreamFeatures.None) return [];
   const out: string[] = [];
-  if (features & StreamFeatures.DolbyVision) out.push('Dolby Vision');
-  if (features & StreamFeatures.DolbyAtmos) out.push('Dolby Atmos');
+  if (features & StreamFeatures.DolbyVision) out.push("Dolby Vision");
+  if (features & StreamFeatures.DolbyAtmos) out.push("Dolby Atmos");
   return out;
 }

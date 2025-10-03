@@ -51,40 +51,40 @@ export enum HardwareAcceleration {
 }
 
 export function isHardwareAccelerationInfo(value: unknown): value is HardwareAccelerationInfo {
-  if (!value || typeof value !== 'object') return false;
+  if (!value || typeof value !== "object") return false;
   const v = value as any;
   return (
-    typeof v.hardwareAcceleration === 'number' &&
+    typeof v.hardwareAcceleration === "number" &&
     Array.isArray(v.devices) &&
-    v.devices.every((d: any) => typeof d === 'string') &&
+    v.devices.every((d: any) => typeof d === "string") &&
     Array.isArray(v.encoders) &&
-    v.encoders.every((e: any) => typeof e === 'number') &&
+    v.encoders.every((e: any) => typeof e === "number") &&
     Array.isArray(v.decoders) &&
-    v.decoders.every((d: any) => typeof d === 'number')
+    v.decoders.every((d: any) => typeof d === "number")
   );
 }
 
 export function isMediaEncodingInfo(value: unknown): value is EncodingInfo {
-  if (!value || typeof value !== 'object') return false;
+  if (!value || typeof value !== "object") return false;
   const v = value as any;
   return (
     Array.isArray(v.hardwareAccelerations) &&
     v.hardwareAccelerations.every(isHardwareAccelerationInfo) &&
     Array.isArray(v.mediaFiles) &&
-    v.mediaFiles.every((f: any) => typeof f === 'object' && f !== null)
+    v.mediaFiles.every((f: any) => typeof f === "object" && f !== null)
   );
 }
 
 export function isEncodingInfo(value: unknown): value is EncodingProcessInfo {
-  if (!value || typeof value !== 'object') return false;
+  if (!value || typeof value !== "object") return false;
   const v = value as any;
   return (
-    typeof v.id === 'string' &&
-    typeof v.sourcePath === 'string' &&
-    typeof v.outputPath === 'string' &&
-    typeof v.progress === 'number' &&
-    typeof v.elapsedTimeSeconds === 'number' &&
-    typeof v.estimatedTimeSeconds === 'number'
+    typeof v.id === "string" &&
+    typeof v.sourcePath === "string" &&
+    typeof v.outputPath === "string" &&
+    typeof v.progress === "number" &&
+    typeof v.elapsedTimeSeconds === "number" &&
+    typeof v.estimatedTimeSeconds === "number"
   );
 }
 

@@ -11,22 +11,27 @@ The "VAAPI device not found or not accessible" error on Ryzen AI 9 HX 370 with R
 ## Solution Applied
 
 ### 1. Enhanced Device Detection
+
 - Added support for additional device paths (`/dev/dri/renderD130`, `/dev/dri/card2`)
 - Container-aware device detection that defers validation to runtime
 - Graceful fallback for newer AMD GPU device enumeration
 
 ### 2. Docker Configuration
+
 Updated Dockerfile with AMD RDNA 3.5 specific packages:
+
 - `firmware-amd-graphics` for 890M firmware
 - `libgl1-mesa-dri` for proper DRI support
 - `libxcb-dri3-0` for modern DRI3 interface
 
 ### 3. Runtime Device Mapping
+
 Container needs proper device access - see usage examples below.
 
 ## Docker Usage Examples
 
 ### Docker Run
+
 ```bash
 docker run -it --rm \
   --device=/dev/dri:/dev/dri \
@@ -36,8 +41,9 @@ docker run -it --rm \
 ```
 
 ### Docker Compose
+
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   media-app:
     build: .
@@ -53,15 +59,16 @@ services:
 ```
 
 ### Advanced Configuration for 890M
+
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   media-app:
     build: .
     devices:
       - /dev/dri/renderD128:/dev/dri/renderD128
       - /dev/dri/renderD129:/dev/dri/renderD129
-      - /dev/dri/renderD130:/dev/dri/renderD130  # For newer GPUs
+      - /dev/dri/renderD130:/dev/dri/renderD130 # For newer GPUs
       - /dev/dri/card0:/dev/dri/card0
     group_add:
       - video
@@ -78,6 +85,7 @@ services:
 ## Host System Requirements
 
 ### 1. AMD GPU Drivers
+
 ```bash
 # Ubuntu/Debian
 sudo apt update
@@ -89,6 +97,7 @@ dmesg | grep -i amdgpu
 ```
 
 ### 2. Verify VAAPI Support
+
 ```bash
 # Check available devices
 ls -la /dev/dri/
@@ -100,6 +109,7 @@ vainfo
 ```
 
 ### 3. Permissions
+
 ```bash
 # Add user to video group
 sudo usermod -a -G video $USER
@@ -112,6 +122,7 @@ ls -la /dev/dri/
 ## Troubleshooting
 
 ### Check Container Device Access
+
 ```bash
 # Inside running container
 ls -la /dev/dri/
@@ -119,6 +130,7 @@ vainfo
 ```
 
 ### Test FFmpeg VAAPI
+
 ```bash
 # Test H.264 encoding
 ffmpeg -vaapi_device /dev/dri/renderD128 -f lavfi -i testsrc2=duration=5:size=1920x1080:rate=30 -vf 'format=nv12,hwupload' -c:v h264_vaapi -f null -
@@ -128,6 +140,7 @@ ffmpeg -vaapi_device /dev/dri/renderD128 -f lavfi -i testsrc2=duration=5:size=19
 ```
 
 ### Debug Output
+
 ```bash
 # Enable verbose VAAPI logging
 export LIBVA_MESSAGING_LEVEL=2
@@ -159,8 +172,9 @@ var result = await MediaEncodingBuilder.Create()
 ## Performance Notes
 
 The Radeon 890M (RDNA 3.5) supports:
+
 - **H.264 encoding/decoding** - Full hardware acceleration
-- **HEVC encoding/decoding** - Full hardware acceleration  
+- **HEVC encoding/decoding** - Full hardware acceleration
 - **AV1 decoding** - Hardware accelerated
 - **VP9 decoding** - Hardware accelerated
 

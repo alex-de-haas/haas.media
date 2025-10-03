@@ -4,11 +4,7 @@ import { useRef } from "react";
 import { FileText, Loader2, Trash2, UploadCloud } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useNotifications } from "@/lib/notifications";
@@ -27,24 +23,11 @@ export interface FileUploadCardProps {
   acceptExtensions?: string[];
 }
 
-export function FileUploadCard({
-  onUpload,
-  isUploading = false,
-  currentPath,
-  acceptExtensions,
-}: FileUploadCardProps) {
+export function FileUploadCard({ onUpload, isUploading = false, currentPath, acceptExtensions }: FileUploadCardProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { notify } = useNotifications();
-  const {
-    files,
-    dragActive,
-    handleFileChange,
-    handleDragOver,
-    handleDragLeave,
-    handleDrop,
-    clearFiles,
-    removeFile,
-  } = useFileUpload(acceptExtensions);
+  const { files, dragActive, handleFileChange, handleDragOver, handleDragLeave, handleDrop, clearFiles, removeFile } =
+    useFileUpload(acceptExtensions);
 
   const formatSize = (bytes: number) => {
     if (bytes >= 1024 * 1024) {
@@ -66,17 +49,9 @@ export function FileUploadCard({
     const result = await onUpload(files);
     const hasPartialSuccess = result.uploaded > 0 && result.errors.length > 0;
     notify({
-      title: result.success
-        ? "Upload Complete"
-        : hasPartialSuccess
-        ? "Upload Partial"
-        : "Upload Failed",
+      title: result.success ? "Upload Complete" : hasPartialSuccess ? "Upload Partial" : "Upload Failed",
       message: result.message,
-      type: result.success
-        ? "success"
-        : hasPartialSuccess
-        ? "warning"
-        : "error",
+      type: result.success ? "success" : hasPartialSuccess ? "warning" : "error",
     });
     if (result.success || hasPartialSuccess) {
       clearFiles();
@@ -85,9 +60,7 @@ export function FileUploadCard({
 
   const openFileDialog = () => fileInputRef.current?.click();
 
-  const acceptAttribute = acceptExtensions?.length
-    ? acceptExtensions.join(",")
-    : undefined;
+  const acceptAttribute = acceptExtensions?.length ? acceptExtensions.join(",") : undefined;
 
   return (
     <Card className="border-dashed">
@@ -98,7 +71,7 @@ export function FileUploadCard({
           className={cn(
             "flex min-h-[224px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-muted-foreground/40 bg-muted/30 px-6 text-center transition-colors",
             "outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-            dragActive && "border-primary bg-primary/10"
+            dragActive && "border-primary bg-primary/10",
           )}
           onClick={openFileDialog}
           onKeyDown={(event) => {
@@ -130,9 +103,7 @@ export function FileUploadCard({
                 browse from your device
               </Button>
             </p>
-            <p className="text-xs text-muted-foreground">
-              Duplicates are skipped automatically.
-            </p>
+            <p className="text-xs text-muted-foreground">Duplicates are skipped automatically.</p>
           </div>
           <input
             ref={fileInputRef}
@@ -150,26 +121,15 @@ export function FileUploadCard({
             <ScrollArea className="h-44">
               <ul className="divide-y divide-border/60">
                 {files.map((file, index) => (
-                  <li
-                    key={`${file.name}-${file.lastModified}-${index}`}
-                    className="flex items-center gap-3 px-4 py-3"
-                  >
+                  <li key={`${file.name}-${file.lastModified}-${index}`} className="flex items-center gap-3 px-4 py-3">
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
-                      <FileText
-                        className="size-4 text-muted-foreground"
-                        aria-hidden="true"
-                      />
+                      <FileText className="size-4 text-muted-foreground" aria-hidden="true" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p
-                        className="truncate text-sm font-medium text-foreground"
-                        title={file.name}
-                      >
+                      <p className="truncate text-sm font-medium text-foreground" title={file.name}>
                         {file.name}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatSize(file.size)}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{formatSize(file.size)}</p>
                     </div>
                     <Button
                       type="button"
@@ -203,16 +163,10 @@ export function FileUploadCard({
           >
             Clear
           </Button>
-          <Button
-            type="button"
-            className="sm:min-w-[120px]"
-            onClick={handleUpload}
-            disabled={isUploading || files.length === 0}
-          >
+          <Button type="button" className="sm:min-w-[120px]" onClick={handleUpload} disabled={isUploading || files.length === 0}>
             {isUploading ? (
               <>
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />{" "}
-                Uploading
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Uploading
               </>
             ) : (
               "Upload"

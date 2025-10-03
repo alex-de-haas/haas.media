@@ -87,21 +87,12 @@ function getInitials(name?: string | null) {
     .join("");
 }
 
-function NavigationList({
-  pathname,
-  onNavigate,
-}: {
-  pathname: string;
-  onNavigate?: () => void;
-}) {
+function NavigationList({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
   return (
     <nav className="grid gap-1 px-2">
       {navigationItems.map((item) => {
         const Icon = item.icon;
-        const isActive =
-          item.href === "/"
-            ? pathname === "/"
-            : pathname.startsWith(item.href);
+        const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
 
         return (
           <Link
@@ -110,13 +101,10 @@ function NavigationList({
             onClick={onNavigate}
             className={cn(
               "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-              isActive
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
-            <Icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")}
-            />
+            <Icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
             <span className="truncate">{item.name}</span>
           </Link>
         );
@@ -160,20 +148,11 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="gap-2 px-1"
-          >
+          <Button variant="ghost" className="gap-2 px-1">
             <Avatar className="h-9 w-9">
-              {user.picture ? (
-                <AvatarImage src={user.picture} alt={displayName} />
-              ) : (
-                <AvatarFallback>{initials}</AvatarFallback>
-              )}
+              {user.picture ? <AvatarImage src={user.picture} alt={displayName} /> : <AvatarFallback>{initials}</AvatarFallback>}
             </Avatar>
-            <span className="hidden text-sm font-medium sm:inline">
-              {displayName}
-            </span>
+            <span className="hidden text-sm font-medium sm:inline">{displayName}</span>
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>
@@ -198,24 +177,13 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 px-2 py-2 text-left"
-        >
+        <Button variant="ghost" className="w-full justify-start gap-3 px-2 py-2 text-left">
           <Avatar className="h-9 w-9">
-            {user.picture ? (
-              <AvatarImage src={user.picture} alt={displayName} />
-            ) : (
-              <AvatarFallback>{initials}</AvatarFallback>
-            )}
+            {user.picture ? <AvatarImage src={user.picture} alt={displayName} /> : <AvatarFallback>{initials}</AvatarFallback>}
           </Avatar>
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="truncate text-sm font-semibold">{displayName}</span>
-            {user.email && (
-              <span className="truncate text-xs text-muted-foreground">
-                {user.email}
-              </span>
-            )}
+            {user.email && <span className="truncate text-xs text-muted-foreground">{user.email}</span>}
           </div>
           <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
         </Button>
@@ -245,12 +213,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     <div className="flex h-full flex-col">
       <div className="px-6 pb-4 pt-6">
         <Link href="/" onClick={onNavigate} className="flex flex-col">
-          <span className="text-sm font-semibold uppercase text-muted-foreground">
-            Haas Media Server
-          </span>
-          <span className="text-lg font-bold tracking-tight text-foreground">
-            Control Center
-          </span>
+          <span className="text-sm font-semibold uppercase text-muted-foreground">Haas Media Server</span>
+          <span className="text-lg font-bold tracking-tight text-foreground">Control Center</span>
         </Link>
       </div>
       <ScrollArea className="flex-1">
@@ -285,23 +249,13 @@ export default function Sidebar({ children }: SidebarProps) {
       <div className="flex min-h-screen flex-1 flex-col lg:pl-72">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:px-8">
           <div className="flex flex-1 items-center gap-3">
-            <Button
-              variant="outline"
-              size="icon"
-              className="lg:hidden"
-              aria-label="Open navigation"
-              onClick={() => setSidebarOpen(true)}
-            >
+            <Button variant="outline" size="icon" className="lg:hidden" aria-label="Open navigation" onClick={() => setSidebarOpen(true)}>
               <Menu className="h-5 w-5" />
             </Button>
-            <span className="text-lg font-semibold text-foreground">
-              {pageTitle}
-            </span>
+            <span className="text-lg font-semibold text-foreground">{pageTitle}</span>
           </div>
         </header>
-        <main className="flex-1 pb-10">
-          {children}
-        </main>
+        <main className="flex-1 pb-10">{children}</main>
       </div>
     </Fragment>
   );

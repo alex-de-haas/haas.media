@@ -1,2 +1,2 @@
-import './app/globals.css';
-export * from 'next';
+import "./app/globals.css";
+export * from "next";

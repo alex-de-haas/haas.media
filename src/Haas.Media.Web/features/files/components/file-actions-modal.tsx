@@ -15,63 +15,27 @@ interface FileActionsModalProps {
   onConfirm: (data: any) => Promise<{ success: boolean; message: string }>;
 }
 
-export default function FileActionsModal({
-  isOpen,
-  onClose,
-  action,
-  item,
-  currentPath,
-  onConfirm,
-}: FileActionsModalProps) {
+export default function FileActionsModal({ isOpen, onClose, action, item, currentPath, onConfirm }: FileActionsModalProps) {
   if (!isOpen || !action) return null;
 
   // Handle delete action
   if (action === "delete" && item) {
-    return (
-      <DeleteModal
-        isOpen={true}
-        onClose={onClose}
-        item={item}
-        onConfirm={onConfirm}
-      />
-    );
+    return <DeleteModal isOpen={true} onClose={onClose} item={item} onConfirm={onConfirm} />;
   }
 
   // Handle create directory action
   if (action === "create-directory") {
-    return (
-      <CreateDirectoryModal
-        isOpen={true}
-        onClose={onClose}
-        currentPath={currentPath}
-        onConfirm={onConfirm}
-      />
-    );
+    return <CreateDirectoryModal isOpen={true} onClose={onClose} currentPath={currentPath} onConfirm={onConfirm} />;
   }
 
   // Handle rename action
   if (action === "rename" && item) {
-    return (
-      <RenameModal
-        isOpen={true}
-        onClose={onClose}
-        item={item}
-        onConfirm={onConfirm}
-      />
-    );
+    return <RenameModal isOpen={true} onClose={onClose} item={item} onConfirm={onConfirm} />;
   }
 
   // Handle copy and move actions
   if ((action === "copy" || action === "move") && item) {
-    return (
-      <CopyMoveModal
-        isOpen={true}
-        onClose={onClose}
-        action={action}
-        item={item}
-        onConfirm={onConfirm}
-      />
-    );
+    return <CopyMoveModal isOpen={true} onClose={onClose} action={action} item={item} onConfirm={onConfirm} />;
   }
 
   return null;

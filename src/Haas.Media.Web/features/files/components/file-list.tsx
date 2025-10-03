@@ -9,14 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import {
-  ChevronRight,
-  File as FileIconOutline,
-  Folder,
-  Image as ImageIcon,
-  Music,
-  Video,
-} from "lucide-react";
+import { ChevronRight, File as FileIconOutline, Folder, Image as ImageIcon, Music, Video } from "lucide-react";
 
 interface FileListProps {
   files: FileItem[];
@@ -34,38 +27,22 @@ function FileIcon({ item }: { item: FileItem }) {
 
   const extension = item.extension?.toLowerCase();
 
-  if (
-    extension &&
-    ["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(extension)
-  ) {
+  if (extension && ["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(extension)) {
     return <ImageIcon className="h-5 w-5 text-green-500" />;
   }
 
-  if (
-    extension &&
-    ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"].includes(extension)
-  ) {
+  if (extension && ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"].includes(extension)) {
     return <Video className="h-5 w-5 text-purple-500" />;
   }
 
-  if (
-    extension &&
-    ["mp3", "wav", "flac", "aac", "ogg", "m4a"].includes(extension)
-  ) {
+  if (extension && ["mp3", "wav", "flac", "aac", "ogg", "m4a"].includes(extension)) {
     return <Music className="h-5 w-5 text-red-500" />;
   }
 
   return <FileIconOutline className="h-5 w-5 text-muted-foreground" />;
 }
 
-export default function FileList({
-  files,
-  currentPath,
-  onNavigate,
-  loading,
-  renderActions,
-  headerActions,
-}: FileListProps) {
+export default function FileList({ files, currentPath, onNavigate, loading, renderActions, headerActions }: FileListProps) {
   const pathParts = currentPath ? currentPath.split("/").filter(Boolean) : [];
 
   const handleItemClick = (item: FileItem) => {
@@ -79,13 +56,7 @@ export default function FileList({
       <CardHeader className="border-b bg-muted/40 p-4 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <Button
-              type="button"
-              variant="link"
-              size="sm"
-              className="h-7 px-0"
-              onClick={() => onNavigate("")}
-            >
+            <Button type="button" variant="link" size="sm" className="h-7 px-0" onClick={() => onNavigate("")}>
               Files
             </Button>
             {pathParts.map((part, index) => {
@@ -93,22 +64,14 @@ export default function FileList({
               return (
                 <div key={pathToHere} className="flex items-center gap-2">
                   <ChevronRight className="h-3 w-3" />
-                  <Button
-                    type="button"
-                    variant="link"
-                    size="sm"
-                    className="h-7 px-0"
-                    onClick={() => onNavigate(pathToHere)}
-                  >
+                  <Button type="button" variant="link" size="sm" className="h-7 px-0" onClick={() => onNavigate(pathToHere)}>
                     {part}
                   </Button>
                 </div>
               );
             })}
           </div>
-          {headerActions ? (
-            <div className="flex items-center gap-2">{headerActions}</div>
-          ) : null}
+          {headerActions ? <div className="flex items-center gap-2">{headerActions}</div> : null}
         </div>
       </CardHeader>
       <CardContent className="p-0">
@@ -125,23 +88,17 @@ export default function FileList({
           <ScrollArea className="max-h-[60vh]">
             <div className="divide-y">
               {files.map((item) => (
-                <div
-                  key={item.relativePath}
-                  className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6"
-                >
+                <div key={item.relativePath} className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
                   <div
                     className={cn(
                       "flex flex-1 items-center gap-3 overflow-hidden",
-                      item.type === FileItemType.Directory &&
-                        "cursor-pointer hover:text-foreground"
+                      item.type === FileItemType.Directory && "cursor-pointer hover:text-foreground",
                     )}
                     onClick={() => handleItemClick(item)}
                   >
                     <FileIcon item={item} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {item.name}
-                      </p>
+                      <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         {item.type === FileItemType.Directory ? (
                           <></>

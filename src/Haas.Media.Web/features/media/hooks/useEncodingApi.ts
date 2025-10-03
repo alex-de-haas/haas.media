@@ -25,13 +25,13 @@ export function useEncodingApi() {
       const t = await getValidToken();
       const headers: HeadersInit = {};
       if (t) (headers as any).Authorization = `Bearer ${t}`;
-      
+
       const res = await fetch(`${downloaderApi}/api/encodings`, { headers });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? res.statusText);
       }
-      
+
       const data = await res.json();
       return data ?? [];
     } catch (err: any) {
@@ -53,13 +53,13 @@ export function useEncodingApi() {
       const t = await getValidToken();
       const headers: HeadersInit = {};
       if (t) (headers as any).Authorization = `Bearer ${t}`;
-      
+
       const res = await fetch(`${downloaderApi}/api/encodings/${hash}`, { headers });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? res.statusText);
       }
-      
+
       const data = await res.json();
       return Array.isArray(data) ? data : [];
     } catch (err: any) {
@@ -81,18 +81,18 @@ export function useEncodingApi() {
       const t = await getValidToken();
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (t) (headers as any).Authorization = `Bearer ${t}`;
-      
+
       const res = await fetch(`${downloaderApi}/api/encodings/${hash}`, {
         method: "POST",
         headers,
         body: JSON.stringify(request),
       });
-      
+
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? res.statusText);
       }
-      
+
       // Backend returns 200 OK with no content on success
       return;
     } catch (err: any) {
@@ -114,17 +114,17 @@ export function useEncodingApi() {
       const t = await getValidToken();
       const headers: HeadersInit = {};
       if (t) (headers as any).Authorization = `Bearer ${t}`;
-      
+
       const res = await fetch(`${downloaderApi}/api/encodings/${hash}`, {
         method: "DELETE",
         headers,
       });
-      
+
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? res.statusText);
       }
-      
+
       // Backend returns 200 OK with no content on success
       return;
     } catch (err: any) {

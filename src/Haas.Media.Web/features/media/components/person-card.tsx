@@ -6,16 +6,7 @@ import { cn } from "@/lib/utils";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Card, CardContent } from "@/components/ui/card";
 
-type TmdbImageSize =
-  | "w45"
-  | "w92"
-  | "w154"
-  | "w185"
-  | "w300"
-  | "w342"
-  | "w500"
-  | "h632"
-  | "original";
+type TmdbImageSize = "w45" | "w92" | "w154" | "w185" | "w300" | "w342" | "w500" | "h632" | "original";
 
 export interface PersonCardProps {
   name: string;
@@ -39,17 +30,8 @@ function getInitials(name?: string) {
   return `${first.charAt(0)}${second.charAt(0)}`.toUpperCase();
 }
 
-export function PersonCard({
-  name,
-  description,
-  meta,
-  profilePath,
-  imageSize = DEFAULT_IMAGE_SIZE,
-  className,
-}: PersonCardProps) {
-  const imageSrc = profilePath
-    ? `https://image.tmdb.org/t/p/${imageSize}${profilePath}`
-    : null;
+export function PersonCard({ name, description, meta, profilePath, imageSize = DEFAULT_IMAGE_SIZE, className }: PersonCardProps) {
+  const imageSrc = profilePath ? `https://image.tmdb.org/t/p/${imageSize}${profilePath}` : null;
 
   return (
     <Card
@@ -76,19 +58,9 @@ export function PersonCard({
         </AspectRatio>
       </div>
       <CardContent className="space-y-1 p-4">
-        <p className="line-clamp-2 text-sm font-semibold leading-tight text-foreground">
-          {name}
-        </p>
-        {description ? (
-          <p className="line-clamp-1 text-sm leading-tight text-muted-foreground">
-            {description}
-          </p>
-        ) : null}
-        {meta ? (
-          <p className="line-clamp-1 text-xs leading-tight text-muted-foreground/80">
-            {meta}
-          </p>
-        ) : null}
+        <p className="line-clamp-2 text-sm font-semibold leading-tight text-foreground">{name}</p>
+        {description ? <p className="line-clamp-1 text-sm leading-tight text-muted-foreground">{description}</p> : null}
+        {meta ? <p className="line-clamp-1 text-xs leading-tight text-muted-foreground/80">{meta}</p> : null}
       </CardContent>
     </Card>
   );

@@ -7,6 +7,7 @@ This error occurs when trying to use VAAPI (Video Acceleration API) hardware acc
 ## Root Cause
 
 The error happens because:
+
 1. The VAAPI device path is hardcoded or incorrect
 2. The device doesn't exist or isn't accessible
 3. The hardware acceleration initialization order is incorrect
@@ -15,21 +16,25 @@ The error happens because:
 ## Fix Applied
 
 ### 1. Dynamic Device Detection
+
 - Modified `MediaHelper.cs` to dynamically detect available VAAPI devices
 - Check multiple possible device paths: `/dev/dri/renderD128`, `/dev/dri/renderD129`, `/dev/dri/card0`, `/dev/dri/card1`
 - Fallback gracefully if no devices are found
 
 ### 2. Proper Device Initialization Order
+
 - Updated `MediaEncodingBuilder.cs` to initialize VAAPI device before setting hardware acceleration
 - Changed command order from: `-hwaccel vaapi -vaapi_device <device>`
 - To: `-vaapi_device <device> -hwaccel vaapi -hwaccel_output_format vaapi`
 
 ### 3. Device Validation
+
 - Added validation to ensure VAAPI devices exist before attempting to use them
 - Throw meaningful error messages if devices are not available
 - Auto-detection of best available device
 
 ### 4. Enhanced Docker Support
+
 - Updated Dockerfile to include Intel VA-API drivers (`intel-media-va-driver`)
 - Added Mesa Vulkan drivers for better hardware support
 - Set `LIBVA_MESSAGING_LEVEL=2` for better debugging
@@ -37,16 +42,19 @@ The error happens because:
 ## Verification
 
 ### Check Available Devices
+
 ```bash
 ls -la /dev/dri/
 ```
 
 ### Test VAAPI Functionality
+
 ```bash
 vainfo
 ```
 
 ### Test FFmpeg VAAPI Support
+
 ```bash
 ffmpeg -hwaccels
 ffmpeg -f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -vaapi_device /dev/dri/renderD128 -vf 'format=nv12,hwupload' -c:v h264_vaapi -f null -
@@ -61,6 +69,7 @@ docker run --device=/dev/dri:/dev/dri your-image
 ```
 
 Or with docker-compose:
+
 ```yaml
 services:
   your-service:
@@ -71,6 +80,7 @@ services:
 ## Common Issues and Solutions
 
 ### 1. Permission Issues
+
 ```bash
 # Add user to video group
 sudo usermod -a -G video $USER
@@ -79,6 +89,7 @@ sudo chmod 666 /dev/dri/render*
 ```
 
 ### 2. Missing Drivers
+
 ```bash
 # Ubuntu/Debian
 sudo apt-get install mesa-va-drivers intel-media-va-driver
@@ -88,27 +99,31 @@ dmesg | grep -i drm
 ```
 
 ### 3. Multiple GPU Systems
+
 - The system now automatically detects the best available device
 - You can still manually specify a device if needed:
+
 ```csharp
 .WithHardwareAcceleration(HardwareAcceleration.VAAPI, "/dev/dri/renderD129")
 ```
 
 ## Hardware Support Matrix
 
-| GPU Vendor | Driver Package | Device Path | Notes |
-|------------|----------------|-------------|-------|
-| Intel | intel-media-va-driver | /dev/dri/renderD128 | Usually default |
-| AMD (older) | mesa-va-drivers | /dev/dri/renderD128 | AMD RADV driver |
+| GPU Vendor     | Driver Package                          | Device Path             | Notes                    |
+| -------------- | --------------------------------------- | ----------------------- | ------------------------ |
+| Intel          | intel-media-va-driver                   | /dev/dri/renderD128     | Usually default          |
+| AMD (older)    | mesa-va-drivers                         | /dev/dri/renderD128     | AMD RADV driver          |
 | AMD (RDNA 3.5) | mesa-va-drivers + firmware-amd-graphics | /dev/dri/renderD128-130 | Ryzen AI 9 HX 370 + 890M |
-| NVIDIA | nvidia-driver | /dev/dri/renderD128 | Limited VAAPI support |
+| NVIDIA         | nvidia-driver                           | /dev/dri/renderD128     | Limited VAAPI support    |
 
 ## Specific GPU Configurations
 
 ### Ryzen AI 9 HX 370 with Radeon 890M (RDNA 3.5)
+
 For this specific AMD APU, see the dedicated guide: [RYZEN_AI_9_HX_370_VAAPI.md](RYZEN_AI_9_HX_370_VAAPI.md)
 
 Key points:
+
 - May use higher numbered render devices (/dev/dri/renderD130)
 - Requires firmware-amd-graphics package
 - Enhanced Docker device mapping needed
@@ -128,6 +143,7 @@ var result = await MediaEncodingBuilder.Create()
 ```
 
 The system will now:
+
 1. Automatically detect available VAAPI devices
 2. Initialize the device properly
 3. Provide clear error messages if hardware is unavailable

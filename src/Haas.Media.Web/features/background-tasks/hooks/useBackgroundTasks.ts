@@ -4,17 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
 import { downloaderApi } from "@/lib/api";
 import { getValidToken } from "@/lib/auth/token";
-import {
-  BackgroundTaskInfo,
-  isActiveBackgroundTask,
-} from "@/types";
+import { BackgroundTaskInfo, isActiveBackgroundTask } from "@/types";
 
 interface UseBackgroundTasksOptions {
   enabled?: boolean;
 }
 
-const clampProgress = (progress: number): number =>
-  Number.isFinite(progress) ? Math.min(100, Math.max(0, progress)) : 0;
+const clampProgress = (progress: number): number => (Number.isFinite(progress) ? Math.min(100, Math.max(0, progress)) : 0);
 
 const normalizeTask = (task: BackgroundTaskInfo): BackgroundTaskInfo => ({
   ...task,
@@ -25,17 +21,15 @@ const normalizeTask = (task: BackgroundTaskInfo): BackgroundTaskInfo => ({
 const sortByCreatedAtDesc = (tasks: BackgroundTaskInfo[]): BackgroundTaskInfo[] =>
   [...tasks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-export function useBackgroundTasks(
-  { enabled = true }: UseBackgroundTasksOptions = {}
-) {
+export function useBackgroundTasks({ enabled = true }: UseBackgroundTasksOptions = {}) {
   const [tasks, setTasks] = useState<BackgroundTaskInfo[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(enabled);
   const [error, setError] = useState<string | null>(null);
   const connectionRef = useRef<signalR.HubConnection | null>(null);
 
   const upsertTask = useCallback((task: BackgroundTaskInfo) => {
-    setTasks(prev => {
-      const lookup = new Map(prev.map(existing => [existing.id, existing]));
+    setTasks((prev) => {
+      const lookup = new Map(prev.map((existing) => [existing.id, existing]));
       lookup.set(task.id, normalizeTask(task));
       return sortByCreatedAtDesc(Array.from(lookup.values()));
     });
@@ -120,10 +114,7 @@ export function useBackgroundTasks(
         connectionRef.current = connection;
       } catch (err) {
         if (!disposed) {
-          console.error(
-            "Failed to establish SignalR background task connection",
-            err
-          );
+          console.error("Failed to establish SignalR background task connection", err);
           setError("Unable to connect to background task updates");
         }
       }
@@ -170,13 +161,10 @@ export function useBackgroundTasks(
         return { success: false, message: err?.message ?? "Network error" };
       }
     },
-    [enabled]
+    [enabled],
   );
 
-  const activeTasks = useMemo(
-    () => tasks.filter(isActiveBackgroundTask),
-    [tasks]
-  );
+  const activeTasks = useMemo(() => tasks.filter(isActiveBackgroundTask), [tasks]);
 
   return {
     tasks,

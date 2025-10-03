@@ -1,4 +1,4 @@
-import type { LibraryType } from './library';
+import type { LibraryType } from "./library";
 
 export interface SearchResult {
   tmdbId: number;

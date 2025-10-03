@@ -40,9 +40,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <PublicEnvScript />
       </head>
       <body className="min-h-screen">
-        <ClientLayout>
-          {children}
-        </ClientLayout>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );

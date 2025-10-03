@@ -21,8 +21,7 @@ export interface BackgroundTaskInfo {
 }
 
 export const isActiveBackgroundTask = (task: BackgroundTaskInfo): boolean =>
-  task.status === BackgroundTaskStatus.Pending ||
-  task.status === BackgroundTaskStatus.Running;
+  task.status === BackgroundTaskStatus.Pending || task.status === BackgroundTaskStatus.Running;
 
 export const backgroundTaskStatusLabel = (status: BackgroundTaskStatus): string => {
   switch (status) {

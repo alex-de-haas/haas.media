@@ -16,17 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
-import {
-  CalendarClock,
-  Eye,
-  Film,
-  LibraryBig,
-  MoreVertical,
-  PencilLine,
-  Trash2,
-  TvMinimal,
-  FolderOpen,
-} from "lucide-react";
+import { CalendarClock, Eye, Film, LibraryBig, MoreVertical, PencilLine, Trash2, TvMinimal, FolderOpen } from "lucide-react";
 
 interface LibraryListProps {
   libraries: Library[];
@@ -36,15 +26,7 @@ interface LibraryListProps {
   loading?: boolean;
 }
 
-function LibraryActions({
-  onEdit,
-  onDelete,
-  onView,
-}: {
-  onEdit: () => void;
-  onDelete: () => void;
-  onView?: () => void;
-}) {
+function LibraryActions({ onEdit, onDelete, onView }: { onEdit: () => void; onDelete: () => void; onView?: () => void }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -92,20 +74,10 @@ function LibraryActions({
 }
 
 function LibraryTypeBadge({ type }: { type: LibraryType }) {
-  return type === LibraryType.Movies ? (
-    <Film className="h-5 w-5" />
-  ) : (
-    <TvMinimal className="h-5 w-5" />
-  );
+  return type === LibraryType.Movies ? <Film className="h-5 w-5" /> : <TvMinimal className="h-5 w-5" />;
 }
 
-export default function LibraryList({
-  libraries,
-  onEdit,
-  onDelete,
-  onView,
-  loading,
-}: LibraryListProps) {
+export default function LibraryList({ libraries, onEdit, onDelete, onView, loading }: LibraryListProps) {
   const router = useRouter();
 
   const handleViewLibrary = (library: Library) => {
@@ -133,43 +105,27 @@ export default function LibraryList({
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center text-sm text-muted-foreground">
             <LibraryBig className="h-12 w-12 text-muted-foreground/30" />
             <div>No libraries found yet.</div>
-            <div className="text-xs">
-              Start by creating a library to organize your media.
-            </div>
+            <div className="text-xs">Start by creating a library to organize your media.</div>
           </div>
         ) : (
           <div className="divide-y">
             {libraries.map((library) => (
-              <div
-                key={library.id}
-                className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
-              >
+              <div key={library.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                 <div className="flex flex-1 items-start gap-3 sm:items-center">
                   <div className="flex h-12 w-12 items-center justify-center rounded-md border bg-muted/60 text-muted-foreground">
                     <LibraryTypeBadge type={library.type} />
                   </div>
                   <div className="flex-1 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-base font-semibold text-foreground">
-                        {library.title}
-                      </p>
+                      <p className="text-base font-semibold text-foreground">{library.title}</p>
                     </div>
-                    {library.description && (
-                      <p className="text-sm text-muted-foreground">
-                        {library.description}
-                      </p>
-                    )}
+                    {library.description && <p className="text-sm text-muted-foreground">{library.description}</p>}
                     <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
                         <FolderOpen className="h-3.5 w-3.5" />
-                        <span className="break-all">
-                          {library.directoryPath}
-                        </span>
+                        <span className="break-all">{library.directoryPath}</span>
                       </span>
-                      <Separator
-                        orientation="vertical"
-                        className="hidden h-4 sm:block"
-                      />
+                      <Separator orientation="vertical" className="hidden h-4 sm:block" />
                       <span className="inline-flex items-center gap-1">
                         <CalendarClock className="h-3.5 w-3.5" />
                         Created {formatDate(library.createdAt)}

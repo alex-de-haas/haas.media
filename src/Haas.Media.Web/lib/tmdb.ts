@@ -28,7 +28,7 @@ export function getBackdropUrl(backdropPath?: string | null): string | null {
  * @param size The image size (e.g., 'w185', 'w342', 'w500', 'w780', 'original')
  * @returns Full image URL or null if path is null/empty
  */
-export function getPosterUrlWithSize(posterPath?: string | null, size: string = 'w500'): string | null {
+export function getPosterUrlWithSize(posterPath?: string | null, size: string = "w500"): string | null {
   if (!posterPath) return null;
   return `https://image.tmdb.org/t/p/${size}${posterPath}`;
 }
@@ -39,7 +39,7 @@ export function getPosterUrlWithSize(posterPath?: string | null, size: string = 
  * @param size The image size (e.g., 'w300', 'w780', 'w1280', 'original')
  * @returns Full image URL or null if path is null/empty
  */
-export function getBackdropUrlWithSize(backdropPath?: string | null, size: string = 'w1280'): string | null {
+export function getBackdropUrlWithSize(backdropPath?: string | null, size: string = "w1280"): string | null {
   if (!backdropPath) return null;
   return `https://image.tmdb.org/t/p/${size}${backdropPath}`;
 }

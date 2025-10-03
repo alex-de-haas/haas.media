@@ -1,5 +1,17 @@
 {
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "prettier": "^3.6.2",
     "shadcn": "^3.3.1"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "format": "prettier --write . && dotnet tool run dotnet-csharpier --write",
+    "format:check": "prettier --check . && dotnet tool run dotnet-csharpier --check"
+  },
+  "lint-staged": {
+    "**/*.{js,jsx,ts,tsx,cjs,mjs,json,yml,yaml,css,scss,md,mdx,html}": "prettier --write",
+    "**/*.cs": "dotnet tool run dotnet-csharpier --write"
   }
 }

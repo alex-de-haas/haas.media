@@ -9,19 +9,8 @@ import { usePageTitle } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HardwareAcceleration } from "@/types/encoding";
 import { StreamCodec } from "@/types/media-info";
 import { Loader2, PlayCircle } from "lucide-react";
@@ -60,7 +49,7 @@ export default function MediaInfoPage({ params }: PageProps) {
     hardwareAccel,
     videoCodec,
     device,
-    availableDevices
+    availableDevices,
   );
 
   const availableCodecs = React.useMemo(() => {
@@ -116,14 +105,10 @@ export default function MediaInfoPage({ params }: PageProps) {
     }
   }, [availableCodecs, videoCodec]);
 
-  const hasAnySelection = React.useMemo(
-    () => Object.values(selectedStreams).some((set) => set && set.size > 0),
-    [selectedStreams]
-  );
+  const hasAnySelection = React.useMemo(() => Object.values(selectedStreams).some((set) => set && set.size > 0), [selectedStreams]);
 
   const canEncode = React.useMemo(() => {
-    const hasValidDevice =
-      hardwareAccel === HardwareAcceleration.None || availableDevices.length === 0 || Boolean(device);
+    const hasValidDevice = hardwareAccel === HardwareAcceleration.None || availableDevices.length === 0 || Boolean(device);
     return hasAnySelection && hasValidDevice && videoCodec !== undefined;
   }, [hasAnySelection, device, videoCodec, hardwareAccel, availableDevices]);
 
@@ -145,9 +130,7 @@ export default function MediaInfoPage({ params }: PageProps) {
       <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
         <Alert variant="destructive">
           <AlertTitle>No file path provided</AlertTitle>
-          <AlertDescription>
-            Provide a valid media path to inspect encoded streams.
-          </AlertDescription>
+          <AlertDescription>Provide a valid media path to inspect encoded streams.</AlertDescription>
         </Alert>
       </main>
     );
@@ -167,12 +150,7 @@ export default function MediaInfoPage({ params }: PageProps) {
         <CardContent className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <ControlField label="Hardware acceleration">
-              <Select
-                value={String(hardwareAccel)}
-                onValueChange={(value) =>
-                  setHardwareAccel(Number(value) as HardwareAcceleration)
-                }
-              >
+              <Select value={String(hardwareAccel)} onValueChange={(value) => setHardwareAccel(Number(value) as HardwareAcceleration)}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select hardware acceleration" />
                 </SelectTrigger>
@@ -217,9 +195,7 @@ export default function MediaInfoPage({ params }: PageProps) {
             <ControlField label="Codec">
               <Select
                 value={codecsAvailable ? String(videoCodec) : undefined}
-                onValueChange={(value) =>
-                  setVideoCodec(Number(value) as StreamCodec)
-                }
+                onValueChange={(value) => setVideoCodec(Number(value) as StreamCodec)}
                 disabled={!codecsAvailable}
               >
                 <SelectTrigger className="w-full">
@@ -241,10 +217,7 @@ export default function MediaInfoPage({ params }: PageProps) {
               </Select>
             </ControlField>
 
-            <ControlField
-              label="Selection summary"
-              helper="Choose the streams below to enable encoding."
-            >
+            <ControlField label="Selection summary" helper="Choose the streams below to enable encoding.">
               <div className="rounded-md border border-dashed border-muted px-3 py-2 text-sm text-muted-foreground">
                 {hasAnySelection ? "Streams selected" : "Awaiting stream selection"}
               </div>
@@ -252,11 +225,7 @@ export default function MediaInfoPage({ params }: PageProps) {
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-3">
-            <Button
-              type="button"
-              disabled={encoding || !canEncode}
-              onClick={handleEncodeAndRedirect}
-            >
+            <Button type="button" disabled={encoding || !canEncode} onClick={handleEncodeAndRedirect}>
               {encoding ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -345,20 +314,10 @@ function getHardwareAccelName(hwAccel: HardwareAcceleration): string {
   }
 }
 
-function ControlField({
-  label,
-  helper,
-  children,
-}: {
-  label: string;
-  helper?: string;
-  children: React.ReactNode;
-}) {
+function ControlField({ label, helper, children }: { label: string; helper?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </div>
+      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
       {children}
       {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
     </div>

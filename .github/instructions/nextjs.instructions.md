@@ -1,11 +1,12 @@
 ---
 description: Next.js TypeScript Development Guidelines
-applyTo: '**/*.tsx,**/*.ts'
+applyTo: "**/*.tsx,**/*.ts"
 ---
 
 # Next.js TypeScript Development Guidelines
 
 ## General TypeScript Principles
+
 - Use strict TypeScript configurations
 - Prefer type-first development - define interfaces before implementation
 - Use `const assertions` and `as const` where appropriate
@@ -16,12 +17,14 @@ applyTo: '**/*.tsx,**/*.ts'
 ## Next.js Specific Guidelines
 
 ### App Router (Next.js 13+)
+
 - Use the App Router (`app/` directory) for new projects
 - Follow the file-based routing conventions:
   - `page.tsx` for route pages
   - `layout.tsx` for layouts
 
 ### Folders Structure
+
 - app/ — Used for App Router (Next.js 13+).
 - features/ — Keeps related logic together (components, hooks, services).
 - lib/ — Utilities, configs, constants, and API clients.
@@ -29,6 +32,7 @@ applyTo: '**/*.tsx,**/*.ts'
 - public/ — For static assets served at /.
 
 ### Component Structure
+
 - Use functional components with TypeScript
 - Define prop interfaces before component implementation
 - Use descriptive interface names (e.g., `UserProfileProps`, `NavigationBarProps`)
@@ -38,25 +42,27 @@ applyTo: '**/*.tsx,**/*.ts'
 
 ```typescript
 interface ButtonProps {
-  variant: 'primary' | 'secondary' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
+  variant: "primary" | "secondary" | "danger";
+  size?: "sm" | "md" | "lg";
   disabled?: boolean;
   onClick?: () => void;
   children: React.ReactNode;
 }
 
-export default function Button({ variant, size = 'md', disabled, onClick, children }: ButtonProps) {
+export default function Button({ variant, size = "md", disabled, onClick, children }: ButtonProps) {
   // Implementation
 }
 ```
 
 ### Server Components vs Client Components
+
 - Default to Server Components unless client-side interactivity is needed
 - Use `'use client'` directive only when necessary (state, effects, event handlers)
 - Keep client components small and focused
 - Pass data down from Server Components to Client Components via props
 
 ### Data Fetching
+
 - Use async Server Components for data fetching
 - Implement proper error handling with try-catch blocks
 - Use TypeScript generics for API response types
@@ -93,13 +99,14 @@ export default async function PostsPage() {
 ```
 
 ### API Routes
+
 - Use proper HTTP methods and status codes
 - Implement request/response type safety
 - Use Zod or similar for request validation
 - Handle errors gracefully with proper error responses
 
 ```typescript
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
 interface CreateUserRequest {
   name: string;
@@ -112,15 +119,13 @@ export async function POST(request: NextRequest) {
     // Validate and process request
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 ```
 
 ### State Management
+
 - Use React's built-in state management for simple cases
 - Prefer `useReducer` for complex state logic
 - Use Zustand or similar for global state when needed
@@ -129,22 +134,22 @@ export async function POST(request: NextRequest) {
 ```typescript
 interface AppState {
   user: User | null;
-  theme: 'light' | 'dark';
+  theme: "light" | "dark";
   isLoading: boolean;
 }
 
-type AppAction = 
-  | { type: 'SET_USER'; payload: User }
-  | { type: 'SET_THEME'; payload: 'light' | 'dark' }
-  | { type: 'SET_LOADING'; payload: boolean };
+type AppAction =
+  | { type: "SET_USER"; payload: User }
+  | { type: "SET_THEME"; payload: "light" | "dark" }
+  | { type: "SET_LOADING"; payload: boolean };
 
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
-    case 'SET_USER':
+    case "SET_USER":
       return { ...state, user: action.payload };
-    case 'SET_THEME':
+    case "SET_THEME":
       return { ...state, theme: action.payload };
-    case 'SET_LOADING':
+    case "SET_LOADING":
       return { ...state, isLoading: action.payload };
     default:
       return state;
@@ -153,12 +158,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
 ```
 
 ### Styling Guidelines
+
 - Use CSS Modules, Tailwind CSS, or styled-components
 - Define style props interfaces when creating styled components
 - Use CSS custom properties for theming
 - Follow BEM methodology for CSS class naming when not using utility frameworks
 
 ### Performance Best Practices
+
 - Use `next/dynamic` for code splitting and lazy loading
 - Implement proper `next/image` usage with optimization
 - Use `next/font` for font optimization
@@ -166,30 +173,35 @@ function appReducer(state: AppState, action: AppAction): AppState {
 - Use `useMemo` and `useCallback` judiciously
 
 ### Error Handling
+
 - Implement error boundaries for component error handling
 - Use proper error types and error handling patterns
 - Log errors appropriately for debugging
 - Provide user-friendly error messages
 
 ### Testing Guidelines
+
 - Write unit tests for utility functions and hooks
 - Use React Testing Library for component testing
 - Mock external dependencies properly
 - Use TypeScript in test files for better type safety
 
 ### File Organization
+
 - Group related files in feature folders
 - Use barrel exports (`index.ts`) for cleaner imports
 - Separate business logic into custom hooks or utility functions
 - Keep components focused and single-responsibility
 
 ### Environment and Configuration
+
 - Use environment variables for configuration
 - Type environment variables properly
 - Use `next.config.mjs` for Next.js configuration
 - Implement proper TypeScript path mapping
 
 ### Accessibility
+
 - Use semantic HTML elements
 - Implement proper ARIA attributes
 - Ensure keyboard navigation works
@@ -197,6 +209,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
 - Maintain proper color contrast ratios
 
 ### Security
+
 - Sanitize user inputs
 - Implement proper authentication and authorization
 - Use HTTPS in production
@@ -204,6 +217,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
 - Validate all API inputs
 
 ## Code Quality
+
 - Use ESLint and Prettier for code formatting
 - Implement pre-commit hooks for code quality
 - Use meaningful variable and function names

@@ -1,26 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import {
-  ArrowRight,
-  CloudDownload,
-  Cpu,
-  Library,
-  Folder,
-  BadgeCheck,
-} from "lucide-react";
+import { ArrowRight, CloudDownload, Cpu, Library, Folder, BadgeCheck } from "lucide-react";
 
 import { usePageTitle } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 const quickActions = [
   {
@@ -64,11 +50,10 @@ export default function HomePage() {
             <Badge variant="secondary" className="w-fit rounded-full">
               Always-on automation
             </Badge>
-            <CardTitle className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              Your personal media control center
-            </CardTitle>
+            <CardTitle className="text-3xl font-semibold tracking-tight sm:text-4xl">Your personal media control center</CardTitle>
             <CardDescription>
-              Keep downloads flowing, transcode media to the perfect format, and surface fresh content for every screen—without leaving this dashboard.
+              Keep downloads flowing, transcode media to the perfect format, and surface fresh content for every screen—without leaving this
+              dashboard.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-3">
@@ -77,30 +62,30 @@ export default function HomePage() {
                 <CloudDownload className="h-4 w-4" />
                 Torrent pipeline
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Drop torrents to schedule prioritized downloads and throttled seeding.
-              </p>
-              <Badge variant="outline" className="mt-3">Ready</Badge>
+              <p className="mt-2 text-sm text-muted-foreground">Drop torrents to schedule prioritized downloads and throttled seeding.</p>
+              <Badge variant="outline" className="mt-3">
+                Ready
+              </Badge>
             </div>
             <div className="rounded-xl border border-border/80 bg-background/60 p-4 shadow-sm">
               <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                 <Cpu className="h-4 w-4" />
                 Encoding jobs
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Automate transcodes with device-aware presets and smart retries.
-              </p>
-              <Badge variant="outline" className="mt-3">Standing by</Badge>
+              <p className="mt-2 text-sm text-muted-foreground">Automate transcodes with device-aware presets and smart retries.</p>
+              <Badge variant="outline" className="mt-3">
+                Standing by
+              </Badge>
             </div>
             <div className="rounded-xl border border-border/80 bg-background/60 p-4 shadow-sm">
               <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                 <Library className="h-4 w-4" />
                 Library health
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Surface metadata gaps, duplicate titles, and ready-to-watch highlights.
-              </p>
-              <Badge variant="outline" className="mt-3">Insights enabled</Badge>
+              <p className="mt-2 text-sm text-muted-foreground">Surface metadata gaps, duplicate titles, and ready-to-watch highlights.</p>
+              <Badge variant="outline" className="mt-3">
+                Insights enabled
+              </Badge>
             </div>
           </CardContent>
         </Card>
@@ -109,9 +94,7 @@ export default function HomePage() {
           <CardHeader>
             <BadgeCheck className="h-10 w-10 text-primary" />
             <CardTitle className="text-2xl">System status</CardTitle>
-            <CardDescription>
-              Background services are healthy. Connect additional providers to unlock richer automation.
-            </CardDescription>
+            <CardDescription>Background services are healthy. Connect additional providers to unlock richer automation.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>• SignalR notifications are ready for live progress updates.</p>

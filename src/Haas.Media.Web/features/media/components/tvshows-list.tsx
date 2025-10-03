@@ -21,9 +21,7 @@ interface TVShowCardProps {
 function TVShowCard({ tvShow }: TVShowCardProps) {
   const posterUrl = getPosterUrl(tvShow.posterPath);
   const seasonCount = tvShow.seasons?.length ?? 0;
-  const hasLinkedEpisode = (tvShow.seasons ?? []).some((season) =>
-    (season.episodes ?? []).some((episode) => Boolean(episode.filePath))
-  );
+  const hasLinkedEpisode = (tvShow.seasons ?? []).some((season) => (season.episodes ?? []).some((episode) => Boolean(episode.filePath)));
 
   return (
     <Link href={`/tvshows/${tvShow.id}`} className="group block">
@@ -53,9 +51,7 @@ function TVShowCard({ tvShow }: TVShowCardProps) {
 
         <CardContent className="space-y-3 p-4">
           <div className="space-y-1">
-            <h3 className="line-clamp-2 text-base font-semibold leading-tight text-foreground">
-              {tvShow.title}
-            </h3>
+            <h3 className="line-clamp-2 text-base font-semibold leading-tight text-foreground">{tvShow.title}</h3>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -134,10 +130,7 @@ export default function TVShowsList({ libraryId }: TVShowsListProps) {
           {tvShows.length} series
         </Badge>
       </div>
-      <div className={cn(
-        "grid gap-6",
-        "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
-      )}>
+      <div className={cn("grid gap-6", "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6")}>
         {tvShows.map((tvShow) => (
           <TVShowCard key={tvShow.id} tvShow={tvShow} />
         ))}

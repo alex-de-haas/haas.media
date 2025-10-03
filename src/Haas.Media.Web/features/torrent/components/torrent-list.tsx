@@ -5,14 +5,7 @@ import { ChevronDown, Magnet, Pause, Play, Square, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -29,13 +22,7 @@ interface TorrentListProps {
   onPause?: (hash: string) => Promise<{ success: boolean; message: string }>;
 }
 
-export default function TorrentList({
-  torrents,
-  onDelete,
-  onStart,
-  onStop,
-  onPause,
-}: TorrentListProps) {
+export default function TorrentList({ torrents, onDelete, onStart, onStop, onPause }: TorrentListProps) {
   const handleDelete = async (hash: string, name: string) => {
     if (!onDelete) return;
 
@@ -90,9 +77,7 @@ export default function TorrentList({
           <TorrentCard
             key={torrent.hash}
             torrent={torrent}
-            onDelete={
-              onDelete ? () => handleDelete(torrent.hash, torrent.name) : undefined
-            }
+            onDelete={onDelete ? () => handleDelete(torrent.hash, torrent.name) : undefined}
             onStart={onStart ? () => handleStart(torrent.hash) : undefined}
             onStop={onStop ? () => handleStop(torrent.hash) : undefined}
             onPause={onPause ? () => handlePause(torrent.hash) : undefined}
@@ -114,13 +99,10 @@ interface TorrentCardProps {
 function TorrentCard({ torrent, onDelete, onStart, onStop, onPause }: TorrentCardProps) {
   const [filesOpen, setFilesOpen] = useState(false);
 
-  const isRunning =
-    torrent.state === TorrentState.Downloading ||
-    torrent.state === TorrentState.Seeding;
+  const isRunning = torrent.state === TorrentState.Downloading || torrent.state === TorrentState.Seeding;
 
   const statusInfo = getStatusInfo(torrent.state);
-  const showTransferRates =
-    torrent.state === TorrentState.Downloading || torrent.state === TorrentState.Seeding;
+  const showTransferRates = torrent.state === TorrentState.Downloading || torrent.state === TorrentState.Seeding;
   const hasEta = torrent.progress > 0 && torrent.estimatedTimeSeconds != null;
 
   const toggleFiles = () => setFilesOpen((prev) => !prev);
@@ -129,9 +111,7 @@ function TorrentCard({ torrent, onDelete, onStart, onStop, onPause }: TorrentCar
     <Card>
       <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
-          <CardTitle className="text-base font-semibold leading-tight">
-            {torrent.name}
-          </CardTitle>
+          <CardTitle className="text-base font-semibold leading-tight">{torrent.name}</CardTitle>
           <CardDescription className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm">
             <span>
               {formatSize(torrent.downloaded)} / {formatSize(torrent.size)}
@@ -150,13 +130,7 @@ function TorrentCard({ torrent, onDelete, onStart, onStop, onPause }: TorrentCar
             )}
           </CardDescription>
         </div>
-        <Badge
-          variant="outline"
-          className={cn(
-            "border px-3 py-1 text-xs font-medium capitalize",
-            statusInfo.badgeClass
-          )}
-        >
+        <Badge variant="outline" className={cn("border px-3 py-1 text-xs font-medium capitalize", statusInfo.badgeClass)}>
           {statusInfo.label}
         </Badge>
       </CardHeader>
@@ -188,10 +162,7 @@ function TorrentCard({ torrent, onDelete, onStart, onStop, onPause }: TorrentCar
             >
               <span>Files ({torrent.files.length})</span>
               <ChevronDown
-                className={cn(
-                  "size-4 text-muted-foreground transition-transform",
-                  filesOpen && "rotate-180"
-                )}
+                className={cn("size-4 text-muted-foreground transition-transform", filesOpen && "rotate-180")}
                 aria-hidden="true"
               />
             </button>
@@ -226,38 +197,17 @@ function TorrentCard({ torrent, onDelete, onStart, onStop, onPause }: TorrentCar
 
         <div className="flex items-center gap-2 self-stretch sm:self-auto">
           {isRunning && onPause && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={onPause}
-              aria-label={`Pause ${torrent.name}`}
-              title="Pause torrent"
-            >
+            <Button type="button" variant="ghost" size="icon" onClick={onPause} aria-label={`Pause ${torrent.name}`} title="Pause torrent">
               <Pause className="size-4" aria-hidden="true" />
             </Button>
           )}
           {isRunning && onStop && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={onStop}
-              aria-label={`Stop ${torrent.name}`}
-              title="Stop torrent"
-            >
+            <Button type="button" variant="ghost" size="icon" onClick={onStop} aria-label={`Stop ${torrent.name}`} title="Stop torrent">
               <Square className="size-4" aria-hidden="true" />
             </Button>
           )}
           {!isRunning && torrent.state !== TorrentState.Stopping && onStart && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={onStart}
-              aria-label={`Start ${torrent.name}`}
-              title="Start torrent"
-            >
+            <Button type="button" variant="ghost" size="icon" onClick={onStart} aria-label={`Start ${torrent.name}`} title="Start torrent">
               <Play className="size-4" aria-hidden="true" />
             </Button>
           )}

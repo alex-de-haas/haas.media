@@ -52,9 +52,7 @@ function MovieCard({ movie }: MovieCardProps) {
 
         <CardContent className="space-y-3 p-4">
           <div className="space-y-1">
-            <h3 className="line-clamp-2 text-base font-semibold leading-tight text-foreground">
-              {movie.title}
-            </h3>
+            <h3 className="line-clamp-2 text-base font-semibold leading-tight text-foreground">{movie.title}</h3>
             {releaseYear && <p className="text-xs text-muted-foreground">Released {releaseYear}</p>}
           </div>
 
@@ -65,9 +63,7 @@ function MovieCard({ movie }: MovieCardProps) {
                 {movie.voteAverage.toFixed(1)}
               </Badge>
             )}
-            {movie.voteCount > 0 && (
-              <span>({movie.voteCount} votes)</span>
-            )}
+            {movie.voteCount > 0 && <span>({movie.voteCount} votes)</span>}
           </div>
         </CardContent>
       </Card>
@@ -130,10 +126,7 @@ export default function MoviesList({ libraryId }: MoviesListProps) {
           {movies.length} titles
         </Badge>
       </div>
-      <div className={cn(
-        "grid gap-6",
-        "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
-      )}>
+      <div className={cn("grid gap-6", "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6")}>
         {movies.map((movie) => (
           <MovieCard key={movie.id} movie={movie} />
         ))}

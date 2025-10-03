@@ -4,14 +4,7 @@ import { useRef } from "react";
 import { FileText, Loader2, Trash2, UploadCloud } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -23,22 +16,12 @@ interface TorrentUploadProps {
   isUploading?: boolean;
 }
 
-export default function TorrentUpload({
-  onUpload,
-  isUploading = false,
-}: TorrentUploadProps) {
+export default function TorrentUpload({ onUpload, isUploading = false }: TorrentUploadProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { notify } = useNotifications();
-  const {
-    files,
-    dragActive,
-    handleFileChange,
-    handleDragOver,
-    handleDragLeave,
-    handleDrop,
-    clearFiles,
-    removeFile,
-  } = useFileUpload([".torrent"]);
+  const { files, dragActive, handleFileChange, handleDragOver, handleDragLeave, handleDrop, clearFiles, removeFile } = useFileUpload([
+    ".torrent",
+  ]);
 
   const formatSize = (bytes: number) => {
     if (bytes >= 1024 * 1024) {
@@ -73,9 +56,7 @@ export default function TorrentUpload({
       <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <CardTitle className="text-xl">Upload Torrents</CardTitle>
-          <CardDescription>
-            Drop .torrent files or browse to queue new downloads.
-          </CardDescription>
+          <CardDescription>Drop .torrent files or browse to queue new downloads.</CardDescription>
         </div>
         {files.length > 0 && (
           <Badge variant="secondary" className="px-3 py-1 text-xs font-medium">
@@ -90,7 +71,7 @@ export default function TorrentUpload({
           className={cn(
             "flex min-h-[224px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-muted-foreground/40 bg-muted/30 px-6 text-center transition-colors",
             "outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-            dragActive && "border-primary bg-primary/10"
+            dragActive && "border-primary bg-primary/10",
           )}
           onClick={openFileDialog}
           onKeyDown={(event) => {
@@ -182,12 +163,7 @@ export default function TorrentUpload({
           >
             Clear
           </Button>
-          <Button
-            type="button"
-            className="sm:min-w-[120px]"
-            onClick={handleUpload}
-            disabled={isUploading || files.length === 0}
-          >
+          <Button type="button" className="sm:min-w-[120px]" onClick={handleUpload} disabled={isUploading || files.length === 0}>
             {isUploading ? (
               <>
                 <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Uploading

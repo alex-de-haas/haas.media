@@ -1,16 +1,8 @@
 import React from "react";
-import {
-  StreamType,
-  StreamCodec,
-  streamTypeToString,
-  streamCodecToString,
-} from "@/types/media-info";
+import { StreamType, StreamCodec, streamTypeToString, streamCodecToString } from "@/types/media-info";
 
 // Generic icon wrapper
-const IconBox: React.FC<React.PropsWithChildren<{ title: string }>> = ({
-  children,
-  title,
-}) => (
+const IconBox: React.FC<React.PropsWithChildren<{ title: string }>> = ({ children, title }) => (
   <span
     title={title}
     aria-label={title}
@@ -82,9 +74,7 @@ export function streamTypeIcon(type: StreamType | number | undefined | null) {
   }
 }
 
-function codecAbbreviation(
-  codec: StreamCodec | number | undefined | null
-): string {
+function codecAbbreviation(codec: StreamCodec | number | undefined | null): string {
   switch (codec) {
     case StreamCodec.H264:
       return "H264";
@@ -147,9 +137,7 @@ function codecAbbreviation(
   }
 }
 
-export function streamCodecIcon(
-  codec: StreamCodec | number | undefined | null
-) {
+export function streamCodecIcon(codec: StreamCodec | number | undefined | null) {
   const label = streamCodecToString(codec as StreamCodec);
   const abbr = codecAbbreviation(codec);
   return (
@@ -182,9 +170,9 @@ function getResolutionLabel(width: number, height: number): { label: string; tit
 
 export function resolutionIcon(width: number | undefined, height: number | undefined) {
   if (!width || !height) return null;
-  
+
   const { label, title } = getResolutionLabel(width, height);
-  
+
   return (
     <span
       title={title}

@@ -5,19 +5,9 @@ import { useNotifications } from "@/lib/notifications";
 import { usePageTitle } from "@/components/layout";
 
 export default function TorrentPage() {
-  const {
-    torrents,
-    deleteTorrent,
-    startTorrent,
-    stopTorrent,
-    pauseTorrent,
-  } = useTorrents();
+  const { torrents, deleteTorrent, startTorrent, stopTorrent, pauseTorrent } = useTorrents();
   const { notify } = useNotifications();
-  const report = (
-    result: { success: boolean; message: string },
-    labels: { success: string; fail: string },
-    typeOverride?: string
-  ) => {
+  const report = (result: { success: boolean; message: string }, labels: { success: string; fail: string }, typeOverride?: string) => {
     notify({
       title: result.success ? labels.success : labels.fail,
       message: result.message,
@@ -51,13 +41,7 @@ export default function TorrentPage() {
   return (
     <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
       <div className="space-y-8">
-        <TorrentList
-          torrents={torrents}
-          onDelete={handleDelete}
-          onStart={handleStart}
-          onStop={handleStop}
-          onPause={handlePause}
-        />
+        <TorrentList torrents={torrents} onDelete={handleDelete} onStart={handleStart} onStop={handleStop} onPause={handlePause} />
       </div>
     </main>
   );

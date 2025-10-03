@@ -1,15 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { CheckCircle2, X, XCircle } from "lucide-react";
 
@@ -33,9 +25,7 @@ interface NotificationsContextValue {
   clear: () => void;
 }
 
-const NotificationsContext = createContext<
-  NotificationsContextValue | undefined
->(undefined);
+const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
 
 /** Default timeout (ms) */
 const DEFAULT_TIMEOUT = 5000;
@@ -64,23 +54,20 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       const handle = window.setTimeout(() => remove(item.id), timeout);
       timers.current.set(item.id, handle);
     },
-    [remove]
+    [remove],
   );
 
   const notify: NotificationsContextValue["notify"] = useCallback(
     (n) => {
       const id = n.id ?? crypto.randomUUID();
       const item: NotificationItem = { id, type: "success", ...n };
-      setItems((prev) => [
-        ...prev.filter((existing) => existing.id !== id),
-        item,
-      ]);
+      setItems((prev) => [...prev.filter((existing) => existing.id !== id), item]);
       if (item.timeout !== -1) {
         schedule(item);
       }
       return id;
     },
-    [schedule]
+    [schedule],
   );
 
   const clear = useCallback(() => {
@@ -97,10 +84,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const value = useMemo(
-    () => ({ notify, remove, clear }),
-    [notify, remove, clear]
-  );
+  const value = useMemo(() => ({ notify, remove, clear }), [notify, remove, clear]);
 
   return (
     <NotificationsContext.Provider value={value}>
@@ -112,30 +96,17 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
 export function useNotifications() {
   const ctx = useContext(NotificationsContext);
-  if (!ctx)
-    throw new Error(
-      "useNotifications must be used within NotificationsProvider"
-    );
+  if (!ctx) throw new Error("useNotifications must be used within NotificationsProvider");
   return ctx;
 }
 
-function NotificationsList({
-  items,
-  onClose,
-}: {
-  items: NotificationItem[];
-  onClose: (id: string) => void;
-}) {
+function NotificationsList({ items, onClose }: { items: NotificationItem[]; onClose: (id: string) => void }) {
   if (items.length === 0) return null;
 
   return (
     <div className="pointer-events-none fixed top-4 right-4 z-50 flex max-w-full flex-col gap-3 sm:right-6 sm:top-6">
       {items.map((item) => (
-        <NotificationAlert
-          key={item.id}
-          item={item}
-          onClose={() => onClose(item.id)}
-        />
+        <NotificationAlert key={item.id} item={item} onClose={() => onClose(item.id)} />
       ))}
     </div>
   );
@@ -160,13 +131,7 @@ const presentationMap: Record<NotificationType, NotificationPresentation> = {
   },
 };
 
-function NotificationAlert({
-  item,
-  onClose,
-}: {
-  item: NotificationItem;
-  onClose: () => void;
-}) {
+function NotificationAlert({ item, onClose }: { item: NotificationItem; onClose: () => void }) {
   const { type = "success", title, message } = item;
   const presentation = presentationMap[type];
   const Icon = presentation.icon;
@@ -174,10 +139,7 @@ function NotificationAlert({
   return (
     <Alert
       variant={presentation.variant}
-      className={cn(
-        "pointer-events-auto relative w-full max-w-sm overflow-hidden pr-10 transition-all",
-        presentation.className
-      )}
+      className={cn("pointer-events-auto relative w-full max-w-sm overflow-hidden pr-10 transition-all", presentation.className)}
       aria-live="assertive"
     >
       <Icon className="h-5 w-5" aria-hidden="true" />

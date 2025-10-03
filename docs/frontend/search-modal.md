@@ -7,10 +7,12 @@ Added search functionality to both Movies and TV Shows pages that allows users t
 ## Backend Changes
 
 ### SearchResult Model Enhancement
+
 - **File**: `src/Haas.Media.Downloader.Api/Metadata/Models/SearchResult.cs`
 - **Changes**: Added `TmdbId` and `Type` properties to support frontend functionality
 
 ### MetadataService Updates
+
 - **File**: `src/Haas.Media.Downloader.Api/Metadata/MetadataService.cs`
 - **Changes**: Updated `SearchAsync` method to include TMDB ID and library type in search results
 
@@ -19,6 +21,7 @@ Added search functionality to both Movies and TV Shows pages that allows users t
 ### New Components
 
 #### SearchModal Component
+
 - **File**: `src/Haas.Media.Web/components/modals/search-modal.tsx`
 - **Features**:
   - Search TMDB for movies or TV shows
@@ -33,13 +36,15 @@ Added search functionality to both Movies and TV Shows pages that allows users t
 ### Updated Pages
 
 #### Movies Page
+
 - **File**: `src/Haas.Media.Web/app/movies/page.tsx`
-- **Changes**: 
+- **Changes**:
   - Added "Add Movie" button
   - Integrated SearchModal for movie searches
   - Converted to client component to support state management
 
 #### TV Shows Page
+
 - **File**: `src/Haas.Media.Web/app/tvshows/page.tsx`
 - **Changes**:
   - Added "Add TV Show" button
@@ -47,28 +52,33 @@ Added search functionality to both Movies and TV Shows pages that allows users t
   - Converted to client component to support state management
 
 ### API Client Updates
+
 - **File**: `src/Haas.Media.Web/lib/api/metadata.ts`
 - **Changes**: Added `search` method to MetadataApiClient interface and implementation
 
 ### Type Definitions
+
 - **File**: `src/Haas.Media.Web/types/metadata.ts`
 - **Changes**: Added `SearchResult` interface with proper TypeScript typing
 
 ## Features
 
 ### Search Functionality
+
 - Search TMDB database for movies and TV shows
 - Real-time search with debouncing
 - Filter results by media type
 - Display search results with posters, ratings, and descriptions
 
 ### Library Integration
+
 - Automatic library detection based on media type
 - Smart library selection (auto-select if only one available)
 - Add search results directly to selected library
 - Success feedback and error handling
 
 ### User Experience
+
 - Responsive modal design
 - Dark mode support
 - Keyboard accessibility (Enter, ESC)
@@ -77,6 +87,7 @@ Added search functionality to both Movies and TV Shows pages that allows users t
 - Professional UI with Tailwind CSS
 
 ### Accessibility
+
 - Proper ARIA labels and roles
 - Keyboard navigation support
 - Focus management

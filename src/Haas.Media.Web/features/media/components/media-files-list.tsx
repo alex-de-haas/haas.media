@@ -4,18 +4,8 @@ import React from "react";
 import type { MediaFileInfo } from "@/types/media-file-info";
 import type { MediaStream } from "@/types/media-info";
 import { StreamType, streamFeaturesToStrings } from "@/types/media-info";
-import {
-  streamTypeIcon,
-  streamCodecIcon,
-  resolutionIcon,
-} from "@/components/encoding";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { streamTypeIcon, streamCodecIcon, resolutionIcon } from "@/components/encoding";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -24,18 +14,11 @@ import { formatDate, formatFileSize } from "@/lib/utils";
 interface Props {
   mediaFiles: MediaFileInfo[];
   selectedStreams: Record<string, Set<number>>;
-  setSelectedStreams: React.Dispatch<
-    React.SetStateAction<Record<string, Set<number>>>
-  >;
+  setSelectedStreams: React.Dispatch<React.SetStateAction<Record<string, Set<number>>>>;
   encoding: boolean;
 }
 
-export default function MediaFilesList({
-  mediaFiles,
-  selectedStreams,
-  setSelectedStreams,
-  encoding,
-}: Props) {
+export default function MediaFilesList({ mediaFiles, selectedStreams, setSelectedStreams, encoding }: Props) {
   const selectAllStreamsInFile = React.useCallback(
     (filePath: string, streams: MediaStream[]) => {
       setSelectedStreams((prev) => ({
@@ -43,7 +26,7 @@ export default function MediaFilesList({
         [filePath]: new Set(streams.map((stream) => stream.index)),
       }));
     },
-    [setSelectedStreams]
+    [setSelectedStreams],
   );
 
   const deselectAllStreamsInFile = React.useCallback(
@@ -53,7 +36,7 @@ export default function MediaFilesList({
         [filePath]: new Set<number>(),
       }));
     },
-    [setSelectedStreams]
+    [setSelectedStreams],
   );
 
   if (mediaFiles.length === 0) {
@@ -61,9 +44,7 @@ export default function MediaFilesList({
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">No media files found</CardTitle>
-          <CardDescription>
-            Scan the selected location to populate stream information and encoding options.
-          </CardDescription>
+          <CardDescription>Scan the selected location to populate stream information and encoding options.</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -75,10 +56,8 @@ export default function MediaFilesList({
         {mediaFiles.map((file) => {
           const streams = file.mediaInfo?.streams ?? [];
           const fileSelection = selectedStreams[file.relativePath] ?? new Set<number>();
-          const allSelected =
-            streams.length > 0 && streams.every((stream) => fileSelection.has(stream.index));
-          const someSelected =
-            streams.some((stream) => fileSelection.has(stream.index)) && !allSelected;
+          const allSelected = streams.length > 0 && streams.every((stream) => fileSelection.has(stream.index));
+          const someSelected = streams.some((stream) => fileSelection.has(stream.index)) && !allSelected;
           const headerChecked = allSelected ? true : someSelected ? "indeterminate" : false;
 
           return (
@@ -130,10 +109,7 @@ export default function MediaFilesList({
                           const checked = fileSelection.has(stream.index);
 
                           return (
-                            <div
-                              key={stream.index}
-                              className="rounded-lg border border-border bg-background/90 p-3 shadow-sm"
-                            >
+                            <div key={stream.index} className="rounded-lg border border-border bg-background/90 p-3 shadow-sm">
                               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                 <div className="flex flex-1 items-start gap-3">
                                   <Checkbox
@@ -163,20 +139,13 @@ export default function MediaFilesList({
                                       ))}
                                     </div>
                                     <div className="space-y-1 text-sm">
-                                      {stream.title && (
-                                        <div className="font-medium text-foreground">{stream.title}</div>
-                                      )}
+                                      {stream.title && <div className="font-medium text-foreground">{stream.title}</div>}
                                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                                         <MetadataItem label="Index" value={`#${stream.index}`} />
                                         <MetadataItem label="Language" value={stream.language ?? "—"} />
-                                        {stream.duration && (
-                                          <MetadataItem label="Duration" value={stream.duration} />
-                                        )}
+                                        {stream.duration && <MetadataItem label="Duration" value={stream.duration} />}
                                         {typeof stream.bitRate === "number" && stream.type !== StreamType.Subtitle && (
-                                          <MetadataItem
-                                            label="Bitrate"
-                                            value={`${(stream.bitRate / 1000).toFixed(0)} kb/s`}
-                                          />
+                                          <MetadataItem label="Bitrate" value={`${(stream.bitRate / 1000).toFixed(0)} kb/s`} />
                                         )}
                                         {typeof stream.channels === "number" && (
                                           <MetadataItem label="Channels" value={String(stream.channels)} />

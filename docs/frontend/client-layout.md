@@ -7,38 +7,45 @@ This document explains the new client-side layout system implemented for the Haa
 The layout system is organized into several key components:
 
 ### 1. Root Layout (`app/layout.tsx`)
+
 - Server-side component that provides the base HTML structure
 - Handles theme initialization and meta tags
 - Wraps content with the `ClientLayout` component
 
 ### 2. Client Layout (`components/layout/client-layout.tsx`)
+
 - Main client-side layout wrapper
 - Provides providers for authentication, notifications, and layout state
 - Manages the overall layout structure with sidebar and main content area
 
 ### 3. Layout Provider (`components/layout/layout-provider.tsx`)
+
 - Context provider for layout-related state
 - Manages sidebar open/close state
 - Provides page title and action management
 - Exports hooks: `useLayout()`, `usePageTitle()`, and `usePageActions()`
 
 ### 4. Sidebar (`components/layout/sidebar.tsx`)
+
 - Responsive navigation sidebar
 - Automatically hides on mobile, shows as drawer
 - Highlights active navigation items
 - Includes main navigation items: Dashboard, Torrents, Encodings, Profile
 
 ### 5. Header (`components/layout/header.tsx`)
+
 - Original header component (now used only on mobile)
 - Contains branding, user info, and theme toggle
 
 ### 6. Footer (`components/layout/footer.tsx`)
+
 - Site footer with branding and links
 - Responsive design
 
 ## Usage Examples
 
 ### Basic Page Structure
+
 ```tsx
 "use client";
 
@@ -58,6 +65,7 @@ export default function MyPage() {
 ### Using Layout Hooks
 
 #### Setting Page Title Dynamically
+
 ```tsx
 "use client";
 
@@ -73,6 +81,7 @@ export default function DynamicPage() {
 ```
 
 #### Managing Sidebar State
+
 ```tsx
 "use client";
 
@@ -80,12 +89,10 @@ import { useLayout } from "@/components/layout";
 
 export default function PageWithSidebarControl() {
   const { sidebarOpen, setSidebarOpen } = useLayout();
-  
+
   return (
     <div>
-      <button onClick={() => setSidebarOpen(!sidebarOpen)}>
-        Toggle Sidebar
-      </button>
+      <button onClick={() => setSidebarOpen(!sidebarOpen)}>Toggle Sidebar</button>
     </div>
   );
 }
@@ -94,26 +101,31 @@ export default function PageWithSidebarControl() {
 ## Layout Features
 
 ### Responsive Design
+
 - **Desktop (lg+)**: Fixed sidebar (288px width), main content with left padding
 - **Mobile (<lg)**: Collapsible drawer sidebar, full-width main content with mobile header
 
 ### Navigation
+
 - Automatic active state highlighting based on current route
 - Smooth transitions and hover effects
 - Mobile-friendly tap targets
 
 ### Theme Support
+
 - Full dark mode support
 - Theme switching handled by existing theme system
 - Consistent color scheme across all components
 
 ### Accessibility
+
 - Proper ARIA labels and roles
 - Keyboard navigation support
 - Screen reader friendly
 - Focus management for mobile menu
 
 ## File Structure
+
 ```
 components/
   layout/
@@ -136,6 +148,7 @@ components/
 ## Migration Guide
 
 ### From Old Layout
+
 If you have existing pages with inline headings, update them to set layout metadata and optionally surface quick actions:
 
 ```tsx
@@ -143,10 +156,10 @@ If you have existing pages with inline headings, update them to set layout metad
 <div>
   <h1>Page Title</h1>
   <div>Content</div>
-</div>
+</div>;
 
 // New approach
-"use client";
+("use client");
 
 import { usePageTitle } from "@/components/layout";
 import { Separator } from "@/components/ui/separator";
@@ -168,6 +181,7 @@ export default function Page() {
 ```
 
 ### Adding New Navigation Items
+
 To add new items to the sidebar, edit the `navigationItems` array in `sidebar.tsx`:
 
 ```tsx
@@ -176,11 +190,7 @@ const navigationItems = [
   {
     name: "New Feature",
     href: "/new-feature",
-    icon: (
-      <svg className="h-6 w-6" /* ... */>
-        {/* SVG path */}
-      </svg>
-    ),
+    icon: <svg className="h-6 w-6" /* ... */>{/* SVG path */}</svg>,
   },
 ];
 ```

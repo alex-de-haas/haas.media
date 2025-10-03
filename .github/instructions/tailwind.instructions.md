@@ -1,7 +1,8 @@
 ---
 description: Tailwind CSS Instructions for GitHub Copilot
-applyTo: '**/*.tsx'
+applyTo: "**/*.tsx"
 ---
+
 # Tailwind CSS Instructions for GitHub Copilot
 
 ## General Guidelines
@@ -14,6 +15,7 @@ applyTo: '**/*.tsx'
 ## Class Ordering Convention
 
 When writing Tailwind classes, follow this order for better readability:
+
 1. Layout (display, position, float, clear)
 2. Box model (width, height, margin, padding)
 3. Typography (font, text, leading, tracking)
@@ -24,6 +26,7 @@ When writing Tailwind classes, follow this order for better readability:
 8. State variants (hover:, focus:, active:, disabled:)
 
 Example:
+
 ```tsx
 <div className="flex w-full p-4 text-lg font-semibold bg-white border rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 sm:p-6 md:text-xl">
 ```
@@ -31,6 +34,7 @@ Example:
 ## Component Patterns
 
 ### Button Components
+
 ```tsx
 // Primary button
 <button className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -43,6 +47,7 @@ Example:
 ```
 
 ### Form Elements
+
 ```tsx
 // Input field
 <input className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400" />
@@ -55,6 +60,7 @@ Example:
 ```
 
 ### Card Components
+
 ```tsx
 // Basic card
 <div className="p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -66,6 +72,7 @@ Example:
 ## Layout Patterns
 
 ### Flexbox Layouts
+
 ```tsx
 // Center content
 <div className="flex items-center justify-center min-h-screen">
@@ -81,6 +88,7 @@ Example:
 ```
 
 ### Grid Layouts
+
 ```tsx
 // Responsive grid
 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -92,6 +100,7 @@ Example:
 ## Responsive Design
 
 ### Breakpoint Usage
+
 - `sm:` - 640px and up (small devices)
 - `md:` - 768px and up (medium devices)
 - `lg:` - 1024px and up (large devices)
@@ -99,6 +108,7 @@ Example:
 - `2xl:` - 1536px and up (2x extra large devices)
 
 ### Common Responsive Patterns
+
 ```tsx
 // Responsive text sizes
 <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">
@@ -117,6 +127,7 @@ Example:
 ## Color and Theming
 
 ### Semantic Color Usage
+
 - Use semantic color names (blue, green, red, gray) rather than specific shades when possible
 - For primary brand colors, use blue scale (blue-500, blue-600, etc.)
 - For success states, use green scale
@@ -125,6 +136,7 @@ Example:
 - For neutral content, use gray scale
 
 ### Dark Mode Support
+
 ```tsx
 // Background colors
 <div className="bg-white dark:bg-gray-900">
@@ -146,7 +158,9 @@ Example:
 ## Accessibility
 
 ### Focus States
+
 Always include focus states for interactive elements:
+
 ```tsx
 <button className="focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
 
@@ -154,6 +168,7 @@ Always include focus states for interactive elements:
 ```
 
 ### Screen Reader Support
+
 ```tsx
 // Use sr-only for screen reader only content
 <span className="sr-only">Loading...</span>
@@ -166,6 +181,7 @@ Always include focus states for interactive elements:
 ## Animation and Transitions
 
 ### Common Transitions
+
 ```tsx
 // Smooth hover transitions
 <div className="transition-colors duration-200 hover:bg-gray-100">

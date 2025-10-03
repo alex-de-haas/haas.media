@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getValidToken } from '@/lib/auth/token';
-import { getApiDownloaderUrl } from '@/lib/env';
-import type { MovieMetadata, TVShowMetadata, SearchResult } from '@/types/metadata';
-import type { LibraryType } from '@/types/library';
+import { useState, useEffect, useCallback } from "react";
+import { getValidToken } from "@/lib/auth/token";
+import { getApiDownloaderUrl } from "@/lib/env";
+import type { MovieMetadata, TVShowMetadata, SearchResult } from "@/types/metadata";
+import type { LibraryType } from "@/types/library";
 
 export interface AddToLibraryRequest {
   type: LibraryType;
@@ -13,12 +13,12 @@ export interface AddToLibraryRequest {
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const token = await getValidToken();
   const headers = new Headers(options.headers);
-  
+
   if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+    headers.set("Authorization", `Bearer ${token}`);
   }
-  
-  headers.set('Content-Type', 'application/json');
+
+  headers.set("Content-Type", "application/json");
 
   const response = await fetch(url, {
     ...options,
@@ -41,16 +41,16 @@ export function useAddToLibrary() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/add-to-library`, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify(request),
       });
-      
+
       const result = await response.json();
       return result;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to add to library';
+      const errorMessage = err instanceof Error ? err.message : "Failed to add to library";
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -70,17 +70,17 @@ export function useMovies(libraryId?: string) {
     try {
       setLoading(true);
       setError(null);
-      
+
       const url = new URL(`${getApiDownloaderUrl()}/api/metadata/movies`);
       if (libraryId) {
-        url.searchParams.set('libraryId', libraryId);
+        url.searchParams.set("libraryId", libraryId);
       }
-      
+
       const response = await fetchWithAuth(url.toString());
       const moviesData = await response.json();
       setMovies(moviesData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load movies');
+      setError(err instanceof Error ? err.message : "Failed to load movies");
     } finally {
       setLoading(false);
     }
@@ -102,15 +102,15 @@ export function useMovie(id: string) {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/movies/${id}`);
       const movieData = await response.json();
       setMovie(movieData);
     } catch (err) {
-      if (err instanceof Error && err.message.includes('404')) {
+      if (err instanceof Error && err.message.includes("404")) {
         setMovie(null);
       } else {
-        setError(err instanceof Error ? err.message : 'Failed to load movie');
+        setError(err instanceof Error ? err.message : "Failed to load movie");
       }
     } finally {
       setLoading(false);
@@ -136,12 +136,12 @@ export function useDeleteMovieMetadata() {
       setError(null);
 
       await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/movies/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
-      return { success: true, message: 'Movie deleted successfully' };
+      return { success: true, message: "Movie deleted successfully" };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete movie';
+      const errorMessage = err instanceof Error ? err.message : "Failed to delete movie";
       setError(errorMessage);
       return { success: false, message: errorMessage };
     } finally {
@@ -161,17 +161,17 @@ export function useTVShows(libraryId?: string) {
     try {
       setLoading(true);
       setError(null);
-      
+
       const url = new URL(`${getApiDownloaderUrl()}/api/metadata/tvshows`);
       if (libraryId) {
-        url.searchParams.set('libraryId', libraryId);
+        url.searchParams.set("libraryId", libraryId);
       }
-      
+
       const response = await fetchWithAuth(url.toString());
       const tvShowsData = await response.json();
       setTVShows(tvShowsData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load TV shows');
+      setError(err instanceof Error ? err.message : "Failed to load TV shows");
     } finally {
       setLoading(false);
     }
@@ -193,15 +193,15 @@ export function useTVShow(id: string) {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/tvshows/${id}`);
       const tvShowData = await response.json();
       setTVShow(tvShowData);
     } catch (err) {
-      if (err instanceof Error && err.message.includes('404')) {
+      if (err instanceof Error && err.message.includes("404")) {
         setTVShow(null);
       } else {
-        setError(err instanceof Error ? err.message : 'Failed to load TV show');
+        setError(err instanceof Error ? err.message : "Failed to load TV show");
       }
     } finally {
       setLoading(false);
@@ -227,12 +227,12 @@ export function useDeleteTVShowMetadata() {
       setError(null);
 
       await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/tvshows/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
-      return { success: true, message: 'TV show deleted successfully' };
+      return { success: true, message: "TV show deleted successfully" };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete TV show';
+      const errorMessage = err instanceof Error ? err.message : "Failed to delete TV show";
       setError(errorMessage);
       return { success: false, message: errorMessage };
     } finally {
@@ -251,18 +251,18 @@ export function useSearch() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const url = new URL(`${getApiDownloaderUrl()}/api/metadata/search`);
-      url.searchParams.set('query', query);
+      url.searchParams.set("query", query);
       if (libraryType !== undefined) {
-        url.searchParams.set('libraryType', libraryType.toString());
+        url.searchParams.set("libraryType", libraryType.toString());
       }
-      
+
       const response = await fetchWithAuth(url.toString());
       const searchResults = await response.json();
       return searchResults;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Search failed';
+      const errorMessage = err instanceof Error ? err.message : "Search failed";
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {

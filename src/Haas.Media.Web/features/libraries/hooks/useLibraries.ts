@@ -35,80 +35,89 @@ export function useLibraries() {
     }
   }, []);
 
-  const createLibrary = useCallback(async (request: CreateLibraryRequest): Promise<{ success: boolean; message: string }> => {
-    try {
-      const token = await getValidToken();
-      const headers = new Headers({
-        "Content-Type": "application/json",
-      });
-      if (token) headers.set("Authorization", `Bearer ${token}`);
+  const createLibrary = useCallback(
+    async (request: CreateLibraryRequest): Promise<{ success: boolean; message: string }> => {
+      try {
+        const token = await getValidToken();
+        const headers = new Headers({
+          "Content-Type": "application/json",
+        });
+        if (token) headers.set("Authorization", `Bearer ${token}`);
 
-      const response = await fetch(`${downloaderApi}/api/metadata/libraries`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(request),
-      });
+        const response = await fetch(`${downloaderApi}/api/metadata/libraries`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(request),
+        });
 
-      if (response.ok) {
-        await fetchLibraries(); // Refresh the library list
-        return { success: true, message: "Library created successfully" };
-      } else {
-        const errorText = await response.text();
-        return { success: false, message: errorText || "Create failed" };
+        if (response.ok) {
+          await fetchLibraries(); // Refresh the library list
+          return { success: true, message: "Library created successfully" };
+        } else {
+          const errorText = await response.text();
+          return { success: false, message: errorText || "Create failed" };
+        }
+      } catch (error) {
+        return { success: false, message: "Network error occurred" };
       }
-    } catch (error) {
-      return { success: false, message: "Network error occurred" };
-    }
-  }, [fetchLibraries]);
+    },
+    [fetchLibraries],
+  );
 
-  const updateLibrary = useCallback(async (id: string, request: UpdateLibraryRequest): Promise<{ success: boolean; message: string }> => {
-    try {
-      const token = await getValidToken();
-      const headers = new Headers({
-        "Content-Type": "application/json",
-      });
-      if (token) headers.set("Authorization", `Bearer ${token}`);
+  const updateLibrary = useCallback(
+    async (id: string, request: UpdateLibraryRequest): Promise<{ success: boolean; message: string }> => {
+      try {
+        const token = await getValidToken();
+        const headers = new Headers({
+          "Content-Type": "application/json",
+        });
+        if (token) headers.set("Authorization", `Bearer ${token}`);
 
-      const response = await fetch(`${downloaderApi}/api/metadata/libraries/${id}`, {
-        method: "PUT",
-        headers,
-        body: JSON.stringify(request),
-      });
+        const response = await fetch(`${downloaderApi}/api/metadata/libraries/${id}`, {
+          method: "PUT",
+          headers,
+          body: JSON.stringify(request),
+        });
 
-      if (response.ok) {
-        await fetchLibraries(); // Refresh the library list
-        return { success: true, message: "Library updated successfully" };
-      } else {
-        const errorText = await response.text();
-        return { success: false, message: errorText || "Update failed" };
+        if (response.ok) {
+          await fetchLibraries(); // Refresh the library list
+          return { success: true, message: "Library updated successfully" };
+        } else {
+          const errorText = await response.text();
+          return { success: false, message: errorText || "Update failed" };
+        }
+      } catch (error) {
+        return { success: false, message: "Network error occurred" };
       }
-    } catch (error) {
-      return { success: false, message: "Network error occurred" };
-    }
-  }, [fetchLibraries]);
+    },
+    [fetchLibraries],
+  );
 
-  const deleteLibrary = useCallback(async (id: string): Promise<{ success: boolean; message: string }> => {
-    try {
-      const token = await getValidToken();
-      const headers = new Headers();
-      if (token) headers.set("Authorization", `Bearer ${token}`);
+  const deleteLibrary = useCallback(
+    async (id: string): Promise<{ success: boolean; message: string }> => {
+      try {
+        const token = await getValidToken();
+        const headers = new Headers();
+        if (token) headers.set("Authorization", `Bearer ${token}`);
 
-      const response = await fetch(`${downloaderApi}/api/metadata/libraries/${id}`, {
-        method: "DELETE",
-        headers,
-      });
+        const response = await fetch(`${downloaderApi}/api/metadata/libraries/${id}`, {
+          method: "DELETE",
+          headers,
+        });
 
-      if (response.ok) {
-        await fetchLibraries(); // Refresh the library list
-        return { success: true, message: "Library deleted successfully" };
-      } else {
-        const errorText = await response.text();
-        return { success: false, message: errorText || "Delete failed" };
+        if (response.ok) {
+          await fetchLibraries(); // Refresh the library list
+          return { success: true, message: "Library deleted successfully" };
+        } else {
+          const errorText = await response.text();
+          return { success: false, message: errorText || "Delete failed" };
+        }
+      } catch (error) {
+        return { success: false, message: "Network error occurred" };
       }
-    } catch (error) {
-      return { success: false, message: "Network error occurred" };
-    }
-  }, [fetchLibraries]);
+    },
+    [fetchLibraries],
+  );
 
   const startBackgroundScan = useCallback(async (): Promise<{ success: boolean; message: string; operationId?: string }> => {
     try {
@@ -125,10 +134,10 @@ export function useLibraries() {
 
       if (response.ok) {
         const data = await response.json();
-        return { 
-          success: true, 
+        return {
+          success: true,
           message: "Background scan started successfully",
-          operationId: data.operationId 
+          operationId: data.operationId,
         };
       } else {
         const errorText = await response.text();
@@ -138,7 +147,6 @@ export function useLibraries() {
       return { success: false, message: "Network error occurred while starting background scan" };
     }
   }, []);
-
 
   useEffect(() => {
     fetchLibraries();
