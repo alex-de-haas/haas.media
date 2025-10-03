@@ -11,12 +11,12 @@ import {
   useState,
 } from "react";
 import type { LucideIcon } from "lucide-react";
-import { CheckCircle2, Info, TriangleAlert, X, XCircle } from "lucide-react";
+import { CheckCircle2, X, XCircle } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
-export type NotificationType = "success" | "error" | "warning" | "info";
+export type NotificationType = "success" | "error";
 
 export interface NotificationItem {
   id: string;
@@ -33,7 +33,9 @@ interface NotificationsContextValue {
   clear: () => void;
 }
 
-const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
+const NotificationsContext = createContext<
+  NotificationsContextValue | undefined
+>(undefined);
 
 /** Default timeout (ms) */
 const DEFAULT_TIMEOUT = 5000;
@@ -43,7 +45,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const timers = useRef<Map<string, number>>(new Map());
 
   const remove = useCallback((id: string) => {
-    setItems(prev => prev.filter(item => item.id !== id));
+    setItems((prev) => prev.filter((item) => item.id !== id));
     const handle = timers.current.get(id);
     if (handle) {
       window.clearTimeout(handle);
@@ -66,10 +68,13 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   );
 
   const notify: NotificationsContextValue["notify"] = useCallback(
-    n => {
+    (n) => {
       const id = n.id ?? crypto.randomUUID();
-  const item: NotificationItem = { id, type: "info", ...n };
-  setItems(prev => [...prev.filter(existing => existing.id !== id), item]);
+      const item: NotificationItem = { id, type: "success", ...n };
+      setItems((prev) => [
+        ...prev.filter((existing) => existing.id !== id),
+        item,
+      ]);
       if (item.timeout !== -1) {
         schedule(item);
       }
@@ -79,7 +84,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   );
 
   const clear = useCallback(() => {
-    timers.current.forEach(handle => window.clearTimeout(handle));
+    timers.current.forEach((handle) => window.clearTimeout(handle));
     timers.current.clear();
     setItems([]);
   }, []);
@@ -87,12 +92,15 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const timersMap = timers.current;
     return () => {
-      timersMap.forEach(handle => window.clearTimeout(handle));
+      timersMap.forEach((handle) => window.clearTimeout(handle));
       timersMap.clear();
     };
   }, []);
 
-  const value = useMemo(() => ({ notify, remove, clear }), [notify, remove, clear]);
+  const value = useMemo(
+    () => ({ notify, remove, clear }),
+    [notify, remove, clear]
+  );
 
   return (
     <NotificationsContext.Provider value={value}>
@@ -104,17 +112,30 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
 export function useNotifications() {
   const ctx = useContext(NotificationsContext);
-  if (!ctx) throw new Error('useNotifications must be used within NotificationsProvider');
+  if (!ctx)
+    throw new Error(
+      "useNotifications must be used within NotificationsProvider"
+    );
   return ctx;
 }
 
-function NotificationsList({ items, onClose }: { items: NotificationItem[]; onClose: (id: string) => void }) {
+function NotificationsList({
+  items,
+  onClose,
+}: {
+  items: NotificationItem[];
+  onClose: (id: string) => void;
+}) {
   if (items.length === 0) return null;
 
   return (
     <div className="pointer-events-none fixed top-4 right-4 z-50 flex max-w-full flex-col gap-3 sm:right-6 sm:top-6">
-      {items.map(item => (
-        <NotificationAlert key={item.id} item={item} onClose={() => onClose(item.id)} />
+      {items.map((item) => (
+        <NotificationAlert
+          key={item.id}
+          item={item}
+          onClose={() => onClose(item.id)}
+        />
       ))}
     </div>
   );
@@ -130,30 +151,23 @@ const presentationMap: Record<NotificationType, NotificationPresentation> = {
   success: {
     icon: CheckCircle2,
     variant: "default",
-    className:
-      "border-green-500/50 bg-green-50 text-green-900 shadow-lg dark:border-green-400/40 dark:bg-green-950/60 dark:text-green-100",
+    className: "shadow-lg",
   },
   error: {
     icon: XCircle,
     variant: "destructive",
-    className: "bg-destructive/10 text-destructive shadow-lg dark:bg-destructive/20",
-  },
-  warning: {
-    icon: TriangleAlert,
-    variant: "default",
-    className:
-      "border-amber-400/50 bg-amber-50 text-amber-900 shadow-lg dark:border-amber-300/40 dark:bg-amber-950/60 dark:text-amber-100",
-  },
-  info: {
-    icon: Info,
-    variant: "default",
-    className:
-      "border-blue-400/50 bg-blue-50 text-blue-900 shadow-lg dark:border-blue-300/40 dark:bg-blue-950/60 dark:text-blue-100",
+    className: "shadow-lg",
   },
 };
 
-function NotificationAlert({ item, onClose }: { item: NotificationItem; onClose: () => void }) {
-  const { type = "info", title, message } = item;
+function NotificationAlert({
+  item,
+  onClose,
+}: {
+  item: NotificationItem;
+  onClose: () => void;
+}) {
+  const { type = "success", title, message } = item;
   const presentation = presentationMap[type];
   const Icon = presentation.icon;
 
