@@ -26,7 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
 import { PersonCard } from "@/features/media/components/person-card";
 
@@ -273,24 +273,29 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                   <CardContent className="space-y-4">
                     {hasCast && (
                       <div className="space-y-2">
-                        <ScrollArea className="w-full overflow-hidden">
-                          <div className="flex w-max gap-3 pb-2">
+                        <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
+                          <CarouselContent className="-ml-2 sm:-ml-4">
                             {movie.cast
                               .slice()
                               .sort((a, b) => a.order - b.order)
                               .slice(0, CREDIT_DISPLAY_LIMIT)
                               .map((castMember) => (
-                                <PersonCard
+                                <CarouselItem
                                   key={`${castMember.tmdbId}-${castMember.order}`}
-                                  name={castMember.name}
-                                  description={castMember.character || undefined}
-                                  profilePath={castMember.profilePath}
-                                  className="w-40 sm:w-44 md:w-48 lg:w-52 xl:w-56"
-                                />
+                                  className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                                >
+                                  <PersonCard
+                                    name={castMember.name}
+                                    {...(castMember.character ? { description: castMember.character } : {})}
+                                    profilePath={castMember.profilePath ?? null}
+                                    className="mx-auto h-full"
+                                  />
+                                </CarouselItem>
                               ))}
-                          </div>
-                          <ScrollBar orientation="horizontal" className="mt-1" />
-                        </ScrollArea>
+                          </CarouselContent>
+                          <CarouselPrevious className="hidden md:flex -left-8" />
+                          <CarouselNext className="hidden md:flex -right-8" />
+                        </Carousel>
                         {movie.cast.length > CREDIT_DISPLAY_LIMIT && (
                           <p className="text-xs text-muted-foreground">
                             Showing {CREDIT_DISPLAY_LIMIT} of {movie.cast.length} cast members
@@ -301,21 +306,26 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
 
                     {hasCrew && (
                       <div className="space-y-2">
-                        <ScrollArea className="w-full overflow-hidden">
-                          <div className="flex w-max gap-3 pb-2">
+                        <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
+                          <CarouselContent className="-ml-2 sm:-ml-4">
                             {movie.crew.slice(0, CREDIT_DISPLAY_LIMIT).map((crewMember) => (
-                              <PersonCard
+                              <CarouselItem
                                 key={`${crewMember.tmdbId}-${crewMember.job}`}
-                                name={crewMember.name}
-                                description={crewMember.job}
-                                meta={crewMember.department}
-                                profilePath={crewMember.profilePath}
-                                className="w-40 sm:w-44 md:w-48 lg:w-52 xl:w-56"
-                              />
+                                className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                              >
+                                <PersonCard
+                                  name={crewMember.name}
+                                  description={crewMember.job}
+                                  {...(crewMember.department ? { meta: crewMember.department } : {})}
+                                  profilePath={crewMember.profilePath ?? null}
+                                  className="mx-auto h-full"
+                                />
+                              </CarouselItem>
                             ))}
-                          </div>
-                          <ScrollBar orientation="horizontal" className="mt-1" />
-                        </ScrollArea>
+                          </CarouselContent>
+                          <CarouselPrevious className="hidden md:flex -left-8" />
+                          <CarouselNext className="hidden md:flex -right-8" />
+                        </Carousel>
                         {movie.crew.length > CREDIT_DISPLAY_LIMIT && (
                           <p className="text-xs text-muted-foreground">
                             Showing {CREDIT_DISPLAY_LIMIT} of {movie.crew.length} crew members

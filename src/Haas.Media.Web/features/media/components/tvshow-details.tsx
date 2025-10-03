@@ -27,7 +27,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PersonCard } from "@/features/media/components/person-card";
@@ -336,53 +336,82 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <ScrollArea className="w-full overflow-hidden">
-                      <div className="flex w-max gap-3 pb-2">
-                        {tvShow.cast
-                          .slice()
-                          .sort((a, b) => a.order - b.order)
-                          .slice(0, CREDIT_DISPLAY_LIMIT)
-                          .map((castMember) => (
-                            <PersonCard
-                              key={`${castMember.tmdbId}-${castMember.order}`}
-                              name={castMember.name}
-                              description={castMember.character || undefined}
-                              profilePath={castMember.profilePath}
-                              className="w-40 sm:w-44 md:w-48 lg:w-52 xl:w-56"
-                            />
-                          ))}
+                    {hasCast && (
+                      <div className="space-y-2">
+                        <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
+                          <CarouselContent className="-ml-2 sm:-ml-4">
+                            {tvShow.cast
+                              ?.slice()
+                              .sort((a, b) => a.order - b.order)
+                              .slice(0, CREDIT_DISPLAY_LIMIT)
+                              .map((castMember) => (
+                                <CarouselItem
+                                  key={`${castMember.tmdbId}-${castMember.order}`}
+                                  className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                                >
+                                  <PersonCard
+                                    name={castMember.name}
+                                    {...(castMember.character ? { description: castMember.character } : {})}
+                                    profilePath={castMember.profilePath ?? null}
+                                    className="mx-auto h-full"
+                                  />
+                                </CarouselItem>
+                              ))}
+                          </CarouselContent>
+                          <CarouselPrevious className="hidden md:flex -left-8" />
+                          <CarouselNext className="hidden md:flex -right-8" />
+                        </Carousel>
+                        {(tvShow.cast?.length ?? 0) > CREDIT_DISPLAY_LIMIT && (
+                          <p className="text-xs text-muted-foreground">
+                            Showing {CREDIT_DISPLAY_LIMIT} of {tvShow.cast?.length ?? 0} cast members
+                          </p>
+                        )}
                       </div>
-                      <ScrollBar orientation="horizontal" className="mt-1" />
-                    </ScrollArea>
-                    <ScrollArea className="w-full overflow-hidden">
-                      <div className="flex w-max gap-3 pb-2">
-                        {tvShow.crew
-                          .slice()
-                          .sort((a, b) => {
-                            const importantJobs = ["Creator", "Director", "Producer", "Executive Producer", "Writer", "Screenplay"];
-                            const aIndex = importantJobs.indexOf(a.job);
-                            const bIndex = importantJobs.indexOf(b.job);
+                    )}
 
-                            if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-                            if (aIndex !== -1) return -1;
-                            if (bIndex !== -1) return 1;
+                    {hasCrew && (
+                      <div className="space-y-2">
+                        <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
+                          <CarouselContent className="-ml-2 sm:-ml-4">
+                            {tvShow.crew
+                              ?.slice()
+                              .sort((a, b) => {
+                                const importantJobs = ["Creator", "Director", "Producer", "Executive Producer", "Writer", "Screenplay"];
+                                const aIndex = importantJobs.indexOf(a.job);
+                                const bIndex = importantJobs.indexOf(b.job);
 
-                            return a.name.localeCompare(b.name);
-                          })
-                          .slice(0, CREDIT_DISPLAY_LIMIT)
-                          .map((crewMember) => (
-                            <PersonCard
-                              key={`${crewMember.tmdbId}-${crewMember.job}`}
-                              name={crewMember.name}
-                              description={crewMember.job}
-                              meta={crewMember.department}
-                              profilePath={crewMember.profilePath}
-                              className="w-40 sm:w-44 md:w-48 lg:w-52 xl:w-56"
-                            />
-                          ))}
+                                if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+                                if (aIndex !== -1) return -1;
+                                if (bIndex !== -1) return 1;
+
+                                return a.name.localeCompare(b.name);
+                              })
+                              .slice(0, CREDIT_DISPLAY_LIMIT)
+                              .map((crewMember) => (
+                                <CarouselItem
+                                  key={`${crewMember.tmdbId}-${crewMember.job}`}
+                                  className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                                >
+                                  <PersonCard
+                                    name={crewMember.name}
+                                    description={crewMember.job}
+                                    {...(crewMember.department ? { meta: crewMember.department } : {})}
+                                    profilePath={crewMember.profilePath ?? null}
+                                    className="mx-auto h-full"
+                                  />
+                                </CarouselItem>
+                              ))}
+                          </CarouselContent>
+                          <CarouselPrevious className="hidden md:flex -left-8" />
+                          <CarouselNext className="hidden md:flex -right-8" />
+                        </Carousel>
+                        {(tvShow.crew?.length ?? 0) > CREDIT_DISPLAY_LIMIT && (
+                          <p className="text-xs text-muted-foreground">
+                            Showing {CREDIT_DISPLAY_LIMIT} of {tvShow.crew?.length ?? 0} crew members
+                          </p>
+                        )}
                       </div>
-                      <ScrollBar orientation="horizontal" className="mt-1" />
-                    </ScrollArea>
+                    )}
                   </CardContent>
                 </Card>
               )}
