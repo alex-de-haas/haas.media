@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 import { formatSize, formatRate, formatPercentage } from "../../../lib/utils/format";
@@ -20,9 +21,10 @@ interface TorrentListProps {
   onStart?: (hash: string) => Promise<{ success: boolean; message: string }>;
   onStop?: (hash: string) => Promise<{ success: boolean; message: string }>;
   onPause?: (hash: string) => Promise<{ success: boolean; message: string }>;
+  loading?: boolean;
 }
 
-export default function TorrentList({ torrents, onDelete, onStart, onStop, onPause }: TorrentListProps) {
+export default function TorrentList({ torrents, onDelete, onStart, onStop, onPause, loading }: TorrentListProps) {
   const handleDelete = async (hash: string, name: string) => {
     if (!onDelete) return;
 
@@ -45,6 +47,18 @@ export default function TorrentList({ torrents, onDelete, onStart, onStop, onPau
     if (!onPause) return;
     await onPause(hash);
   };
+
+  if (loading && torrents.length === 0) {
+    return (
+      <Card>
+        <CardContent className="space-y-4 py-10">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (torrents.length === 0) {
     return (

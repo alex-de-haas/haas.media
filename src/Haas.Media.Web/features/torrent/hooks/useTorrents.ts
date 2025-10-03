@@ -8,21 +8,33 @@ import { downloaderApi } from "@/lib/api";
 
 export function useTorrents() {
   const [torrents, setTorrents] = useState<TorrentInfo[]>([]);
+  const [loading, setLoading] = useState(true);
   const [connection, setConnection] = useState<HubConnection | null>(null);
 
   useEffect(() => {
+    let disposed = false;
+
     async function fetchTorrents() {
       try {
+        if (!disposed) {
+          setLoading(true);
+        }
         const t = await getValidToken();
         const headers = new Headers();
         if (t) headers.set("Authorization", `Bearer ${t}`);
         const res = await fetch(`${downloaderApi}/api/torrents`, { headers });
         if (res.ok) {
           const data = await res.json();
-          setTorrents(data);
+          if (!disposed) {
+            setTorrents(data);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch torrents:", error);
+      } finally {
+        if (!disposed) {
+          setLoading(false);
+        }
       }
     }
 
@@ -54,8 +66,6 @@ export function useTorrents() {
 
     hubConnection.on("TorrentUpdated", handleTorrentUpdated);
     hubConnection.on("TorrentDeleted", handleTorrentDeleted);
-
-    let disposed = false;
 
     // Track the initial connect attempt so cleanup does not abort it when React StrictMode replays effects.
     const startPromise = hubConnection.start();
@@ -123,7 +133,7 @@ export function useTorrents() {
       const errors = Array.isArray(payload?.errors) ? payload.errors.join("; ") : undefined;
       const fallbackMessage = typeof payload?.message === "string" ? payload.message : "Upload failed";
       return { success: false, message: errors || fallbackMessage };
-    } catch (error) {
+    } catch {
       return { success: false, message: "Network error occurred" };
     }
   };
@@ -144,7 +154,7 @@ export function useTorrents() {
         const errorText = await res.text();
         return { success: false, message: errorText || "Delete failed" };
       }
-    } catch (error) {
+    } catch {
       return { success: false, message: "Network error occurred" };
     }
   };
@@ -165,7 +175,7 @@ export function useTorrents() {
         const errorText = await res.text();
         return { success: false, message: errorText || "Start failed" };
       }
-    } catch (error) {
+    } catch {
       return { success: false, message: "Network error occurred" };
     }
   };
@@ -186,7 +196,7 @@ export function useTorrents() {
         const errorText = await res.text();
         return { success: false, message: errorText || "Stop failed" };
       }
-    } catch (error) {
+    } catch {
       return { success: false, message: "Network error occurred" };
     }
   };
@@ -207,7 +217,7 @@ export function useTorrents() {
         const errorText = await res.text();
         return { success: false, message: errorText || "Pause failed" };
       }
-    } catch (error) {
+    } catch {
       return { success: false, message: "Network error occurred" };
     }
   };
@@ -220,5 +230,6 @@ export function useTorrents() {
     stopTorrent,
     pauseTorrent,
     connection,
+    loading,
   };
 }
