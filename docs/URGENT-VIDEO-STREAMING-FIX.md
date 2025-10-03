@@ -4,7 +4,7 @@
 
 Your debug info shows:
 - ✅ Token is present (`hasToken: true`)
-- ✅ Request is reaching the backend (`url: http://localhost:5000/api/files/stream`)
+- ✅ Request is reaching the backend (`url: http://localhost:8000/api/files/stream`)
 - ❌ Backend is rejecting the token (403 Forbidden)
 - ⚠️ Using Management API audience: `https://dev-o1l0rjv003cd8mmq.us.auth0.com/api/v2/`
 

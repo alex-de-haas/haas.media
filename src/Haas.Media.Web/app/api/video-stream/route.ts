@@ -24,7 +24,7 @@ async function handler(req: NextRequest) {
     }
 
     // Build the downstream API URL
-    const downloaderApi = process.env.NEXT_PUBLIC_DOWNLOADER_API || "http://localhost:5000";
+    const downloaderApi = process.env.NEXT_PUBLIC_DOWNLOADER_API || "http://localhost:8000";
     const apiUrl = `${downloaderApi}/api/files/stream?path=${encodeURIComponent(path)}`;
     
     console.log(`[video-stream] Streaming video from: ${apiUrl}`);
