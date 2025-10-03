@@ -13,19 +13,6 @@ public static class EncodingConfiguration
                 ?? throw new InvalidOperationException("FFMPEG_BINARY configuration is required")
         );
 
-        builder.Services.AddSingleton(sp =>
-        {
-            var configuration = sp.GetRequiredService<IConfiguration>();
-            var dataPath =
-                configuration["DATA_DIRECTORY"]
-                ?? throw new ArgumentException("DATA_DIRECTORY configuration is required.");
-
-            var outputPath = Path.Combine(dataPath, "output");
-            Directory.CreateDirectory(outputPath);
-
-            return new EncodingPaths(dataPath, outputPath);
-        });
-
         builder.Services.AddSingleton<EncodingService>();
         builder.Services.AddSingleton<IEncodingApi>(sp => sp.GetRequiredService<EncodingService>());
         builder.Services.AddBackgroundTask<

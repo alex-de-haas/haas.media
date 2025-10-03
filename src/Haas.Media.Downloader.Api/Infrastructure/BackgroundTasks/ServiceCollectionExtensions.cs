@@ -12,9 +12,9 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddBackgroundTask<TTask, TPayload, TWorker>(this IServiceCollection services)
         where TTask : BackgroundTaskBase
-        where TWorker : class, IBackgroundWorker<TTask, TPayload>
+        where TWorker : class, IBackgroundTaskExecutor<TTask, TPayload>
     {
-        services.AddSingleton<IBackgroundWorker<TTask, TPayload>, TWorker>();
+        services.AddSingleton<IBackgroundTaskExecutor<TTask, TPayload>, TWorker>();
 
         return services;
     }

@@ -1,4 +1,3 @@
-using System.IO;
 using Haas.Media.Core;
 using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 
@@ -7,29 +6,36 @@ namespace Haas.Media.Downloader.Api.Encodings;
 public sealed class EncodingTask : BackgroundTaskBase
 {
     public EncodingTask(
-        string sourceRelativePath,
-        EncodeRequest.Stream[] streams,
+        string outputPath,
+        Stream[] streams,
         StreamCodec videoCodec,
         HardwareAcceleration hardwareAcceleration,
         string? device
     )
     {
-        SourceRelativePath = sourceRelativePath;
-        Streams = streams ?? Array.Empty<EncodeRequest.Stream>();
+        OutputPath = outputPath ?? throw new ArgumentNullException(nameof(outputPath));
+        Streams = streams ?? throw new ArgumentNullException(nameof(streams));
         VideoCodec = videoCodec;
         HardwareAcceleration = hardwareAcceleration;
         Device = device;
     }
 
-    public override string Name => $"Encode {Path.GetFileName(SourceRelativePath)}";
+    public override string Name => "Encode media file";
 
-    public string SourceRelativePath { get; }
+    public string OutputPath { get; }
 
-    public EncodeRequest.Stream[] Streams { get; }
+    public Stream[] Streams { get; }
 
     public StreamCodec VideoCodec { get; }
 
     public HardwareAcceleration HardwareAcceleration { get; }
 
     public string? Device { get; }
+
+    public sealed class Stream
+    {
+        public required string InputFilePath { get; init; }
+        public required int StreamIndex { get; init; }
+        public required StreamType StreamType { get; init; }
+    }
 }

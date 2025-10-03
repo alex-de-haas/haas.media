@@ -84,10 +84,10 @@ public sealed class BackgroundWorkerContext<TTask, TPayload>
 
 Rapid update bursts are throttled: only one broadcast per task is emitted every 500 ms, yet terminal states are flushed immediately so clients never miss the final update.
 
-### Background Worker Interface
+### Background Task Executor Interface
 
 ```csharp
-public interface IBackgroundWorker<TTask, TPayload>
+public interface IBackgroundTaskExecutor<TTask, TPayload>
     where TTask : BackgroundTaskBase
 {
     Task ExecuteAsync(BackgroundWorkerContext<TTask, TPayload> context);
@@ -144,4 +144,4 @@ builder.Services.AddBackgroundTask<
     CopyOperationTaskExecutor>();
 ```
 
-`AddBackgroundTasks` registers the `BackgroundTaskManager` as both the singleton implementation of `IBackgroundTaskManager` and an `IHostedService`. Each call to `AddBackgroundTask` registers the corresponding worker as a singleton `IBackgroundWorker<TTask, TPayload>`; design workers to be thread-safe if multiple tasks of the same type might run concurrently. Complete the setup by invoking `app.UseBackgroundTasks()` so the hub and HTTP endpoints are available to clients.
+`AddBackgroundTasks` registers the `BackgroundTaskManager` as both the singleton implementation of `IBackgroundTaskManager` and an `IHostedService`. Each call to `AddBackgroundTask` registers the corresponding worker as a singleton `IBackgroundTaskExecutor<TTask, TPayload>`; design workers to be thread-safe if multiple tasks of the same type might run concurrently. Complete the setup by invoking `app.UseBackgroundTasks()` so the hub and HTTP endpoints are available to clients.

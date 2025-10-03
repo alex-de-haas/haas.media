@@ -35,7 +35,7 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IHostedService
     {
         ArgumentNullException.ThrowIfNull(task);
 
-        var worker = _serviceProvider.GetRequiredService<IBackgroundWorker<TTask, TPayload>>();
+        var worker = _serviceProvider.GetRequiredService<IBackgroundTaskExecutor<TTask, TPayload>>();
 
         var cancellationTokenSource = new CancellationTokenSource();
 

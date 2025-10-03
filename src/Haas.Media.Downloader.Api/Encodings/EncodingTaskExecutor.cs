@@ -3,18 +3,12 @@ using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 
 namespace Haas.Media.Downloader.Api.Encodings;
 
-internal sealed class EncodingTaskExecutor
-    : IBackgroundWorker<EncodingTask, EncodingProcessInfo>
+internal sealed class EncodingTaskExecutor : IBackgroundTaskExecutor<EncodingTask, EncodingProcessInfo>
 {
-    private readonly EncodingPaths _paths;
     private readonly ILogger<EncodingTaskExecutor> _logger;
 
-    public EncodingTaskExecutor(
-        EncodingPaths paths,
-        ILogger<EncodingTaskExecutor> logger
-    )
+    public EncodingTaskExecutor(ILogger<EncodingTaskExecutor> logger)
     {
-        _paths = paths;
         _logger = logger;
     }
 
@@ -25,60 +19,63 @@ internal sealed class EncodingTaskExecutor
         var cancellationToken = context.CancellationToken;
         var task = context.Task;
 
-        var sourceFilePath = Path.Combine(_paths.DataPath, task.SourceRelativePath);
-        var outputFileName = Path.GetFileNameWithoutExtension(sourceFilePath) + ".mkv";
-        var outputFullPath = Path.Combine(_paths.OutputPath, outputFileName);
-        Directory.CreateDirectory(_paths.OutputPath);
+        var sourceFilePaths = task.Streams.Select(s => s.InputFilePath).Distinct().ToArray();
+        var videoStreamFilePath = task
+            .Streams.Single(s => s.StreamType == StreamType.Video)
+            .InputFilePath;
 
-        var streamIndexes = task.Streams.Select(s => s.StreamIndex).ToArray();
-        if (streamIndexes.Length == 0)
+        if (File.Exists(task.OutputPath))
         {
-            throw new InvalidOperationException(
-                $"No streams provided for encoding task {task.Id}."
-            );
-        }
-
-        var mediaInfo = await MediaManager.GetMediaInfoAsync(sourceFilePath);
-        context.ThrowIfCancellationRequested();
-
-        var selectedStreams = mediaInfo
-            .Streams
-            .Where(s => streamIndexes.Contains(s.Index))
-            .ToArray();
-        if (!selectedStreams.Any())
-        {
-            throw new InvalidOperationException(
-                $"Unable to resolve streams for encoding task {task.Id}."
-            );
-        }
-
-        var videoStream = selectedStreams.FirstOrDefault(s => s.Type == StreamType.Video)
-            ?? throw new InvalidOperationException(
-                $"No video stream found for encoding task {task.Id}."
-            );
-
-        if (File.Exists(outputFullPath))
-        {
-            File.Delete(outputFullPath);
+            File.Delete(task.OutputPath);
         }
 
         var builder = MediaEncodingBuilder
             .Create()
-            .FromFileInput(sourceFilePath)
-            .ToFileOutput(outputFullPath)
+            .ToFileOutput(task.OutputPath)
             .WithVideoCodec(task.VideoCodec)
             .WithHardwareAcceleration(task.HardwareAcceleration, task.Device);
 
-        foreach (var stream in selectedStreams)
+        MediaInfo.Stream? videoStream = null;
+        string? videoSourceFilePath = null;
+        foreach (var sourceFilePath in sourceFilePaths)
         {
-            builder.WithStream(stream);
+            context.ThrowIfCancellationRequested();
+
+            builder.FromFileInput(sourceFilePath);
+
+            var mediaInfo = await MediaManager.GetMediaInfoAsync(sourceFilePath);
+            var sourceFileStreamIndexes = task
+                .Streams.Where(s => s.InputFilePath == sourceFilePath)
+                .Select(s => s.StreamIndex)
+                .ToArray();
+            var selectedStreams = mediaInfo
+                .Streams.Where(s => sourceFileStreamIndexes.Contains(s.Index))
+                .ToArray();
+
+            if (!selectedStreams.Any())
+            {
+                throw new InvalidOperationException(
+                    $"Unable to resolve streams for encoding task {task.Id}."
+                );
+            }
+
+            if (videoStream is null)
+            {
+                videoSourceFilePath = sourceFilePath;
+                videoStream = mediaInfo.Streams.First(s => s.Type == StreamType.Video);
+            }
+
+            foreach (var stream in selectedStreams)
+            {
+                builder.WithStream(stream);
+            }
         }
 
         var info = new EncodingProcessInfo
         {
             Id = task.Id.ToString(),
-            SourcePath = sourceFilePath,
-            OutputPath = outputFullPath,
+            SourcePath = videoSourceFilePath!,
+            OutputPath = task.OutputPath,
             Progress = 0,
             ElapsedTimeSeconds = 0,
             EstimatedTimeSeconds = 0,
@@ -90,8 +87,8 @@ internal sealed class EncodingTaskExecutor
         context.ReportStatus(BackgroundTaskStatus.Running);
         context.SetPayload(info);
 
-    var lastErrorLine = string.Empty;
-    var process = builder.Encode();
+        var lastErrorLine = string.Empty;
+        var process = builder.Encode();
 
         process.OutputDataReceived += (sender, data) =>
         {
@@ -110,7 +107,7 @@ internal sealed class EncodingTaskExecutor
 
             _logger.LogInformation(data);
 
-            var progress = MediaHelper.ParseProgress(data, videoStream);
+            var progress = MediaHelper.ParseProgress(data, videoStream!);
             if (progress.HasValue)
             {
                 info.Progress = progress.Value;
@@ -120,7 +117,10 @@ internal sealed class EncodingTaskExecutor
                 if (progressFraction > 0)
                 {
                     var totalEstimate = info.ElapsedTimeSeconds / progressFraction;
-                    info.EstimatedTimeSeconds = Math.Max(0, totalEstimate - info.ElapsedTimeSeconds);
+                    info.EstimatedTimeSeconds = Math.Max(
+                        0,
+                        totalEstimate - info.ElapsedTimeSeconds
+                    );
                 }
                 else
                 {
@@ -148,7 +148,7 @@ internal sealed class EncodingTaskExecutor
                     ex,
                     "Failed to kill encoding process {TaskId} for {SourcePath}",
                     info.Id,
-                    sourceFilePath
+                    videoSourceFilePath
                 );
             }
         });
@@ -158,10 +158,7 @@ internal sealed class EncodingTaskExecutor
             var result = await process.WaitForExitAsync(cancellationToken);
 
             info.Progress = 100;
-            info.ElapsedTimeSeconds = Math.Max(
-                0,
-                (DateTime.UtcNow - startTime).TotalSeconds
-            );
+            info.ElapsedTimeSeconds = Math.Max(0, (DateTime.UtcNow - startTime).TotalSeconds);
             info.EstimatedTimeSeconds = 0;
 
             context.SetPayload(info);
@@ -220,7 +217,7 @@ internal sealed class EncodingTaskExecutor
                 ex,
                 "Encoding task {TaskId} failed for {SourcePath}: {Message}",
                 info.Id,
-                sourceFilePath,
+                videoSourceFilePath,
                 context.State.ErrorMessage
             );
 

@@ -6,24 +6,33 @@ namespace Haas.Media.Downloader.Api.Encodings;
 
 public class EncodingService : IEncodingApi
 {
-    private readonly EncodingPaths _paths;
+    private readonly string _dataPath;
+    private readonly string _encodingsPath;
     private readonly IBackgroundTaskManager _backgroundTaskManager;
     private readonly ILogger<EncodingService> _logger;
 
     public EncodingService(
-        EncodingPaths paths,
         IBackgroundTaskManager backgroundTaskManager,
+        IConfiguration configuration,
         ILogger<EncodingService> logger
     )
     {
-        _paths = paths;
+        _dataPath =
+            configuration["DATA_DIRECTORY"]
+            ?? throw new ArgumentException("DATA_DIRECTORY configuration is required.");
+
+        _encodingsPath = Path.Combine(_dataPath, "Encodings");
+        
         _backgroundTaskManager = backgroundTaskManager;
         _logger = logger;
+
+        Directory.CreateDirectory(_encodingsPath);
+        _logger.LogInformation("Encoding service initialized with path: {EncodingsPath}", _encodingsPath);
     }
 
     public async Task<EncodingInfo> GetEncodingInfoAsync(string relativePath)
     {
-        var path = Path.Combine(_paths.DataPath, relativePath);
+        var path = Path.Combine(_dataPath, relativePath);
         var isDirectory = Directory.Exists(path);
 
         var filesInfo =
@@ -38,7 +47,7 @@ public class EncodingService : IEncodingApi
             .Select(f =>
             {
                 var fileInfo = new FileInfo(f);
-                var relative = Path.GetRelativePath(_paths.DataPath, f);
+                var relative = Path.GetRelativePath(_dataPath, f);
                 return new EncodingInfo.MediaFileInfo
                 {
                     Name = fileInfo.Name,
@@ -54,7 +63,7 @@ public class EncodingService : IEncodingApi
         foreach (var file in files)
         {
             file.MediaInfo = await MediaManager.GetMediaInfoAsync(
-                Path.Combine(_paths.DataPath, file.RelativePath)
+                Path.Combine(_dataPath, file.RelativePath)
             );
         }
 
@@ -73,10 +82,7 @@ public class EncodingService : IEncodingApi
 
         if (request.Streams is null || request.Streams.Length == 0)
         {
-            throw new ArgumentException(
-                "At least one stream must be specified",
-                nameof(request)
-            );
+            throw new ArgumentException("At least one stream must be specified", nameof(request));
         }
 
         ct.ThrowIfCancellationRequested();
@@ -99,19 +105,31 @@ public class EncodingService : IEncodingApi
         {
             ct.ThrowIfCancellationRequested();
 
-            var fileStreams = request
-                .Streams.Where(x => x.InputFilePath == videoFile)
+            var fileStreams = request.Streams.Where(x => x.InputFilePath == videoFile).ToArray();
+
+            var taskStreams = fileStreams
+                .Select(s => new EncodingTask.Stream
+                {
+                    InputFilePath = Path.Combine(_dataPath, s.InputFilePath),
+                    StreamIndex = s.StreamIndex,
+                    StreamType = s.StreamType,
+                })
                 .ToArray();
 
+            var outputFileName = Path.GetFileNameWithoutExtension(videoFile) + ".mkv";
+            var outputFullPath = Path.Combine(_encodingsPath, outputFileName);
+
             var encodingTask = new EncodingTask(
-                videoFile,
-                fileStreams,
+                outputFullPath,
+                taskStreams,
                 request.VideoCodec,
                 request.HardwareAcceleration,
                 request.Device
             );
 
-            var taskId = _backgroundTaskManager.RunTask<EncodingTask, EncodingProcessInfo>(encodingTask);
+            var taskId = _backgroundTaskManager.RunTask<EncodingTask, EncodingProcessInfo>(
+                encodingTask
+            );
             _logger.LogInformation(
                 "Queued encoding task {TaskId} for {SourcePath}",
                 taskId,
@@ -128,10 +146,9 @@ public class EncodingService : IEncodingApi
 
         return tasks
             .OfType<BackgroundTaskState<EncodingProcessInfo>>()
-            .Where(
-                t =>
-                    t.Status is BackgroundTaskStatus.Pending or BackgroundTaskStatus.Running
-                    && t.Payload is not null
+            .Where(t =>
+                t.Status is BackgroundTaskStatus.Pending or BackgroundTaskStatus.Running
+                && t.Payload is not null
             )
             .Select(t => t.Payload!)
             .ToArray();
@@ -147,10 +164,7 @@ public class EncodingService : IEncodingApi
 
         if (_backgroundTaskManager.CancelTask(taskId))
         {
-            _logger.LogInformation(
-                "Cancellation requested for encoding task {TaskId}",
-                taskId
-            );
+            _logger.LogInformation("Cancellation requested for encoding task {TaskId}", taskId);
         }
         else
         {

@@ -7,7 +7,7 @@ using TMDbLib.Objects.Search;
 namespace Haas.Media.Downloader.Api.Metadata;
 
 internal sealed class MetadataScanTaskExecutor
-    : IBackgroundWorker<MetadataScanTask, ScanOperationInfo>
+    : IBackgroundTaskExecutor<MetadataScanTask, ScanOperationInfo>
 {
     private readonly string _dataPath;
     private readonly ILiteCollection<LibraryInfo> _librariesCollection;

@@ -3,7 +3,7 @@ using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 namespace Haas.Media.Downloader.Api.Files;
 
 internal sealed class CopyOperationTaskExecutor
-    : IBackgroundWorker<CopyOperationTask, CopyOperationInfo>
+    : IBackgroundTaskExecutor<CopyOperationTask, CopyOperationInfo>
 {
     private readonly ILogger<CopyOperationTaskExecutor> _logger;
 
