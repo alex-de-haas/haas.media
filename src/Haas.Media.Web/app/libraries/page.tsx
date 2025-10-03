@@ -129,7 +129,7 @@ export default function LibrariesPage() {
       notify({
         title: "Scan In Progress",
         message: "A library scan is already running. Please wait for it to finish before starting a new one.",
-        type: "info",
+        type: "success",
       });
       return;
     }
@@ -245,7 +245,6 @@ export default function LibrariesPage() {
       )}
 
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold tracking-tight">Your Libraries</h2>
         <LibraryList
           libraries={libraries}
           onEdit={(library) => {
