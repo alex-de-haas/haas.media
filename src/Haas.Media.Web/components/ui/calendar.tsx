@@ -181,12 +181,12 @@ export function CalendarBody<T>({ features, children, onSelectDate, selectedDate
     const hasFeatures = featuresForDay.length > 0;
 
     days.push(
-      <div className="relative aspect-square overflow-hidden border-r border-t" key={`day-${day}`}>
+      <div className="relative aspect-square border-r border-t" key={`day-${day}`}>
         <button
           className={cn(
-            "group flex h-full w-full flex-col gap-2 rounded-md p-3 text-left text-xs text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            "group flex h-full w-full flex-col gap-2 p-3 text-left text-xs text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             hasFeatures ? "bg-muted/50 hover:bg-muted" : "bg-background hover:bg-muted/40",
-            isSelected && "border border-primary/60 bg-primary/10 text-foreground"
+            isSelected && "ring-2 ring-inset ring-primary/60 bg-primary/10 text-foreground"
           )}
           onClick={() => onSelectDate?.(date)}
           type="button"
