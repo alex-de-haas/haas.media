@@ -1,112 +1,29 @@
-using System.Collections.Concurrent;
 using Haas.Media.Core;
 using Haas.Media.Core.Helpers;
-using Instances;
-using Microsoft.AspNetCore.SignalR;
+using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 
 namespace Haas.Media.Downloader.Api.Encodings;
 
-public class EncodingService : IEncodingApi, IHostedService, IDisposable
+public class EncodingService : IEncodingApi
 {
-    private readonly string _dataPath;
-    private readonly string _outputPath;
-    private readonly ConcurrentDictionary<IProcessInstance, EncodingProcessInfo> _activeProcesses =
-        new();
-    private readonly ConcurrentDictionary<IProcessInstance, DateTime> _processStartTimes = new();
-    private readonly IHubContext<EncodingHub> _hubContext;
-    private readonly IHostApplicationLifetime _applicationLifetime;
+    private readonly EncodingPaths _paths;
+    private readonly IBackgroundTaskManager _backgroundTaskManager;
     private readonly ILogger<EncodingService> _logger;
-    private bool _disposed = false;
 
     public EncodingService(
-        IConfiguration configuration,
-        IHubContext<EncodingHub> hubContext,
-        IHostApplicationLifetime applicationLifetime,
+        EncodingPaths paths,
+        IBackgroundTaskManager backgroundTaskManager,
         ILogger<EncodingService> logger
     )
     {
-        _dataPath =
-            configuration["DATA_DIRECTORY"]
-            ?? throw new ArgumentException("DATA_DIRECTORY configuration is required.");
-
-        _outputPath = Path.Combine(_dataPath, "output");
-
-        // Ensure directories exist
-        Directory.CreateDirectory(_outputPath);
-
-        _hubContext = hubContext;
-        _applicationLifetime = applicationLifetime;
-        this._logger = logger;
-    }
-
-    public Task StartAsync(CancellationToken cancellationToken)
-    {
-        // Register for application shutdown events as an additional safety measure
-        _applicationLifetime.ApplicationStopping.Register(() =>
-        {
-            CleanupActiveProcesses();
-        });
-
-        // HostedService start hook - no background work required currently.
-        return Task.CompletedTask;
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        CleanupActiveProcesses();
-        return Task.CompletedTask;
-    }
-
-    public void Dispose()
-    {
-        if (!_disposed)
-        {
-            CleanupActiveProcesses();
-            _disposed = true;
-        }
-    }
-
-    private void CleanupActiveProcesses()
-    {
-        // Capture current entries to avoid collection-modified issues and to allow cleanup of output files
-        var entries = _activeProcesses.ToArray();
-
-        foreach (var kvp in entries)
-        {
-            var process = kvp.Key;
-            try
-            {
-                process.Kill();
-            }
-            catch (Exception ex)
-            {
-                // Log or handle the exception as needed
-                Console.WriteLine($"Error killing process: {ex.Message}");
-            }
-        }
-
-        // Remove output files for any encodings that were active
-        foreach (var kvp in entries)
-        {
-            try
-            {
-                var info = kvp.Value;
-                if (File.Exists(info.OutputPath))
-                    File.Delete(info.OutputPath);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error deleting output file during cleanup: {ex.Message}");
-            }
-        }
-
-        _activeProcesses.Clear();
-        _processStartTimes.Clear();
+        _paths = paths;
+        _backgroundTaskManager = backgroundTaskManager;
+        _logger = logger;
     }
 
     public async Task<EncodingInfo> GetEncodingInfoAsync(string relativePath)
     {
-        var path = Path.Combine(_dataPath, relativePath);
+        var path = Path.Combine(_paths.DataPath, relativePath);
         var isDirectory = Directory.Exists(path);
 
         var filesInfo =
@@ -121,11 +38,11 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
             .Select(f =>
             {
                 var fileInfo = new FileInfo(f);
-                var relativePath = Path.GetRelativePath(_dataPath, f);
+                var relative = Path.GetRelativePath(_paths.DataPath, f);
                 return new EncodingInfo.MediaFileInfo
                 {
                     Name = fileInfo.Name,
-                    RelativePath = relativePath,
+                    RelativePath = relative,
                     Size = fileInfo.Length,
                     LastModified = fileInfo.LastWriteTimeUtc,
                     Extension = fileInfo.Extension,
@@ -137,7 +54,7 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
         foreach (var file in files)
         {
             file.MediaInfo = await MediaManager.GetMediaInfoAsync(
-                Path.Combine(_dataPath, file.RelativePath)
+                Path.Combine(_paths.DataPath, file.RelativePath)
             );
         }
 
@@ -150,135 +67,99 @@ public class EncodingService : IEncodingApi, IHostedService, IDisposable
         return result;
     }
 
-    public async Task StartEncodingAsync(EncodeRequest request, CancellationToken ct = default)
+    public Task StartEncodingAsync(EncodeRequest request, CancellationToken ct = default)
     {
-        if (request.Streams == null || request.Streams.Length == 0)
-            throw new ArgumentException("At least one stream must be specified", nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (request.Streams is null || request.Streams.Length == 0)
+        {
+            throw new ArgumentException(
+                "At least one stream must be specified",
+                nameof(request)
+            );
+        }
+
+        ct.ThrowIfCancellationRequested();
 
         var videoFiles = request
             .Streams.Where(x => x.StreamType == StreamType.Video)
             .Select(x => x.InputFilePath)
+            .Distinct()
             .ToArray();
+
         if (videoFiles.Length == 0)
+        {
             throw new ArgumentException(
                 "At least one video file must be specified",
                 nameof(request)
             );
+        }
 
         foreach (var videoFile in videoFiles)
         {
-            var sourceFilePath = Path.Combine(_dataPath, videoFile);
-            var streamIndexes = request
+            ct.ThrowIfCancellationRequested();
+
+            var fileStreams = request
                 .Streams.Where(x => x.InputFilePath == videoFile)
-                .Select(x => x.StreamIndex)
                 .ToArray();
-            var mediaInfo = await MediaManager.GetMediaInfoAsync(sourceFilePath);
-            var outputFileName = Path.GetFileNameWithoutExtension(sourceFilePath) + ".mkv";
-            var outputFullPath = Path.Combine(_outputPath, outputFileName);
-            File.Delete(outputFullPath);
 
-            var builder = MediaEncodingBuilder
-                .Create()
-                .FromFileInput(sourceFilePath)
-                .ToFileOutput(outputFullPath)
-                .WithVideoCodec(request.VideoCodec)
-                .WithHardwareAcceleration(request.HardwareAcceleration, request.Device);
+            var encodingTask = new EncodingTask(
+                videoFile,
+                fileStreams,
+                request.VideoCodec,
+                request.HardwareAcceleration,
+                request.Device
+            );
 
-            var streams = mediaInfo.Streams.Where(s => streamIndexes.Contains(s.Index)).ToArray();
-            foreach (var stream in streams)
-            {
-                builder.WithStream(stream);
-            }
-
-            var videoStream = streams.First(s => s.Type == StreamType.Video);
-            var process = builder.Encode();
-
-            process.OutputDataReceived += (sender, data) =>
-            {
-                _logger.LogInformation(data);
-            };
-
-            process.ErrorDataReceived += async (sender, data) =>
-            {
-                _logger.LogInformation(data);
-                var progress = MediaHelper.ParseProgress(data, videoStream);
-                if (progress.HasValue)
-                {
-                    if (_activeProcesses.TryGetValue(process, out var info))
-                    {
-                        info.Progress = progress.Value;
-                        if (_processStartTimes.TryGetValue(process, out var start))
-                        {
-                            var elapsed = DateTime.UtcNow - start;
-                            info.ElapsedTimeSeconds = Math.Max(0, elapsed.TotalSeconds);
-                            var progressFraction = info.Progress / 100.0;
-                            if (progressFraction > 0)
-                            {
-                                var totalEstimate = elapsed.TotalSeconds / progressFraction;
-                                info.EstimatedTimeSeconds = Math.Max(
-                                    0,
-                                    totalEstimate - elapsed.TotalSeconds
-                                );
-                            }
-                        }
-                        await _hubContext.Clients.All.SendAsync("EncodingUpdated", info);
-                    }
-                }
-            };
-            process.Exited += async (sender, args) =>
-            {
-                _logger.LogInformation($"Process exited with code {args.ExitCode}");
-                if (_activeProcesses.TryRemove(process, out var info))
-                {
-                    if (_processStartTimes.TryRemove(process, out var start))
-                    {
-                        var elapsed = DateTime.UtcNow - start;
-                        info.ElapsedTimeSeconds = Math.Max(0, elapsed.TotalSeconds);
-                        info.EstimatedTimeSeconds = 0;
-                    }
-                    await _hubContext.Clients.All.SendAsync("EncodingCompleted", info);
-                }
-            };
-
-            var info = new EncodingProcessInfo
-            {
-                Id = Guid.CreateVersion7().ToString(),
-                SourcePath = sourceFilePath,
-                OutputPath = outputFullPath,
-                Progress = 0,
-                ElapsedTimeSeconds = 0,
-                EstimatedTimeSeconds = 0,
-            };
-            _activeProcesses.TryAdd(process, info);
-            _processStartTimes.TryAdd(process, DateTime.UtcNow);
-            // Broadcast initial state so clients see the encoding as soon as it starts
-            _ = _hubContext.Clients.All.SendAsync("EncodingUpdated", info);
+            var taskId = _backgroundTaskManager.RunTask<EncodingTask, EncodingProcessInfo>(encodingTask);
+            _logger.LogInformation(
+                "Queued encoding task {TaskId} for {SourcePath}",
+                taskId,
+                videoFile
+            );
         }
+
+        return Task.CompletedTask;
     }
 
     public EncodingProcessInfo[] GetEncodingsAsync()
     {
-        return _activeProcesses.Values.ToArray();
+        var tasks = _backgroundTaskManager.GetTasks(nameof(EncodingTask));
+
+        return tasks
+            .OfType<BackgroundTaskState<EncodingProcessInfo>>()
+            .Where(
+                t =>
+                    t.Status is BackgroundTaskStatus.Pending or BackgroundTaskStatus.Running
+                    && t.Payload is not null
+            )
+            .Select(t => t.Payload!)
+            .ToArray();
     }
 
-    public async Task StopEncodingAsync(string id)
+    public Task StopEncodingAsync(string id)
     {
-        var processToStop = _activeProcesses
-            .Where(kvp => kvp.Value.Id == id)
-            .Select(kvp => kvp.Key)
-            .FirstOrDefault();
-
-        if (processToStop != null)
+        if (!Guid.TryParse(id, out var taskId))
         {
-            processToStop.Kill();
-            if (_activeProcesses.TryRemove(processToStop, out var info))
-            {
-                _processStartTimes.TryRemove(processToStop, out _);
-                if (File.Exists(info.OutputPath))
-                    File.Delete(info.OutputPath);
-
-                await _hubContext.Clients.All.SendAsync("EncodingDeleted", info);
-            }
+            _logger.LogWarning("Invalid encoding task id {TaskId}", id);
+            return Task.CompletedTask;
         }
+
+        if (_backgroundTaskManager.CancelTask(taskId))
+        {
+            _logger.LogInformation(
+                "Cancellation requested for encoding task {TaskId}",
+                taskId
+            );
+        }
+        else
+        {
+            _logger.LogWarning(
+                "Encoding task {TaskId} could not be found for cancellation",
+                taskId
+            );
+        }
+
+        return Task.CompletedTask;
     }
 }

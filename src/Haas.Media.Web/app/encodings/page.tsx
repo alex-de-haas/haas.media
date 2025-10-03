@@ -3,7 +3,10 @@
 import React from "react";
 import { getValidToken } from "@/lib/auth/token";
 import { downloaderApi } from "@/lib/api";
+import type { BackgroundTaskInfo } from "@/types";
+import { BackgroundTaskStatus } from "@/types";
 import type { EncodingProcessInfo } from "@/types/encoding";
+import { isEncodingInfo, isEncodingInfoArray } from "@/types/encoding";
 import { useEncodingActions } from "@/features/media/hooks";
 import {
   HubConnection,
@@ -37,65 +40,76 @@ export default function EncodingsPage() {
     let connection: HubConnection | null = null;
     let mounted = true;
 
+    const removeEncodingByTask = (task: BackgroundTaskInfo) => {
+      setEncodings((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        const next = prev.filter((encoding) => encoding.id !== task.id);
+        return next;
+      });
+    };
+
+    const upsertEncodingFromTask = (task: BackgroundTaskInfo) => {
+      if (task.type !== "EncodingTask") {
+        return;
+      }
+
+      if (
+        task.status !== BackgroundTaskStatus.Pending &&
+        task.status !== BackgroundTaskStatus.Running
+      ) {
+        removeEncodingByTask(task);
+        return;
+      }
+
+      const payload = task.payload;
+      if (!payload || !isEncodingInfo(payload)) {
+        return;
+      }
+
+      const info = payload as EncodingProcessInfo;
+
+      setEncodings((prev) => {
+        const existing = prev ?? [];
+        const idx = existing.findIndex(
+          (encoding) =>
+            encoding.id === info.id && encoding.outputPath === info.outputPath
+        );
+        if (idx === -1) {
+          return [info, ...existing];
+        }
+        const copy = [...existing];
+        copy[idx] = info;
+        return copy;
+      });
+    };
+
     async function init() {
       setLoading(true);
       setError(null);
       try {
-        const t = await getValidToken();
+        const token = await getValidToken();
 
-        // initial fetch to populate list
         const headers: Record<string, string> = {};
-        if (t) headers.Authorization = `Bearer ${t}`;
+        if (token) headers.Authorization = `Bearer ${token}`;
         const res = await fetch(`${downloaderApi}/api/encodings`, { headers });
         if (!res.ok) throw new Error(res.statusText);
-        const data = await res.json();
+  const data = await res.json();
         if (!mounted) return;
-        setEncodings(data ?? []);
+  const initialEncodings = isEncodingInfoArray(data) ? data : [];
+  setEncodings(initialEncodings);
 
-        // setup SignalR connection
         connection = new HubConnectionBuilder()
-          .withUrl(`${downloaderApi}/hub/encodings`, {
-            accessTokenFactory: () => t ?? "",
+          .withUrl(`${downloaderApi}/hub/background-tasks?type=EncodingTask`, {
+            accessTokenFactory: () => token ?? "",
           })
           .configureLogging(LogLevel.Information)
           .withAutomaticReconnect()
           .build();
 
-        connection.on("EncodingUpdated", (info: EncodingProcessInfo) => {
-          setEncodings((prev) => {
-            const existing = prev ?? [];
-            const idx = existing.findIndex(
-              (e) =>
-                e.id === info.id && e.outputPath === info.outputPath
-            );
-            if (idx === -1) {
-              return [info, ...existing];
-            }
-            const copy = [...existing];
-            copy[idx] = info;
-            return copy;
-          });
-        });
-
-        connection.on("EncodingDeleted", (info: EncodingProcessInfo) => {
-          setEncodings((prev) => {
-            const existing = prev ?? [];
-            return existing.filter(
-              (e) =>
-                !(e.id === info.id && e.outputPath === info.outputPath)
-            );
-          });
-        });
-
-        connection.on("EncodingCompleted", (info: EncodingProcessInfo) => {
-          setEncodings((prev) => {
-            const existing = prev ?? [];
-            return existing.filter(
-              (e) =>
-                !(e.id === info.id && e.outputPath === info.outputPath)
-            );
-          });
-        });
+        connection.on("TaskUpdated", upsertEncodingFromTask);
 
         await connection.start();
       } catch (err) {
@@ -112,6 +126,7 @@ export default function EncodingsPage() {
     return () => {
       mounted = false;
       if (connection) {
+        connection.off("TaskUpdated", upsertEncodingFromTask);
         connection.stop().catch(() => {});
       }
     };

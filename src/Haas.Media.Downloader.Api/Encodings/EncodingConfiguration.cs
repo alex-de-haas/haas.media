@@ -1,4 +1,5 @@
 using Haas.Media.Core.FFMpeg;
+using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 
 namespace Haas.Media.Downloader.Api.Encodings;
 
@@ -12,10 +13,26 @@ public static class EncodingConfiguration
                 ?? throw new InvalidOperationException("FFMPEG_BINARY configuration is required")
         );
 
-        // Register FileService and expose as IFileApi. Also register it as a hosted service
+        builder.Services.AddSingleton(sp =>
+        {
+            var configuration = sp.GetRequiredService<IConfiguration>();
+            var dataPath =
+                configuration["DATA_DIRECTORY"]
+                ?? throw new ArgumentException("DATA_DIRECTORY configuration is required.");
+
+            var outputPath = Path.Combine(dataPath, "output");
+            Directory.CreateDirectory(outputPath);
+
+            return new EncodingPaths(dataPath, outputPath);
+        });
+
         builder.Services.AddSingleton<EncodingService>();
         builder.Services.AddSingleton<IEncodingApi>(sp => sp.GetRequiredService<EncodingService>());
-        builder.Services.AddHostedService(sp => sp.GetRequiredService<EncodingService>());
+        builder.Services.AddBackgroundTask<
+            EncodingTask,
+            EncodingProcessInfo,
+            EncodingTaskExecutor
+        >();
 
         return builder;
     }
@@ -69,8 +86,6 @@ public static class EncodingConfiguration
             )
             .WithName("StopAndDeleteEncoding")
             .RequireAuthorization();
-
-        app.MapHub<EncodingHub>("/hub/encodings").RequireAuthorization();
 
         return app;
     }
