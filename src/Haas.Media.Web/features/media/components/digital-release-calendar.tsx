@@ -26,7 +26,7 @@ import { useMovies } from "@/features/media/hooks";
 import type { MovieMetadata } from "@/types/metadata";
 import { cn } from "@/lib/utils";
 
-type MovieFeature = Feature<{ movie: MovieMetadata }>;
+type MovieFeature = Feature<{ movie: MovieMetadata; releaseType: 'theatrical' | 'digital' }>;
 
 const STATUSES: Record<"upcoming" | "released", Status> = {
   upcoming: {
@@ -135,26 +135,41 @@ export default function DigitalReleaseCalendar() {
     const items: MovieFeature[] = [];
 
     for (const movie of movies) {
-      if (!movie.digitalReleaseDate) {
-        continue;
+      // Add theatrical release date
+      if (movie.releaseDate) {
+        const parsed = new Date(movie.releaseDate);
+        if (!Number.isNaN(parsed.getTime())) {
+          const normalized = startOfDay(parsed);
+          const status = isAfter(normalized, today) ? STATUSES.upcoming : STATUSES.released;
+
+          items.push({
+            id: `${movie.id}-theatrical`,
+            name: movie.title,
+            startAt: normalized,
+            endAt: normalized,
+            status,
+            data: { movie, releaseType: 'theatrical' as const },
+          });
+        }
       }
 
-      const parsed = new Date(movie.digitalReleaseDate);
-      if (Number.isNaN(parsed.getTime())) {
-        continue;
+      // Add digital release date
+      if (movie.digitalReleaseDate) {
+        const parsed = new Date(movie.digitalReleaseDate);
+        if (!Number.isNaN(parsed.getTime())) {
+          const normalized = startOfDay(parsed);
+          const status = isAfter(normalized, today) ? STATUSES.upcoming : STATUSES.released;
+
+          items.push({
+            id: `${movie.id}-digital`,
+            name: movie.title,
+            startAt: normalized,
+            endAt: normalized,
+            status,
+            data: { movie, releaseType: 'digital' as const },
+          });
+        }
       }
-
-      const normalized = startOfDay(parsed);
-      const status = isAfter(normalized, today) ? STATUSES.upcoming : STATUSES.released;
-
-      items.push({
-        id: movie.id,
-        name: movie.title,
-        startAt: normalized,
-        endAt: normalized,
-        status,
-        data: { movie },
-      });
     }
 
     return items;
@@ -252,7 +267,7 @@ export default function DigitalReleaseCalendar() {
   if (error) {
     return (
       <Alert variant="destructive">
-        <AlertTitle>Unable to load digital releases</AlertTitle>
+        <AlertTitle>Unable to load releases</AlertTitle>
         <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
@@ -261,8 +276,8 @@ export default function DigitalReleaseCalendar() {
   if (releaseDates.length === 0) {
     return (
       <Alert>
-        <AlertTitle>No digital releases found</AlertTitle>
-        <AlertDescription>Add movies with digital release dates to see them appear here.</AlertDescription>
+        <AlertTitle>No releases found</AlertTitle>
+        <AlertDescription>Add movies with release dates to see them appear here.</AlertDescription>
       </Alert>
     );
   }
@@ -293,24 +308,46 @@ export default function DigitalReleaseCalendar() {
               onSelectDate={handleCalendarBodySelect}
               {...(selectedDate ? { selectedDate } : {})}
             >
-              {({ feature, isSelected }) => (
-                <div
-                  className={cn(
-                    "flex items-center gap-2 rounded-md px-2 py-1 text-[0.7rem] font-medium transition-colors",
-                    feature.status.id === STATUSES.upcoming.id
-                      ? "bg-primary/15 text-primary"
-                      : "bg-muted text-muted-foreground",
-                    isSelected && "ring-1 ring-primary/50"
-                  )}
-                >
-                  <span className="truncate">{feature.name}</span>
-                </div>
-              )}
+              {({ feature, isSelected }) => {
+                const isDigital = feature.data?.releaseType === 'digital';
+                return (
+                  <div
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-md px-2 py-1 text-[0.7rem] font-medium transition-colors",
+                      feature.status.id === STATUSES.upcoming.id
+                        ? "bg-primary/15 text-primary"
+                        : "bg-muted text-muted-foreground",
+                      isSelected && "ring-1 ring-primary/50"
+                    )}
+                  >
+                    <span 
+                      className={cn(
+                        "h-1.5 w-1.5 rounded-full flex-shrink-0",
+                        isDigital ? "bg-purple-500" : "bg-blue-500"
+                      )}
+                      title={isDigital ? "Digital Release" : "Theatrical Release"}
+                    />
+                    <span className="truncate">{feature.name}</span>
+                  </div>
+                );
+              }}
             </CalendarBody>
           </CalendarProvider>
-          <p className="mt-4 text-sm text-muted-foreground">
-            Dates with color accents indicate digital releases. Pick a day to explore the scheduled titles.
-          </p>
+          <div className="mt-4 space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Dates with color accents indicate movie releases. Pick a day to explore theatrical and digital releases.
+            </p>
+            <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-blue-500" />
+                <span>Theatrical Release</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-purple-500" />
+                <span>Digital Release</span>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -322,8 +359,8 @@ export default function DigitalReleaseCalendar() {
           <p className="text-sm text-muted-foreground">
             {selectedDate
               ? selectedFeatures.length > 0
-                ? `${selectedFeatures.length} digital ${selectedFeatures.length === 1 ? "release" : "releases"} scheduled`
-                : "No digital releases scheduled for this day"
+                ? `${selectedFeatures.length} ${selectedFeatures.length === 1 ? "release" : "releases"} scheduled`
+                : "No releases scheduled for this day"
               : "Choose a highlighted date to view scheduled releases."}
           </p>
         </div>
@@ -332,11 +369,13 @@ export default function DigitalReleaseCalendar() {
           <div className="grid gap-4">
             {selectedFeatures.map((feature) => {
               const movie = feature.data?.movie;
-              if (!movie) {
+              const releaseType = feature.data?.releaseType;
+              if (!movie || !releaseType) {
                 return null;
               }
 
               const isUpcoming = feature.status.id === STATUSES.upcoming.id;
+              const isDigital = releaseType === 'digital';
 
               return (
                 <Card key={feature.id} className={cn("border-border/70", isUpcoming ? "border-primary/40" : undefined)}>
@@ -344,6 +383,9 @@ export default function DigitalReleaseCalendar() {
                     <div className="flex flex-wrap items-center gap-2">
                       <CardTitle className="text-xl font-semibold leading-tight">{feature.name}</CardTitle>
                       <Badge variant={isUpcoming ? "outline" : "secondary"}>{feature.status.name}</Badge>
+                      <Badge variant="secondary" className={cn(isDigital ? "bg-purple-500/10 text-purple-700 dark:text-purple-300" : "bg-blue-500/10 text-blue-700 dark:text-blue-300")}>
+                        {isDigital ? "Digital" : "Theatrical"}
+                      </Badge>
                     </div>
                     {movie.originalTitle && movie.originalTitle !== feature.name && (
                       <span className="text-sm text-muted-foreground">
@@ -351,7 +393,7 @@ export default function DigitalReleaseCalendar() {
                       </span>
                     )}
                     <span className="text-sm text-muted-foreground">
-                      Digital release: {format(feature.endAt, "MMMM d, yyyy")}
+                      {isDigital ? "Digital" : "Theatrical"} release: {format(feature.endAt, "MMMM d, yyyy")}
                     </span>
                   </CardHeader>
                   <CardContent className="space-y-3 text-sm text-muted-foreground">

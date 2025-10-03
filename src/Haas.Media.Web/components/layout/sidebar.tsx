@@ -77,7 +77,7 @@ const navigationItems = [
     icon: TvMinimalPlay,
   },
   {
-    name: "Digital Releases",
+    name: "Releases Calendar",
     href: "/releases",
     icon: CalendarDays,
   },

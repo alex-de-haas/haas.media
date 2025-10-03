@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui";
 
 export default function DigitalReleasesPage() {
-  usePageTitle("Digital Releases");
+  usePageTitle("Releases Calendar");
 
   return (
     <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
