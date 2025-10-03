@@ -1,14 +1,16 @@
 "use client";
 
 import { useMemo } from "react";
-import { Cpu } from "lucide-react";
+import { ArrowRight, Cpu } from "lucide-react";
 import { useEncodingProcesses } from "@/features/media/hooks";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDuration } from "@/lib/utils";
 import type { EncodingProcessInfo } from "@/types/encoding";
+import { Button } from "../ui/button";
+import Link from "next/link";
 
 const clampProgress = (value: number): number => (Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : 0);
 
@@ -45,20 +47,24 @@ export function EncodingDashboardWidget() {
             </div>
             <Progress value={metrics.averageProgress} aria-label="Average encoding progress" className="h-2" />
             <p className="text-xs text-muted-foreground">
-              {metrics.nextCompletion != null ? `Next completion in ${formatDuration(metrics.nextCompletion)}` : "Calculating completion estimate"}
+              {metrics.nextCompletion != null
+                ? `Next completion in ${formatDuration(metrics.nextCompletion)}`
+                : "Calculating completion estimate"}
             </p>
           </div>
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {showSkeleton ? (
-          <WidgetSkeleton />
-        ) : hasEncodings ? (
-          <StatsSummary metrics={metrics} />
-        ) : (
-          <EmptyState error={error} />
-        )}
+        {showSkeleton ? <WidgetSkeleton /> : hasEncodings ? <StatsSummary metrics={metrics} /> : <EmptyState error={error} />}
       </CardContent>
+      <CardFooter className="text-xs text-muted-foreground">
+        <Button variant="outline" asChild>
+          <Link href="/encodings">
+            View all encodings
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
+      </CardFooter>
     </Card>
   );
 }
@@ -78,11 +84,7 @@ function StatsSummary({ metrics }: { metrics: ReturnType<typeof computeMetrics> 
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-3">
         <StatTile label="Active encodings" value={count.toString()} description="Tracked across all workers." />
-        <StatTile
-          label="Average progress"
-          value={`${averageProgress.toFixed(1)}%`}
-          description="Updated with every SignalR event."
-        />
+        <StatTile label="Average progress" value={`${averageProgress.toFixed(1)}%`} description="Updated with every SignalR event." />
         <StatTile
           label="Next completion"
           value={nextCompletion != null ? formatDuration(nextCompletion) : "Estimating…"}

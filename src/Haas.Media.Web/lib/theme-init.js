@@ -15,7 +15,7 @@
     document.addEventListener("DOMContentLoaded", function () {
       document.body.style.visibility = "visible";
     });
-  } catch (e) {
+  } catch {
     // Fallback to light theme if localStorage is not available
     const root = document.documentElement;
     root.classList.add("light");

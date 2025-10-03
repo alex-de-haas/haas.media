@@ -6,28 +6,18 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDuration, formatRate } from "@/lib/utils";
 import type { TorrentInfo } from "@/types";
-import { TorrentState } from "@/types";
+import { ACTIVE_TORRENT_STATES } from "./constants";
 
 interface TorrentOverviewProps {
   torrents: TorrentInfo[];
   loading: boolean;
 }
 
-const ACTIVE_STATES = new Set([
-  TorrentState.Downloading,
-  TorrentState.Seeding,
-  TorrentState.Starting,
-  TorrentState.Hashing,
-  TorrentState.HashingPaused,
-  TorrentState.Metadata,
-  TorrentState.FetchingHashes,
-]);
-
 export function TorrentOverview({ torrents, loading }: TorrentOverviewProps) {
   const metrics = React.useMemo(() => {
     const items = torrents ?? [];
     const total = items.length;
-    const active = items.filter((torrent) => ACTIVE_STATES.has(torrent.state)).length;
+    const active = items.filter((torrent) => ACTIVE_TORRENT_STATES.has(torrent.state)).length;
     const clampedProgress = items.map((torrent) => clampProgress(torrent.progress));
     const averageProgress = total > 0 ? clampedProgress.reduce((sum, value) => sum + value, 0) / total : 0;
 
