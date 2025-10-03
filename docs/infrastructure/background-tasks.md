@@ -16,13 +16,11 @@ public abstract class BackgroundTaskBase
 
     public string Type => GetType().Name;
 
-    public virtual string DisplayName => Type;
-
-    public virtual string InitialStatusMessage => "Pending";
+    public virtual string Name => Type;
 }
 ```
 
-Tasks expose identity and display metadata. Payloads are created and published by workers during execution via the worker context APIs.
+Tasks provide a stable identifier and a friendly name for UI consumption. The generated GUID defaults to version 7 so recent operations sort naturally when rendered.
 
 ### Background Task State
 
@@ -36,22 +34,27 @@ public enum BackgroundTaskStatus
     Cancelled,
 }
 
-public sealed class BackgroundTaskState<TPayload>
+public class BackgroundTaskState
 {
     public required Guid Id { get; init; }
     public required string Type { get; init; }
     public required string Name { get; init; }
 
-    public TPayload? Payload { get; set; }
     public BackgroundTaskStatus Status { get; set; }
     public double Progress { get; set; }
-    public string? StatusMessage { get; set; }
     public string? ErrorMessage { get; set; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
 }
+
+public sealed class BackgroundTaskState<TPayload> : BackgroundTaskState
+{
+    public TPayload? Payload { get; set; }
+}
 ```
+
+Active operations mutate a shared `BackgroundTaskState<TPayload>` instance. When serialized the generic subclass exposes a `payload` property beside the common metadata so clients receive the domain-specific payload on every update.
 
 ### Background Worker Context
 
@@ -62,26 +65,24 @@ public sealed class BackgroundWorkerContext<TTask, TPayload>
     internal BackgroundWorkerContext(
         TTask task,
         BackgroundTaskState<TPayload> state,
-        BackgroundTaskContext context
-    ) { … }
+        Action<BackgroundTaskState<TPayload>> onUpdate,
+        CancellationToken cancellationToken)
+    { /* ... */ }
 
     public TTask Task { get; }
     public BackgroundTaskState<TPayload> State { get; }
-    public CancellationToken CancellationToken { get; }
+    public CancellationToken CancellationToken => _cancellationToken;
 
+    public void ThrowIfCancellationRequested();
     public void SetPayload(TPayload payload);
-    public void ReportStatus(string? statusMessage, TPayload? payload = default);
-    public void ReportProgress(double progress, string? statusMessage = null, TPayload? payload = default);
-    public void SetStatus(
-        BackgroundTaskStatus status,
-        string? statusMessage = null,
-        TPayload? payload = default,
-        string? errorMessage = null
-    );
+    public void ReportStatus(BackgroundTaskStatus status);
+    public void ReportProgress(double progress);
 }
 ```
 
-These helpers forward updates to connected SignalR clients via the task manager. Each call produces a `BackgroundTaskState<TPayload>` snapshot which the manager translates into a `BackgroundTaskInfo` broadcast. Clients no longer receive domain-specific payload wrappers—every update represents the full task state (including any payload assigned by the worker).
+`SetPayload` replaces the payload and emits an update, while `ReportStatus` and `ReportProgress` mutate the underlying state before notifying listeners. Workers should call `ThrowIfCancellationRequested` at sensible boundaries so host shutdown or user-initiated cancellation can halt long-running work. The manager automatically stamps completion metadata and marks the task as `Completed`, `Cancelled`, or `Failed` when the worker finishes, throws `OperationCanceledException`, or surfaces any other exception.
+
+Rapid update bursts are throttled: only one broadcast per task is emitted every 500 ms, yet terminal states are flushed immediately so clients never miss the final update.
 
 ### Background Worker Interface
 
@@ -95,35 +96,52 @@ public interface IBackgroundWorker<TTask, TPayload>
 
 ### Background Task Manager
 
-The manager orchestrates task execution, persistence, and worker dispatch.
-
 ```csharp
 public interface IBackgroundTaskManager
 {
-    Guid RunTask<TTask>(TTask task)
+    Guid RunTask<TTask, TPayload>(TTask task)
         where TTask : BackgroundTaskBase;
 
     bool CancelTask(Guid taskId);
 
-    IReadOnlyCollection<BackgroundTaskInfo> GetTasks();
+    IReadOnlyCollection<BackgroundTaskState> GetTasks();
 
-    bool TryGetTask(Guid taskId, out BackgroundTaskInfo? taskInfo);
+    IReadOnlyCollection<BackgroundTaskState> GetTasks(string type);
 
-    event EventHandler<BackgroundTaskInfo>? TaskUpdated;
+    bool TryGetTask(Guid taskId, out BackgroundTaskState? taskState);
 }
 ```
 
-`BackgroundTaskInfo` is the DTO exposed over HTTP/SignalR and contains the task name, type, status, progress, timestamps, payload, and error details.
+`BackgroundTaskManager` is a singleton that also runs as an `IHostedService`. It keeps per-task cancellation tokens, drives worker execution on the thread pool, and stores the latest `BackgroundTaskState` snapshot in memory for HTTP and SignalR callers. When `CancelTask` is invoked it triggers the worker’s cancellation token; if the worker cooperates the manager records the `Cancelled` status and timestamps. `StopAsync` is invoked during host shutdown, cancelling any remaining work and clearing cached state.
+
+## Runtime Endpoints and Hub
+
+`UseBackgroundTasks` wires the HTTP surface and SignalR hub:
+
+- `GET /api/background-tasks` returns all known tasks.
+- `GET /api/background-tasks/{type}` filters by concrete task type (e.g. `CopyOperationTask`).
+- `GET /api/background-tasks/{taskId}` retrieves a specific task by identifier.
+- `DELETE /api/background-tasks/{taskId}` requests cancellation for an active task.
+- SignalR clients connect to `/hub/background-tasks` (optionally adding `?type=<TaskType>`). On connect the hub replays any active tasks before streaming live `TaskUpdated` notifications.
+
+All endpoints require authentication because they expose the same state the hub broadcasts.
 
 ## Configuration
 
-Register workers alongside their task types via DI. The manager resolves workers from a scoped service provider when a task is executed.
+Register the manager and any workers during startup:
 
 ```csharp
 builder.Services.AddBackgroundTasks();
 
-builder.Services.AddBackgroundTask<MetadataScanTask, MetadataScanTaskExecutor>();
-builder.Services.AddBackgroundTask<CopyOperationTask, CopyOperationTaskExecutor>();
+builder.Services.AddBackgroundTask<
+    MetadataScanTask,
+    ScanOperationInfo,
+    MetadataScanTaskExecutor>();
+
+builder.Services.AddBackgroundTask<
+    CopyOperationTask,
+    CopyOperationInfo,
+    CopyOperationTaskExecutor>();
 ```
 
-Workers can depend on scoped services. The manager creates a scope for each execution, ensuring per-task lifetime isolation.
+`AddBackgroundTasks` registers the `BackgroundTaskManager` as both the singleton implementation of `IBackgroundTaskManager` and an `IHostedService`. Each call to `AddBackgroundTask` registers the corresponding worker as a singleton `IBackgroundWorker<TTask, TPayload>`; design workers to be thread-safe if multiple tasks of the same type might run concurrently. Complete the setup by invoking `app.UseBackgroundTasks()` so the hub and HTTP endpoints are available to clients.
