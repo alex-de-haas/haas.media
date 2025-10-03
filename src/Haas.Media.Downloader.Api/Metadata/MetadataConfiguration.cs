@@ -38,6 +38,12 @@ public static class MetadataConfiguration
             MetadataScanTaskExecutor
         >();
 
+        builder.Services.AddBackgroundTask<
+            AddToLibraryTask,
+            AddToLibraryOperationInfo,
+            AddToLibraryTaskExecutor
+        >();
+
         return builder;
     }
 

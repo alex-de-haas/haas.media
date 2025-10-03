@@ -1,8 +1,16 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { getValidToken } from "@/lib/auth/token";
 import { getApiDownloaderUrl } from "@/lib/env";
-import type { MovieMetadata, TVShowMetadata, SearchResult } from "@/types/metadata";
-import type { LibraryType } from "@/types/library";
+import type {
+  MovieMetadata,
+  TVShowMetadata,
+  SearchResult,
+  AddToLibraryResponse,
+  AddToLibraryOperationInfo,
+} from "@/types/metadata";
+import { LibraryType } from "@/types/library";
+import { BackgroundTaskStatus } from "@/types";
+import { useBackgroundTasks } from "@/features/background-tasks/hooks/useBackgroundTasks";
 
 export interface AddToLibraryRequest {
   type: LibraryType;
@@ -37,7 +45,7 @@ export function useAddToLibrary() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const addToLibrary = useCallback(async (request: AddToLibraryRequest) => {
+  const addToLibrary = useCallback(async (request: AddToLibraryRequest): Promise<AddToLibraryResponse> => {
     try {
       setLoading(true);
       setError(null);
@@ -47,7 +55,7 @@ export function useAddToLibrary() {
         body: JSON.stringify(request),
       });
 
-      const result = await response.json();
+      const result = (await response.json()) as AddToLibraryResponse;
       return result;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to add to library";
@@ -65,6 +73,8 @@ export function useMovies(libraryId?: string) {
   const [movies, setMovies] = useState<MovieMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const processedTaskIdsRef = useRef<Set<string>>(new Set());
+  const { tasks: backgroundTasks } = useBackgroundTasks({ enabled: true });
 
   const fetchMovies = useCallback(async () => {
     try {
@@ -87,7 +97,43 @@ export function useMovies(libraryId?: string) {
   }, [libraryId]);
 
   useEffect(() => {
-    fetchMovies();
+    if (backgroundTasks.length === 0) {
+      processedTaskIdsRef.current.clear();
+      return;
+    }
+
+    const processedTaskIds = processedTaskIdsRef.current;
+    let shouldRefetch = false;
+
+    for (const task of backgroundTasks) {
+      if (task.type !== "AddToLibraryTask" || task.status !== BackgroundTaskStatus.Completed) {
+        continue;
+      }
+
+      if (processedTaskIds.has(task.id)) {
+        continue;
+      }
+
+      const payload = task.payload as AddToLibraryOperationInfo | undefined;
+      if (!payload || payload.libraryType !== LibraryType.Movies) {
+        continue;
+      }
+
+      if (libraryId && payload.libraryId !== libraryId) {
+        continue;
+      }
+
+      processedTaskIds.add(task.id);
+      shouldRefetch = true;
+    }
+
+    if (shouldRefetch) {
+      void fetchMovies();
+    }
+  }, [backgroundTasks, fetchMovies, libraryId]);
+
+  useEffect(() => {
+    void fetchMovies();
   }, [fetchMovies]);
 
   return { movies, loading, error, refetch: fetchMovies };
@@ -156,6 +202,8 @@ export function useTVShows(libraryId?: string) {
   const [tvShows, setTVShows] = useState<TVShowMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const processedTaskIdsRef = useRef<Set<string>>(new Set());
+  const { tasks: backgroundTasks } = useBackgroundTasks({ enabled: true });
 
   const fetchTVShows = useCallback(async () => {
     try {
@@ -178,7 +226,43 @@ export function useTVShows(libraryId?: string) {
   }, [libraryId]);
 
   useEffect(() => {
-    fetchTVShows();
+    if (backgroundTasks.length === 0) {
+      processedTaskIdsRef.current.clear();
+      return;
+    }
+
+    const processedTaskIds = processedTaskIdsRef.current;
+    let shouldRefetch = false;
+
+    for (const task of backgroundTasks) {
+      if (task.type !== "AddToLibraryTask" || task.status !== BackgroundTaskStatus.Completed) {
+        continue;
+      }
+
+      if (processedTaskIds.has(task.id)) {
+        continue;
+      }
+
+      const payload = task.payload as AddToLibraryOperationInfo | undefined;
+      if (!payload || payload.libraryType !== LibraryType.TVShows) {
+        continue;
+      }
+
+      if (libraryId && payload.libraryId !== libraryId) {
+        continue;
+      }
+
+      processedTaskIds.add(task.id);
+      shouldRefetch = true;
+    }
+
+    if (shouldRefetch) {
+      void fetchTVShows();
+    }
+  }, [backgroundTasks, fetchTVShows, libraryId]);
+
+  useEffect(() => {
+    void fetchTVShows();
   }, [fetchTVShows]);
 
   return { tvShows, loading, error, refetch: fetchTVShows };

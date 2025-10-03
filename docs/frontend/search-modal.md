@@ -75,6 +75,7 @@ Added search functionality to both Movies and TV Shows pages that allows users t
 - Automatic library detection based on media type
 - Smart library selection (auto-select if only one available)
 - Add search results directly to selected library
+- Metadata additions are queued as background tasks, allowing long-running TMDB fetches to complete without blocking the UI
 - Success feedback and error handling
 
 ### User Experience

@@ -139,6 +139,11 @@ builder.Services.AddBackgroundTask<
     MetadataScanTaskExecutor>();
 
 builder.Services.AddBackgroundTask<
+    AddToLibraryTask,
+    AddToLibraryOperationInfo,
+    AddToLibraryTaskExecutor>();
+
+builder.Services.AddBackgroundTask<
     CopyOperationTask,
     CopyOperationInfo,
     CopyOperationTaskExecutor>();

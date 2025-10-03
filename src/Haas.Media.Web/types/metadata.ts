@@ -1,5 +1,27 @@
 import type { LibraryType } from "./library";
 
+export interface AddToLibraryResponse {
+  operationId: string;
+  message: string;
+}
+
+export interface AddToLibraryOperationInfo {
+  id: string;
+  libraryId: string;
+  libraryType: LibraryType;
+  libraryTitle?: string | null;
+  tmdbId: number;
+  stage: string;
+  startTime: string;
+  title?: string | null;
+  posterPath?: string | null;
+  completedTime?: string | null;
+  totalSeasons?: number | null;
+  processedSeasons?: number | null;
+  totalEpisodes?: number | null;
+  processedEpisodes?: number | null;
+}
+
 export interface SearchResult {
   tmdbId: number;
   title: string;
