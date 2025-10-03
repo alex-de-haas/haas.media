@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, CloudDownload, Cpu, Library, Folder, BadgeCheck } from "lucide-react";
 
 import { usePageTitle } from "@/components/layout";
+import { EncodingDashboardWidget } from "@/components/encoding";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -90,26 +91,32 @@ export default function HomePage() {
           </CardContent>
         </Card>
 
-        <Card className="border-dashed">
-          <CardHeader>
-            <BadgeCheck className="h-10 w-10 text-primary" />
-            <CardTitle className="text-2xl">System status</CardTitle>
-            <CardDescription>Background services are healthy. Connect additional providers to unlock richer automation.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <p>• SignalR notifications are ready for live progress updates.</p>
-            <p>• Web encoders are idling—kick off a job to warm the queue.</p>
-            <p>• Library syncing runs every 30 minutes for fresh metadata.</p>
-          </CardContent>
-          <CardFooter>
-            <Button variant="ghost" className="px-0" asChild>
-              <Link href="/libraries">
-                Review libraries
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardFooter>
-        </Card>
+        <div className="space-y-6">
+          <Card className="border-dashed">
+            <CardHeader>
+              <BadgeCheck className="h-10 w-10 text-primary" />
+              <CardTitle className="text-2xl">System status</CardTitle>
+              <CardDescription>
+                Background services are healthy. Connect additional providers to unlock richer automation.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <p>• SignalR notifications are ready for live progress updates.</p>
+              <p>• Web encoders are idling—kick off a job to warm the queue.</p>
+              <p>• Library syncing runs every 30 minutes for fresh metadata.</p>
+            </CardContent>
+            <CardFooter>
+              <Button variant="ghost" className="px-0" asChild>
+                <Link href="/libraries">
+                  Review libraries
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <EncodingDashboardWidget />
+        </div>
       </section>
 
       <section className="grid gap-6 md:grid-cols-2">
