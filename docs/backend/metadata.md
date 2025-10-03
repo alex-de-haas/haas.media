@@ -158,6 +158,7 @@ See [API.md](../API.md) for endpoint shapes. Service-level behaviour includes:
 - Maintaining `CreatedAt`/`UpdatedAt` timestamps whenever documents change.
 - Enforcing unique TMDb ids across collections (`EnsureIndex`). Duplicate inserts surface as `InvalidOperationException` and return `409 Conflict` to clients.
 - `DeleteMovieMetadataAsync` and `DeleteTVShowMetadataAsync` remove documents by LiteDB id without touching on-disk media.
+- `StartRefreshMetadataAsync` enqueues a background task that re-fetches movie and TV metadata from TMDb. The API endpoint `POST /api/metadata/refresh/start` returns the operation id; progress streams through the background task hub with payloads of type `MetadataRefreshOperationInfo`.
 
 ## Add-to-Library Workflow
 
@@ -192,6 +193,10 @@ Failures:
 ## Background Scans
 
 The `MetadataScanTaskExecutor` is responsible for filesystem scans and TMDb lookups. Details live in [metadata-scanning.md](metadata-scanning.md).
+
+## Metadata Refresh
+
+Use `POST /api/metadata/refresh/start` to refresh all stored movie and TV show entries against TMDb without touching the filesystem. The task walks existing LiteDB documents, updates credits, artwork, networks, and season/episode structures, and preserves any file associations captured during scans. Progress updates are available via the background task hub under the `MetadataRefreshTask` type.
 
 ## Security
 

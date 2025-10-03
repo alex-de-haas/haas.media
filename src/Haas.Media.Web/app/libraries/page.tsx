@@ -7,6 +7,7 @@ import { useNotifications } from "@/lib/notifications";
 import { useMetadataSignalR } from "@/lib/signalr/useMetadataSignalR";
 import { usePageTitle } from "@/components/layout";
 import type { CreateLibraryRequest, Library, UpdateLibraryRequest } from "@/types/library";
+import type { MetadataRefreshOperationInfo } from "@/types";
 import { BackgroundTaskStatus, backgroundTaskStatusLabel, isActiveBackgroundTask } from "@/types";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -25,29 +26,63 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { Loader2, Plus, Scan, ShieldAlert } from "lucide-react";
+import { Loader2, Plus, RefreshCcw, Scan, ShieldAlert } from "lucide-react";
 
 export default function LibrariesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedLibrary, setSelectedLibrary] = useState<Library | null>(null);
   const [libraryToDelete, setLibraryToDelete] = useState<Library | null>(null);
 
-  const { libraries, loading, createLibrary, updateLibrary, deleteLibrary, startBackgroundScan } = useLibraries();
+  const { libraries, loading, createLibrary, updateLibrary, deleteLibrary, startBackgroundScan, startMetadataRefresh } = useLibraries();
 
   const { notify } = useNotifications();
   const { scanOperations, isConnected } = useMetadataSignalR();
   const { tasks: backgroundTasks } = useBackgroundTasks();
 
-  const metadataTasks = useMemo(() => backgroundTasks.filter((task) => task.type === "MetadataScanTask"), [backgroundTasks]);
+  const scanTasks = useMemo(() => backgroundTasks.filter((task) => task.type === "MetadataScanTask"), [backgroundTasks]);
+  const refreshTasks = useMemo(() => backgroundTasks.filter((task) => task.type === "MetadataRefreshTask"), [backgroundTasks]);
 
-  const activeTask = useMemo(() => metadataTasks.find(isActiveBackgroundTask), [metadataTasks]);
+  const activeScanTask = useMemo(() => scanTasks.find(isActiveBackgroundTask), [scanTasks]);
+  const activeRefreshTask = useMemo(() => refreshTasks.find(isActiveBackgroundTask), [refreshTasks]);
 
   const activeOperation = useMemo(
-    () => (activeTask ? scanOperations.find((operation) => operation.id === activeTask.id) : undefined),
-    [scanOperations, activeTask],
+    () => (activeScanTask ? scanOperations.find((operation) => operation.id === activeScanTask.id) : undefined),
+    [scanOperations, activeScanTask],
   );
 
-  const activeScan = activeTask ? { task: activeTask, operation: activeOperation } : null;
+  const activeScan = activeScanTask ? { task: activeScanTask, operation: activeOperation } : null;
+
+  const activeRefreshOperation = useMemo<MetadataRefreshOperationInfo | null>(() => {
+    if (!activeRefreshTask || typeof activeRefreshTask.payload !== "object" || activeRefreshTask.payload === null) {
+      return null;
+    }
+
+    const raw = activeRefreshTask.payload as Record<string, unknown>;
+    const toNumber = (value: unknown): number => {
+      const numeric = typeof value === "number" ? value : Number(value ?? 0);
+      return Number.isFinite(numeric) ? numeric : 0;
+    };
+    const toOptionalString = (value: unknown): string | null => (typeof value === "string" ? value : null);
+
+    const startedAt = toOptionalString(raw.startedAt) ?? activeRefreshTask.startedAt ?? activeRefreshTask.createdAt ?? null;
+
+    return {
+      id: typeof raw.id === "string" ? raw.id : activeRefreshTask.id,
+      totalItems: toNumber(raw.totalItems),
+      processedItems: toNumber(raw.processedItems),
+      totalMovies: toNumber(raw.totalMovies),
+      processedMovies: toNumber(raw.processedMovies),
+      totalTvShows: toNumber(raw.totalTvShows),
+      processedTvShows: toNumber(raw.processedTvShows),
+      stage: toOptionalString(raw.stage) ?? activeRefreshTask.name,
+      currentTitle: toOptionalString(raw.currentTitle),
+      startedAt,
+      completedAt: toOptionalString(raw.completedAt),
+      lastError: toOptionalString(raw.lastError) ?? activeRefreshTask.errorMessage ?? null,
+    };
+  }, [activeRefreshTask]);
+
+  const activeRefresh = activeRefreshTask ? { task: activeRefreshTask, operation: activeRefreshOperation } : null;
 
   const closeForm = () => {
     setIsFormOpen(false);
@@ -114,6 +149,24 @@ export default function LibrariesPage() {
     });
   };
 
+  const handleRefreshMetadata = async () => {
+    if (activeRefresh?.task && isActiveBackgroundTask(activeRefresh.task)) {
+      notify({
+        title: "Refresh In Progress",
+        message: "Metadata refresh is already running. Please wait for it to finish before starting a new one.",
+        type: "success",
+      });
+      return;
+    }
+
+    const result = await startMetadataRefresh();
+    notify({
+      title: result.success ? "Refresh Started" : "Refresh Failed",
+      message: result.message,
+      type: result.success ? "success" : "error",
+    });
+  };
+
   const fallbackProgress =
     activeOperation && activeOperation.totalFiles > 0
       ? Math.round((activeOperation.processedFiles / Math.max(1, activeOperation.totalFiles)) * 100)
@@ -137,6 +190,42 @@ export default function LibrariesPage() {
     ? `${activeOperation.processedFiles} of ${activeOperation.totalFiles} files processed • ${activeOperation.foundMetadata} metadata records found`
     : statusMessage;
 
+  const refreshProgressPercentage = activeRefresh?.task ? Math.round(activeRefresh.task.progress) : 0;
+
+  const isRefreshRunning = activeRefresh?.task ? isActiveBackgroundTask(activeRefresh.task) : false;
+
+  const refreshButtonLabel = isRefreshRunning ? `Refreshing… (${refreshProgressPercentage}%)` : "Refresh";
+
+  const refreshIcon = isRefreshRunning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />;
+
+  const refreshStatusLabel = activeRefresh?.task
+    ? backgroundTaskStatusLabel(activeRefresh.task.status)
+    : backgroundTaskStatusLabel(BackgroundTaskStatus.Pending);
+
+  const refreshOperation = activeRefresh?.operation;
+  const refreshSummaryParts: string[] = [];
+
+  if (refreshOperation) {
+    if (refreshOperation.totalItems > 0) {
+      refreshSummaryParts.push(`${refreshOperation.processedItems} of ${refreshOperation.totalItems} items processed`);
+    }
+
+    if (refreshOperation.totalMovies > 0) {
+      refreshSummaryParts.push(`${refreshOperation.processedMovies}/${refreshOperation.totalMovies} movies`);
+    }
+
+    if (refreshOperation.totalTvShows > 0) {
+      refreshSummaryParts.push(`${refreshOperation.processedTvShows}/${refreshOperation.totalTvShows} TV shows`);
+    }
+  }
+
+  const refreshProgressSummary = refreshSummaryParts.length > 0 ? refreshSummaryParts.join(" • ") : refreshStatusLabel;
+
+  const refreshStatusMessage =
+    activeRefresh?.task.statusMessage ?? refreshOperation?.currentTitle ?? refreshOperation?.stage ?? refreshStatusLabel;
+
+  const refreshLastError = refreshOperation?.lastError ?? activeRefresh?.task.errorMessage ?? null;
+
   usePageTitle("Libraries");
 
   return (
@@ -154,6 +243,10 @@ export default function LibrariesPage() {
         <Button variant="outline" onClick={handleScanLibraries} disabled={loading || isScanRunning}>
           {scanIcon}
           {scanButtonLabel}
+        </Button>
+        <Button variant="outline" onClick={handleRefreshMetadata} disabled={loading || isRefreshRunning}>
+          {refreshIcon}
+          {refreshButtonLabel}
         </Button>
       </div>
 
@@ -191,6 +284,48 @@ export default function LibrariesPage() {
               <Alert>
                 <AlertTitle>Processing</AlertTitle>
                 <AlertDescription className="truncate">{statusMessage}</AlertDescription>
+              </Alert>
+            )}
+
+            {!isConnected && (
+              <Alert variant="destructive">
+                <AlertTitle>Connection lost</AlertTitle>
+                <AlertDescription>We will resume updates once the realtime connection is restored.</AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeRefresh && (
+        <Card className={cn("border-primary/40 bg-primary/5", !isConnected && "border-dashed")}>
+          <CardHeader className="space-y-2">
+            <CardTitle className="flex items-center gap-2 text-primary">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Refresh in Progress
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">{refreshProgressSummary}</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{refreshProgressPercentage}%</span>
+                <span>{refreshStatusLabel}</span>
+              </div>
+              <Progress value={Math.min(100, Math.max(0, refreshProgressPercentage))} />
+            </div>
+
+            {refreshStatusMessage && (
+              <Alert>
+                <AlertTitle>Processing</AlertTitle>
+                <AlertDescription className="truncate">{refreshStatusMessage}</AlertDescription>
+              </Alert>
+            )}
+
+            {refreshLastError && (
+              <Alert variant="destructive">
+                <AlertTitle>Last Error</AlertTitle>
+                <AlertDescription className="truncate">{refreshLastError}</AlertDescription>
               </Alert>
             )}
 

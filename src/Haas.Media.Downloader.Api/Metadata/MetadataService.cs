@@ -364,4 +364,31 @@ public class MetadataService : IMetadataApi
 
         return Task.FromResult(operationId);
     }
+
+    public Task<string> StartRefreshMetadataAsync()
+    {
+        var task = new MetadataRefreshTask();
+        var operationId = task.Id.ToString();
+
+        _logger.LogInformation(
+            "Starting metadata refresh operation with ID: {OperationId}",
+            operationId
+        );
+
+        try
+        {
+            _backgroundTaskManager.RunTask<MetadataRefreshTask, MetadataRefreshOperationInfo>(task);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Failed to enqueue metadata refresh operation with ID: {OperationId}",
+                operationId
+            );
+            throw;
+        }
+
+        return Task.FromResult(operationId);
+    }
 }

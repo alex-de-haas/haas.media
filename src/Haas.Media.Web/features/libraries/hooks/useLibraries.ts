@@ -28,8 +28,9 @@ export function useLibraries() {
 
       const data = await response.json();
       setLibraries(data);
-    } catch (err: any) {
-      setError(err?.message ?? String(err));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -57,8 +58,9 @@ export function useLibraries() {
           const errorText = await response.text();
           return { success: false, message: errorText || "Create failed" };
         }
-      } catch (error) {
-        return { success: false, message: "Network error occurred" };
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Network error occurred";
+        return { success: false, message };
       }
     },
     [fetchLibraries],
@@ -86,8 +88,9 @@ export function useLibraries() {
           const errorText = await response.text();
           return { success: false, message: errorText || "Update failed" };
         }
-      } catch (error) {
-        return { success: false, message: "Network error occurred" };
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Network error occurred";
+        return { success: false, message };
       }
     },
     [fetchLibraries],
@@ -112,8 +115,9 @@ export function useLibraries() {
           const errorText = await response.text();
           return { success: false, message: errorText || "Delete failed" };
         }
-      } catch (error) {
-        return { success: false, message: "Network error occurred" };
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Network error occurred";
+        return { success: false, message };
       }
     },
     [fetchLibraries],
@@ -143,8 +147,41 @@ export function useLibraries() {
         const errorText = await response.text();
         return { success: false, message: errorText || "Failed to start background scan" };
       }
-    } catch (error) {
-      return { success: false, message: "Network error occurred while starting background scan" };
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Network error occurred while starting background scan";
+      return { success: false, message };
+    }
+  }, []);
+
+  const startMetadataRefresh = useCallback(async (): Promise<{ success: boolean; message: string; operationId?: string }> => {
+    try {
+      const token = await getValidToken();
+      const headers = new Headers({
+        "Content-Type": "application/json",
+      });
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+
+      const response = await fetch(`${downloaderApi}/api/metadata/refresh/start`, {
+        method: "POST",
+        headers,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          success: true,
+          message: data.message ?? "Metadata refresh started successfully",
+          operationId: data.operationId,
+        };
+      }
+
+      const errorText = await response.text();
+      return { success: false, message: errorText || "Failed to start metadata refresh" };
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Network error occurred while starting metadata refresh";
+      return { success: false, message };
     }
   }, []);
 
@@ -161,5 +198,6 @@ export function useLibraries() {
     updateLibrary,
     deleteLibrary,
     startBackgroundScan,
+    startMetadataRefresh,
   };
 }

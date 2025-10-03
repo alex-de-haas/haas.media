@@ -44,6 +44,12 @@ public static class MetadataConfiguration
             AddToLibraryTaskExecutor
         >();
 
+        builder.Services.AddBackgroundTask<
+            MetadataRefreshTask,
+            MetadataRefreshOperationInfo,
+            MetadataRefreshTaskExecutor
+        >();
+
         return builder;
     }
 
@@ -135,6 +141,19 @@ public static class MetadataConfiguration
                 }
             )
             .WithName("StartBackgroundScan")
+            .RequireAuthorization();
+
+        app.MapPost(
+                "api/metadata/refresh/start",
+                async (IMetadataApi metadataService) =>
+                {
+                    var operationId = await metadataService.StartRefreshMetadataAsync();
+                    return Results.Ok(
+                        new { operationId, message = "Metadata refresh task started" }
+                    );
+                }
+            )
+            .WithName("StartMetadataRefresh")
             .RequireAuthorization();
 
         app.MapGet(

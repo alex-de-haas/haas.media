@@ -117,3 +117,18 @@ export interface TVEpisodeMetadata {
   voteAverage: number;
   filePath?: string | null;
 }
+
+export interface MetadataRefreshOperationInfo {
+  id: string;
+  totalItems: number;
+  processedItems: number;
+  totalMovies: number;
+  processedMovies: number;
+  totalTvShows: number;
+  processedTvShows: number;
+  stage: string;
+  currentTitle?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  lastError?: string | null;
+}
