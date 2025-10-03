@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format, isAfter, startOfDay } from "date-fns";
 
 import {
@@ -45,48 +45,83 @@ function getDateKey(date: Date) {
   return startOfDay(date).getTime();
 }
 
-type CalendarStateManagerProps = {
-  selectedDate?: Date;
+/**
+ * Component that syncs calendar state with selected date
+ * Must be rendered inside CalendarProvider
+ */
+function CalendarSync({
+  selectedDate,
+  releaseDates,
+  onSelectDate,
+}: {
+  selectedDate: Date | undefined;
   releaseDates: Date[];
-  onSelect: (date?: Date) => void;
-};
-
-function CalendarStateManager({ selectedDate, releaseDates, onSelect }: CalendarStateManagerProps) {
+  onSelectDate: (date?: Date) => void;
+}) {
   const [month, setMonth] = useCalendarMonth();
   const [year, setYear] = useCalendarYear();
+  const prevSelectedDateRef = useRef<Date | undefined>();
+  const prevMonthRef = useRef<number>(month);
+  const prevYearRef = useRef<number>(year);
 
+  // Sync calendar view to selected date when it changes
   useEffect(() => {
-    if (!selectedDate) {
+    if (!selectedDate || prevSelectedDateRef.current?.getTime() === selectedDate.getTime()) {
+      prevSelectedDateRef.current = selectedDate;
       return;
     }
 
     const targetMonth = selectedDate.getMonth() as Parameters<typeof setMonth>[0];
     const targetYear = selectedDate.getFullYear();
 
-    if (targetMonth !== month || targetYear !== year) {
+    // Update calendar view to show the selected date
+    if (targetMonth !== month) {
       setMonth(targetMonth);
+    }
+    if (targetYear !== year) {
       setYear(targetYear);
     }
+
+    prevSelectedDateRef.current = selectedDate;
+    prevMonthRef.current = month;
+    prevYearRef.current = year;
   }, [selectedDate, month, year, setMonth, setYear]);
 
+  // When month/year changes (via navigation), auto-select first release in that month
   useEffect(() => {
+    // Check if month or year actually changed (and not from the initial render)
+    const monthChanged = prevMonthRef.current !== month;
+    const yearChanged = prevYearRef.current !== year;
+
+    if (!monthChanged && !yearChanged) {
+      return;
+    }
+
+    // Check if selected date is in current view
     const selectedMatchesCurrent =
       selectedDate && selectedDate.getMonth() === month && selectedDate.getFullYear() === year;
 
     if (selectedMatchesCurrent) {
+      prevMonthRef.current = month;
+      prevYearRef.current = year;
       return;
     }
 
+    // Find first release in current month/year
     const firstInMonth = releaseDates.find(
       (date) => date.getMonth() === month && date.getFullYear() === year
     );
 
     if (firstInMonth) {
-      onSelect(firstInMonth);
-    } else if (selectedDate && !selectedMatchesCurrent) {
-      onSelect(undefined);
+      onSelectDate(firstInMonth);
+    } else {
+      // Clear selection if no releases in this month
+      onSelectDate(undefined);
     }
-  }, [month, year, releaseDates, selectedDate, onSelect]);
+
+    prevMonthRef.current = month;
+    prevYearRef.current = year;
+  }, [month, year, releaseDates, selectedDate, onSelectDate]);
 
   return null;
 }
@@ -240,10 +275,10 @@ export default function DigitalReleaseCalendar() {
         </CardHeader>
         <CardContent>
           <CalendarProvider className="space-y-4">
-            <CalendarStateManager
-              onSelect={handleSelectDate}
+            <CalendarSync
+              selectedDate={selectedDate}
               releaseDates={releaseDates}
-              {...(selectedDate ? { selectedDate } : {})}
+              onSelectDate={handleSelectDate}
             />
             <CalendarDate>
               <CalendarDatePicker>
