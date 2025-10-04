@@ -33,6 +33,10 @@ async function handler(req: NextRequest) {
 
     // Get range header from incoming request
     const range = req.headers.get("range");
+    
+    if (range) {
+      console.log(`[video-stream] Range request: ${range}`);
+    }
 
     // Prepare headers for the downstream request
     const headers: HeadersInit = {
@@ -73,10 +77,8 @@ async function handler(req: NextRequest) {
       );
     }
 
-    // Get response body as array buffer
-    const buffer = await response.arrayBuffer();
-
-    // Create response with appropriate headers
+    // Stream the response directly without buffering
+    // This is crucial for large video files and proper range request handling
     const responseHeaders = new Headers();
     
     // Copy important headers from downstream response
@@ -95,8 +97,14 @@ async function handler(req: NextRequest) {
       }
     });
 
-    // Return the video stream
-    return new NextResponse(buffer, {
+    // Log response details for debugging
+    const contentRange = response.headers.get("content-range");
+    if (contentRange) {
+      console.log(`[video-stream] Proxying partial content: ${contentRange}`);
+    }
+
+    // Return the video stream directly (no buffering)
+    return new NextResponse(response.body, {
       status: response.status,
       headers: responseHeaders,
     });

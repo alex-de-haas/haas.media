@@ -44,7 +44,7 @@ export function VideoPlayerDialog({
           <DialogTitle className="sr-only">{title || "Video Player"}</DialogTitle>
 
           {/* Video Player */}
-          <VideoPlayer src={videoUrl} className="aspect-video w-full" controls />
+          <VideoPlayer src={videoUrl} className="aspect-video w-full" />
         </div>
       </DialogContent>
     </Dialog>
