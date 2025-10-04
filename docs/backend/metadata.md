@@ -128,7 +128,7 @@ public class Network
 }
 ```
 
-Mapperly projections convert TMDb DTOs into these shapes while ignoring unwanted properties.
+Manual mapping methods convert TMDb DTOs into these shapes while ignoring unwanted properties.
 
 ## Search Results
 

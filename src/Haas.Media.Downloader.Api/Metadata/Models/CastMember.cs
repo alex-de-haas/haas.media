@@ -1,4 +1,3 @@
-using Riok.Mapperly.Abstractions;
 using MovieCast = TMDbLib.Objects.Movies.Cast;
 using TvShowCast = TMDbLib.Objects.TvShows.Cast;
 
@@ -13,25 +12,29 @@ public class CastMember
     public string? ProfilePath { get; set; }
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Source)]
-static partial class CastMemberMapper
+static class CastMemberMapper
 {
-    [MapProperty(nameof(MovieCast.Id), nameof(CastMember.TmdbId))]
-    [MapperIgnoreSource(nameof(MovieCast.Adult))]
-    [MapperIgnoreSource(nameof(MovieCast.CastId))]
-    [MapperIgnoreSource(nameof(MovieCast.CreditId))]
-    [MapperIgnoreSource(nameof(MovieCast.Gender))]
-    [MapperIgnoreSource(nameof(MovieCast.KnownForDepartment))]
-    [MapperIgnoreSource(nameof(MovieCast.OriginalName))]
-    [MapperIgnoreSource(nameof(MovieCast.Popularity))]
-    public static partial CastMember Map(this MovieCast cast);
+    public static CastMember Map(this MovieCast cast)
+    {
+        return new CastMember
+        {
+            TmdbId = cast.Id,
+            Name = cast.Name,
+            Character = cast.Character,
+            Order = cast.Order,
+            ProfilePath = cast.ProfilePath
+        };
+    }
 
-    [MapProperty(nameof(TvShowCast.Id), nameof(CastMember.TmdbId))]
-    [MapperIgnoreSource(nameof(MovieCast.Adult))]
-    [MapperIgnoreSource(nameof(MovieCast.CreditId))]
-    [MapperIgnoreSource(nameof(MovieCast.Gender))]
-    [MapperIgnoreSource(nameof(MovieCast.KnownForDepartment))]
-    [MapperIgnoreSource(nameof(MovieCast.OriginalName))]
-    [MapperIgnoreSource(nameof(MovieCast.Popularity))]
-    public static partial CastMember Map(this TvShowCast cast);
+    public static CastMember Map(this TvShowCast cast)
+    {
+        return new CastMember
+        {
+            TmdbId = cast.Id,
+            Name = cast.Name,
+            Character = cast.Character,
+            Order = cast.Order,
+            ProfilePath = cast.ProfilePath
+        };
+    }
 }

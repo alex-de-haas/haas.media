@@ -6,6 +6,7 @@ using LiteDB;
 using TMDbLib.Client;
 using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.Search;
+using TMDbLib.Objects.TvShows;
 
 namespace Haas.Media.Downloader.Api.Metadata;
 
@@ -146,7 +147,7 @@ internal sealed class AddToLibraryTaskExecutor
 
         var movieDetails = await _tmdbClient.GetMovieAsync(
             tmdbId,
-            extraMethods: MovieMethods.ReleaseDates,
+            extraMethods: MovieMethods.ReleaseDates | MovieMethods.Credits,
             cancellationToken: cancellationToken
         );
 
@@ -159,14 +160,6 @@ internal sealed class AddToLibraryTaskExecutor
         context.SetPayload(payload);
         context.ReportProgress(35);
 
-        var movieCredits = await _tmdbClient.GetMovieCreditsAsync(
-            tmdbId,
-            cancellationToken: cancellationToken
-        );
-
-        var crew = movieCredits?.Crew?.Select(c => c.Map()).ToArray() ?? Array.Empty<CrewMember>();
-        var cast = movieCredits?.Cast?.Select(c => c.Map()).ToArray() ?? Array.Empty<CastMember>();
-
         var existingMovie = _movieMetadataCollection.FindOne(m =>
             m.LibraryId == library.Id && m.TmdbId == tmdbId
         );
@@ -175,12 +168,7 @@ internal sealed class AddToLibraryTaskExecutor
         {
             movieDetails.Update(existingMovie);
 
-            existingMovie.Genres = movieDetails.Genres?.Select(g => g.Name).ToArray() ?? [];
-            existingMovie.Crew = crew;
-            existingMovie.Cast = cast;
-            existingMovie.DigitalReleaseDate = MovieReleaseDateHelper.GetDigitalReleaseDate(movieDetails);
             existingMovie.LibraryId = library.Id;
-            existingMovie.UpdatedAt = DateTime.UtcNow;
 
             if (!_movieMetadataCollection.Update(existingMovie))
             {
@@ -205,14 +193,7 @@ internal sealed class AddToLibraryTaskExecutor
         {
             var movieMetadata = movieDetails.Create(ObjectId.NewObjectId().ToString());
 
-            movieMetadata.Genres = movieDetails.Genres?.Select(g => g.Name).ToArray() ?? [];
-            movieMetadata.Crew = crew;
-            movieMetadata.Cast = cast;
-            movieMetadata.DigitalReleaseDate = MovieReleaseDateHelper.GetDigitalReleaseDate(movieDetails);
-
             movieMetadata.LibraryId = library.Id;
-            movieMetadata.CreatedAt = DateTime.UtcNow;
-            movieMetadata.UpdatedAt = DateTime.UtcNow;
 
             _movieMetadataCollection.Insert(movieMetadata);
 
@@ -252,6 +233,7 @@ internal sealed class AddToLibraryTaskExecutor
 
         var tvShowDetails = await _tmdbClient.GetTvShowAsync(
             tmdbId,
+            extraMethods: TvShowMethods.Credits,
             cancellationToken: cancellationToken
         );
 
@@ -263,17 +245,6 @@ internal sealed class AddToLibraryTaskExecutor
         payload = payload with { Stage = "Fetching TV show credits" };
         context.SetPayload(payload);
         context.ReportProgress(20);
-
-        var tvShowCredits = await _tmdbClient.GetTvShowCreditsAsync(
-            tmdbId,
-            cancellationToken: cancellationToken
-        );
-
-        var crew = tvShowCredits?.Crew?.Select(c => c.Map()).ToArray() ?? [];
-        var cast = tvShowCredits?.Cast?.Select(c => c.Map()).ToArray() ?? [];
-        var genres = tvShowDetails.Genres?.Select(g => g.Name).ToArray() ?? Array.Empty<string>();
-        var networks =
-            tvShowDetails.Networks?.Select(n => n.Map()).ToArray() ?? Array.Empty<Network>();
 
         var existingTVShow = _tvShowMetadataCollection.FindOne(tv =>
             tv.LibraryId == library.Id && tv.TmdbId == tmdbId
@@ -393,13 +364,8 @@ internal sealed class AddToLibraryTaskExecutor
         {
             tvShowDetails.Update(existingTVShow);
 
-            existingTVShow.Genres = genres;
-            existingTVShow.Networks = networks;
-            existingTVShow.Crew = crew;
-            existingTVShow.Cast = cast;
             existingTVShow.Seasons = seasons.ToArray();
             existingTVShow.LibraryId = library.Id;
-            existingTVShow.UpdatedAt = DateTime.UtcNow;
 
             if (!_tvShowMetadataCollection.Update(existingTVShow))
             {
@@ -429,12 +395,6 @@ internal sealed class AddToLibraryTaskExecutor
             var tvShowMetadata = tvShowDetails.Create(ObjectId.NewObjectId().ToString());
 
             tvShowMetadata.LibraryId = library.Id;
-            tvShowMetadata.Genres = genres;
-            tvShowMetadata.Networks = networks;
-            tvShowMetadata.CreatedAt = DateTime.UtcNow;
-            tvShowMetadata.UpdatedAt = DateTime.UtcNow;
-            tvShowMetadata.Crew = crew;
-            tvShowMetadata.Cast = cast;
             tvShowMetadata.Seasons = seasons.ToArray();
 
             _tvShowMetadataCollection.Insert(tvShowMetadata);

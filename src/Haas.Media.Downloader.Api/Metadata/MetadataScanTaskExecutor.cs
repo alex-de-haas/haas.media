@@ -4,6 +4,7 @@ using TMDbLib.Client;
 using TMDbLib.Objects.General;
 using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.Search;
+using TMDbLib.Objects.TvShows;
 
 namespace Haas.Media.Downloader.Api.Metadata;
 
@@ -515,18 +516,10 @@ internal sealed class MetadataScanTaskExecutor
         string showDirectory
     )
     {
-        var tvShowDetails = await _tmdbClient.GetTvShowAsync(tmdbTvShowId);
-        var tvShowCredits = await _tmdbClient.GetTvShowCreditsAsync(tmdbTvShowId);
+        var tvShowDetails = await _tmdbClient.GetTvShowAsync(tmdbTvShowId, extraMethods: TvShowMethods.Credits);
         var tvShowMetadata = tvShowDetails.Create(ObjectId.NewObjectId().ToString());
 
-        tvShowMetadata.Genres =
-            tvShowDetails.Genres?.Select(g => g.Name).ToArray() ?? Array.Empty<string>();
-        tvShowMetadata.Networks =
-            tvShowDetails.Networks?.Select(n => n.Map()).ToArray() ?? Array.Empty<Network>();
         tvShowMetadata.LibraryId = libraryId;
-        tvShowMetadata.Crew =
-            tvShowCredits.Crew?.Select(c => c.Map()).ToArray() ?? Array.Empty<CrewMember>();
-        tvShowMetadata.Cast = tvShowCredits.Cast?.Select(c => c.Map()).ToArray() ?? [];
 
         var seasons = new List<TVSeasonMetadata>();
 
@@ -852,7 +845,7 @@ internal sealed class MetadataScanTaskExecutor
                     var movieResult = searchResults.Results[0];
                     var movieDetails = await _tmdbClient.GetMovieAsync(
                         movieResult.Id,
-                        extraMethods: MovieMethods.ReleaseDates,
+                        extraMethods: MovieMethods.ReleaseDates | MovieMethods.Credits,
                         cancellationToken: context.CancellationToken
                     );
 
@@ -861,8 +854,6 @@ internal sealed class MetadataScanTaskExecutor
                         movieDetails.Update(existingMetadata);
                         existingMetadata.LibraryId = library.Id;
                         existingMetadata.FilePath = relativePath;
-                        existingMetadata.DigitalReleaseDate = MovieReleaseDateHelper.GetDigitalReleaseDate(movieDetails);
-                        existingMetadata.UpdatedAt = DateTime.UtcNow;
                         _movieMetadataCollection.Update(existingMetadata);
                     }
                     else
@@ -870,9 +861,6 @@ internal sealed class MetadataScanTaskExecutor
                         var movieMetadata = movieDetails.Create(ObjectId.NewObjectId().ToString());
                         movieMetadata.LibraryId = library.Id;
                         movieMetadata.FilePath = relativePath;
-                        movieMetadata.DigitalReleaseDate = MovieReleaseDateHelper.GetDigitalReleaseDate(movieDetails);
-                        movieMetadata.CreatedAt = DateTime.UtcNow;
-                        movieMetadata.UpdatedAt = DateTime.UtcNow;
                         _movieMetadataCollection.Insert(movieMetadata);
                     }
 

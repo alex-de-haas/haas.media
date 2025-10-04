@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using TMDbLib.Client;
 using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.Search;
+using TMDbLib.Objects.TvShows;
 
 namespace Haas.Media.Downloader.Api.Metadata;
 
@@ -105,9 +106,10 @@ internal sealed class MetadataRefreshTaskExecutor
                 processedMovies++;
                 processedItems++;
 
-                var progress = totalItems > 0
-                    ? (double)processedItems / Math.Max(1, totalItems) * 100.0
-                    : 100.0;
+                var progress =
+                    totalItems > 0
+                        ? (double)processedItems / Math.Max(1, totalItems) * 100.0
+                        : 100.0;
 
                 payload = payload with
                 {
@@ -165,9 +167,10 @@ internal sealed class MetadataRefreshTaskExecutor
                 processedTvShows++;
                 processedItems++;
 
-                var progress = totalItems > 0
-                    ? (double)processedItems / Math.Max(1, totalItems) * 100.0
-                    : 100.0;
+                var progress =
+                    totalItems > 0
+                        ? (double)processedItems / Math.Max(1, totalItems) * 100.0
+                        : 100.0;
 
                 payload = payload with
                 {
@@ -200,11 +203,7 @@ internal sealed class MetadataRefreshTaskExecutor
         }
         catch (OperationCanceledException)
         {
-            payload = payload with
-            {
-                Stage = "Refresh cancelled",
-                CompletedAt = DateTime.UtcNow,
-            };
+            payload = payload with { Stage = "Refresh cancelled", CompletedAt = DateTime.UtcNow, };
             context.SetPayload(payload);
             context.ReportStatus(BackgroundTaskStatus.Cancelled);
 
@@ -231,7 +230,7 @@ internal sealed class MetadataRefreshTaskExecutor
     {
         var movieDetails = await _tmdbClient.GetMovieAsync(
             movie.TmdbId,
-            extraMethods: MovieMethods.ReleaseDates,
+            extraMethods: MovieMethods.ReleaseDates | MovieMethods.Credits,
             cancellationToken: cancellationToken
         );
 
@@ -242,18 +241,7 @@ internal sealed class MetadataRefreshTaskExecutor
             );
         }
 
-        var movieCredits = await _tmdbClient.GetMovieCreditsAsync(
-            movie.TmdbId,
-            cancellationToken: cancellationToken
-        );
-
         movieDetails.Update(movie);
-
-        movie.Genres = movieDetails.Genres?.Select(g => g.Name).ToArray() ?? [];
-        movie.Crew = movieCredits?.Crew?.Select(c => c.Map()).ToArray() ?? [];
-        movie.Cast = movieCredits?.Cast?.Select(c => c.Map()).ToArray() ?? [];
-    movie.DigitalReleaseDate = MovieReleaseDateHelper.GetDigitalReleaseDate(movieDetails);
-        movie.UpdatedAt = DateTime.UtcNow;
 
         _movieMetadataCollection.Update(movie);
     }
@@ -265,6 +253,7 @@ internal sealed class MetadataRefreshTaskExecutor
     {
         var tvShowDetails = await _tmdbClient.GetTvShowAsync(
             tvShow.TmdbId,
+            extraMethods: TvShowMethods.Credits,
             cancellationToken: cancellationToken
         );
 
@@ -281,23 +270,23 @@ internal sealed class MetadataRefreshTaskExecutor
         );
 
         var existingEpisodeLookup = tvShow
-            .Seasons?
-            .SelectMany(season => season.Episodes ?? Array.Empty<TVEpisodeMetadata>(), (season, episode) => new
-            {
-                season.SeasonNumber,
-                episode.EpisodeNumber,
-                episode.FilePath,
-            })
-            .ToDictionary(
-                x => (x.SeasonNumber, x.EpisodeNumber),
-                x => x.FilePath
-            );
+            .Seasons?.SelectMany(
+                season => season.Episodes ?? Array.Empty<TVEpisodeMetadata>(),
+                (season, episode) =>
+                    new
+                    {
+                        season.SeasonNumber,
+                        episode.EpisodeNumber,
+                        episode.FilePath,
+                    }
+            )
+            .ToDictionary(x => (x.SeasonNumber, x.EpisodeNumber), x => x.FilePath);
 
-        var orderedSeasons = tvShowDetails
-            .Seasons?
-            .Where(season => season.SeasonNumber > 0)
-            .OrderBy(season => season.SeasonNumber)
-            .ToArray() ?? Array.Empty<SearchTvSeason>();
+        var orderedSeasons =
+            tvShowDetails
+                .Seasons?.Where(season => season.SeasonNumber > 0)
+                .OrderBy(season => season.SeasonNumber)
+                .ToArray() ?? Array.Empty<SearchTvSeason>();
 
         var seasons = new List<TVSeasonMetadata>();
 
@@ -355,12 +344,7 @@ internal sealed class MetadataRefreshTaskExecutor
 
         tvShowDetails.Update(tvShow);
 
-        tvShow.Genres = tvShowDetails.Genres?.Select(g => g.Name).ToArray() ?? [];
-        tvShow.Networks = tvShowDetails.Networks?.Select(n => n.Map()).ToArray() ?? [];
-        tvShow.Crew = tvShowCredits?.Crew?.Select(c => c.Map()).ToArray() ?? [];
-        tvShow.Cast = tvShowCredits?.Cast?.Select(c => c.Map()).ToArray() ?? [];
         tvShow.Seasons = seasons.ToArray();
-        tvShow.UpdatedAt = DateTime.UtcNow;
 
         _tvShowMetadataCollection.Update(tvShow);
     }

@@ -1,5 +1,4 @@
 using LiteDB;
-using Riok.Mapperly.Abstractions;
 using TMDbLib.Objects.Movies;
 
 namespace Haas.Media.Downloader.Api.Metadata;
@@ -22,8 +21,8 @@ public class MovieMetadata
     public long Revenue { get; set; }
     
     // TMDB image paths
-    public required string PosterPath { get; set; }
-    public required string BackdropPath { get; set; }
+    public string? PosterPath { get; set; }
+    public string? BackdropPath { get; set; }
 
     // Related metadata
     public string[] Genres { get; set; } = [];
@@ -34,34 +33,72 @@ public class MovieMetadata
     public string? LibraryId { get; set; }
     public string? FilePath { get; set; }
     
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public required DateTime CreatedAt { get; set; }
 
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public required DateTime UpdatedAt { get; set; }
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
-static partial class MovieMetadataMapper
+static class MovieMetadataMapper
 {
-    [MapProperty(nameof(Movie.Id), nameof(MovieMetadata.TmdbId))]
-    [MapperIgnoreTarget(nameof(MovieMetadata.Genres))]
-    [MapperIgnoreTarget(nameof(MovieMetadata.Cast))]
-    [MapperIgnoreTarget(nameof(MovieMetadata.Crew))]
-    [MapperIgnoreTarget(nameof(MovieMetadata.DigitalReleaseDate))]
-    [MapperIgnoreTarget(nameof(MovieMetadata.LibraryId))]
-    [MapperIgnoreTarget(nameof(MovieMetadata.FilePath))]
-    [MapperIgnoreTarget(nameof(MovieMetadata.CreatedAt))]
-    [MapperIgnoreTarget(nameof(MovieMetadata.UpdatedAt))]
-    public static partial MovieMetadata Create(this Movie source, string id);
+    public static MovieMetadata Create(this Movie source, string id)
+    {
+        return new MovieMetadata
+        {
+            Id = id,
+            TmdbId = source.Id,
+            OriginalTitle = source.OriginalTitle,
+            OriginalLanguage = source.OriginalLanguage,
+            Title = source.Title,
+            Overview = source.Overview,
+            VoteAverage = source.VoteAverage,
+            VoteCount = source.VoteCount,
+            ReleaseDate = source.ReleaseDate,
+            Budget = source.Budget,
+            Revenue = source.Revenue,
+            PosterPath = source.PosterPath,
+            BackdropPath = source.BackdropPath,
+            Genres = MapGenres(source),
+            Crew = MapCrew(source.Credits),
+            Cast = MapCast(source.Credits),
+            DigitalReleaseDate = MovieReleaseDateHelper.GetDigitalReleaseDate(source),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+    }
 
-    [MapperIgnoreTarget(nameof(MovieMetadata.Id))]
-    [MapperIgnoreTarget(nameof(MovieMetadata.TmdbId))]
-    [MapperIgnoreTarget(nameof(MovieMetadata.Genres))]
-    [MapperIgnoreTarget(nameof(MovieMetadata.Cast))]
-    [MapperIgnoreTarget(nameof(MovieMetadata.Crew))]
-    [MapperIgnoreTarget(nameof(MovieMetadata.DigitalReleaseDate))]
-    [MapperIgnoreTarget(nameof(MovieMetadata.LibraryId))]
-    [MapperIgnoreTarget(nameof(MovieMetadata.FilePath))]
-    [MapperIgnoreTarget(nameof(MovieMetadata.CreatedAt))]
-    [MapperIgnoreTarget(nameof(MovieMetadata.UpdatedAt))]
-    public static partial void Update(this Movie source, MovieMetadata target);
+    public static void Update(this Movie source, MovieMetadata target)
+    {
+        target.OriginalTitle = source.OriginalTitle;
+        target.OriginalLanguage = source.OriginalLanguage;
+        target.Title = source.Title;
+        target.Overview = source.Overview;
+        target.VoteAverage = source.VoteAverage;
+        target.VoteCount = source.VoteCount;
+        target.ReleaseDate = source.ReleaseDate;
+        target.Budget = source.Budget;
+        target.Revenue = source.Revenue;
+        target.PosterPath = source.PosterPath;
+        target.BackdropPath = source.BackdropPath;
+        target.UpdatedAt = DateTime.UtcNow;
+        target.Genres = MapGenres(source);
+        target.Crew = MapCrew(source.Credits);
+        target.Cast = MapCast(source.Credits);
+        target.DigitalReleaseDate = MovieReleaseDateHelper.GetDigitalReleaseDate(source);
+        target.UpdatedAt = DateTime.UtcNow;
+    }
+
+    private static CrewMember[] MapCrew(Credits credits)
+    {
+        return credits.Crew.Select(c => c.Map()).ToArray();
+    }
+
+    private static CastMember[] MapCast(Credits credits)
+    {
+        return credits.Cast.Select(c => c.Map()).ToArray();
+    }
+
+    private static string[] MapGenres(Movie source)
+    {
+        return source.Genres?.Select(g => g.Name).ToArray() ?? [];
+    }
 }

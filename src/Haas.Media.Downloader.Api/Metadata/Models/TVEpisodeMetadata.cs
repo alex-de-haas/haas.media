@@ -1,4 +1,3 @@
-using Riok.Mapperly.Abstractions;
 using TMDbLib.Objects.TvShows;
 using TMDbLib.Objects.Search;
 
@@ -16,11 +15,18 @@ public class TVEpisodeMetadata
     public string? FilePath { get; set; }
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
-static partial class TVEpisodeMetadataMapper
+static class TVEpisodeMetadataMapper
 {
-    
-    [MapperIgnoreTarget(nameof(TVEpisodeMetadata.FilePath))]
-    public static partial TVEpisodeMetadata Create(this TvEpisode tvEpisode);
+    public static TVEpisodeMetadata Create(this TvEpisode tvEpisode)
+    {
+        return new TVEpisodeMetadata
+        {
+            SeasonNumber = tvEpisode.SeasonNumber,
+            EpisodeNumber = tvEpisode.EpisodeNumber,
+            Name = tvEpisode.Name,
+            Overview = tvEpisode.Overview,
+            VoteAverage = tvEpisode.VoteAverage
+        };
+    }
 }
 

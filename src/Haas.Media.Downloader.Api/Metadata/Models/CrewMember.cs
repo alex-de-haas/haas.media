@@ -1,4 +1,3 @@
-using Riok.Mapperly.Abstractions;
 using TMDbLib.Objects.General;
 
 namespace Haas.Media.Downloader.Api.Metadata;
@@ -12,16 +11,18 @@ public class CrewMember
     public string? ProfilePath { get; set; }
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Source)]
-static partial class CrewMemberMapper
+static class CrewMemberMapper
 {
-    [MapProperty(nameof(Crew.Id), nameof(CrewMember.TmdbId))]
-    [MapperIgnoreSource(nameof(Crew.Adult))]
-    [MapperIgnoreSource(nameof(Crew.CreditId))]
-    [MapperIgnoreSource(nameof(Crew.Gender))]
-    [MapperIgnoreSource(nameof(Crew.KnownForDepartment))]
-    [MapperIgnoreSource(nameof(Crew.OriginalName))]
-    [MapperIgnoreSource(nameof(Crew.Popularity))]
-    public static partial CrewMember Map(this Crew crew);
+    public static CrewMember Map(this Crew crew)
+    {
+        return new CrewMember
+        {
+            TmdbId = crew.Id,
+            Name = crew.Name,
+            Job = crew.Job,
+            Department = crew.Department,
+            ProfilePath = crew.ProfilePath
+        };
+    }
 }
 
