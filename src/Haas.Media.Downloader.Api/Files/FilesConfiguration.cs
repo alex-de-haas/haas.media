@@ -68,15 +68,16 @@ public static class FilesConfiguration
                             var length = end - start + 1;
                             
                             fileStream.Seek(start, SeekOrigin.Begin);
+                            
+                            // Use a limited stream to ensure only 'length' bytes are read
+                            var limitedStream = new LimitedStream(fileStream, length);
+                            
                             context.Response.StatusCode = 206; // Partial Content
                             context.Response.Headers.ContentRange = $"bytes {start}-{end}/{fileInfo.Length}";
-                            context.Response.Headers.ContentLength = length;
                             context.Response.ContentType = contentType;
                             context.Response.Headers.AcceptRanges = "bytes";
                             
-                            await fileStream.CopyToAsync(context.Response.Body);
-                            await fileStream.DisposeAsync();
-                            return Results.Empty;
+                            return Results.Stream(limitedStream, contentType, fileInfo.Name);
                         }
                     }
                     
