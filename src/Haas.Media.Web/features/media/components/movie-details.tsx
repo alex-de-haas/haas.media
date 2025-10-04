@@ -52,6 +52,15 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
     return new Date(movie.releaseDate).getFullYear();
   }, [movie?.releaseDate]);
 
+  const theatricalReleaseDate = useMemo(() => {
+    if (!movie?.theatricalReleaseDate) {
+      return null;
+    }
+
+    const parsedDate = new Date(movie.theatricalReleaseDate);
+    return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+  }, [movie?.theatricalReleaseDate]);
+
   const digitalReleaseDate = useMemo(() => {
     if (!movie?.digitalReleaseDate) {
       return null;
@@ -250,13 +259,19 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                   </div>
                 )}
 
-                {(movie.releaseDate || digitalReleaseDate || movie.budget || movie.revenue || movie.filePath) && (
+                {(movie.releaseDate || theatricalReleaseDate || digitalReleaseDate || movie.budget || movie.revenue || movie.filePath) && (
                   <div className="space-y-4">
                     <div className="grid gap-4 text-sm sm:grid-cols-2">
                       {movie.releaseDate && (
                         <div className="space-y-1">
                           <span className="font-medium text-muted-foreground">Release Date</span>
                           <p>{new Date(movie.releaseDate).toLocaleDateString()}</p>
+                        </div>
+                      )}
+                      {theatricalReleaseDate && (
+                        <div className="space-y-1">
+                          <span className="font-medium text-muted-foreground">Theatrical Release Date</span>
+                          <p>{theatricalReleaseDate.toLocaleDateString()}</p>
                         </div>
                       )}
                       {digitalReleaseDate && (

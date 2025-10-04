@@ -67,6 +67,7 @@ export interface MovieMetadata {
   voteAverage: number;
   voteCount: number;
   releaseDate?: string;
+  theatricalReleaseDate?: string | null;
   digitalReleaseDate?: string | null;
   budget?: number | null;
   revenue?: number | null;

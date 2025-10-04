@@ -57,6 +57,7 @@ public class MovieMetadata
     public required double VoteAverage { get; set; }
     public required int VoteCount { get; set; }
     public DateTime? ReleaseDate { get; set; }
+    public DateTime? TheatricalReleaseDate { get; set; }
     public DateTime? DigitalReleaseDate { get; set; }
     public string[] Genres { get; set; } = [];
     public CrewMember[] Crew { get; set; } = [];

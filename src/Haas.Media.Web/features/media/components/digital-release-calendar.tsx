@@ -136,9 +136,10 @@ export default function DigitalReleaseCalendar() {
     const items: MovieFeature[] = [];
 
     for (const movie of movies) {
-      // Add theatrical release date
-      if (movie.releaseDate) {
-        const parsed = new Date(movie.releaseDate);
+      // Add theatrical release date (prefer theatricalReleaseDate, fallback to releaseDate)
+      const theatricalDate = movie.theatricalReleaseDate || movie.releaseDate;
+      if (theatricalDate) {
+        const parsed = new Date(theatricalDate);
         if (!Number.isNaN(parsed.getTime())) {
           const normalized = startOfDay(parsed);
           const status = isAfter(normalized, today) ? STATUSES.upcoming : STATUSES.released;
