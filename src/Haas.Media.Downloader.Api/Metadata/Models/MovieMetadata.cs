@@ -16,8 +16,7 @@ public class MovieMetadata
     public required double VoteAverage { get; set; }
     public required int VoteCount { get; set; }
     public DateTime? ReleaseDate { get; set; }
-    public DateTime? TheatricalReleaseDate { get; set; }
-    public DateTime? DigitalReleaseDate { get; set; }
+    public ReleaseDate[] ReleaseDates { get; set; } = [];
     public long Budget { get; set; }
     public long Revenue { get; set; }
     
@@ -61,8 +60,7 @@ static class MovieMetadataMapper
             Genres = MapGenres(source),
             Crew = MapCrew(source.Credits),
             Cast = MapCast(source.Credits),
-            TheatricalReleaseDate = MovieReleaseDateHelper.GetTheatricalReleaseDate(source),
-            DigitalReleaseDate = MovieReleaseDateHelper.GetDigitalReleaseDate(source),
+            ReleaseDates = MovieReleaseDateHelper.GetReleaseDates(source),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
         };
@@ -85,8 +83,7 @@ static class MovieMetadataMapper
         target.Genres = MapGenres(source);
         target.Crew = MapCrew(source.Credits);
         target.Cast = MapCast(source.Credits);
-        target.TheatricalReleaseDate = MovieReleaseDateHelper.GetTheatricalReleaseDate(source);
-        target.DigitalReleaseDate = MovieReleaseDateHelper.GetDigitalReleaseDate(source);
+        target.ReleaseDates = MovieReleaseDateHelper.GetReleaseDates(source);
         target.UpdatedAt = DateTime.UtcNow;
     }
 

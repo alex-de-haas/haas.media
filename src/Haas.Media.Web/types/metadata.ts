@@ -57,6 +57,21 @@ export interface Network {
   originCountry?: string;
 }
 
+export enum ReleaseDateType {
+  Theatrical = 0,
+  TheatricalLimited = 1,
+  Digital = 2,
+  Physical = 3,
+  Tv = 4,
+  Premiere = 5,
+}
+
+export interface ReleaseDate {
+  type: ReleaseDateType;
+  date: string;
+  countryCode?: string | null;
+}
+
 export interface MovieMetadata {
   id: string;
   tmdbId: number;
@@ -67,8 +82,7 @@ export interface MovieMetadata {
   voteAverage: number;
   voteCount: number;
   releaseDate?: string;
-  theatricalReleaseDate?: string | null;
-  digitalReleaseDate?: string | null;
+  releaseDates: ReleaseDate[];
   budget?: number | null;
   revenue?: number | null;
   genres: string[];

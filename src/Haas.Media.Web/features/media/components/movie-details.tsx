@@ -53,22 +53,36 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
   }, [movie?.releaseDate]);
 
   const theatricalReleaseDate = useMemo(() => {
-    if (!movie?.theatricalReleaseDate) {
+    if (!movie?.releaseDates) {
       return null;
     }
 
-    const parsedDate = new Date(movie.theatricalReleaseDate);
+    const theatrical = movie.releaseDates.find(
+      (rd) => rd.type === 'Theatrical' || rd.type === 'TheatricalLimited'
+    );
+    
+    if (!theatrical) {
+      return null;
+    }
+
+    const parsedDate = new Date(theatrical.date);
     return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
-  }, [movie?.theatricalReleaseDate]);
+  }, [movie?.releaseDates]);
 
   const digitalReleaseDate = useMemo(() => {
-    if (!movie?.digitalReleaseDate) {
+    if (!movie?.releaseDates) {
       return null;
     }
 
-    const parsedDate = new Date(movie.digitalReleaseDate);
+    const digital = movie.releaseDates.find((rd) => rd.type === 'Digital');
+    
+    if (!digital) {
+      return null;
+    }
+
+    const parsedDate = new Date(digital.date);
     return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
-  }, [movie?.digitalReleaseDate]);
+  }, [movie?.releaseDates]);
 
   const handleDelete = async () => {
     if (!movie || deletingMovie) {

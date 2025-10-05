@@ -25,9 +25,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LoadingSpinner } from "@/components/ui";
 import { useMovies } from "@/features/media/hooks";
 import type { MovieMetadata } from "@/types/metadata";
+import { ReleaseDateType } from "@/types/metadata";
 import { cn } from "@/lib/utils";
 
-type MovieFeature = Feature<{ movie: MovieMetadata; releaseType: 'theatrical' | 'digital' }>;
+type MovieFeature = Feature<{ movie: MovieMetadata; releaseType: ReleaseDateType; countryCode?: string | null | undefined }>;
 
 const STATUSES: Record<"upcoming" | "released", Status> = {
   upcoming: {
@@ -42,8 +43,45 @@ const STATUSES: Record<"upcoming" | "released", Status> = {
   },
 };
 
+const RELEASE_TYPE_CONFIG: Record<ReleaseDateType, { label: string; color: string; bgColor: string }> = {
+  [ReleaseDateType.Theatrical]: { 
+    label: "Theatrical", 
+    color: "text-blue-700 dark:text-blue-300", 
+    bgColor: "bg-blue-500/10" 
+  },
+  [ReleaseDateType.TheatricalLimited]: { 
+    label: "Limited Theatrical", 
+    color: "text-cyan-700 dark:text-cyan-300", 
+    bgColor: "bg-cyan-500/10" 
+  },
+  [ReleaseDateType.Digital]: { 
+    label: "Digital", 
+    color: "text-purple-700 dark:text-purple-300", 
+    bgColor: "bg-purple-500/10" 
+  },
+  [ReleaseDateType.Physical]: { 
+    label: "Physical", 
+    color: "text-green-700 dark:text-green-300", 
+    bgColor: "bg-green-500/10" 
+  },
+  [ReleaseDateType.Tv]: { 
+    label: "TV", 
+    color: "text-orange-700 dark:text-orange-300", 
+    bgColor: "bg-orange-500/10" 
+  },
+  [ReleaseDateType.Premiere]: { 
+    label: "Premiere", 
+    color: "text-pink-700 dark:text-pink-300", 
+    bgColor: "bg-pink-500/10" 
+  },
+};
+
 function getDateKey(date: Date) {
   return startOfDay(date).getTime();
+}
+
+function getReleaseTypeConfig(type: ReleaseDateType) {
+  return RELEASE_TYPE_CONFIG[type];
 }
 
 /**
@@ -136,39 +174,48 @@ export default function DigitalReleaseCalendar() {
     const items: MovieFeature[] = [];
 
     for (const movie of movies) {
-      // Add theatrical release date (prefer theatricalReleaseDate, fallback to releaseDate)
-      const theatricalDate = movie.theatricalReleaseDate || movie.releaseDate;
-      if (theatricalDate) {
-        const parsed = new Date(theatricalDate);
-        if (!Number.isNaN(parsed.getTime())) {
-          const normalized = startOfDay(parsed);
-          const status = isAfter(normalized, today) ? STATUSES.upcoming : STATUSES.released;
+      // Add all release dates from releaseDates array
+      if (movie.releaseDates && movie.releaseDates.length > 0) {
+        for (const release of movie.releaseDates) {
+          const parsed = new Date(release.date);
+          if (!Number.isNaN(parsed.getTime())) {
+            const normalized = startOfDay(parsed);
+            const status = isAfter(normalized, today) ? STATUSES.upcoming : STATUSES.released;
 
-          items.push({
-            id: `${movie.id}-theatrical`,
-            name: movie.title,
-            startAt: normalized,
-            endAt: normalized,
-            status,
-            data: { movie, releaseType: 'theatrical' as const },
-          });
+            items.push({
+              id: `${movie.id}-${release.type}-${release.date}`,
+              name: movie.title,
+              startAt: normalized,
+              endAt: normalized,
+              status,
+              data: { 
+                movie, 
+                releaseType: release.type,
+                countryCode: release.countryCode
+              },
+            });
+          }
         }
       }
-
-      // Add digital release date
-      if (movie.digitalReleaseDate) {
-        const parsed = new Date(movie.digitalReleaseDate);
+      
+      // Fallback to general releaseDate if no specific release dates
+      if ((!movie.releaseDates || movie.releaseDates.length === 0) && movie.releaseDate) {
+        const parsed = new Date(movie.releaseDate);
         if (!Number.isNaN(parsed.getTime())) {
           const normalized = startOfDay(parsed);
           const status = isAfter(normalized, today) ? STATUSES.upcoming : STATUSES.released;
 
           items.push({
-            id: `${movie.id}-digital`,
+            id: `${movie.id}-general`,
             name: movie.title,
             startAt: normalized,
             endAt: normalized,
             status,
-            data: { movie, releaseType: 'digital' as const },
+            data: { 
+              movie, 
+              releaseType: ReleaseDateType.Theatrical,
+              countryCode: undefined
+            },
           });
         }
       }
@@ -311,7 +358,9 @@ export default function DigitalReleaseCalendar() {
               {...(selectedDate ? { selectedDate } : {})}
             >
               {({ feature, isSelected }) => {
-                const isDigital = feature.data?.releaseType === 'digital';
+                const releaseType = feature.data?.releaseType ?? ReleaseDateType.Theatrical;
+                const config = getReleaseTypeConfig(releaseType);
+                
                 return (
                   <div
                     className={cn(
@@ -325,9 +374,14 @@ export default function DigitalReleaseCalendar() {
                     <span 
                       className={cn(
                         "h-1.5 w-1.5 rounded-full flex-shrink-0",
-                        isDigital ? "bg-purple-500" : "bg-blue-500"
+                        releaseType === ReleaseDateType.Digital && "bg-purple-500",
+                        releaseType === ReleaseDateType.Theatrical && "bg-blue-500",
+                        releaseType === ReleaseDateType.TheatricalLimited && "bg-cyan-500",
+                        releaseType === ReleaseDateType.Physical && "bg-green-500",
+                        releaseType === ReleaseDateType.Tv && "bg-orange-500",
+                        releaseType === ReleaseDateType.Premiere && "bg-pink-500"
                       )}
-                      title={isDigital ? "Digital Release" : "Theatrical Release"}
+                      title={config.label}
                     />
                     <span className="truncate">{feature.name}</span>
                   </div>
@@ -337,16 +391,32 @@ export default function DigitalReleaseCalendar() {
           </CalendarProvider>
           <div className="mt-4 space-y-2">
             <p className="text-sm text-muted-foreground">
-              Dates with color accents indicate movie releases. Pick a day to explore theatrical and digital releases.
+              Dates with color accents indicate movie releases. Pick a day to explore all release types.
             </p>
-            <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-blue-500" />
-                <span>Theatrical Release</span>
+                <span>Theatrical</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-cyan-500" />
+                <span>Limited</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-purple-500" />
-                <span>Digital Release</span>
+                <span>Digital</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-green-500" />
+                <span>Physical</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-orange-500" />
+                <span>TV</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-pink-500" />
+                <span>Premiere</span>
               </div>
             </div>
           </div>
@@ -372,12 +442,14 @@ export default function DigitalReleaseCalendar() {
             {selectedFeatures.map((feature) => {
               const movie = feature.data?.movie;
               const releaseType = feature.data?.releaseType;
+              const countryCode = feature.data?.countryCode;
+              
               if (!movie || !releaseType) {
                 return null;
               }
 
               const isUpcoming = feature.status.id === STATUSES.upcoming.id;
-              const isDigital = releaseType === 'digital';
+              const config = getReleaseTypeConfig(releaseType);
 
               return (
                 <Card key={feature.id} className={cn("border-border/70", isUpcoming ? "border-primary/40" : undefined)}>
@@ -392,9 +464,17 @@ export default function DigitalReleaseCalendar() {
                         </Link>
                       </CardTitle>
                       <Badge variant={isUpcoming ? "outline" : "secondary"}>{feature.status.name}</Badge>
-                      <Badge variant="secondary" className={cn(isDigital ? "bg-purple-500/10 text-purple-700 dark:text-purple-300" : "bg-blue-500/10 text-blue-700 dark:text-blue-300")}>
-                        {isDigital ? "Digital" : "Theatrical"}
+                      <Badge 
+                        variant="secondary" 
+                        className={cn(config.bgColor, config.color)}
+                      >
+                        {config.label}
                       </Badge>
+                      {countryCode && (
+                        <Badge variant="outline" className="text-xs">
+                          {countryCode}
+                        </Badge>
+                      )}
                     </div>
                     {movie.originalTitle && movie.originalTitle !== feature.name && (
                       <span className="text-sm text-muted-foreground">
@@ -402,7 +482,7 @@ export default function DigitalReleaseCalendar() {
                       </span>
                     )}
                     <span className="text-sm text-muted-foreground">
-                      {isDigital ? "Digital" : "Theatrical"} release: {format(feature.endAt, "MMMM d, yyyy")}
+                      {config.label} release: {format(feature.endAt, "MMMM d, yyyy")}
                     </span>
                   </CardHeader>
                   <CardContent className="space-y-3 text-sm text-muted-foreground">

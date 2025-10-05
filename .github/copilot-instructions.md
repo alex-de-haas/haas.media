@@ -14,6 +14,6 @@ This project is a web application that allows users to download torrent files an
 
 ## Documentation
 
-- DON'T create documentation files for summary of completed tasks or issue descriptions.
+- DON'T create documentation files for summary of completed tasks or issue descriptions or refactoring overview. Only update existing documentation files with relevant changes.
 - DO create documentation files for new features, architectural changes, and important decisions.
 - Use the `/docs` folder for all documentation files.
