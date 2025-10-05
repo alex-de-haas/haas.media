@@ -11,3 +11,9 @@ This project is a web application that allows users to download torrent files an
 
 - Next.js, ShadCN UI, Tailwind CSS for the frontend.
 - .NET for the backend.
+
+## Documentation
+
+- DON'T create documentation files for summary of completed tasks or issue descriptions.
+- DO create documentation files for new features, architectural changes, and important decisions.
+- Use the `/docs` folder for all documentation files.

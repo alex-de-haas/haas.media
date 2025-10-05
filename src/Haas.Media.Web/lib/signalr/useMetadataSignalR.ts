@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import * as signalR from "@microsoft/signalr";
 import { getValidToken } from "@/lib/auth/token";
+import { fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 import { downloaderApi } from "@/lib/api";
 import type { BackgroundTaskInfo } from "@/types";
 
@@ -67,20 +68,7 @@ export function useMetadataSignalR() {
 
   const fetchOperations = useCallback(async () => {
     try {
-      const token = await getValidToken();
-      const headers = new Headers();
-      if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
-      }
-
-      const response = await fetch(`${downloaderApi}/api/background-tasks/MetadataScanTask`, { headers });
-
-      if (!response.ok) {
-        console.error("Failed to fetch metadata background tasks:", response.statusText);
-        return;
-      }
-
-      const payload = (await response.json()) as BackgroundTaskInfo[];
+      const payload = await fetchJsonWithAuth<BackgroundTaskInfo[]>(`${downloaderApi}/api/background-tasks/MetadataScanTask`);
       const operations = payload.map(mapTaskToScanOperation).filter((operation): operation is ScanOperationInfo => Boolean(operation));
 
       setScanOperations(operations.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()));

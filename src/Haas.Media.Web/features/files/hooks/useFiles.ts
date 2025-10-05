@@ -5,6 +5,7 @@ import * as signalR from "@microsoft/signalr";
 import type { FileItem, CopyRequest, MoveRequest, CreateDirectoryRequest, RenameRequest, CopyOperationInfo } from "@/types/file";
 import type { BackgroundTaskInfo } from "@/types";
 import { getValidToken } from "@/lib/auth/token";
+import { fetchWithAuth, fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 import { downloaderApi } from "@/lib/api";
 
 export function useFiles(initialPath?: string) {
@@ -67,18 +68,7 @@ export function useFiles(initialPath?: string) {
 
   const fetchCopyOperations = useCallback(async () => {
     try {
-      const token = await getValidToken();
-      const headers = new Headers();
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
-      const response = await fetch(`${downloaderApi}/api/background-tasks/CopyOperationTask`, { headers });
-
-      if (!response.ok) {
-        console.error("Failed to fetch copy operations:", response.statusText);
-        return;
-      }
-
-      const payload = (await response.json()) as BackgroundTaskInfo[];
+      const payload = await fetchJsonWithAuth<BackgroundTaskInfo[]>(`${downloaderApi}/api/background-tasks/CopyOperationTask`);
       const operations = payload.map(mapTaskToCopyOperation).filter((operation): operation is CopyOperationInfo => Boolean(operation));
 
       setCopyOperations(operations.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()));
@@ -134,14 +124,10 @@ export function useFiles(initialPath?: string) {
     setLoading(true);
     setError(null);
     try {
-      const token = await getValidToken();
-      const headers = new Headers();
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
       const url = new URL(`${downloaderApi}/api/files`);
       if (path) url.searchParams.set("path", path);
 
-      const response = await fetch(url.toString(), { headers });
+      const response = await fetchWithAuth(url.toString());
       if (!response.ok) {
         throw new Error(`Failed to fetch files: ${response.statusText}`);
       }
@@ -149,8 +135,9 @@ export function useFiles(initialPath?: string) {
       const data = await response.json();
       setFiles(data);
       setCurrentPath(path || "");
-    } catch (err: any) {
-      setError(err?.message ?? String(err));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -177,10 +164,6 @@ export function useFiles(initialPath?: string) {
     }
 
     try {
-      const token = await getValidToken();
-      const headers = new Headers();
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
       const formData = new FormData();
       filesToUpload.forEach((file) => {
         formData.append("files", file);
@@ -196,9 +179,8 @@ export function useFiles(initialPath?: string) {
         url.searchParams.set("path", target);
       }
 
-      const response = await fetch(url.toString(), {
+      const response = await fetchWithAuth(url.toString(), {
         method: "POST",
-        headers,
         body: formData,
       });
 
@@ -263,16 +245,11 @@ export function useFiles(initialPath?: string) {
     }
 
     try {
-      const token = await getValidToken();
-      const headers = new Headers();
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
       const url = new URL(`${downloaderApi}/api/torrents/from-file`);
       url.searchParams.set("path", path);
 
-      const response = await fetch(url.toString(), {
+      const response = await fetchWithAuth(url.toString(), {
         method: "POST",
-        headers,
       });
 
       let payload: any = null;
@@ -310,15 +287,9 @@ export function useFiles(initialPath?: string) {
 
   const copy = async (request: CopyRequest): Promise<{ success: boolean; message: string }> => {
     try {
-      const token = await getValidToken();
-      const headers = new Headers({
-        "Content-Type": "application/json",
-      });
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
-      const response = await fetch(`${downloaderApi}/api/files/copy`, {
+      const response = await fetchWithAuth(`${downloaderApi}/api/files/copy`, {
         method: "POST",
-        headers,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(request),
       });
 
@@ -336,13 +307,8 @@ export function useFiles(initialPath?: string) {
 
   const cancelCopyOperation = async (operationId: string): Promise<{ success: boolean; message: string }> => {
     try {
-      const token = await getValidToken();
-      const headers = new Headers();
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
-      const response = await fetch(`${downloaderApi}/api/background-tasks/${operationId}`, {
+      const response = await fetchWithAuth(`${downloaderApi}/api/background-tasks/${operationId}`, {
         method: "DELETE",
-        headers,
       });
 
       if (response.ok) {
@@ -357,15 +323,9 @@ export function useFiles(initialPath?: string) {
 
   const move = async (request: MoveRequest): Promise<{ success: boolean; message: string }> => {
     try {
-      const token = await getValidToken();
-      const headers = new Headers({
-        "Content-Type": "application/json",
-      });
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
-      const response = await fetch(`${downloaderApi}/api/files/move`, {
+      const response = await fetchWithAuth(`${downloaderApi}/api/files/move`, {
         method: "POST",
-        headers,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(request),
       });
 
@@ -383,16 +343,11 @@ export function useFiles(initialPath?: string) {
 
   const deleteItem = async (path: string): Promise<{ success: boolean; message: string }> => {
     try {
-      const token = await getValidToken();
-      const headers = new Headers();
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
       const url = new URL(`${downloaderApi}/api/files`);
       url.searchParams.set("path", path);
 
-      const response = await fetch(url.toString(), {
+      const response = await fetchWithAuth(url.toString(), {
         method: "DELETE",
-        headers,
       });
 
       if (response.ok) {
@@ -409,15 +364,9 @@ export function useFiles(initialPath?: string) {
 
   const createDirectory = async (request: CreateDirectoryRequest): Promise<{ success: boolean; message: string }> => {
     try {
-      const token = await getValidToken();
-      const headers = new Headers({
-        "Content-Type": "application/json",
-      });
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
-      const response = await fetch(`${downloaderApi}/api/files/directory`, {
+      const response = await fetchWithAuth(`${downloaderApi}/api/files/directory`, {
         method: "POST",
-        headers,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(request),
       });
 
@@ -435,15 +384,9 @@ export function useFiles(initialPath?: string) {
 
   const rename = async (request: RenameRequest): Promise<{ success: boolean; message: string }> => {
     try {
-      const token = await getValidToken();
-      const headers = new Headers({
-        "Content-Type": "application/json",
-      });
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
-      const response = await fetch(`${downloaderApi}/api/files/rename`, {
+      const response = await fetchWithAuth(`${downloaderApi}/api/files/rename`, {
         method: "PUT",
-        headers,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(request),
       });
 

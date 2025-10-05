@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { getValidToken } from "@/lib/auth/token";
+import { fetchWithAuth } from "@/lib/auth/fetch-with-auth";
 import { downloaderApi } from "@/lib/api";
 import type { MediaFileInfo } from "@/types/media-file-info";
 import type { EncodeRequest } from "@/types/encoding";
@@ -63,12 +63,9 @@ export function useEncodeStreams(
         device: device || null,
       };
 
-      const t = await getValidToken();
-      const headers: HeadersInit = { "Content-Type": "application/json" };
-      if (t) (headers as any).Authorization = `Bearer ${t}`;
-      const res = await fetch(`${downloaderApi}/api/encodings`, {
+      const res = await fetchWithAuth(`${downloaderApi}/api/encodings`, {
         method: "POST",
-        headers,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(request),
       });
       if (!res.ok) {
@@ -79,8 +76,9 @@ export function useEncodeStreams(
       // Backend returns an empty 200/204 on success (see EncodingConfiguration.cs),
       // so don't attempt to parse JSON here. Return void to indicate success.
       return;
-    } catch (err: any) {
-      setEncodeError(err?.message ?? String(err));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setEncodeError(message);
       throw err;
     } finally {
       setEncoding(false);

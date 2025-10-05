@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
 import { downloaderApi } from "@/lib/api";
 import { getValidToken } from "@/lib/auth/token";
+import { fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 import { BackgroundTaskInfo, isActiveBackgroundTask } from "@/types";
 
 interface UseBackgroundTasksOptions {
@@ -44,23 +45,13 @@ export function useBackgroundTasks({ enabled = true }: UseBackgroundTasksOptions
       setError(null);
       setIsLoading(true);
 
-      const token = await getValidToken();
-      const headers = new Headers();
-      if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
-      }
-
-      const response = await fetch(`${downloaderApi}/api/background-tasks`, { headers });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch background tasks: ${response.statusText}`);
-      }
-
-      const payload = (await response.json()) as BackgroundTaskInfo[];
+      const payload = await fetchJsonWithAuth<BackgroundTaskInfo[]>(`${downloaderApi}/api/background-tasks`);
       const normalized = payload.map(normalizeTask);
       setTasks(sortByCreatedAtDesc(normalized));
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to load background tasks";
       console.error("Failed to load background tasks", err);
-      setError(err?.message ?? "Failed to load background tasks");
+      setError(message);
     } finally {
       setIsLoading(false);
     }

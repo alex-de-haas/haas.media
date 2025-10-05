@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { getValidToken } from "@/lib/auth/token";
+import { fetchWithAuth, fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 import { downloaderApi } from "@/lib/api";
 import type { Library, CreateLibraryRequest, UpdateLibraryRequest } from "@/types/library";
 
@@ -14,19 +14,7 @@ export function useLibraries() {
     setLoading(true);
     setError(null);
     try {
-      const token = await getValidToken();
-      const headers = new Headers();
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
-      const response = await fetch(`${downloaderApi}/api/metadata/libraries`, {
-        headers,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch libraries: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await fetchJsonWithAuth<Library[]>(`${downloaderApi}/api/metadata/libraries`);
       setLibraries(data);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -39,15 +27,9 @@ export function useLibraries() {
   const createLibrary = useCallback(
     async (request: CreateLibraryRequest): Promise<{ success: boolean; message: string }> => {
       try {
-        const token = await getValidToken();
-        const headers = new Headers({
-          "Content-Type": "application/json",
-        });
-        if (token) headers.set("Authorization", `Bearer ${token}`);
-
-        const response = await fetch(`${downloaderApi}/api/metadata/libraries`, {
+        const response = await fetchWithAuth(`${downloaderApi}/api/metadata/libraries`, {
           method: "POST",
-          headers,
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(request),
         });
 
@@ -69,15 +51,9 @@ export function useLibraries() {
   const updateLibrary = useCallback(
     async (id: string, request: UpdateLibraryRequest): Promise<{ success: boolean; message: string }> => {
       try {
-        const token = await getValidToken();
-        const headers = new Headers({
-          "Content-Type": "application/json",
-        });
-        if (token) headers.set("Authorization", `Bearer ${token}`);
-
-        const response = await fetch(`${downloaderApi}/api/metadata/libraries/${id}`, {
+        const response = await fetchWithAuth(`${downloaderApi}/api/metadata/libraries/${id}`, {
           method: "PUT",
-          headers,
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(request),
         });
 
@@ -99,13 +75,8 @@ export function useLibraries() {
   const deleteLibrary = useCallback(
     async (id: string): Promise<{ success: boolean; message: string }> => {
       try {
-        const token = await getValidToken();
-        const headers = new Headers();
-        if (token) headers.set("Authorization", `Bearer ${token}`);
-
-        const response = await fetch(`${downloaderApi}/api/metadata/libraries/${id}`, {
+        const response = await fetchWithAuth(`${downloaderApi}/api/metadata/libraries/${id}`, {
           method: "DELETE",
-          headers,
         });
 
         if (response.ok) {
@@ -125,15 +96,9 @@ export function useLibraries() {
 
   const startBackgroundScan = useCallback(async (): Promise<{ success: boolean; message: string; operationId?: string }> => {
     try {
-      const token = await getValidToken();
-      const headers = new Headers({
-        "Content-Type": "application/json",
-      });
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
-      const response = await fetch(`${downloaderApi}/api/metadata/scan/start`, {
+      const response = await fetchWithAuth(`${downloaderApi}/api/metadata/scan/start`, {
         method: "POST",
-        headers,
+        headers: { "Content-Type": "application/json" },
       });
 
       if (response.ok) {
@@ -156,15 +121,9 @@ export function useLibraries() {
 
   const startMetadataRefresh = useCallback(async (): Promise<{ success: boolean; message: string; operationId?: string }> => {
     try {
-      const token = await getValidToken();
-      const headers = new Headers({
-        "Content-Type": "application/json",
-      });
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
-      const response = await fetch(`${downloaderApi}/api/metadata/refresh/start`, {
+      const response = await fetchWithAuth(`${downloaderApi}/api/metadata/refresh/start`, {
         method: "POST",
-        headers,
+        headers: { "Content-Type": "application/json" },
       });
 
       if (response.ok) {

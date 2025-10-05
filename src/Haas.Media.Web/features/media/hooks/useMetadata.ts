@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getValidToken } from "@/lib/auth/token";
+import { fetchWithAuth, fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 import { getApiDownloaderUrl } from "@/lib/env";
 import type {
   MovieMetadata,
@@ -18,29 +18,6 @@ export interface AddToLibraryRequest {
   tmdbId: string;
 }
 
-async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const token = await getValidToken();
-  const headers = new Headers(options.headers);
-
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
-  headers.set("Content-Type", "application/json");
-
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-  }
-
-  return response;
-}
-
 export function useAddToLibrary() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +29,7 @@ export function useAddToLibrary() {
 
       const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/add-to-library`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(request),
       });
 

@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { FileItem, CopyFileRequest, MoveFileRequest } from "@/types/file";
-import { getValidToken } from "@/lib/auth/token";
+import { fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 import { downloaderApi } from "@/lib/api";
 import FileList from "./file-list";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -30,19 +30,10 @@ export default function CopyMoveModal({ isOpen, onClose, action, item, onConfirm
   const fetchFiles = async (path?: string) => {
     setFilesLoading(true);
     try {
-      const token = await getValidToken();
-      const headers = new Headers();
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-
       const url = new URL(`${downloaderApi}/api/files`);
       if (path) url.searchParams.set("path", path);
 
-      const response = await fetch(url.toString(), { headers });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch files: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await fetchJsonWithAuth<FileItem[]>(url.toString());
       setFiles(data);
       setCurrentPath(path || "");
     } catch (error) {

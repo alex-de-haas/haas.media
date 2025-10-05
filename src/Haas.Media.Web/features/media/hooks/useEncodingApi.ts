@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { getValidToken } from "@/lib/auth/token";
+import { fetchWithAuth } from "@/lib/auth/fetch-with-auth";
 import { downloaderApi } from "@/lib/api";
 import type { EncodingProcessInfo, EncodeRequest } from "@/types/encoding";
 import type { MediaFileInfo } from "@/types/media-file-info";
@@ -22,11 +22,7 @@ export function useEncodingApi() {
     setLoading(true);
     setError(null);
     try {
-      const t = await getValidToken();
-      const headers: HeadersInit = {};
-      if (t) (headers as any).Authorization = `Bearer ${t}`;
-
-      const res = await fetch(`${downloaderApi}/api/encodings`, { headers });
+      const res = await fetchWithAuth(`${downloaderApi}/api/encodings`);
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? res.statusText);
@@ -34,8 +30,9 @@ export function useEncodingApi() {
 
       const data = await res.json();
       return data ?? [];
-    } catch (err: any) {
-      setError(err?.message ?? String(err));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -50,11 +47,7 @@ export function useEncodingApi() {
     setLoading(true);
     setError(null);
     try {
-      const t = await getValidToken();
-      const headers: HeadersInit = {};
-      if (t) (headers as any).Authorization = `Bearer ${t}`;
-
-      const res = await fetch(`${downloaderApi}/api/encodings/${hash}`, { headers });
+      const res = await fetchWithAuth(`${downloaderApi}/api/encodings/${hash}`);
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? res.statusText);
@@ -62,8 +55,9 @@ export function useEncodingApi() {
 
       const data = await res.json();
       return Array.isArray(data) ? data : [];
-    } catch (err: any) {
-      setError(err?.message ?? String(err));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -78,13 +72,9 @@ export function useEncodingApi() {
     setLoading(true);
     setError(null);
     try {
-      const t = await getValidToken();
-      const headers: HeadersInit = { "Content-Type": "application/json" };
-      if (t) (headers as any).Authorization = `Bearer ${t}`;
-
-      const res = await fetch(`${downloaderApi}/api/encodings/${hash}`, {
+      const res = await fetchWithAuth(`${downloaderApi}/api/encodings/${hash}`, {
         method: "POST",
-        headers,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(request),
       });
 
@@ -95,8 +85,9 @@ export function useEncodingApi() {
 
       // Backend returns 200 OK with no content on success
       return;
-    } catch (err: any) {
-      setError(err?.message ?? String(err));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -111,13 +102,8 @@ export function useEncodingApi() {
     setLoading(true);
     setError(null);
     try {
-      const t = await getValidToken();
-      const headers: HeadersInit = {};
-      if (t) (headers as any).Authorization = `Bearer ${t}`;
-
-      const res = await fetch(`${downloaderApi}/api/encodings/${hash}`, {
+      const res = await fetchWithAuth(`${downloaderApi}/api/encodings/${hash}`, {
         method: "DELETE",
-        headers,
       });
 
       if (!res.ok) {
@@ -127,8 +113,9 @@ export function useEncodingApi() {
 
       // Backend returns 200 OK with no content on success
       return;
-    } catch (err: any) {
-      setError(err?.message ?? String(err));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
       throw err;
     } finally {
       setLoading(false);

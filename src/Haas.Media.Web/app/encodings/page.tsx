@@ -2,6 +2,7 @@
 
 import React from "react";
 import { getValidToken } from "@/lib/auth/token";
+import { fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 import { downloaderApi } from "@/lib/api";
 import type { BackgroundTaskInfo } from "@/types";
 import { BackgroundTaskStatus } from "@/types";
@@ -85,11 +86,7 @@ export default function EncodingsPage() {
       try {
         const token = await getValidToken();
 
-        const headers: Record<string, string> = {};
-        if (token) headers.Authorization = `Bearer ${token}`;
-        const res = await fetch(`${downloaderApi}/api/encodings`, { headers });
-        if (!res.ok) throw new Error(res.statusText);
-        const data = await res.json();
+        const data = await fetchJsonWithAuth<EncodingProcessInfo[]>(`${downloaderApi}/api/encodings`);
         if (!mounted) return;
         const initialEncodings = isEncodingInfoArray(data) ? data : [];
         setEncodings(initialEncodings);

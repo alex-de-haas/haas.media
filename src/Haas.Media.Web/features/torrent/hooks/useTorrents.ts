@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { HubConnectionBuilder, HubConnection, HubConnectionState } from "@microsoft/signalr";
 import type { TorrentInfo } from "../../../types";
 import { getValidToken } from "@/lib/auth/token";
+import { fetchWithAuth, fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 import { downloaderApi } from "@/lib/api";
 
 export function useTorrents() {
@@ -19,15 +20,9 @@ export function useTorrents() {
         if (!disposed) {
           setLoading(true);
         }
-        const t = await getValidToken();
-        const headers = new Headers();
-        if (t) headers.set("Authorization", `Bearer ${t}`);
-        const res = await fetch(`${downloaderApi}/api/torrents`, { headers });
-        if (res.ok) {
-          const data = await res.json();
-          if (!disposed) {
-            setTorrents(data);
-          }
+        const data = await fetchJsonWithAuth<TorrentInfo[]>(`${downloaderApi}/api/torrents`);
+        if (!disposed) {
+          setTorrents(data);
         }
       } catch (error) {
         console.error("Failed to fetch torrents:", error);
@@ -99,13 +94,9 @@ export function useTorrents() {
     });
 
     try {
-      const t = await getValidToken();
-      const headers = new Headers();
-      if (t) headers.set("Authorization", `Bearer ${t}`);
-      const res = await fetch(`${downloaderApi}/api/torrents/upload`, {
+      const res = await fetchWithAuth(`${downloaderApi}/api/torrents/upload`, {
         method: "POST",
         body: formData,
-        headers,
       });
 
       const contentType = res.headers.get("Content-Type");
@@ -140,12 +131,8 @@ export function useTorrents() {
 
   const deleteTorrent = async (hash: string): Promise<{ success: boolean; message: string }> => {
     try {
-      const t = await getValidToken();
-      const headers = new Headers();
-      if (t) headers.set("Authorization", `Bearer ${t}`);
-      const res = await fetch(`${downloaderApi}/api/torrents/${hash}`, {
+      const res = await fetchWithAuth(`${downloaderApi}/api/torrents/${hash}`, {
         method: "DELETE",
-        headers,
       });
 
       if (res.ok) {
@@ -161,12 +148,8 @@ export function useTorrents() {
 
   const startTorrent = async (hash: string): Promise<{ success: boolean; message: string }> => {
     try {
-      const t = await getValidToken();
-      const headers = new Headers();
-      if (t) headers.set("Authorization", `Bearer ${t}`);
-      const res = await fetch(`${downloaderApi}/api/torrents/${hash}/start`, {
+      const res = await fetchWithAuth(`${downloaderApi}/api/torrents/${hash}/start`, {
         method: "POST",
-        headers,
       });
 
       if (res.ok) {
@@ -182,12 +165,8 @@ export function useTorrents() {
 
   const stopTorrent = async (hash: string): Promise<{ success: boolean; message: string }> => {
     try {
-      const t = await getValidToken();
-      const headers = new Headers();
-      if (t) headers.set("Authorization", `Bearer ${t}`);
-      const res = await fetch(`${downloaderApi}/api/torrents/${hash}/stop`, {
+      const res = await fetchWithAuth(`${downloaderApi}/api/torrents/${hash}/stop`, {
         method: "POST",
-        headers,
       });
 
       if (res.ok) {
@@ -203,12 +182,8 @@ export function useTorrents() {
 
   const pauseTorrent = async (hash: string): Promise<{ success: boolean; message: string }> => {
     try {
-      const t = await getValidToken();
-      const headers = new Headers();
-      if (t) headers.set("Authorization", `Bearer ${t}`);
-      const res = await fetch(`${downloaderApi}/api/torrents/${hash}/pause`, {
+      const res = await fetchWithAuth(`${downloaderApi}/api/torrents/${hash}/pause`, {
         method: "POST",
-        headers,
       });
 
       if (res.ok) {

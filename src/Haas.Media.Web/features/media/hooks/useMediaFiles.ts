@@ -4,7 +4,7 @@ import React from "react";
 import type { MediaFileInfo } from "@/types/media-file-info";
 import type { EncodingInfo, HardwareAccelerationInfo } from "@/types/encoding";
 import { isMediaEncodingInfo } from "@/types/encoding";
-import { getValidToken } from "@/lib/auth/token";
+import { fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 import { downloaderApi } from "@/lib/api";
 
 export function useMediaFiles(path?: string) {
@@ -19,25 +19,18 @@ export function useMediaFiles(path?: string) {
       setLoading(true);
       setError(null);
       try {
-        const t = await getValidToken();
-        const headers = new Headers();
-        if (t) headers.set("Authorization", `Bearer ${t}`);
         const url = new URL(`${downloaderApi}/api/encodings/info`);
         url.searchParams.set("path", path);
-        const res = await fetch(url.toString(), { headers });
-        if (!res.ok) {
-          const body = await res.json().catch(() => null);
-          throw new Error(body?.error ?? res.statusText);
-        }
-        const data = await res.json();
+        const data = await fetchJsonWithAuth<EncodingInfo>(url.toString());
         if (isMediaEncodingInfo(data)) {
           setMediaFiles(data.mediaFiles);
           setHardwareAccelerations(data.hardwareAccelerations);
         } else {
           throw new Error("Unexpected media encoding info response");
         }
-      } catch (err: any) {
-        setError(err?.message ?? String(err));
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        setError(message);
       } finally {
         setLoading(false);
       }
