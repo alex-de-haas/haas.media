@@ -444,7 +444,7 @@ export default function DigitalReleaseCalendar() {
               const releaseType = feature.data?.releaseType;
               const countryCode = feature.data?.countryCode;
               
-              if (!movie || !releaseType) {
+              if (!movie || releaseType === undefined || releaseType === null) {
                 return null;
               }
 
