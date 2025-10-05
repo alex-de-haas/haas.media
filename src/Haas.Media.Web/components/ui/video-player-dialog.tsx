@@ -3,24 +3,34 @@
 import * as React from "react";
 import { X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { VideoPlayer } from "@/components/ui/video-player";
+import { SmartVideoPlayer } from "@/components/ui/smart-video-player";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface VideoPlayerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  videoUrl: string;
+  /** Relative path to the video file */
+  videoPath: string;
   title?: string;
   className?: string;
+  /** Enable transcoding for better compatibility */
+  transcode?: boolean;
+  /** Quality preset for transcoding */
+  quality?: 'low' | 'medium' | 'high' | 'ultra';
+  /** Show streaming information */
+  showStreamInfo?: boolean;
 }
 
 export function VideoPlayerDialog({
   open,
   onOpenChange,
-  videoUrl,
+  videoPath,
   title,
   className,
+  transcode = false,
+  quality = 'medium',
+  showStreamInfo = false,
 }: VideoPlayerDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -43,8 +53,14 @@ export function VideoPlayerDialog({
           {/* Hidden title for accessibility */}
           <DialogTitle className="sr-only">{title || "Video Player"}</DialogTitle>
 
-          {/* Video Player */}
-          <VideoPlayer src={videoUrl} className="aspect-video w-full" />
+          {/* Smart Video Player */}
+          <SmartVideoPlayer 
+            path={videoPath} 
+            className="aspect-video w-full"
+            forceTranscode={transcode}
+            quality={quality}
+            showStreamInfo={showStreamInfo}
+          />
         </div>
       </DialogContent>
     </Dialog>

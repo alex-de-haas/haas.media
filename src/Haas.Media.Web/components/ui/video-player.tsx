@@ -131,10 +131,24 @@ export function VideoPlayer({ src, className, onTimeUpdate, ...props }: VideoPla
     }
   };
 
+  // Initialize video element properties
+  React.useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Initialize volume and muted state
+    video.volume = volume / 100;
+    video.muted = isMuted;
+  }, [volume, isMuted]);
+
   // Video event handlers
   React.useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+
+    // Set initial volume when video loads
+    video.volume = volume / 100;
+    video.muted = isMuted;
 
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
@@ -196,7 +210,7 @@ export function VideoPlayer({ src, className, onTimeUpdate, ...props }: VideoPla
       video.removeEventListener("error", handleError);
       video.removeEventListener("loadstart", handleLoadStart);
     };
-  }, [onTimeUpdate]);
+  }, [onTimeUpdate, volume, isMuted]);
 
   // Fullscreen change handler
   React.useEffect(() => {

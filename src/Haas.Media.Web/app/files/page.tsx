@@ -99,7 +99,7 @@ function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorre
 }
 
 export default function FilesPage() {
-  const { isOpen, videoUrl, videoTitle, openVideo, setIsOpen } = useVideoPlayer();
+  const { isOpen, videoPath, videoTitle, openVideo, setIsOpen, transcode, quality, showStreamInfo } = useVideoPlayer();
   
   const {
     files,
@@ -247,7 +247,15 @@ export default function FilesPage() {
       />
 
       {/* Video Player Dialog */}
-      <VideoPlayerDialog open={isOpen} onOpenChange={setIsOpen} videoUrl={videoUrl} title={videoTitle} />
+      <VideoPlayerDialog 
+        open={isOpen} 
+        onOpenChange={setIsOpen} 
+        videoPath={videoPath} 
+        title={videoTitle}
+        {...(transcode !== undefined && { transcode })}
+        {...(quality && { quality })}
+        {...(showStreamInfo !== undefined && { showStreamInfo })}
+      />
 
       {/* Copy operations list */}
       <CopyOperationsList

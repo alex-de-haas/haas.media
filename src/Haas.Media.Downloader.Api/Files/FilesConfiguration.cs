@@ -10,6 +10,9 @@ public static class FilesConfiguration
         builder.Services.AddSingleton<FilesService>();
         builder.Services.AddSingleton<IFilesApi>(sp => sp.GetRequiredService<FilesService>());
 
+        // Register VideoStreamingService for FFmpeg-based streaming
+        builder.Services.AddSingleton<VideoStreamingService>();
+
         builder.Services.AddBackgroundTask<CopyOperationTask, CopyOperationInfo, CopyOperationTaskExecutor>();
 
         return builder;
@@ -30,7 +33,14 @@ public static class FilesConfiguration
 
         app.MapGet(
                 "api/files/stream",
-                async (string path, HttpContext context, IFilesApi filesApi, IConfiguration configuration) =>
+                async (
+                    string path, 
+                    HttpContext context, 
+                    IConfiguration configuration,
+                    VideoStreamingService streamingService,
+                    bool transcode = false,
+                    string? format = null,
+                    string? quality = null) =>
                 {
                     var dataPath = configuration["DATA_DIRECTORY"] 
                         ?? throw new InvalidOperationException("DATA_DIRECTORY configuration is required.");
@@ -51,39 +61,9 @@ public static class FilesConfiguration
                         return Results.Forbid();
                     }
 
-                    var fileInfo = new FileInfo(filePath);
-                    var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                    
-                    // Get content type based on file extension
-                    var contentType = GetContentType(fileInfo.Extension);
-                    
-                    // Support range requests for video streaming
-                    var rangeHeader = context.Request.Headers.Range.ToString();
-                    if (!string.IsNullOrEmpty(rangeHeader))
-                    {
-                        var range = ParseRangeHeader(rangeHeader, fileInfo.Length);
-                        if (range.HasValue)
-                        {
-                            var (start, end) = range.Value;
-                            var length = end - start + 1;
-                            
-                            fileStream.Seek(start, SeekOrigin.Begin);
-                            
-                            // Use a limited stream to ensure only 'length' bytes are read
-                            var limitedStream = new LimitedStream(fileStream, length);
-                            
-                            context.Response.StatusCode = 206; // Partial Content
-                            context.Response.Headers.ContentRange = $"bytes {start}-{end}/{fileInfo.Length}";
-                            context.Response.ContentType = contentType;
-                            context.Response.Headers.AcceptRanges = "bytes";
-                            
-                            return Results.Stream(limitedStream, contentType, fileInfo.Name);
-                        }
-                    }
-                    
-                    // Normal response
-                    context.Response.Headers.AcceptRanges = "bytes";
-                    return Results.Stream(fileStream, contentType, fileInfo.Name, enableRangeProcessing: true);
+                    // Use VideoStreamingService for all streaming (handles both direct and transcoded)
+                    await streamingService.StreamVideoAsync(filePath, context, transcode, format, quality);
+                    return Results.Empty;
                 }
             )
             .WithName("StreamFile")
@@ -203,56 +183,5 @@ public static class FilesConfiguration
             .RequireAuthorization();
 
         return app;
-    }
-
-    private static string GetContentType(string extension)
-    {
-        return extension.ToLowerInvariant() switch
-        {
-            ".mp4" => "video/mp4",
-            ".mkv" => "video/x-matroska",
-            ".webm" => "video/webm",
-            ".avi" => "video/x-msvideo",
-            ".mov" => "video/quicktime",
-            ".wmv" => "video/x-ms-wmv",
-            ".flv" => "video/x-flv",
-            ".m4v" => "video/x-m4v",
-            ".mpg" or ".mpeg" => "video/mpeg",
-            ".ogv" => "video/ogg",
-            ".3gp" => "video/3gpp",
-            _ => "application/octet-stream"
-        };
-    }
-
-    private static (long start, long end)? ParseRangeHeader(string rangeHeader, long fileSize)
-    {
-        if (!rangeHeader.StartsWith("bytes="))
-            return null;
-
-        var range = rangeHeader["bytes=".Length..].Split('-');
-        if (range.Length != 2)
-            return null;
-
-        long start = 0;
-        long end = fileSize - 1;
-
-        if (!string.IsNullOrEmpty(range[0]))
-        {
-            if (!long.TryParse(range[0], out start))
-                return null;
-        }
-
-        if (!string.IsNullOrEmpty(range[1]))
-        {
-            if (!long.TryParse(range[1], out end))
-                return null;
-        }
-
-        if (start > end || start >= fileSize)
-            return null;
-
-        end = Math.Min(end, fileSize - 1);
-
-        return (start, end);
     }
 }

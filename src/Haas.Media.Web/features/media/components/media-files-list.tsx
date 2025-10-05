@@ -23,7 +23,7 @@ interface Props {
 }
 
 export default function MediaFilesList({ mediaFiles, selectedStreams, setSelectedStreams, encoding }: Props) {
-  const { isOpen, videoUrl, videoTitle, openVideo, setIsOpen } = useVideoPlayer();
+  const { isOpen, videoPath, videoTitle, openVideo, setIsOpen, transcode, quality, showStreamInfo } = useVideoPlayer();
 
   const selectAllStreamsInFile = React.useCallback(
     (filePath: string, streams: MediaStream[]) => {
@@ -195,7 +195,15 @@ export default function MediaFilesList({ mediaFiles, selectedStreams, setSelecte
       </div>
       
       {/* Video Player Dialog */}
-      <VideoPlayerDialog open={isOpen} onOpenChange={setIsOpen} videoUrl={videoUrl} title={videoTitle} />
+      <VideoPlayerDialog 
+        open={isOpen} 
+        onOpenChange={setIsOpen} 
+        videoPath={videoPath} 
+        title={videoTitle}
+        {...(transcode !== undefined && { transcode })}
+        {...(quality && { quality })}
+        {...(showStreamInfo !== undefined && { showStreamInfo })}
+      />
     </div>
   );
 }

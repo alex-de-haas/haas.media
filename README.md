@@ -18,6 +18,7 @@ A modern web application for downloading torrents and encoding videos to various
 
 - **Torrent Management**: Download and manage torrent files
 - **Video Encoding**: Convert videos to different formats with hardware acceleration
+- **Video Streaming**: Stream videos with on-the-fly FFmpeg transcoding for universal compatibility
 - **Real-time Updates**: Live status updates using SignalR
 - **Authentication**: Secure access with Auth0 integration
 - **Metadata Management**: Automatic metadata scanning and organization

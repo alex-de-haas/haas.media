@@ -3,40 +3,47 @@
 import { useState, useCallback } from "react";
 
 interface UseVideoPlayerOptions {
-  baseUrl?: string;
+  /** Enable transcoding by default */
+  transcode?: boolean;
+  /** Default quality preset */
+  quality?: 'low' | 'medium' | 'high' | 'ultra';
+  /** Show streaming info by default */
+  showStreamInfo?: boolean;
 }
 
 export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
   const [isOpen, setIsOpen] = useState(false);
-  const [videoUrl, setVideoUrl] = useState("");
+  const [videoPath, setVideoPath] = useState("");
   const [videoTitle, setVideoTitle] = useState("");
 
   const openVideo = useCallback(
     (path: string, title?: string) => {
-      const { baseUrl = "/api/video-stream" } = options;
-      const url = `${baseUrl}?path=${encodeURIComponent(path)}`;
-      setVideoUrl(url);
+      setVideoPath(path);
       setVideoTitle(title || path);
       setIsOpen(true);
     },
-    [options],
+    [],
   );
 
   const closeVideo = useCallback(() => {
     setIsOpen(false);
     // Clear after animation completes
     setTimeout(() => {
-      setVideoUrl("");
+      setVideoPath("");
       setVideoTitle("");
     }, 300);
   }, []);
 
   return {
     isOpen,
-    videoUrl,
+    videoPath,
     videoTitle,
     openVideo,
     closeVideo,
     setIsOpen,
+    // Expose options for VideoPlayerDialog
+    transcode: options.transcode,
+    quality: options.quality,
+    showStreamInfo: options.showStreamInfo,
   };
 }
