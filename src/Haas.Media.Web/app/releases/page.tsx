@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import { DigitalReleaseCalendar } from "@/features/media/components";
+import { ReleaseCalendar } from "@/features/media/components";
 import { usePageTitle } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui";
@@ -20,7 +20,7 @@ export default function DigitalReleasesPage() {
           </Card>
         }
       >
-        <DigitalReleaseCalendar />
+        <ReleaseCalendar />
       </Suspense>
     </main>
   );

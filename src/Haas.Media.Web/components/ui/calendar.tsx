@@ -113,9 +113,10 @@ export type CalendarBodyProps<T = unknown> = {
   children: (props: { feature: Feature<T>; isSelected: boolean }) => ReactNode;
   onSelectDate?: (date: Date) => void;
   selectedDate?: Date;
+  today?: Date;
 };
 
-export function CalendarBody<T>({ features, children, onSelectDate, selectedDate }: CalendarBodyProps<T>) {
+export function CalendarBody<T>({ features, children, onSelectDate, selectedDate, today }: CalendarBodyProps<T>) {
   const [month] = useCalendarMonth();
   const [year] = useCalendarYear();
   const { startDay } = useContext(CalendarContext);
@@ -177,6 +178,7 @@ export function CalendarBody<T>({ features, children, onSelectDate, selectedDate
   for (let day = 1; day <= daysInMonth; day++) {
     const date = new Date(year, month, day);
     const isSelected = selectedDate ? isSameDay(date, selectedDate) : false;
+    const isToday = today ? isSameDay(date, today) : false;
     const featuresForDay = featuresByDay[day] ?? [];
     const hasFeatures = featuresForDay.length > 0;
 
@@ -186,13 +188,14 @@ export function CalendarBody<T>({ features, children, onSelectDate, selectedDate
           className={cn(
             "group flex h-full w-full flex-col gap-2 p-3 text-left text-xs text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             hasFeatures ? "bg-muted/50 hover:bg-muted" : "bg-background hover:bg-muted/40",
+            isToday && "ring-2 ring-inset ring-blue-500/50 bg-blue-500/5",
             isSelected && "ring-2 ring-inset ring-primary/60 bg-primary/10 text-foreground"
           )}
           onClick={() => onSelectDate?.(date)}
           type="button"
         >
           <span className="flex items-center justify-between text-foreground">
-            <span className="font-medium">{day}</span>
+            <span className={cn("font-medium", isToday && "text-blue-600 dark:text-blue-400")}>{day}</span>
             {hasFeatures && (
               <span className="h-2 w-2 rounded-full bg-primary/70" aria-hidden="true" />
             )}

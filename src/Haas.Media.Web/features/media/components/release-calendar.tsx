@@ -22,6 +22,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui";
 import { useMovies } from "@/features/media/hooks";
 import type { MovieMetadata } from "@/types/metadata";
@@ -90,11 +92,9 @@ function getReleaseTypeConfig(type: ReleaseDateType) {
  */
 function CalendarSync({
   selectedDate,
-  releaseDates,
   onSelectDate,
 }: {
   selectedDate: Date | undefined;
-  releaseDates: Date[];
   onSelectDate: (date?: Date) => void;
 }) {
   const [month, setMonth] = useCalendarMonth();
@@ -126,7 +126,7 @@ function CalendarSync({
     prevYearRef.current = year;
   }, [selectedDate, month, year, setMonth, setYear]);
 
-  // When month/year changes (via navigation), auto-select first release in that month
+  // When month/year changes (via navigation), clear selection
   useEffect(() => {
     // Check if month or year actually changed (and not from the initial render)
     const monthChanged = prevMonthRef.current !== month;
@@ -140,35 +140,39 @@ function CalendarSync({
     const selectedMatchesCurrent =
       selectedDate && selectedDate.getMonth() === month && selectedDate.getFullYear() === year;
 
-    if (selectedMatchesCurrent) {
-      prevMonthRef.current = month;
-      prevYearRef.current = year;
-      return;
-    }
-
-    // Find first release in current month/year
-    const firstInMonth = releaseDates.find(
-      (date) => date.getMonth() === month && date.getFullYear() === year
-    );
-
-    if (firstInMonth) {
-      onSelectDate(firstInMonth);
-    } else {
-      // Clear selection if no releases in this month
+    if (!selectedMatchesCurrent) {
+      // Clear selection when navigating to a different month/year
       onSelectDate(undefined);
     }
 
     prevMonthRef.current = month;
     prevYearRef.current = year;
-  }, [month, year, releaseDates, selectedDate, onSelectDate]);
+  }, [month, year, selectedDate, onSelectDate]);
 
   return null;
 }
 
-export default function DigitalReleaseCalendar() {
+export default function ReleaseCalendar() {
   const { movies, loading, error } = useMovies();
 
   const today = useMemo(() => startOfDay(new Date()), []);
+  
+  // State for selected release types (all enabled by default)
+  const [selectedReleaseTypes, setSelectedReleaseTypes] = useState<Set<ReleaseDateType>>(
+    () => new Set(Object.values(ReleaseDateType).filter((v): v is ReleaseDateType => typeof v === 'number'))
+  );
+
+  const toggleReleaseType = useCallback((type: ReleaseDateType) => {
+    setSelectedReleaseTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  }, []);
 
   const features = useMemo<MovieFeature[]>(() => {
     const items: MovieFeature[] = [];
@@ -177,6 +181,11 @@ export default function DigitalReleaseCalendar() {
       // Add all release dates from releaseDates array
       if (movie.releaseDates && movie.releaseDates.length > 0) {
         for (const release of movie.releaseDates) {
+          // Filter by selected release types
+          if (!selectedReleaseTypes.has(release.type)) {
+            continue;
+          }
+          
           const parsed = new Date(release.date);
           if (!Number.isNaN(parsed.getTime())) {
             const normalized = startOfDay(parsed);
@@ -200,6 +209,11 @@ export default function DigitalReleaseCalendar() {
       
       // Fallback to general releaseDate if no specific release dates
       if ((!movie.releaseDates || movie.releaseDates.length === 0) && movie.releaseDate) {
+        // Only include if Theatrical type is selected
+        if (!selectedReleaseTypes.has(ReleaseDateType.Theatrical)) {
+          continue;
+        }
+        
         const parsed = new Date(movie.releaseDate);
         if (!Number.isNaN(parsed.getTime())) {
           const normalized = startOfDay(parsed);
@@ -222,7 +236,7 @@ export default function DigitalReleaseCalendar() {
     }
 
     return items;
-  }, [movies, today]);
+  }, [movies, today, selectedReleaseTypes]);
 
   const featuresByDate = useMemo(() => {
     const map = new Map<number, MovieFeature[]>();
@@ -260,34 +274,7 @@ export default function DigitalReleaseCalendar() {
     };
   }, [releaseDates]);
 
-  const initialSelectedDate = useMemo(() => {
-    if (releaseDates.length === 0) {
-      return undefined;
-    }
-
-    const upcoming = releaseDates.find((date) => !isAfter(today, date));
-    if (upcoming) {
-      return startOfDay(upcoming);
-    }
-
-    const lastReleaseDate = releaseDates[releaseDates.length - 1];
-    return lastReleaseDate ? startOfDay(lastReleaseDate) : undefined;
-  }, [releaseDates, today]);
-
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialSelectedDate);
-
-  useEffect(() => {
-    setSelectedDate((prev) => {
-      if (prev) {
-        const key = getDateKey(prev);
-        if (featuresByDate.has(key)) {
-          return prev;
-        }
-      }
-
-      return initialSelectedDate;
-    });
-  }, [featuresByDate, initialSelectedDate]);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
   const handleSelectDate = useCallback((date?: Date) => {
     setSelectedDate(date ? startOfDay(date) : undefined);
@@ -323,6 +310,18 @@ export default function DigitalReleaseCalendar() {
   }
 
   if (releaseDates.length === 0) {
+    // Check if it's because all release types are deselected
+    if (selectedReleaseTypes.size === 0) {
+      return (
+        <Alert>
+          <AlertTitle>No release types selected</AlertTitle>
+          <AlertDescription>
+            Select at least one release type from the filter to view the calendar.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    
     return (
       <Alert>
         <AlertTitle>No releases found</AlertTitle>
@@ -338,10 +337,47 @@ export default function DigitalReleaseCalendar() {
           <CardTitle>Release Calendar</CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Release Type Filter */}
+          <div className="mb-6 rounded-lg border border-border/60 bg-muted/40 p-4">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">Filter by Release Type</h3>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {Object.entries(RELEASE_TYPE_CONFIG).map(([typeKey, config]) => {
+                const type = Number(typeKey) as ReleaseDateType;
+                const isChecked = selectedReleaseTypes.has(type);
+                
+                return (
+                  <div key={type} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`release-type-${type}`}
+                      checked={isChecked}
+                      onCheckedChange={() => toggleReleaseType(type)}
+                    />
+                    <Label
+                      htmlFor={`release-type-${type}`}
+                      className="flex cursor-pointer items-center gap-2 text-sm font-normal"
+                    >
+                      <span
+                        className={cn(
+                          "h-2 w-2 rounded-full flex-shrink-0",
+                          type === ReleaseDateType.Theatrical && "bg-blue-500",
+                          type === ReleaseDateType.TheatricalLimited && "bg-cyan-500",
+                          type === ReleaseDateType.Digital && "bg-purple-500",
+                          type === ReleaseDateType.Physical && "bg-green-500",
+                          type === ReleaseDateType.Tv && "bg-orange-500",
+                          type === ReleaseDateType.Premiere && "bg-pink-500"
+                        )}
+                      />
+                      {config.label}
+                    </Label>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           <CalendarProvider className="space-y-4">
             <CalendarSync
               selectedDate={selectedDate}
-              releaseDates={releaseDates}
               onSelectDate={handleSelectDate}
             />
             <CalendarDate>
@@ -355,6 +391,7 @@ export default function DigitalReleaseCalendar() {
             <CalendarBody
               features={features}
               onSelectDate={handleCalendarBodySelect}
+              today={today}
               {...(selectedDate ? { selectedDate } : {})}
             >
               {({ feature, isSelected }) => {
@@ -391,7 +428,7 @@ export default function DigitalReleaseCalendar() {
           </CalendarProvider>
           <div className="mt-4 space-y-2">
             <p className="text-sm text-muted-foreground">
-              Dates with color accents indicate movie releases. Pick a day to explore all release types.
+              Dates with color accents indicate movie releases. Pick a day to explore all release types. Today&apos;s date is highlighted in blue.
             </p>
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
