@@ -5,7 +5,7 @@ import { Spinner } from "@/components/ui";
 
 interface TVShowPageProps {
   params: {
-    id: string;
+    id: number;
   };
 }
 

@@ -33,7 +33,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { PersonCard } from "@/features/media/components/person-card";
 
 interface TVShowDetailsProps {
-  tvShowId: string;
+  tvShowId: number;
 }
 
 interface EpisodeCardProps {

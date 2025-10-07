@@ -169,7 +169,7 @@ public static class MetadataConfiguration
 
         app.MapGet(
                 "api/metadata/movies/{id}",
-                async (IMetadataApi metadataService, string id) =>
+                async (IMetadataApi metadataService, int id) =>
                 {
                     var movieMetadata = await metadataService.GetMovieMetadataByIdAsync(id);
                     return movieMetadata != null ? Results.Ok(movieMetadata) : Results.NotFound();
@@ -180,7 +180,7 @@ public static class MetadataConfiguration
 
         app.MapDelete(
                 "api/metadata/movies/{id}",
-                async (IMetadataApi metadataService, string id) =>
+                async (IMetadataApi metadataService, int id) =>
                 {
                     var deleted = await metadataService.DeleteMovieMetadataAsync(id);
                     return deleted ? Results.Ok() : Results.NotFound();
@@ -202,7 +202,7 @@ public static class MetadataConfiguration
 
         app.MapGet(
                 "api/metadata/tvshows/{id}",
-                async (IMetadataApi metadataService, string id) =>
+                async (IMetadataApi metadataService, int id) =>
                 {
                     var tvShowMetadata = await metadataService.GetTVShowMetadataByIdAsync(id);
                     return tvShowMetadata != null ? Results.Ok(tvShowMetadata) : Results.NotFound();
@@ -213,7 +213,7 @@ public static class MetadataConfiguration
 
         app.MapDelete(
                 "api/metadata/tvshows/{id}",
-                async (IMetadataApi metadataService, string id) =>
+                async (IMetadataApi metadataService, int id) =>
                 {
                     var deleted = await metadataService.DeleteTVShowMetadataAsync(id);
                     return deleted ? Results.Ok() : Results.NotFound();

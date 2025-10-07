@@ -33,7 +33,7 @@ import { PersonCard } from "@/features/media/components/person-card";
 import { ReleaseDateType } from "@/types";
 
 interface MovieDetailsProps {
-  movieId: string;
+  movieId: number;
 }
 
 export default function MovieDetails({ movieId }: MovieDetailsProps) {

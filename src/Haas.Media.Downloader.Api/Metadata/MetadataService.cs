@@ -122,29 +122,16 @@ public class MetadataService : IMetadataApi
         return Task.FromResult<IEnumerable<MovieMetadata>>(movieMetadata);
     }
 
-    public Task<MovieMetadata?> GetMovieMetadataByIdAsync(string id)
+    public Task<MovieMetadata?> GetMovieMetadataByIdAsync(int id)
     {
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            _logger.LogWarning("Invalid ID format: {Id}", id);
-            return Task.FromResult<MovieMetadata?>(null);
-        }
-
         var movieMetadata = _movieMetadataCollection.FindById(new BsonValue(id));
         _logger.LogDebug("Retrieved movie metadata with ID: {Id}", id);
         return Task.FromResult<MovieMetadata?>(movieMetadata);
     }
 
-    public Task<bool> DeleteMovieMetadataAsync(string id)
+    public Task<bool> DeleteMovieMetadataAsync(int id)
     {
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            _logger.LogWarning("Invalid ID format: {Id}", id);
-            return Task.FromResult(false);
-        }
-
         var deleted = _movieMetadataCollection.Delete(new BsonValue(id));
-
         if (deleted)
         {
             _logger.LogInformation("Deleted movie metadata with ID: {Id}", id);
@@ -166,29 +153,16 @@ public class MetadataService : IMetadataApi
         return Task.FromResult<IEnumerable<TVShowMetadata>>(tvShowMetadata);
     }
 
-    public Task<TVShowMetadata?> GetTVShowMetadataByIdAsync(string id)
+    public Task<TVShowMetadata?> GetTVShowMetadataByIdAsync(int id)
     {
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            _logger.LogWarning("Invalid ID format: {Id}", id);
-            return Task.FromResult<TVShowMetadata?>(null);
-        }
-
         var tvShowMetadata = _tvShowMetadataCollection.FindById(new BsonValue(id));
         _logger.LogDebug("Retrieved TV show metadata with ID: {Id}", id);
         return Task.FromResult<TVShowMetadata?>(tvShowMetadata);
     }
 
-    public Task<bool> DeleteTVShowMetadataAsync(string id)
+    public Task<bool> DeleteTVShowMetadataAsync(int id)
     {
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            _logger.LogWarning("Invalid ID format: {Id}", id);
-            return Task.FromResult(false);
-        }
-
         var deleted = _tvShowMetadataCollection.Delete(new BsonValue(id));
-
         if (deleted)
         {
             _logger.LogInformation("Deleted TV show metadata with ID: {Id}", id);
@@ -311,7 +285,9 @@ public class MetadataService : IMetadataApi
         }
 
         var task = new AddToLibraryTask(library.Id, library.Type, tmdbId, library.Title);
-        var taskId = _backgroundTaskManager.RunTask<AddToLibraryTask, AddToLibraryOperationInfo>(task);
+        var taskId = _backgroundTaskManager.RunTask<AddToLibraryTask, AddToLibraryOperationInfo>(
+            task
+        );
 
         _logger.LogInformation(
             "Queued add-to-library task {TaskId} for TMDB {TmdbId} in library {LibraryId}",
@@ -325,6 +301,7 @@ public class MetadataService : IMetadataApi
             "Background add-to-library task started"
         );
     }
+
     private void CreateIndexes()
     {
         _librariesCollection.EnsureIndex(x => x.DirectoryPath, true);

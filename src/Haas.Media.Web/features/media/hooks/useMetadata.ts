@@ -117,7 +117,7 @@ export function useMovies(libraryId?: string) {
   return { movies, loading, error, refetch: fetchMovies };
 }
 
-export function useMovie(id: string) {
+export function useMovie(id: number) {
   const [movie, setMovie] = useState<MovieMetadata | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -246,7 +246,7 @@ export function useTVShows(libraryId?: string) {
   return { tvShows, loading, error, refetch: fetchTVShows };
 }
 
-export function useTVShow(id: string) {
+export function useTVShow(id: number) {
   const [tvShow, setTVShow] = useState<TVShowMetadata | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

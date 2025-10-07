@@ -10,11 +10,11 @@ public interface IMetadataApi
     Task<string> StartScanLibrariesAsync(bool refreshExisting = true);
     Task<string> StartRefreshMetadataAsync();
     Task<IEnumerable<MovieMetadata>> GetMovieMetadataAsync(string? libraryId = null);
-    Task<MovieMetadata?> GetMovieMetadataByIdAsync(string id);
-    Task<bool> DeleteMovieMetadataAsync(string id);
+    Task<MovieMetadata?> GetMovieMetadataByIdAsync(int id);
+    Task<bool> DeleteMovieMetadataAsync(int id);
     Task<IEnumerable<TVShowMetadata>> GetTVShowMetadataAsync(string? libraryId = null);
-    Task<TVShowMetadata?> GetTVShowMetadataByIdAsync(string id);
-    Task<bool> DeleteTVShowMetadataAsync(string id);
+    Task<TVShowMetadata?> GetTVShowMetadataByIdAsync(int id);
+    Task<bool> DeleteTVShowMetadataAsync(int id);
     Task<IEnumerable<SearchResult>> SearchAsync(string query, LibraryType? libraryType = null);
     Task<AddToLibraryResponse> AddToLibraryAsync(AddToLibraryRequest request);
 }
