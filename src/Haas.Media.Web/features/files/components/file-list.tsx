@@ -7,7 +7,6 @@ import { formatFileSize, formatDate } from "@/lib/utils/format";
 import { Spinner } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { ChevronRight, File as FileIconOutline, Folder, Image as ImageIcon, Music, Video } from "lucide-react";
 
@@ -85,38 +84,36 @@ export default function FileList({ files, currentPath, onNavigate, loading, rend
             <span>This directory is empty</span>
           </div>
         ) : (
-          <ScrollArea className="max-h-[60vh]">
-            <div className="divide-y">
-              {files.map((item) => (
-                <div key={item.relativePath} className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
-                  <div
-                    className={cn(
-                      "flex flex-1 items-center gap-3 overflow-hidden",
-                      item.type === FileItemType.Directory && "cursor-pointer hover:text-foreground",
-                    )}
-                    onClick={() => handleItemClick(item)}
-                  >
-                    <FileIcon item={item} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        {item.type === FileItemType.Directory ? (
-                          <></>
-                        ) : (
-                          <>
-                            <span>{formatFileSize(item.size || 0)}</span>
-                            <span className="text-muted-foreground/40">•</span>
-                            <span>{formatDate(item.lastModified)}</span>
-                          </>
-                        )}
-                      </div>
+          <div className="divide-y">
+            {files.map((item) => (
+              <div key={item.relativePath} className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
+                <div
+                  className={cn(
+                    "flex flex-1 items-center gap-3 overflow-hidden",
+                    item.type === FileItemType.Directory && "cursor-pointer hover:text-foreground",
+                  )}
+                  onClick={() => handleItemClick(item)}
+                >
+                  <FileIcon item={item} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      {item.type === FileItemType.Directory ? (
+                        <></>
+                      ) : (
+                        <>
+                          <span>{formatFileSize(item.size || 0)}</span>
+                          <span className="text-muted-foreground/40">•</span>
+                          <span>{formatDate(item.lastModified)}</span>
+                        </>
+                      )}
                     </div>
                   </div>
-                  {renderActions && renderActions(item)}
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
+                {renderActions && renderActions(item)}
+              </div>
+            ))}
+          </div>
         )}
       </CardContent>
     </Card>
