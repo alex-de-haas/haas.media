@@ -3,9 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import { useTVShows } from "@/features/media/hooks";
 import type { TVShowMetadata } from "@/types/metadata";
-import { Spinner } from "@/components/ui";
+import { MultiSelect, type Option, Spinner } from "@/components/ui";
 import { getPosterUrl } from "@/lib/tmdb";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -83,6 +84,56 @@ export default function TVShowsList({ libraryId }: TVShowsListProps) {
   const searchParams = useSearchParams();
   const effectiveLibraryId = libraryId || searchParams.get("libraryId") || undefined;
   const { tvShows, loading, error, refetch } = useTVShows(effectiveLibraryId);
+  
+  const [selectedPeople, setSelectedPeople] = useState<string[]>([]);
+
+  // Extract unique people (cast and crew) from all TV shows
+  const peopleOptions = useMemo<Option[]>(() => {
+    const peopleMap = new Map<number, { name: string; roles: Set<string> }>();
+    
+    tvShows.forEach((show) => {
+      // Add cast members
+      show.cast.forEach((member) => {
+        if (!peopleMap.has(member.id)) {
+          peopleMap.set(member.id, { name: member.name, roles: new Set() });
+        }
+        peopleMap.get(member.id)!.roles.add("Actor");
+      });
+      
+      // Add crew members
+      show.crew.forEach((member) => {
+        if (!peopleMap.has(member.id)) {
+          peopleMap.set(member.id, { name: member.name, roles: new Set() });
+        }
+        peopleMap.get(member.id)!.roles.add(member.job);
+      });
+    });
+    
+    return Array.from(peopleMap.entries())
+      .map(([id, data]) => {
+        const roles = Array.from(data.roles).sort().join(", ");
+        return {
+          value: id.toString(),
+          label: `${data.name} (${roles})`,
+        };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [tvShows]);
+
+  // Filter TV shows based on selected people
+  const filteredTVShows = useMemo(() => {
+    if (selectedPeople.length === 0) {
+      return tvShows;
+    }
+
+    return tvShows.filter((show) => {
+      return selectedPeople.every((personId) => {
+        const hasCast = show.cast.some((member) => member.id.toString() === personId);
+        const hasCrew = show.crew.some((member) => member.id.toString() === personId);
+        return hasCast || hasCrew;
+      });
+    });
+  }, [tvShows, selectedPeople]);
 
   if (loading) {
     return (
@@ -121,20 +172,47 @@ export default function TVShowsList({ libraryId }: TVShowsListProps) {
     );
   }
 
+  const hasActiveFilters = selectedPeople.length > 0;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold tracking-tight">TV Shows</h2>
         <Badge variant="outline" className="gap-1 text-xs">
           <Tv className="h-3.5 w-3.5" />
-          {tvShows.length} series
+          {filteredTVShows.length} {hasActiveFilters && `of ${tvShows.length}`} series
         </Badge>
       </div>
-      <div className={cn("grid gap-6", "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6")}>
-        {tvShows.map((tvShow) => (
-          <TVShowCard key={tvShow.id} tvShow={tvShow} />
-        ))}
+
+      {/* Filters */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground">Filter by People</label>
+        <MultiSelect
+          options={peopleOptions}
+          selected={selectedPeople}
+          onChange={setSelectedPeople}
+          placeholder="Search cast and crew..."
+          emptyMessage="No person found."
+        />
       </div>
+
+      {filteredTVShows.length === 0 ? (
+        <Card className="bg-muted/30">
+          <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center text-muted-foreground">
+            <PackageOpen className="h-12 w-12 text-muted-foreground/40" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">No TV shows match the selected filters</p>
+              <p className="text-xs">Try adjusting your filter criteria.</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className={cn("grid gap-6", "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6")}>
+          {filteredTVShows.map((tvShow) => (
+            <TVShowCard key={tvShow.id} tvShow={tvShow} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -77,7 +77,7 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
       await addToLibrary({
         type: mediaType,
         libraryId: selectedLibraryId,
-        tmdbId: result.id.toString(),
+        id: result.id,
       });
       onClose();
     } catch (err) {

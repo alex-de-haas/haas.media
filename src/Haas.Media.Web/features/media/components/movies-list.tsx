@@ -3,9 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import { useMovies } from "@/features/media/hooks";
 import type { MovieMetadata } from "@/types/metadata";
-import { Spinner } from "@/components/ui";
+import { MultiSelect, type Option, Spinner } from "@/components/ui";
 import { getPosterUrl } from "@/lib/tmdb";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -79,6 +80,56 @@ export default function MoviesList({ libraryId }: MoviesListProps) {
   const searchParams = useSearchParams();
   const effectiveLibraryId = libraryId || searchParams.get("libraryId") || undefined;
   const { movies, loading, error, refetch } = useMovies(effectiveLibraryId);
+  
+  const [selectedPeople, setSelectedPeople] = useState<string[]>([]);
+
+  // Extract unique people (cast and crew) from all movies
+  const peopleOptions = useMemo<Option[]>(() => {
+    const peopleMap = new Map<number, { name: string; roles: Set<string> }>();
+    
+    movies.forEach((movie) => {
+      // Add cast members
+      movie.cast.forEach((member) => {
+        if (!peopleMap.has(member.id)) {
+          peopleMap.set(member.id, { name: member.name, roles: new Set() });
+        }
+        peopleMap.get(member.id)!.roles.add("Actor");
+      });
+      
+      // Add crew members
+      movie.crew.forEach((member) => {
+        if (!peopleMap.has(member.id)) {
+          peopleMap.set(member.id, { name: member.name, roles: new Set() });
+        }
+        peopleMap.get(member.id)!.roles.add(member.job);
+      });
+    });
+    
+    return Array.from(peopleMap.entries())
+      .map(([id, data]) => {
+        const roles = Array.from(data.roles).sort().join(", ");
+        return {
+          value: id.toString(),
+          label: `${data.name} (${roles})`,
+        };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [movies]);
+
+  // Filter movies based on selected people
+  const filteredMovies = useMemo(() => {
+    if (selectedPeople.length === 0) {
+      return movies;
+    }
+
+    return movies.filter((movie) => {
+      return selectedPeople.every((personId) => {
+        const hasCast = movie.cast.some((member) => member.id.toString() === personId);
+        const hasCrew = movie.crew.some((member) => member.id.toString() === personId);
+        return hasCast || hasCrew;
+      });
+    });
+  }, [movies, selectedPeople]);
 
   if (loading) {
     return (
@@ -117,20 +168,47 @@ export default function MoviesList({ libraryId }: MoviesListProps) {
     );
   }
 
+  const hasActiveFilters = selectedPeople.length > 0;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold tracking-tight">Movies</h2>
         <Badge variant="outline" className="gap-1 text-xs">
           <Film className="h-3.5 w-3.5" />
-          {movies.length} titles
+          {filteredMovies.length} {hasActiveFilters && `of ${movies.length}`} titles
         </Badge>
       </div>
-      <div className={cn("grid gap-6", "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6")}>
-        {movies.map((movie) => (
-          <MovieCard key={movie.id} movie={movie} />
-        ))}
+
+      {/* Filters */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground">Filter by People</label>
+        <MultiSelect
+          options={peopleOptions}
+          selected={selectedPeople}
+          onChange={setSelectedPeople}
+          placeholder="Search cast and crew..."
+          emptyMessage="No person found."
+        />
       </div>
+
+      {filteredMovies.length === 0 ? (
+        <Card className="bg-muted/30">
+          <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center text-muted-foreground">
+            <PackageOpen className="h-12 w-12 text-muted-foreground/40" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">No movies match the selected filters</p>
+              <p className="text-xs">Try adjusting your filter criteria.</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className={cn("grid gap-6", "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6")}>
+          {filteredMovies.map((movie) => (
+            <MovieCard key={movie.id} movie={movie} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
