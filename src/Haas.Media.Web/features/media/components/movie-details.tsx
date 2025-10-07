@@ -339,7 +339,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                               .slice(0, CREDIT_DISPLAY_LIMIT)
                               .map((castMember) => (
                                 <CarouselItem
-                                  key={`${castMember.tmdbId}-${castMember.order}`}
+                                  key={`${castMember.id}-${castMember.order}`}
                                   className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
                                 >
                                   <PersonCard
@@ -368,7 +368,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                           <CarouselContent className="-ml-2 sm:-ml-4">
                             {movie.crew.slice(0, CREDIT_DISPLAY_LIMIT).map((crewMember) => (
                               <CarouselItem
-                                key={`${crewMember.tmdbId}-${crewMember.job}`}
+                                key={`${crewMember.id}-${crewMember.job}`}
                                 className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
                               >
                                 <PersonCard

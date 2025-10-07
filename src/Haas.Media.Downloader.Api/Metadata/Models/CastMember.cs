@@ -5,7 +5,7 @@ namespace Haas.Media.Downloader.Api.Metadata;
 
 public class CastMember
 {
-    public required int TmdbId { get; set; }
+    public required int Id { get; set; }
     public required string Name { get; set; }
     public required string Character { get; set; }
     public required int Order { get; set; }
@@ -18,7 +18,7 @@ static class CastMemberMapper
     {
         return new CastMember
         {
-            TmdbId = cast.Id,
+            Id = cast.Id,
             Name = cast.Name,
             Character = cast.Character,
             Order = cast.Order,
@@ -30,7 +30,7 @@ static class CastMemberMapper
     {
         return new CastMember
         {
-            TmdbId = cast.Id,
+            Id = cast.Id,
             Name = cast.Name,
             Character = cast.Character,
             Order = cast.Order,

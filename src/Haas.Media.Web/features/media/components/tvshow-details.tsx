@@ -306,7 +306,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                         <h3 className="text-sm font-semibold">Networks</h3>
                         <div className="flex flex-wrap gap-2">
                           {tvShow.networks.map((network) => (
-                            <Badge key={network.tmdbId} variant="outline">
+                            <Badge key={network.id} variant="outline">
                               {network.name}
                             </Badge>
                           ))}
@@ -346,7 +346,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                               .slice(0, CREDIT_DISPLAY_LIMIT)
                               .map((castMember) => (
                                 <CarouselItem
-                                  key={`${castMember.tmdbId}-${castMember.order}`}
+                                  key={`${castMember.id}-${castMember.order}`}
                                   className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
                                 >
                                   <PersonCard
@@ -389,7 +389,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                               .slice(0, CREDIT_DISPLAY_LIMIT)
                               .map((crewMember) => (
                                 <CarouselItem
-                                  key={`${crewMember.tmdbId}-${crewMember.job}`}
+                                  key={`${crewMember.id}-${crewMember.job}`}
                                   className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
                                 >
                                   <PersonCard

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { fetchWithAuth, fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
+import { fetchWithAuth } from "@/lib/auth/fetch-with-auth";
 import { getApiDownloaderUrl } from "@/lib/env";
 import type {
   MovieMetadata,
@@ -154,7 +154,7 @@ export function useDeleteMovieMetadata() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const deleteMovie = useCallback(async (id: string) => {
+  const deleteMovie = useCallback(async (id: number) => {
     try {
       setLoading(true);
       setError(null);
@@ -283,7 +283,7 @@ export function useDeleteTVShowMetadata() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const deleteTVShow = useCallback(async (id: string) => {
+  const deleteTVShow = useCallback(async (id: number) => {
     try {
       setLoading(true);
       setError(null);

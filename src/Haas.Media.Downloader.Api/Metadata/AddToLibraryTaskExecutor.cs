@@ -40,11 +40,10 @@ internal sealed class AddToLibraryTaskExecutor
         context.State.StartedAt ??= DateTimeOffset.UtcNow;
 
         var payload = new AddToLibraryOperationInfo(
-            task.Id.ToString(),
+            task.TmdbId,
             task.LibraryId,
             task.LibraryType,
             task.LibraryTitle,
-            task.TmdbId,
             Stage: "Queued",
             StartTime: DateTime.UtcNow
         );
@@ -160,9 +159,7 @@ internal sealed class AddToLibraryTaskExecutor
         context.SetPayload(payload);
         context.ReportProgress(35);
 
-        var existingMovie = _movieMetadataCollection.FindOne(m =>
-            m.LibraryId == library.Id && m.TmdbId == tmdbId
-        );
+        var existingMovie = _movieMetadataCollection.FindById(new BsonValue(tmdbId.ToString()));
 
         if (existingMovie is not null)
         {
@@ -191,7 +188,7 @@ internal sealed class AddToLibraryTaskExecutor
         }
         else
         {
-            var movieMetadata = movieDetails.Create(ObjectId.NewObjectId().ToString());
+            var movieMetadata = movieDetails.Create();
 
             movieMetadata.LibraryId = library.Id;
 
@@ -246,9 +243,7 @@ internal sealed class AddToLibraryTaskExecutor
         context.SetPayload(payload);
         context.ReportProgress(20);
 
-        var existingTVShow = _tvShowMetadataCollection.FindOne(tv =>
-            tv.LibraryId == library.Id && tv.TmdbId == tmdbId
-        );
+        var existingTVShow = _tvShowMetadataCollection.FindById(new BsonValue(tmdbId.ToString()));
 
         Dictionary<(int SeasonNumber, int EpisodeNumber), string?>? existingEpisodeLookup =
             existingTVShow
@@ -392,7 +387,7 @@ internal sealed class AddToLibraryTaskExecutor
         }
         else
         {
-            var tvShowMetadata = tvShowDetails.Create(ObjectId.NewObjectId().ToString());
+            var tvShowMetadata = tvShowDetails.Create();
 
             tvShowMetadata.LibraryId = library.Id;
             tvShowMetadata.Seasons = seasons.ToArray();

@@ -223,7 +223,7 @@ public class MetadataService : IMetadataApi
                     searchResults.Add(
                         new SearchResult
                         {
-                            TmdbId = movie.Id,
+                            Id = movie.Id,
                             Title = movie.Title ?? string.Empty,
                             OriginalTitle = movie.OriginalTitle ?? string.Empty,
                             Overview = movie.Overview ?? string.Empty,
@@ -232,6 +232,8 @@ public class MetadataService : IMetadataApi
                             Type = LibraryType.Movies,
                             PosterPath = movie.PosterPath,
                             BackdropPath = movie.BackdropPath,
+                            ReleaseDate = movie.ReleaseDate,
+                            OriginalLanguage = movie.OriginalLanguage
                         }
                     );
                 }
@@ -249,7 +251,7 @@ public class MetadataService : IMetadataApi
                     searchResults.Add(
                         new SearchResult
                         {
-                            TmdbId = tvShow.Id,
+                            Id = tvShow.Id,
                             Title = tvShow.Name ?? string.Empty,
                             OriginalTitle = tvShow.OriginalName ?? string.Empty,
                             Overview = tvShow.Overview ?? string.Empty,
@@ -258,6 +260,8 @@ public class MetadataService : IMetadataApi
                             Type = LibraryType.TVShows,
                             PosterPath = tvShow.PosterPath,
                             BackdropPath = tvShow.BackdropPath,
+                            ReleaseDate = tvShow.FirstAirDate,
+                            OriginalLanguage = tvShow.OriginalLanguage
                         }
                     );
                 }
@@ -327,11 +331,9 @@ public class MetadataService : IMetadataApi
         _librariesCollection.EnsureIndex(x => x.Title);
 
         _movieMetadataCollection.EnsureIndex(x => x.LibraryId);
-        _movieMetadataCollection.EnsureIndex(x => x.TmdbId, true);
         _movieMetadataCollection.EnsureIndex(x => x.Title);
 
         _tvShowMetadataCollection.EnsureIndex(x => x.LibraryId);
-        _tvShowMetadataCollection.EnsureIndex(x => x.TmdbId, true);
         _tvShowMetadataCollection.EnsureIndex(x => x.Title);
 
         _logger.LogDebug(

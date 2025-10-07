@@ -517,7 +517,7 @@ internal sealed class MetadataScanTaskExecutor
     )
     {
         var tvShowDetails = await _tmdbClient.GetTvShowAsync(tmdbTvShowId, extraMethods: TvShowMethods.Credits);
-        var tvShowMetadata = tvShowDetails.Create(ObjectId.NewObjectId().ToString());
+        var tvShowMetadata = tvShowDetails.Create();
 
         tvShowMetadata.LibraryId = libraryId;
 
@@ -858,7 +858,7 @@ internal sealed class MetadataScanTaskExecutor
                     }
                     else
                     {
-                        var movieMetadata = movieDetails.Create(ObjectId.NewObjectId().ToString());
+                        var movieMetadata = movieDetails.Create();
                         movieMetadata.LibraryId = library.Id;
                         movieMetadata.FilePath = relativePath;
                         _movieMetadataCollection.Insert(movieMetadata);

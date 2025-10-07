@@ -48,8 +48,7 @@ public class LibraryInfo
 ```csharp
 public class MovieMetadata
 {
-    public string? Id { get; set; }
-    public required int TmdbId { get; set; }
+    public required int Id { get; set; }
     public required string OriginalTitle { get; set; }
     public required string OriginalLanguage { get; set; }
     public required string Title { get; set; }
@@ -76,8 +75,7 @@ public class MovieMetadata
 ```csharp
 public class TVShowMetadata
 {
-    public string? Id { get; set; }
-    public required int TmdbId { get; set; }
+    public required int Id { get; set; }
     public required string OriginalTitle { get; set; }
     public required string OriginalLanguage { get; set; }
     public required string Title { get; set; }
@@ -104,7 +102,7 @@ public class TVShowMetadata
 ```csharp
 public class CrewMember
 {
-    public required int TmdbId { get; set; }
+    public required int Id { get; set; }
     public required string Name { get; set; }
     public required string Job { get; set; }
     public required string Department { get; set; }
@@ -113,7 +111,7 @@ public class CrewMember
 
 public class CastMember
 {
-    public required int TmdbId { get; set; }
+    public required int Id { get; set; }
     public required string Name { get; set; }
     public required string Character { get; set; }
     public required int Order { get; set; }
@@ -122,7 +120,7 @@ public class CastMember
 
 public class Network
 {
-    public required int TmdbId { get; set; }
+    public required int Id { get; set; }
     public required string Name { get; set; }
     public string? LogoPath { get; set; }
     public string? OriginCountry { get; set; }

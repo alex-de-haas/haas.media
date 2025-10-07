@@ -6,9 +6,8 @@ namespace Haas.Media.Downloader.Api.Metadata;
 public class MovieMetadata
 {
     [BsonId]
-    public string? Id { get; set; }
+    public required int Id { get; set; }
     
-    public required int TmdbId { get; set; }
     public required string OriginalTitle { get; set; }
     public required string OriginalLanguage { get; set; }
     public required string Title { get; set; }
@@ -40,12 +39,11 @@ public class MovieMetadata
 
 static class MovieMetadataMapper
 {
-    public static MovieMetadata Create(this Movie source, string id)
+    public static MovieMetadata Create(this Movie source)
     {
         return new MovieMetadata
         {
-            Id = id,
-            TmdbId = source.Id,
+            Id = source.Id,
             OriginalTitle = source.OriginalTitle,
             OriginalLanguage = source.OriginalLanguage,
             Title = source.Title,

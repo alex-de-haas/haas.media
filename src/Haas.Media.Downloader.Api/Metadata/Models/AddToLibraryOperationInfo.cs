@@ -1,13 +1,10 @@
-using System;
-
 namespace Haas.Media.Downloader.Api.Metadata;
 
 public record AddToLibraryOperationInfo(
-    string Id,
+    int Id,
     string LibraryId,
     LibraryType LibraryType,
     string? LibraryTitle,
-    int TmdbId,
     string Stage,
     DateTime StartTime,
     string? Title = null,

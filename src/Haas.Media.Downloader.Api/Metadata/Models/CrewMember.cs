@@ -4,7 +4,7 @@ namespace Haas.Media.Downloader.Api.Metadata;
 
 public class CrewMember
 {
-    public required int TmdbId { get; set; }
+    public required int Id { get; set; }
     public required string Name { get; set; }
     public required string Job { get; set; }
     public required string Department { get; set; }
@@ -17,7 +17,7 @@ static class CrewMemberMapper
     {
         return new CrewMember
         {
-            TmdbId = crew.Id,
+            Id = crew.Id,
             Name = crew.Name,
             Job = crew.Job,
             Department = crew.Department,

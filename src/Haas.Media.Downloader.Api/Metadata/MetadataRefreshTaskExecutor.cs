@@ -69,7 +69,7 @@ internal sealed class MetadataRefreshTaskExecutor
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var displayTitle = string.IsNullOrWhiteSpace(movie.Title)
-                    ? $"TMDb #{movie.TmdbId}"
+                    ? $"TMDb #{movie.Id}"
                     : movie.Title;
 
                 payload = payload with
@@ -99,7 +99,7 @@ internal sealed class MetadataRefreshTaskExecutor
                         ex,
                         "Failed to refresh movie metadata for {Title} (TMDb {TmdbId})",
                         displayTitle,
-                        movie.TmdbId
+                        movie.Id
                     );
                 }
 
@@ -130,7 +130,7 @@ internal sealed class MetadataRefreshTaskExecutor
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var displayTitle = string.IsNullOrWhiteSpace(tvShow.Title)
-                    ? $"TMDb #{tvShow.TmdbId}"
+                    ? $"TMDb #{tvShow.Id}"
                     : tvShow.Title;
 
                 payload = payload with
@@ -160,7 +160,7 @@ internal sealed class MetadataRefreshTaskExecutor
                         ex,
                         "Failed to refresh TV show metadata for {Title} (TMDb {TmdbId})",
                         displayTitle,
-                        tvShow.TmdbId
+                        tvShow.Id
                     );
                 }
 
@@ -228,8 +228,9 @@ internal sealed class MetadataRefreshTaskExecutor
 
     private async Task RefreshMovieAsync(MovieMetadata movie, CancellationToken cancellationToken)
     {
+        var tmdbId =movie.Id;
         var movieDetails = await _tmdbClient.GetMovieAsync(
-            movie.TmdbId,
+            tmdbId,
             extraMethods: MovieMethods.ReleaseDates | MovieMethods.Credits,
             cancellationToken: cancellationToken
         );
@@ -237,7 +238,7 @@ internal sealed class MetadataRefreshTaskExecutor
         if (movieDetails is null)
         {
             throw new InvalidOperationException(
-                $"Movie with TMDb ID {movie.TmdbId} was not found."
+                $"Movie with TMDb ID {tmdbId} was not found."
             );
         }
 
@@ -251,8 +252,9 @@ internal sealed class MetadataRefreshTaskExecutor
         CancellationToken cancellationToken
     )
     {
+        var tmdbId = tvShow.Id;
         var tvShowDetails = await _tmdbClient.GetTvShowAsync(
-            tvShow.TmdbId,
+            tmdbId,
             extraMethods: TvShowMethods.Credits,
             cancellationToken: cancellationToken
         );
@@ -260,12 +262,12 @@ internal sealed class MetadataRefreshTaskExecutor
         if (tvShowDetails is null)
         {
             throw new InvalidOperationException(
-                $"TV show with TMDb ID {tvShow.TmdbId} was not found."
+                $"TV show with TMDb ID {tmdbId} was not found."
             );
         }
 
         var tvShowCredits = await _tmdbClient.GetTvShowCreditsAsync(
-            tvShow.TmdbId,
+            tmdbId,
             cancellationToken: cancellationToken
         );
 
@@ -295,7 +297,7 @@ internal sealed class MetadataRefreshTaskExecutor
             cancellationToken.ThrowIfCancellationRequested();
 
             var seasonDetails = await _tmdbClient.GetTvSeasonAsync(
-                tvShow.TmdbId,
+                tmdbId,
                 season.SeasonNumber,
                 cancellationToken: cancellationToken
             );
@@ -308,7 +310,7 @@ internal sealed class MetadataRefreshTaskExecutor
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var episodeDetails = await _tmdbClient.GetTvEpisodeAsync(
-                    tvShow.TmdbId,
+                    tmdbId,
                     season.SeasonNumber,
                     episode.EpisodeNumber,
                     cancellationToken: cancellationToken

@@ -6,9 +6,8 @@ namespace Haas.Media.Downloader.Api.Metadata;
 public class TVShowMetadata
 {
     [BsonId]
-    public string? Id { get; set; }
+    public required int Id { get; set; }
 
-    public required int TmdbId { get; set; }
     public required string OriginalTitle { get; set; }
     public required string OriginalLanguage { get; set; }
     public required string Title { get; set; }
@@ -37,12 +36,11 @@ public class TVShowMetadata
 
 static class TVShowMetadataMapper
 {
-    public static TVShowMetadata Create(this TvShow tvShow, string id)
+    public static TVShowMetadata Create(this TvShow tvShow)
     {
         return new TVShowMetadata
         {
-            Id = id,
-            TmdbId = tvShow.Id,
+            Id = tvShow.Id,
             OriginalTitle = tvShow.OriginalName,
             OriginalLanguage = tvShow.OriginalLanguage,
             Title = tvShow.Name,

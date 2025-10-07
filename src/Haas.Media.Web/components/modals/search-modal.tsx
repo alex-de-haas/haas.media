@@ -71,13 +71,13 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
       return;
     }
 
-    setIsAdding(result.tmdbId.toString());
+    setIsAdding(result.id.toString());
     setError(null);
     try {
       await addToLibrary({
         type: mediaType,
         libraryId: selectedLibraryId,
-        tmdbId: result.tmdbId.toString(),
+        tmdbId: result.id.toString(),
       });
       onClose();
     } catch (err) {
@@ -175,7 +175,7 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
             <div className="grid gap-4">
               {searchResults.map((result) => (
                 <div
-                  key={result.tmdbId}
+                  key={result.id}
                   className="flex flex-col gap-4 rounded-lg border bg-card p-4 shadow-sm transition hover:border-primary/40 sm:flex-row"
                 >
                   <div className="flex-shrink-0">
@@ -213,15 +213,15 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
 
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        {result.releaseDate && <span>Released {result.releaseDate}</span>}
-                        {result.language && <span className="uppercase">{result.language}</span>}
+                        {result.releaseDate && <span>Released {new Date(result.releaseDate).toLocaleDateString()}</span>}
+                        {result.originalLanguage && <span className="uppercase">{result.originalLanguage}</span>}
                       </div>
                       <Button
                         size="sm"
                         onClick={() => handleAddToLibrary(result)}
-                        disabled={!selectedLibraryId || isAdding === result.tmdbId.toString()}
+                        disabled={!selectedLibraryId || isAdding === result.id.toString()}
                       >
-                        {isAdding === result.tmdbId.toString() ? (
+                        {isAdding === result.id.toString() ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
                           <PlusCircle className="mr-2 h-4 w-4" />

@@ -6,11 +6,10 @@ export interface AddToLibraryResponse {
 }
 
 export interface AddToLibraryOperationInfo {
-  id: string;
+  id: number;
   libraryId: string;
   libraryType: LibraryType;
   libraryTitle?: string | null;
-  tmdbId: number;
   stage: string;
   startTime: string;
   title?: string | null;
@@ -23,7 +22,7 @@ export interface AddToLibraryOperationInfo {
 }
 
 export interface SearchResult {
-  tmdbId: number;
+  id: number;
   title: string;
   originalTitle: string;
   overview: string;
@@ -32,10 +31,12 @@ export interface SearchResult {
   type: LibraryType;
   posterPath?: string;
   backdropPath?: string;
+  releaseDate?: Date | null;
+  originalLanguage: string;
 }
 
 export interface CrewMember {
-  tmdbId: number;
+  id: number;
   name: string;
   job: string;
   department: string;
@@ -43,7 +44,7 @@ export interface CrewMember {
 }
 
 export interface CastMember {
-  tmdbId: number;
+  id: number;
   name: string;
   character: string;
   order: number;
@@ -51,7 +52,7 @@ export interface CastMember {
 }
 
 export interface Network {
-  tmdbId: number;
+  id: number;
   name: string;
   logoPath?: string;
   originCountry?: string;
@@ -73,8 +74,7 @@ export interface ReleaseDate {
 }
 
 export interface MovieMetadata {
-  id: string;
-  tmdbId: number;
+  id: number;
   originalTitle: string;
   originalLanguage: string;
   title: string;
@@ -97,8 +97,7 @@ export interface MovieMetadata {
 }
 
 export interface TVShowMetadata {
-  id: string;
-  tmdbId: number;
+  id: number;
   originalTitle: string;
   originalLanguage: string;
   title: string;
