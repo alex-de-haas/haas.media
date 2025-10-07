@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import type { Library } from "@/types/library";
 import { LibraryType } from "@/types/library";
 import { formatDate } from "@/lib/utils/format";
-import { LoadingSpinner } from "@/components/ui";
+import { Spinner } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -93,7 +93,7 @@ export default function LibraryList({ libraries, onEdit, onDelete, onView, loadi
   if (loading) {
     return (
       <div className="flex h-48 items-center justify-center">
-        <LoadingSpinner size="lg" />
+        <Spinner className="size-8" />
       </div>
     );
   }

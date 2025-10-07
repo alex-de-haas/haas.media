@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { AddToLibraryProgress, MoviesList } from "@/features/media/components";
-import { LoadingSpinner } from "@/components/ui";
+import { Spinner } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { usePageTitle } from "@/components/layout";
 import { SearchModal } from "@/components/modals";
@@ -27,7 +27,7 @@ export default function MoviesPage() {
         fallback={
           <Card>
             <CardContent className="flex items-center justify-center py-12">
-              <LoadingSpinner size="lg" />
+              <Spinner className="size-8" />
             </CardContent>
           </Card>
         }

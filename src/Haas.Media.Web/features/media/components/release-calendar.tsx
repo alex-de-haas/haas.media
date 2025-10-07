@@ -24,7 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { LoadingSpinner } from "@/components/ui";
+import { Spinner } from "@/components/ui";
 import { useMovies } from "@/features/media/hooks";
 import type { MovieMetadata } from "@/types/metadata";
 import { ReleaseDateType } from "@/types/metadata";
@@ -294,7 +294,7 @@ export default function ReleaseCalendar() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-16">
-          <LoadingSpinner size="lg" />
+          <Spinner className="size-8" />
         </CardContent>
       </Card>
     );

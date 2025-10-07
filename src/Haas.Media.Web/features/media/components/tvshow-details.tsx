@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, MoreVertical, Trash2, Tv, Star } from "lucide-react";
 
 import { useTVShow, useDeleteTVShowMetadata } from "@/features/media/hooks";
-import { LoadingSpinner } from "@/components/ui";
+import { Spinner } from "@/components/ui";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
 import type { TVEpisodeMetadata } from "@/types/metadata";
 import { useNotifications } from "@/lib/notifications";
@@ -126,7 +126,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <LoadingSpinner size="lg" />
+        <Spinner className="size-8" />
       </div>
     );
   }

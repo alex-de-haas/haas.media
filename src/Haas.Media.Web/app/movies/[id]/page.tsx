@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { MovieDetails } from "@/features/media/components";
-import { LoadingSpinner } from "@/components/ui";
+import { Spinner } from "@/components/ui";
 
 interface MoviePageProps {
   params: {
@@ -18,7 +18,7 @@ export default function MoviePage({ params }: MoviePageProps) {
     <Suspense
       fallback={
         <div className="flex items-center justify-center py-12">
-          <LoadingSpinner size="lg" />
+          <Spinner className="size-8" />
         </div>
       }
     >

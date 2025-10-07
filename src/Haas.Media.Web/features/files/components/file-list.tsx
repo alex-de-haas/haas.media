@@ -4,7 +4,7 @@ import { ReactNode } from "react";
 import { FileItemType } from "@/types/file";
 import type { FileItem } from "@/types/file";
 import { formatFileSize, formatDate } from "@/lib/utils/format";
-import { LoadingSpinner } from "@/components/ui";
+import { Spinner } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -77,7 +77,7 @@ export default function FileList({ files, currentPath, onNavigate, loading, rend
       <CardContent className="p-0">
         {loading ? (
           <div className="flex h-48 items-center justify-center">
-            <LoadingSpinner size="lg" />
+            <Spinner className="size-8" />
           </div>
         ) : files.length === 0 ? (
           <div className="flex h-48 flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground">

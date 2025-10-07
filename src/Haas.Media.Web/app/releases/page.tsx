@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { ReleaseCalendar } from "@/features/media/components";
 import { usePageTitle } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
-import { LoadingSpinner } from "@/components/ui";
+import { Spinner } from "@/components/ui";
 
 export default function DigitalReleasesPage() {
   usePageTitle("Releases Calendar");
@@ -15,7 +15,7 @@ export default function DigitalReleasesPage() {
         fallback={
           <Card>
             <CardContent className="flex items-center justify-center py-12">
-              <LoadingSpinner size="lg" />
+              <Spinner className="size-8" />
             </CardContent>
           </Card>
         }

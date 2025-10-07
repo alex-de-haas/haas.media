@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { MoreVertical, Trash2, Star, ArrowLeft, Film } from "lucide-react";
 
 import { useMovie, useDeleteMovieMetadata } from "@/features/media/hooks";
-import { LoadingSpinner } from "@/components/ui";
+import { Spinner } from "@/components/ui";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
 import { formatCurrency } from "@/lib/utils";
 import { useNotifications } from "@/lib/notifications";
@@ -30,6 +30,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
 import { PersonCard } from "@/features/media/components/person-card";
+import { ReleaseDateType } from "@/types";
 
 interface MovieDetailsProps {
   movieId: string;
@@ -58,7 +59,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
     }
 
     const theatrical = movie.releaseDates.find(
-      (rd) => rd.type === 'Theatrical' || rd.type === 'TheatricalLimited'
+      (rd) => rd.type === ReleaseDateType.Theatrical || rd.type === ReleaseDateType.TheatricalLimited
     );
     
     if (!theatrical) {
@@ -74,7 +75,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
       return null;
     }
 
-    const digital = movie.releaseDates.find((rd) => rd.type === 'Digital');
+    const digital = movie.releaseDates.find((rd) => rd.type === ReleaseDateType.Digital);
     
     if (!digital) {
       return null;
@@ -112,7 +113,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <LoadingSpinner size="lg" />
+        <Spinner className="size-8" />
       </div>
     );
   }

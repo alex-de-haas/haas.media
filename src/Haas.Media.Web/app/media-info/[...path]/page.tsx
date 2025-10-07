@@ -4,7 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { useMediaFiles, useEncodeStreams } from "@/features/media";
 import { MediaFilesList } from "@/features/media";
-import { LoadingSpinner } from "@/components/ui";
+import { Spinner } from "@/components/ui";
 import { usePageTitle } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -245,7 +245,7 @@ export default function MediaInfoPage({ params }: PageProps) {
       {loading && (
         <Card>
           <CardContent className="flex justify-center py-12">
-            <LoadingSpinner size="lg" />
+            <Spinner className="size-8" />
           </CardContent>
         </Card>
       )}
