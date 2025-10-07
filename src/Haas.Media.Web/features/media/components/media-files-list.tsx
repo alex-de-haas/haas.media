@@ -9,11 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
 import { formatDate, formatFileSize } from "@/lib/utils";
-import { Play } from "lucide-react";
-import { VideoPlayerDialog } from "@/components/ui/video-player-dialog";
-import { useVideoPlayer } from "@/features/files/hooks/use-video-player";
 
 interface Props {
   mediaFiles: MediaFileInfo[];
@@ -23,8 +19,6 @@ interface Props {
 }
 
 export default function MediaFilesList({ mediaFiles, selectedStreams, setSelectedStreams, encoding }: Props) {
-  const { isOpen, videoPath, videoTitle, openVideo, setIsOpen, transcode, quality, showStreamInfo } = useVideoPlayer();
-
   const selectAllStreamsInFile = React.useCallback(
     (filePath: string, streams: MediaStream[]) => {
       setSelectedStreams((prev) => ({
@@ -75,15 +69,6 @@ export default function MediaFilesList({ mediaFiles, selectedStreams, setSelecte
                     <CardDescription className="truncate">{file.relativePath}</CardDescription>
                   </div>
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openVideo(file.relativePath, file.name)}
-                      className="flex items-center gap-2"
-                    >
-                      <Play className="h-4 w-4" />
-                      Play
-                    </Button>
                     <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs text-muted-foreground sm:text-right">
                       <div>
                         <dt className="font-medium text-foreground">Size</dt>
@@ -193,17 +178,6 @@ export default function MediaFilesList({ mediaFiles, selectedStreams, setSelecte
           );
         })}
       </div>
-      
-      {/* Video Player Dialog */}
-      <VideoPlayerDialog 
-        open={isOpen} 
-        onOpenChange={setIsOpen} 
-        videoPath={videoPath} 
-        title={videoTitle}
-        {...(transcode !== undefined && { transcode })}
-        {...(quality && { quality })}
-        {...(showStreamInfo !== undefined && { showStreamInfo })}
-      />
     </div>
   );
 }
