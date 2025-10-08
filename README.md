@@ -20,7 +20,7 @@ A modern web application for downloading torrents and encoding videos to various
 - **Video Encoding**: Convert videos to different formats with hardware acceleration
 - **Video Streaming**: Stream videos with on-the-fly FFmpeg transcoding for universal compatibility
 - **Real-time Updates**: Live status updates using SignalR
-- **Authentication**: Secure access with Auth0 integration
+- **Flexible Authentication**: Choose between Auth0 (cloud) or local LiteDB-based authentication
 - **Metadata Management**: Automatic metadata scanning and organization
 - **Hardware Acceleration**: Support for VAAPI and other hardware encoding methods
 
@@ -74,19 +74,29 @@ A modern web application for downloading torrents and encoding videos to various
    ```
 
 2. **Configure environment variables**
-   Create a `.env.local` file in the root directory:
+   Create a `.env.local` file in the root directory (see `.env.example` for all options):
 
    ```env
-   # Auth0
-   AUTH0_DOMAIN=your-auth0-domain
-   AUTH0_AUDIENCE=your-auth0-audience
-
-   # Media Processing
+   # Required
    DATA_DIRECTORY=/path/to/media/data
    FFMPEG_BINARY=/usr/bin/ffmpeg
-
-   # TMDB (for metadata)
    TMDB_API_KEY=your-tmdb-api-key
+
+   # Authentication Option 1: Local Authentication (Default)
+   JWT_SECRET=your-very-long-random-secret-key-at-least-32-characters-long
+
+   # Authentication Option 2: Auth0 (Optional)
+   # AUTH0_DOMAIN=your-auth0-domain
+   # AUTH0_AUDIENCE=your-auth0-audience
+   # AUTH0_SECRET=your-auth0-secret
+   # AUTH0_BASE_URL=http://localhost:3000
+   # AUTH0_CLIENT_ID=your-client-id
+   # AUTH0_CLIENT_SECRET=your-client-secret
+   ```
+
+   **Generate a JWT secret for local authentication:**
+   ```bash
+   ./scripts/generate-jwt-secret.sh
    ```
 
 3. **Install dependencies**
@@ -158,6 +168,7 @@ npm run format:check
   - [Metadata Domain](docs/backend/metadata.md)
   - [Metadata Scanning Pipeline](docs/backend/metadata-scanning.md)
   - [TMDb Throttling](docs/backend/tmdb-throttling.md)
+  - [Local Authentication](docs/backend/local-authentication.md)
 - Frontend
   - [Client Layout System](docs/frontend/client-layout.md)
   - [TMDb Search Modal](docs/frontend/search-modal.md)
@@ -185,9 +196,29 @@ Use the provided Docker Compose files for different environments:
 
 - `docker-compose.yml` - Standard configuration
 
+## � Authentication
+
+The application supports two authentication modes:
+
+### Local Authentication (Default)
+- **User Store**: LiteDB-based
+- **Password Security**: BCrypt hashing (work factor 12)
+- **Tokens**: Self-signed JWT tokens
+- **Setup**: Set `JWT_SECRET` in `.env.local`
+- **Registration**: Navigate to `/register` to create accounts
+
+### Auth0 (Optional)
+- **Enterprise Security**: Cloud-based authentication
+- **Features**: MFA, social logins, email verification
+- **Setup**: Configure Auth0 environment variables
+- **Docs**: See [Auth0 Integration](docs/infrastructure/auth0.md)
+
+The system automatically selects the authentication mode based on your environment variables. See [Local Authentication](docs/backend/local-authentication.md) for details.
+
 ## 🛡️ Security
 
-- Authentication via Auth0
+- Flexible authentication (Auth0 or local with BCrypt)
+- JWT token-based authorization
 - Secure API endpoints
 - Environment-based configuration
 - Input validation and sanitization

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, Library, Folder } from "lucide-react";
 
 import { usePageTitle } from "@/components/layout";
+import { useAuthGuard } from "@/features/auth/use-auth-guard";
 import { EncodingDashboardWidget } from "@/components/encoding";
 import { TorrentDashboardWidget } from "@/components/torrent";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,23 @@ const quickActions = [
 ];
 
 export default function HomePage() {
+  const { isAuthenticated, isLoading } = useAuthGuard();
+  
   usePageTitle("Dashboard");
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">

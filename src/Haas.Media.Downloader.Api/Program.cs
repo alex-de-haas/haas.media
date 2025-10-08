@@ -1,4 +1,6 @@
+using System.Text;
 using Haas.Media.Core.FFMpeg;
+using Haas.Media.Downloader.Api.Authentication;
 using Haas.Media.Downloader.Api.Encodings;
 using Haas.Media.Downloader.Api.Files;
 using Haas.Media.Downloader.Api.Infrastructure;
@@ -35,6 +37,7 @@ builder.AddEncoding();
 builder.AddFiles();
 builder.AddMetadata();
 builder.AddTorrent();
+builder.AddLocalAuthentication();
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -42,25 +45,29 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddSignalR();
 
-// Auth0 Authentication
-var auth0Domain = builder.Configuration["AUTH0_DOMAIN"];
-var auth0Audience = builder.Configuration["AUTH0_AUDIENCE"];
+// Authentication Configuration - Local JWT only
+var jwtSecret = builder.Configuration["JWT_SECRET"];
 
-if (!string.IsNullOrWhiteSpace(auth0Domain) && !string.IsNullOrWhiteSpace(auth0Audience))
+if (!string.IsNullOrWhiteSpace(jwtSecret))
 {
+    var jwtIssuer = builder.Configuration["JWT_ISSUER"] ?? "haas-media-local";
+    var jwtAudience = builder.Configuration["JWT_AUDIENCE"] ?? "haas-media-api";
+
     builder
         .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
-            options.Authority = $"https://{auth0Domain}";
-            options.Audience = auth0Audience;
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
                 ValidateAudience = true,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtIssuer,
+                ValidAudience = jwtAudience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret!))
             };
+
             // Allow tokens via query string for WebSockets/SignalR
             options.Events = new JwtBearerEvents
             {
@@ -81,26 +88,6 @@ if (!string.IsNullOrWhiteSpace(auth0Domain) && !string.IsNullOrWhiteSpace(auth0A
                         "Authentication failed for {Path}: {Exception}",
                         context.HttpContext.Request.Path,
                         context.Exception.Message
-                    );
-                    return Task.CompletedTask;
-                },
-                OnTokenValidated = context =>
-                {
-                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                    logger.LogInformation(
-                        "Token validated successfully for {Path}",
-                        context.HttpContext.Request.Path
-                    );
-                    return Task.CompletedTask;
-                },
-                OnChallenge = context =>
-                {
-                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                    logger.LogWarning(
-                        "Auth challenge for {Path}: {Error} - {ErrorDescription}",
-                        context.HttpContext.Request.Path,
-                        context.Error,
-                        context.ErrorDescription
                     );
                     return Task.CompletedTask;
                 },
@@ -125,17 +112,16 @@ var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation(Environment.CurrentDirectory);
 logger.LogInformation(GlobalFFOptions.Current.BinaryFolder);
 
-// Log Auth0 configuration
-if (!string.IsNullOrWhiteSpace(auth0Domain) && !string.IsNullOrWhiteSpace(auth0Audience))
+// Log Authentication configuration
+if (!string.IsNullOrWhiteSpace(jwtSecret))
 {
-    logger.LogInformation("🔐 Auth0 Authentication ENABLED");
-    logger.LogInformation("   Domain: {Domain}", auth0Domain);
-    logger.LogInformation("   Audience: {Audience}", auth0Audience);
-    logger.LogInformation("   Authority: https://{Domain}", auth0Domain);
+    logger.LogInformation("🔐 Local JWT Authentication ENABLED");
+    logger.LogInformation("   Issuer: {Issuer}", builder.Configuration["JWT_ISSUER"] ?? "haas-media-local");
+    logger.LogInformation("   Audience: {Audience}", builder.Configuration["JWT_AUDIENCE"] ?? "haas-media-api");
 }
 else
 {
-    logger.LogWarning("⚠️  Auth0 Authentication DISABLED - Missing AUTH0_DOMAIN or AUTH0_AUDIENCE");
+    logger.LogWarning("⚠️  Authentication DISABLED - Configure JWT_SECRET to enable authentication");
 }
 
 // Configure the HTTP request pipeline.
@@ -150,8 +136,8 @@ app.UseCors();
 
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
-// Auth
-if (!string.IsNullOrWhiteSpace(auth0Domain) && !string.IsNullOrWhiteSpace(auth0Audience))
+// Authentication & Authorization
+if (!string.IsNullOrWhiteSpace(jwtSecret))
 {
     app.UseAuthentication();
     app.UseAuthorization();
@@ -161,6 +147,7 @@ app.MapDefaultEndpoints();
 
 app.MapControllers();
 
+app.UseLocalAuthentication();
 app.UseEncoding();
 app.UseBackgroundTasks();
 app.UseFiles();

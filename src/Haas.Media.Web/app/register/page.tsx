@@ -11,12 +11,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
-  const { login } = useLocalAuth();
+  const { register } = useLocalAuth();
   const { isAuthenticated, isLoading: authLoading } = useGuestGuard();
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -29,7 +31,7 @@ export default function LoginPage() {
     );
   }
 
-  // Don't render login form if already authenticated
+  // Don't render register form if already authenticated
   if (isAuthenticated) {
     return null;
   }
@@ -37,14 +39,31 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    // Validation
+    if (username.length < 3) {
+      setError("Username must be at least 3 characters");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const success = await login(username, password);
+      const success = await register(username, email, password);
       if (success) {
         router.push("/");
       } else {
-        setError("Invalid username or password");
+        setError("Registration failed. Username or email may already be in use.");
       }
     } catch {
       setError("An error occurred. Please try again.");
@@ -57,11 +76,10 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Sign in</CardTitle>
-          <CardDescription>Sign in to Haas Media Server</CardDescription>
+          <CardTitle>Create an account</CardTitle>
+          <CardDescription>Enter your details to register for Haas Media Server</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-
+        <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <Alert variant="destructive">
@@ -70,7 +88,7 @@ export default function LoginPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="username">Username or Email</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
                 type="text"
@@ -79,6 +97,20 @@ export default function LoginPage() {
                 required
                 disabled={isLoading}
                 autoComplete="username"
+                placeholder="At least 3 characters"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={isLoading}
+                autoComplete="email"
               />
             </div>
 
@@ -91,19 +123,33 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
-                autoComplete="current-password"
+                autoComplete="new-password"
+                placeholder="At least 8 characters"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                disabled={isLoading}
+                autoComplete="new-password"
               />
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign in"}
+              {isLoading ? "Creating account..." : "Create account"}
             </Button>
           </form>
 
-          <div className="text-center text-sm">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-blue-600 hover:underline">
-              Register
+          <div className="mt-4 text-center text-sm">
+            Already have an account?{" "}
+            <Link href="/login" className="text-blue-600 hover:underline">
+              Sign in
             </Link>
           </div>
         </CardContent>

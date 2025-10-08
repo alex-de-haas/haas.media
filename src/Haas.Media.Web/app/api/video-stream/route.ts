@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAccessToken, withApiAuthRequired } from "@/lib/auth0";
-
-const audience = process.env.AUTH0_AUDIENCE;
 
 async function handler(req: NextRequest) {
   try {
@@ -13,10 +10,9 @@ async function handler(req: NextRequest) {
       return NextResponse.json({ error: "Path parameter is required" }, { status: 400 });
     }
 
-    // Get the access token for the downstream API
-    const tokenRequest = audience ? { authorizationParams: { audience } } : undefined;
-    const session = tokenRequest ? await getAccessToken(tokenRequest) : await getAccessToken();
-    const token = session?.accessToken;
+    // Get the token from the Authorization header
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.replace("Bearer ", "");
 
     if (!token) {
       console.error("No access token available for video stream request");
@@ -28,8 +24,6 @@ async function handler(req: NextRequest) {
     const apiUrl = `${downloaderApi}/api/files/stream?path=${encodeURIComponent(path)}`;
     
     console.log(`[video-stream] Streaming video from: ${apiUrl}`);
-    console.log(`[video-stream] Using audience: ${audience || 'none'}`);
-    console.log(`[video-stream] Token (first 50 chars): ${token.substring(0, 50)}...`);
 
     // Get range header from incoming request
     const range = req.headers.get("range");
@@ -68,8 +62,7 @@ async function handler(req: NextRequest) {
             debugInfo: {
               url: apiUrl,
               status: response.status,
-              hasToken: !!token,
-              audience: audience || 'none'
+              hasToken: !!token
             }
           })
         },
@@ -121,4 +114,4 @@ async function handler(req: NextRequest) {
   }
 }
 
-export const GET = withApiAuthRequired(handler);
+export const GET = handler;

@@ -96,12 +96,10 @@ npm run dev
 ### Environment Setup
 Create `.env.local` at project root:
 ```env
-AUTH0_DOMAIN=your-domain
-AUTH0_AUDIENCE=your-audience
-AUTH0_SECRET=your-secret
-AUTH0_BASE_URL=http://localhost:3000
-AUTH0_CLIENT_ID=your-client-id
-AUTH0_CLIENT_SECRET=your-client-secret
+JWT_SECRET=your-very-long-random-secret-key-at-least-32-characters-long
+JWT_ISSUER=haas-media-local
+JWT_AUDIENCE=haas-media-api
+JWT_EXPIRATION_MINUTES=60
 DATA_DIRECTORY=/path/to/data
 FFMPEG_BINARY=/usr/bin/ffmpeg
 TMDB_API_KEY=your-tmdb-key
@@ -150,9 +148,10 @@ Types: feat, fix, refactor, perf, docs, test, build, ci, chore, revert
 
 ## Key Integration Points
 
-### Auth0 Authentication
+### Local Authentication
 - **Backend:** JWT validation in `Program.cs`, supports query string tokens for SignalR
-- **Frontend:** `@auth0/nextjs-auth0` SDK, middleware in `middleware.ts`, `useAuth()` hook
+- **Frontend:** Local auth context in `features/auth/local-auth-context.tsx`, middleware in `middleware.ts`
+- **Storage:** User credentials stored in LiteDB
 
 ### TMDB Metadata
 - **Service:** `TMDbLib.Client` in metadata scanning tasks

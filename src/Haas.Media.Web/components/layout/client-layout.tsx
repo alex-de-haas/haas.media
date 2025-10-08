@@ -3,8 +3,8 @@
 import { ReactNode } from "react";
 import Sidebar from "./sidebar";
 import { LayoutProvider } from "./layout-provider";
-import { UserProvider } from "@auth0/nextjs-auth0/client";
 import { NotificationsProvider } from "../../lib/notifications";
+import { LocalAuthProvider } from "../../features/auth/local-auth-context";
 
 interface ClientLayoutProps {
   children: ReactNode;
@@ -12,7 +12,7 @@ interface ClientLayoutProps {
 
 export default function ClientLayout({ children }: ClientLayoutProps) {
   return (
-    <UserProvider>
+    <LocalAuthProvider>
       <NotificationsProvider>
         <LayoutProvider>
           <div className="min-h-screen bg-background text-foreground antialiased">
@@ -20,6 +20,6 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
           </div>
         </LayoutProvider>
       </NotificationsProvider>
-    </UserProvider>
+    </LocalAuthProvider>
   );
 }

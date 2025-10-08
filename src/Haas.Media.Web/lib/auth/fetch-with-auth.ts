@@ -33,8 +33,8 @@ export async function fetchWithAuth(
       // Clear the cached token
       clearCachedToken();
       
-      // Redirect to login
-      window.location.href = `/api/auth/login?returnTo=${encodeURIComponent(window.location.pathname)}`;
+      // Redirect to login page (works for both Auth0 and local auth)
+      window.location.href = `/login`;
       
       // Return the response for any cleanup code
       return response;

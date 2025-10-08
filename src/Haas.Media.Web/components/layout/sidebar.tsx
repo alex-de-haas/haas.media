@@ -19,7 +19,8 @@ import {
 } from "lucide-react";
 
 import { useLayout } from "./layout-provider";
-import { useAuth } from "../../lib/hooks/useAuth";
+import { useLocalAuth } from "../../features/auth/local-auth-context";
+import { useRouter } from "next/navigation";
 import ThemeSwitch from "../ui/theme-switch";
 import { Button } from "../ui/button";
 import { Sheet, SheetContent, SheetTitle } from "../ui/sheet";
@@ -32,7 +33,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Avatar, AvatarFallback } from "../ui/avatar";
 import { cn } from "@/lib/utils";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
@@ -124,15 +125,30 @@ interface UserMenuProps {
 }
 
 function UserMenu({ variant = "sidebar" }: UserMenuProps) {
-  const { user } = useAuth();
-  const displayName = user?.name || user?.email || "Guest";
-  const initials = getInitials(displayName);
+  const router = useRouter();
+  
+  // Local auth state
+  const { user: localUser, isLoading: localLoading, isAuthenticated: localAuthenticated, logout: localLogout } = useLocalAuth();
 
-  if (!user) {
+  const isLoading = localLoading;
+  const isAuthenticated = localAuthenticated;
+
+  const handleLogout = () => {
+    localLogout();
+    router.push("/login");
+  };
+
+  if (isLoading) return null;
+
+  const displayName = localUser?.username || localUser?.email || "Guest";
+  const initials = getInitials(displayName);
+  const email = localUser?.email;
+
+  if (!isAuthenticated) {
     if (variant === "sidebar") {
       return (
         <Button variant="outline" className="w-full" asChild>
-          <Link href="/api/auth/login">
+          <Link href="/login">
             <LogIn className="h-4 w-4" />
             Sign in
           </Link>
@@ -142,7 +158,7 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
 
     return (
       <Button variant="outline" asChild>
-        <Link href="/api/auth/login">
+        <Link href="/login">
           <LogIn className="h-4 w-4" />
           Sign in
         </Link>
@@ -156,7 +172,7 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="gap-2 px-1">
             <Avatar className="h-9 w-9">
-              {user.picture ? <AvatarImage src={user.picture} alt={displayName} /> : <AvatarFallback>{initials}</AvatarFallback>}
+              <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <span className="hidden text-sm font-medium sm:inline">{displayName}</span>
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -166,14 +182,12 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
           <DropdownMenuLabel>Signed in as</DropdownMenuLabel>
           <div className="px-2 pb-2 text-sm text-muted-foreground">
             <div className="font-medium text-foreground">{displayName}</div>
-            {user.email && <div className="truncate text-xs">{user.email}</div>}
+            {email && <div className="truncate text-xs">{email}</div>}
           </div>
           <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <Link href="/api/auth/logout">
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Link>
+          <DropdownMenuItem onClick={handleLogout}>
+            <LogOut className="h-4 w-4" />
+            Logout
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -185,11 +199,11 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="w-full justify-start gap-3 px-2 py-2 text-left">
           <Avatar className="h-9 w-9">
-            {user.picture ? <AvatarImage src={user.picture} alt={displayName} /> : <AvatarFallback>{initials}</AvatarFallback>}
+            <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="truncate text-sm font-semibold">{displayName}</span>
-            {user.email && <span className="truncate text-xs text-muted-foreground">{user.email}</span>}
+            {email && <span className="truncate text-xs text-muted-foreground">{email}</span>}
           </div>
           <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
         </Button>
@@ -198,14 +212,12 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
         <DropdownMenuLabel>Signed in as</DropdownMenuLabel>
         <div className="px-2 pb-2 text-sm text-muted-foreground">
           <div className="font-medium text-foreground">{displayName}</div>
-          {user.email && <div className="truncate text-xs">{user.email}</div>}
+          {email && <div className="truncate text-xs">{email}</div>}
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/api/auth/logout">
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Link>
+        <DropdownMenuItem onClick={handleLogout}>
+          <LogOut className="h-4 w-4" />
+          Logout
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

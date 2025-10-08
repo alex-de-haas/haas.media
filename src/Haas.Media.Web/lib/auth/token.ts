@@ -2,29 +2,39 @@
 
 // Simple in-memory token cache for client-side usage.
 let cachedToken: string | null = null;
-let fetching: Promise<string | null> | null = null;
 
 export async function getValidToken(forceRefresh = false): Promise<string | null> {
-  if (!forceRefresh && cachedToken) return cachedToken;
-  if (fetching) return fetching;
-  fetching = (async () => {
-    try {
-      const res = await fetch("/api/token");
-      if (res.ok) {
-        const data = await res.json();
-        cachedToken = data.accessToken ?? null;
-        return cachedToken;
+  // If we have a cached token and not forcing refresh, return it
+  if (!forceRefresh && cachedToken) {
+    return cachedToken;
+  }
+
+  // Get token from localStorage (local authentication)
+  try {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("auth_token");
+      if (token) {
+        cachedToken = token;
+        return token;
       }
-    } catch {
-      // swallow
-    } finally {
-      fetching = null;
     }
-    return null;
-  })();
-  return fetching;
+  } catch (error) {
+    console.error("Error reading token from localStorage:", error);
+  }
+
+  cachedToken = null;
+  return null;
 }
 
 export function clearCachedToken() {
   cachedToken = null;
+  
+  // Also clear from localStorage
+  try {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("auth_token");
+    }
+  } catch (error) {
+    console.error("Error clearing token from localStorage:", error);
+  }
 }
