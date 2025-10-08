@@ -540,10 +540,6 @@ internal sealed class MetadataScanTaskExecutor
                     season.SeasonNumber,
                     episode.EpisodeNumber
                 );
-                if (filePath is null)
-                {
-                    continue;
-                }
 
                 var episodeDetails = await _tmdbClient.GetTvEpisodeAsync(
                     tmdbTvShowId,
@@ -552,7 +548,7 @@ internal sealed class MetadataScanTaskExecutor
                 );
 
                 var episodeMetadata = episodeDetails.Create();
-                episodeMetadata.FilePath = filePath;
+                episodeMetadata.FilePath = filePath; // Will be null if no file found
 
                 episodes.Add(episodeMetadata);
             }
@@ -662,7 +658,6 @@ internal sealed class MetadataScanTaskExecutor
         foreach (var tvShow in tvShows)
         {
             var hasChanges = false;
-            var hasEpisodeWithFile = false;
 
             foreach (var season in tvShow.Seasons ?? Array.Empty<TVSeasonMetadata>())
             {
@@ -678,7 +673,6 @@ internal sealed class MetadataScanTaskExecutor
 
                     if (absolutePath != null && File.Exists(absolutePath))
                     {
-                        hasEpisodeWithFile = true;
                         continue;
                     }
 
@@ -695,15 +689,7 @@ internal sealed class MetadataScanTaskExecutor
                 }
             }
 
-            var shouldUpdate = hasChanges;
-
-            if (!hasEpisodeWithFile && tvShow.LibraryId != null)
-            {
-                tvShow.LibraryId = null;
-                shouldUpdate = true;
-            }
-
-            if (!shouldUpdate)
+            if (!hasChanges)
             {
                 continue;
             }

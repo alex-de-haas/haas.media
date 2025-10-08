@@ -77,6 +77,53 @@ Hardware selection influences the encoder name passed to FFmpeg:
 
 Audio streams default to `-c:a copy`. Override behaviour by adding additional FFmpeg arguments if required.
 
+## CRF (Constant Rate Factor) Support
+
+Both software and hardware encoders support CRF encoding for quality-based encoding instead of bitrate-based encoding. CRF values range from 0 (lossless) to 51 (lowest quality), with typical values between 18-28.
+
+### Using CRF
+
+```csharp
+await MediaEncodingBuilder.Create()
+    .FromFileInput("input.mp4")
+    .ToFileOutput("output.mp4")
+    .WithVideoCodec(StreamCodec.H264)
+    .WithHardwareAcceleration(HardwareAcceleration.NVENC)
+    .WithVideoConstantRateFactor(23) // CRF value
+    .EncodeAsync();
+```
+
+### CRF Support by Encoder
+
+The builder's `SupportsCrf()` method determines if a specific encoder supports CRF:
+
+| Encoder Type | H.264 | HEVC | AV1 | VP9 | VP8 |
+|--------------|-------|------|-----|-----|-----|
+| Software     | ✅    | ✅   | ✅  | ✅  | ✅  |
+| NVENC        | ✅    | ✅   | ✅  | ❌  | ❌  |
+| QSV          | ✅    | ✅   | ✅  | ✅  | ❌  |
+| AMF          | ✅    | ✅   | ❌  | ❌  | ❌  |
+| VideoToolbox | ✅    | ✅   | ❌  | ❌  | ❌  |
+| VAAPI        | ✅    | ✅   | ✅  | ✅  | ❌  |
+
+### Runtime CRF Detection
+
+The `HardwareAccelerationInfo` class includes `EncoderCrfSupport` dictionary that maps each available encoder to its CRF support status:
+
+```csharp
+var hwInfo = await MediaHelper.GetHardwareAccelerationInfoAsync();
+foreach (var info in hwInfo)
+{
+    Console.WriteLine($"{info.HardwareAcceleration}:");
+    foreach (var (codec, supportsCrf) in info.EncoderCrfSupport)
+    {
+        Console.WriteLine($"  {codec}: CRF={supportsCrf}");
+    }
+}
+```
+
+This information is exposed via the `/api/encodings/info` endpoint for frontend consumption.
+
 ## VAAPI Device Guardrails
 
 When VAAPI is requested, the builder validates the supplied or auto-detected device path. Missing devices throw `InvalidOperationException`. The search order is `/dev/dri/renderD128`, `renderD129`, `card0`, `card1`.

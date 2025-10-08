@@ -23,6 +23,7 @@ export interface HardwareAccelerationInfo {
   devices: string[];
   encoders: number[]; // StreamCodec enum values
   decoders: number[]; // StreamCodec enum values
+  encoderCrfSupport: Record<number, boolean>; // Maps StreamCodec to CRF support
 }
 
 // Mirrors backend EncodeRequest (Encodings/EncodeRequest.cs)
@@ -62,7 +63,9 @@ export function isHardwareAccelerationInfo(value: unknown): value is HardwareAcc
     Array.isArray(v.encoders) &&
     v.encoders.every((e: any) => typeof e === "number") &&
     Array.isArray(v.decoders) &&
-    v.decoders.every((d: any) => typeof d === "number")
+    v.decoders.every((d: any) => typeof d === "number") &&
+    typeof v.encoderCrfSupport === "object" &&
+    v.encoderCrfSupport !== null
   );
 }
 

@@ -15,12 +15,14 @@ public static partial class MediaHelper
 
         foreach (var acceleration in supportedAccelerations)
         {
+            var encoders = await GetCodecsForAccelerationAsync(acceleration, isEncoder: true);
             var info = new HardwareAccelerationInfo
             {
                 HardwareAcceleration = acceleration,
                 Devices = await GetDevicesForAccelerationAsync(acceleration),
-                Encoders = await GetCodecsForAccelerationAsync(acceleration, isEncoder: true),
+                Encoders = encoders,
                 Decoders = await GetCodecsForAccelerationAsync(acceleration, isEncoder: false),
+                EncoderCrfSupport = GetEncoderCrfSupport(acceleration, encoders),
             };
             result.Add(info);
         }
@@ -189,6 +191,52 @@ public static partial class MediaHelper
             HardwareAcceleration.VideoToolbox => "videotoolbox",
             HardwareAcceleration.VAAPI => "vaapi",
             _ => "",
+        };
+    }
+
+    private static Dictionary<StreamCodec, bool> GetEncoderCrfSupport(
+        HardwareAcceleration acceleration,
+        StreamCodec[] encoders
+    )
+    {
+        var crfSupport = new Dictionary<StreamCodec, bool>();
+        
+        foreach (var encoder in encoders)
+        {
+            var codecName = GetCodecName(encoder, acceleration);
+            var supportsCrf = MediaEncodingBuilder.SupportsCrf(codecName);
+            crfSupport[encoder] = supportsCrf;
+        }
+        
+        return crfSupport;
+    }
+
+    private static string GetCodecName(StreamCodec codec, HardwareAcceleration acceleration)
+    {
+        if (acceleration == HardwareAcceleration.None)
+        {
+            return codec switch
+            {
+                StreamCodec.H264 => "libx264",
+                StreamCodec.HEVC => "libx265",
+                StreamCodec.AV1 => "libaom-av1",
+                StreamCodec.VP9 => "libvpx-vp9",
+                StreamCodec.VP8 => "libvpx",
+                _ => "unknown",
+            };
+        }
+
+        var prefix = GetAccelerationPrefix(acceleration);
+        return codec switch
+        {
+            StreamCodec.H264 => $"h264_{prefix}",
+            StreamCodec.HEVC => $"hevc_{prefix}",
+            StreamCodec.AV1 => $"av1_{prefix}",
+            StreamCodec.VP9 => $"vp9_{prefix}",
+            StreamCodec.VP8 => $"vp8_{prefix}",
+            StreamCodec.Mpeg2Video => $"mpeg2_{prefix}",
+            StreamCodec.ProRes => $"prores_{prefix}",
+            _ => "unknown",
         };
     }
 
