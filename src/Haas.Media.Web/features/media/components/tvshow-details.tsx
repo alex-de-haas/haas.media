@@ -305,8 +305,8 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                       <div className="space-y-2">
                         <h3 className="text-sm font-semibold">Networks</h3>
                         <div className="flex flex-wrap gap-2">
-                          {tvShow.networks.map((network) => (
-                            <Badge key={network.id} variant="outline">
+                          {tvShow.networks.map((network, index) => (
+                            <Badge key={`${network.id}-${index}`} variant="outline">
                               {network.name}
                             </Badge>
                           ))}

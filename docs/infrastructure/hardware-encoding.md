@@ -79,7 +79,7 @@ Audio streams default to `-c:a copy`. Override behaviour by adding additional FF
 
 ## CRF (Constant Rate Factor) Support
 
-Both software and hardware encoders support CRF encoding for quality-based encoding instead of bitrate-based encoding. CRF values range from 0 (lossless) to 51 (lowest quality), with typical values between 18-28.
+Software encoders and Apple's VideoToolbox support CRF encoding for quality-based encoding instead of bitrate-based encoding. Other hardware accelerators rely on constant-quantizer or global-quality parameters instead of `-crf`. CRF values range from 0 (lossless) to 51 (lowest quality), with typical values between 18-28.
 
 ### Using CRF
 
@@ -88,7 +88,7 @@ await MediaEncodingBuilder.Create()
     .FromFileInput("input.mp4")
     .ToFileOutput("output.mp4")
     .WithVideoCodec(StreamCodec.H264)
-    .WithHardwareAcceleration(HardwareAcceleration.NVENC)
+    .WithHardwareAcceleration(HardwareAcceleration.VideoToolbox)
     .WithVideoConstantRateFactor(23) // CRF value
     .EncodeAsync();
 ```
@@ -100,11 +100,11 @@ The builder's `SupportsCrf()` method determines if a specific encoder supports C
 | Encoder Type | H.264 | HEVC | AV1 | VP9 | VP8 |
 |--------------|-------|------|-----|-----|-----|
 | Software     | ✅    | ✅   | ✅  | ✅  | ✅  |
-| NVENC        | ✅    | ✅   | ✅  | ❌  | ❌  |
-| QSV          | ✅    | ✅   | ✅  | ✅  | ❌  |
-| AMF          | ✅    | ✅   | ❌  | ❌  | ❌  |
+| NVENC        | ❌    | ❌   | ❌  | ❌  | ❌  |
+| QSV          | ❌    | ❌   | ❌  | ❌  | ❌  |
+| AMF          | ❌    | ❌   | ❌  | ❌  | ❌  |
 | VideoToolbox | ✅    | ✅   | ❌  | ❌  | ❌  |
-| VAAPI        | ✅    | ✅   | ✅  | ✅  | ❌  |
+| VAAPI        | ❌    | ❌   | ❌  | ❌  | ❌  |
 
 ### Runtime CRF Detection
 

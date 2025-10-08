@@ -317,7 +317,9 @@ public class MediaEncodingBuilder
     /// <returns>True if the codec supports CRF encoding, false otherwise</returns>
     public static bool SupportsCrf(string videoCodec)
     {
-        return videoCodec switch
+        var normalizedCodec = videoCodec.ToLowerInvariant();
+
+        return normalizedCodec switch
         {
             // Software encoders
             "libx264" => true,
@@ -325,25 +327,9 @@ public class MediaEncodingBuilder
             "libaom-av1" => true,
             "libvpx-vp9" => true,
             "libvpx" => true,
-            // Hardware H.264 encoders
-            "h264_nvenc" => true,
-            "h264_qsv" => true,
-            "h264_amf" => true,
-            "h264_vaapi" => true,
+            // Apple VideoToolbox (supports CRF-style quality control)
             "h264_videotoolbox" => true,
-            // Hardware HEVC encoders
-            "hevc_nvenc" => true,
-            "hevc_qsq" => true,
-            "hevc_amf" => true,
-            "hevc_vaapi" => true,
             "hevc_videotoolbox" => true,
-            // Hardware AV1 encoders
-            "av1_nvenc" => true,
-            "av1_qsv" => true,
-            "av1_vaapi" => true,
-            // Hardware VP9 encoders
-            "vp9_qsv" => true,
-            "vp9_vaapi" => true,
             _ => false,
         };
     }
