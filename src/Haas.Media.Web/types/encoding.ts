@@ -31,6 +31,8 @@ export interface EncodeRequest {
   videoCodec: StreamCodec;
   device?: string | null;
   streams: EncodeRequestStream[];
+  videoBitrate?: number | null;
+  crf?: number | null;
 }
 
 export interface EncodeRequestStream {

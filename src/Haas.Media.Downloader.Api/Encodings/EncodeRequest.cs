@@ -8,6 +8,8 @@ public record EncodeRequest
     public required StreamCodec VideoCodec { get; init; }
     public required string? Device { get; init; }
     public required Stream[] Streams { get; init; }
+    public long? VideoBitrate { get; init; }
+    public double? Crf { get; init; }
 
     public record Stream
     {

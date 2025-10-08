@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { HardwareAcceleration } from "@/types/encoding";
 import { StreamCodec } from "@/types/media-info";
 import { Loader2, PlayCircle } from "lucide-react";
@@ -33,6 +34,9 @@ export default function MediaInfoPage({ params }: PageProps) {
   const [videoCodec, setVideoCodec] = React.useState<StreamCodec>(StreamCodec.H264);
   const [device, setDevice] = React.useState<string>("");
   const [selectedStreams, setSelectedStreams] = React.useState<Record<string, Set<number>>>({});
+  const [qualityMode, setQualityMode] = React.useState<"auto" | "bitrate" | "crf">("auto");
+  const [videoBitrate, setVideoBitrate] = React.useState<string>("");
+  const [crf, setCrf] = React.useState<string>("23");
 
   const selectedHardwareInfo = React.useMemo(() => {
     return hardwareAccelerations?.find((hw) => hw.hardwareAcceleration === hardwareAccel);
@@ -42,6 +46,10 @@ export default function MediaInfoPage({ params }: PageProps) {
     return selectedHardwareInfo?.devices ?? [];
   }, [selectedHardwareInfo]);
 
+  // Parse quality settings
+  const parsedVideoBitrate = qualityMode === "bitrate" && videoBitrate ? parseInt(videoBitrate, 10) : null;
+  const parsedCrf = qualityMode === "crf" && crf ? parseFloat(crf) : null;
+
   const { encodeAll, encoding, encodeError } = useEncodeStreams(
     decodedPath,
     mediaFiles,
@@ -50,6 +58,8 @@ export default function MediaInfoPage({ params }: PageProps) {
     videoCodec,
     device,
     availableDevices,
+    parsedVideoBitrate,
+    parsedCrf,
   );
 
   const availableCodecs = React.useMemo(() => {
@@ -216,12 +226,47 @@ export default function MediaInfoPage({ params }: PageProps) {
                 </SelectContent>
               </Select>
             </ControlField>
+          </div>
 
-            <ControlField label="Selection summary" helper="Choose the streams below to enable encoding.">
-              <div className="rounded-md border border-dashed border-muted px-3 py-2 text-sm text-muted-foreground">
-                {hasAnySelection ? "Streams selected" : "Awaiting stream selection"}
-              </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <ControlField label="Quality mode">
+              <Select value={qualityMode} onValueChange={(value) => setQualityMode(value as "auto" | "bitrate" | "crf")}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select quality mode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Auto (recommended)</SelectItem>
+                  <SelectItem value="bitrate">Fixed bitrate</SelectItem>
+                  <SelectItem value="crf">Constant quality (CRF)</SelectItem>
+                </SelectContent>
+              </Select>
             </ControlField>
+
+            {qualityMode === "bitrate" && (
+              <ControlField label="Video bitrate (bps)" helper="Target bitrate in bits per second (e.g., 5000000 for 5 Mbps)">
+                <Input
+                  type="number"
+                  value={videoBitrate}
+                  onChange={(e) => setVideoBitrate(e.target.value)}
+                  placeholder="5000000"
+                  min="1"
+                />
+              </ControlField>
+            )}
+
+            {qualityMode === "crf" && (
+              <ControlField label="CRF value" helper="Lower values = higher quality. Range: 0-51, recommended: 18-28">
+                <Input
+                  type="number"
+                  value={crf}
+                  onChange={(e) => setCrf(e.target.value)}
+                  placeholder="23"
+                  min="0"
+                  max="51"
+                  step="1"
+                />
+              </ControlField>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-3">

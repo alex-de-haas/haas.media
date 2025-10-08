@@ -35,6 +35,16 @@ internal sealed class EncodingTaskExecutor : IBackgroundTaskExecutor<EncodingTas
             .WithVideoCodec(task.VideoCodec)
             .WithHardwareAcceleration(task.HardwareAcceleration, task.Device);
 
+        // Apply video quality settings if specified
+        if (task.VideoBitrate.HasValue)
+        {
+            builder.WithVideoBitrate(task.VideoBitrate.Value);
+        }
+        else if (task.Crf.HasValue)
+        {
+            builder.WithVideoConstantRateFactor(task.Crf.Value);
+        }
+
         MediaInfo.Stream? videoStream = null;
         string? videoSourceFilePath = null;
         foreach (var sourceFilePath in sourceFilePaths)

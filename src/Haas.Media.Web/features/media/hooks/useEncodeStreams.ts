@@ -16,6 +16,8 @@ export function useEncodeStreams(
   videoCodec?: StreamCodec | null,
   device?: string | null,
   availableDevices?: string[],
+  videoBitrate?: number | null,
+  crf?: number | null,
 ) {
   const [encoding, setEncoding] = React.useState(false);
   const [encodeError, setEncodeError] = React.useState<string | null>(null);
@@ -61,6 +63,8 @@ export function useEncodeStreams(
         videoCodec,
         streams,
         device: device || null,
+        videoBitrate: videoBitrate || null,
+        crf: crf || null,
       };
 
       const res = await fetchWithAuth(`${downloaderApi}/api/encodings`, {
@@ -83,7 +87,7 @@ export function useEncodeStreams(
     } finally {
       setEncoding(false);
     }
-  }, [path, mediaFiles, selectedStreams, hardwareAcceleration, videoCodec, device, availableDevices, encoding]);
+  }, [path, mediaFiles, selectedStreams, hardwareAcceleration, videoCodec, device, availableDevices, videoBitrate, crf, encoding]);
 
   return { encodeAll, encoding, encodeError } as const;
 }
