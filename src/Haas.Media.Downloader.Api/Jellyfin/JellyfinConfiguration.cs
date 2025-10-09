@@ -10,7 +10,7 @@ public static class JellyfinConfiguration
 {
     public static WebApplicationBuilder AddJellyfin(this WebApplicationBuilder builder)
     {
-        builder.Services.AddSingleton<JellyfinAuthService>();
+        builder.Services.AddScoped<JellyfinAuthService>();
         builder.Services.AddSingleton<JellyfinService>();
 
         return builder;
