@@ -23,6 +23,7 @@ A modern web application for downloading torrents and encoding videos to various
 - **Flexible Authentication**: Choose between Auth0 (cloud) or local LiteDB-based authentication
 - **Metadata Management**: Automatic metadata scanning and organization
 - **Hardware Acceleration**: Support for VAAPI and other hardware encoding methods
+- **Sidecar Clients**: Jellyfin-compatible endpoints make Infuse and similar players work out of the box
 
 ## 🛠️ Tech Stack
 
@@ -169,6 +170,7 @@ npm run format:check
   - [Metadata Scanning Pipeline](docs/backend/metadata-scanning.md)
   - [TMDb Throttling](docs/backend/tmdb-throttling.md)
   - [Local Authentication](docs/backend/local-authentication.md)
+  - [Jellyfin Compatibility](docs/backend/jellyfin-compatibility.md)
 - Frontend
   - [Client Layout System](docs/frontend/client-layout.md)
   - [TMDb Search Modal](docs/frontend/search-modal.md)

@@ -7,6 +7,7 @@ using Haas.Media.Downloader.Api.Infrastructure;
 using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 using Haas.Media.Downloader.Api.Metadata;
 using Haas.Media.Downloader.Api.Torrents;
+using Haas.Media.Downloader.Api.Jellyfin;
 using Haas.Media.ServiceDefaults;
 using LiteDB;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -38,6 +39,7 @@ builder.AddFiles();
 builder.AddMetadata();
 builder.AddTorrent();
 builder.AddLocalAuthentication();
+builder.AddJellyfin();
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -146,6 +148,7 @@ if (!string.IsNullOrWhiteSpace(jwtSecret))
 app.MapDefaultEndpoints();
 
 app.MapControllers();
+app.UseJellyfin();
 
 app.UseLocalAuthentication();
 app.UseEncoding();
