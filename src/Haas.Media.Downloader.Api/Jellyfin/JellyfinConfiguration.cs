@@ -62,6 +62,17 @@ public static class JellyfinConfiguration
             .WithName("JellyfinAuthenticateByName");
 
         group.MapGet(
+                "/Users/Public",
+                async (JellyfinAuthService authService) =>
+                {
+                    var users = await authService.GetPublicUsersAsync();
+                    return Results.Ok(users);
+                }
+            )
+            .AllowAnonymous()
+            .WithName("JellyfinPublicUsers");
+
+        group.MapGet(
                 "/Library/MediaFolders",
                 async (
                     HttpContext context,

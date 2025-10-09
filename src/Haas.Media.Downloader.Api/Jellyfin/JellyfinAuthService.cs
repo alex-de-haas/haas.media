@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using System.Security.Cryptography;
+using System.Text;
+using System.Linq;
 using Haas.Media.Downloader.Api.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
@@ -193,6 +194,31 @@ public class JellyfinAuthService
             ApplicationVersion = version,
             ServerId = _serverId,
         };
+    }
+
+    public async Task<IReadOnlyList<JellyfinPublicUser>> GetPublicUsersAsync()
+    {
+        var users = await _authenticationApi.GetAllUsersAsync();
+        var ordered = users
+            .OrderBy(u => u.Username, StringComparer.OrdinalIgnoreCase)
+            .Select(user => new JellyfinPublicUser
+            {
+                Name = user.Username,
+                ServerId = _serverId,
+                ServerName = "Haas.Media",
+                Id = user.Id,
+                PrimaryImageTag = null,
+                HasPassword = true,
+                HasConfiguredPassword = true,
+                HasConfiguredEasyPassword = false,
+                EnableAutoLogin = false,
+                LastLoginDate = user.LastLoginAt,
+                LastActivityDate = user.LastLoginAt,
+                PrimaryImageAspectRatio = null,
+            })
+            .ToList();
+
+        return ordered;
     }
 
     public string? ExtractAccessToken(HttpRequest request)

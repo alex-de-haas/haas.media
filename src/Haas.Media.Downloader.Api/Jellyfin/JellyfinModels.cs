@@ -173,3 +173,100 @@ public sealed record JellyfinItemsQuery(
     bool Recursive,
     string? SearchTerm
 );
+
+public sealed record JellyfinPublicUser
+{
+    public required string Name { get; init; }
+    public string? ServerId { get; init; }
+    public string? ServerName { get; init; }
+    public required string Id { get; init; }
+    public string? PrimaryImageTag { get; init; }
+    public bool HasPassword { get; init; }
+    public bool HasConfiguredPassword { get; init; }
+    public bool HasConfiguredEasyPassword { get; init; }
+    public bool EnableAutoLogin { get; init; }
+    public DateTime? LastLoginDate { get; init; }
+    public DateTime? LastActivityDate { get; init; }
+    public JellyfinUserConfiguration Configuration { get; init; } = JellyfinUserConfiguration.Default;
+    public JellyfinUserPolicy Policy { get; init; } = JellyfinUserPolicy.Default;
+    public double? PrimaryImageAspectRatio { get; init; }
+}
+
+public sealed record JellyfinUserConfiguration
+{
+    public static readonly JellyfinUserConfiguration Default = new();
+
+    public string? AudioLanguagePreference { get; init; } = null;
+    public bool PlayDefaultAudioTrack { get; init; } = true;
+    public string? SubtitleLanguagePreference { get; init; } = null;
+    public bool DisplayMissingEpisodes { get; init; }
+    public string[] GroupedFolders { get; init; } = Array.Empty<string>();
+    public string SubtitleMode { get; init; } = "Smart";
+    public bool DisplayCollectionsView { get; init; }
+    public bool EnableLocalPassword { get; init; }
+    public string[] OrderedViews { get; init; } = Array.Empty<string>();
+    public string[] LatestItemsExcludes { get; init; } = Array.Empty<string>();
+    public string[] MyMediaExcludes { get; init; } = Array.Empty<string>();
+    public bool HidePlayedInLatest { get; init; } = true;
+    public bool RememberAudioSelections { get; init; } = true;
+    public bool RememberSubtitleSelections { get; init; } = true;
+    public bool EnableNextEpisodeAutoPlay { get; init; } = true;
+    public string? CastReceiverId { get; init; } = null;
+}
+
+public sealed record JellyfinUserPolicy
+{
+    public static readonly JellyfinUserPolicy Default = new();
+
+    public bool IsAdministrator { get; init; }
+    public bool IsHidden { get; init; }
+    public bool EnableCollectionManagement { get; init; }
+    public bool EnableSubtitleManagement { get; init; }
+    public bool EnableLyricManagement { get; init; }
+    public bool IsDisabled { get; init; }
+    public int? MaxParentalRating { get; init; }
+    public int? MaxParentalSubRating { get; init; }
+    public string[] BlockedTags { get; init; } = Array.Empty<string>();
+    public string[] AllowedTags { get; init; } = Array.Empty<string>();
+    public bool EnableUserPreferenceAccess { get; init; } = true;
+    public JellyfinAccessSchedule[] AccessSchedules { get; init; } = Array.Empty<JellyfinAccessSchedule>();
+    public string[] BlockUnratedItems { get; init; } = Array.Empty<string>();
+    public bool EnableRemoteControlOfOtherUsers { get; init; }
+    public bool EnableSharedDeviceControl { get; init; } = true;
+    public bool EnableRemoteAccess { get; init; } = true;
+    public bool EnableLiveTvManagement { get; init; }
+    public bool EnableLiveTvAccess { get; init; }
+    public bool EnableMediaPlayback { get; init; } = true;
+    public bool EnableAudioPlaybackTranscoding { get; init; } = true;
+    public bool EnableVideoPlaybackTranscoding { get; init; } = true;
+    public bool EnablePlaybackRemuxing { get; init; } = true;
+    public bool ForceRemoteSourceTranscoding { get; init; }
+    public bool EnableContentDeletion { get; init; }
+    public string[] EnableContentDeletionFromFolders { get; init; } = Array.Empty<string>();
+    public bool EnableContentDownloading { get; init; } = true;
+    public bool EnableSyncTranscoding { get; init; } = true;
+    public bool EnableMediaConversion { get; init; } = true;
+    public string[] EnabledDevices { get; init; } = Array.Empty<string>();
+    public bool EnableAllDevices { get; init; } = true;
+    public string[] EnabledChannels { get; init; } = Array.Empty<string>();
+    public bool EnableAllChannels { get; init; } = true;
+    public string[] EnabledFolders { get; init; } = Array.Empty<string>();
+    public bool EnableAllFolders { get; init; } = true;
+    public int InvalidLoginAttemptCount { get; init; }
+    public int LoginAttemptsBeforeLockout { get; init; } = -1;
+    public int MaxActiveSessions { get; init; }
+    public bool EnablePublicSharing { get; init; } = true;
+    public string[] BlockedMediaFolders { get; init; } = Array.Empty<string>();
+    public string[] BlockedChannels { get; init; } = Array.Empty<string>();
+    public int RemoteClientBitrateLimit { get; init; }
+    public string AuthenticationProviderId { get; init; } = "Local";
+    public string PasswordResetProviderId { get; init; } = "Local";
+    public string SyncPlayAccess { get; init; } = "CreateAndJoinGroups";
+}
+
+public sealed record JellyfinAccessSchedule
+{
+    public string DayOfWeek { get; init; } = "Sunday";
+    public string Start { get; init; } = "00:00";
+    public string End { get; init; } = "23:59";
+}

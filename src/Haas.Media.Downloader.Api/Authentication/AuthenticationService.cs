@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using LiteDB;
@@ -105,6 +107,12 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
     public async Task<User?> GetUserByEmailAsync(string email)
     {
         return _users.FindOne(u => u.Email == email);
+    }
+
+    public Task<IReadOnlyList<User>> GetAllUsersAsync()
+    {
+        var users = _users.FindAll().ToList();
+        return Task.FromResult<IReadOnlyList<User>>(users);
     }
 
     private string GenerateJwtToken(User user)
