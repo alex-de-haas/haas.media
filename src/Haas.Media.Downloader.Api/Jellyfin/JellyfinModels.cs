@@ -55,6 +55,7 @@ public sealed record JellyfinSessionInfo
     public required string UserId { get; init; }
     public required string UserName { get; init; }
     public required string ApplicationVersion { get; init; }
+    public required string ServerId { get; init; }
 }
 
 public sealed record JellyfinAuthenticateResponse
@@ -84,6 +85,16 @@ public sealed record JellyfinLibraryEnvelope
 {
     public required JellyfinLibraryItem[] Items { get; init; }
     public int TotalRecordCount { get; init; }
+}
+
+public sealed record JellyfinSessionEnvelope
+{
+    public required JellyfinSessionInfo[] Items { get; init; }
+}
+
+public sealed record JellyfinUserEnvelope
+{
+    public required JellyfinUserContract[] Items { get; init; }
 }
 
 public sealed record JellyfinItem

@@ -784,7 +784,7 @@ public class JellyfinService
         return shows.Count();
     }
 
-    private static string ComputeServerId(string rootPath)
+    internal static string ComputeServerId(string rootPath)
     {
         var normalized = Path.GetFullPath(rootPath).ToLowerInvariant();
         var bytes = Encoding.UTF8.GetBytes(normalized);

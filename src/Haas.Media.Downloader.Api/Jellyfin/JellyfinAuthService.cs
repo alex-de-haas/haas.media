@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Security.Cryptography;
 using Haas.Media.Downloader.Api.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
@@ -16,6 +17,8 @@ public class JellyfinAuthService
     private readonly JwtSecurityTokenHandler _tokenHandler = new();
     private readonly TokenValidationParameters? _tokenValidationParameters;
     private readonly string _serverVersion;
+    private readonly string _serverId;
+    private readonly string _dataDirectory;
 
     public JellyfinAuthService(
         IAuthenticationApi authenticationApi,
@@ -26,6 +29,10 @@ public class JellyfinAuthService
         _authenticationApi = authenticationApi;
         _logger = logger;
 
+        _dataDirectory =
+            configuration["DATA_DIRECTORY"]
+            ?? throw new InvalidOperationException("DATA_DIRECTORY is not configured.");
+        _serverId = JellyfinService.ComputeServerId(_dataDirectory);
         _serverVersion = typeof(JellyfinAuthService).Assembly.GetName().Version?.ToString() ?? "0.0.0";
 
         var jwtSecret = configuration["JWT_SECRET"];
@@ -138,42 +145,53 @@ public class JellyfinAuthService
             return null;
         }
 
-        var deviceId = request.DeviceId
-            ?? clientInfo.DeviceId
-            ?? Guid.NewGuid().ToString("N");
-
-        var deviceName = request.DeviceName
-            ?? clientInfo.Device
-            ?? clientInfo.Client
-            ?? "Unknown Device";
-
-        var clientName = clientInfo.Client ?? "Jellyfin Client";
-        var version = clientInfo.Version ?? _serverVersion;
-
-        var session = new JellyfinSessionInfo
+        var mergedClientInfo = clientInfo with
         {
-            Id = Guid.NewGuid().ToString("N"),
-            DeviceId = deviceId,
-            DeviceName = deviceName,
-            Client = clientName,
-            UserId = user.Id,
-            UserName = user.Username,
-            ApplicationVersion = version,
+            DeviceId = request.DeviceId ?? clientInfo.DeviceId ?? GenerateDeviceId(user.Id),
+            Device = request.DeviceName ?? clientInfo.Device ?? clientInfo.Client,
+            Client = clientInfo.Client ?? "Jellyfin Client",
+            Version = clientInfo.Version ?? _serverVersion,
         };
 
-        var userContract = new JellyfinUserContract
-        {
-            Id = user.Id,
-            Name = user.Username,
-            ServerId = null,
-            PrimaryImageTag = null,
-        };
+        var session = CreateSessionInfo(user, mergedClientInfo);
+        var userContract = CreateUserContract(user);
 
         return new JellyfinAuthenticateResponse
         {
             AccessToken = authResponse.Token,
             User = userContract,
             SessionInfo = session,
+        };
+    }
+
+    public JellyfinUserContract CreateUserContract(User user)
+    {
+        return new JellyfinUserContract
+        {
+            Id = user.Id,
+            Name = user.Username,
+            PrimaryImageTag = null,
+            ServerId = _serverId,
+        };
+    }
+
+    public JellyfinSessionInfo CreateSessionInfo(User user, JellyfinClientInfo clientInfo)
+    {
+        var deviceId = clientInfo.DeviceId ?? GenerateDeviceId(user.Id);
+        var deviceName = clientInfo.Device ?? clientInfo.Client ?? "Unknown Device";
+        var clientName = clientInfo.Client ?? "Jellyfin Client";
+        var version = clientInfo.Version ?? _serverVersion;
+
+        return new JellyfinSessionInfo
+        {
+            Id = GenerateSessionId(user.Id, deviceId),
+            DeviceId = deviceId,
+            DeviceName = deviceName,
+            Client = clientName,
+            UserId = user.Id,
+            UserName = user.Username,
+            ApplicationVersion = version,
+            ServerId = _serverId,
         };
     }
 
@@ -302,5 +320,21 @@ public class JellyfinAuthService
 
         value = null;
         return false;
+    }
+
+    private static string GenerateSessionId(string userId, string deviceId)
+    {
+        using var sha = SHA256.Create();
+        var payload = Encoding.UTF8.GetBytes($"{userId}:{deviceId}");
+        var hash = sha.ComputeHash(payload);
+        return Convert.ToHexString(hash)[..16];
+    }
+
+    private static string GenerateDeviceId(string seed)
+    {
+        using var sha = SHA256.Create();
+        var payload = Encoding.UTF8.GetBytes($"{seed}:{Guid.NewGuid():N}");
+        var hash = sha.ComputeHash(payload);
+        return Convert.ToHexString(hash)[..16];
     }
 }

@@ -6,6 +6,9 @@ The downloader API ships with a lightweight Jellyfin-compatible surface so sidec
 
 - `POST /jellyfin/Users/AuthenticateByName` — reuses the local authentication store and issues the standard JWT access token. `Username` and either `Pw` or `Password` are required.
 - `GET /jellyfin/System/Info/Public` — exposes server, version, and OS metadata expected by Jellyfin discovery flows.
+- `GET /jellyfin/Users`, `/jellyfin/Users/Me`, `/jellyfin/Users/{id}` — user lookups for session handshakes.
+- `GET /jellyfin/Users/{id}/Views` — returns available libraries for the authenticated user (mirrors `MediaFolders`).
+- `GET /jellyfin/Sessions` — advertises the current session for clients that validate presence after login.
 - `GET /jellyfin/Library/MediaFolders` — lists configured libraries, mapped to Jellyfin collection ids.
 - `GET /jellyfin/Users/{userId}/Items` and `GET /jellyfin/Items` — browse collections, series, seasons, and episodes with Jellyfin-style ids. Supports `IncludeItemTypes`, `ParentId`, `Recursive`, and `SearchTerm` filters.
 - `GET /jellyfin/Items/{id}` — retrieve a single item including generated `MediaSources` for playback.
@@ -33,6 +36,8 @@ Clients can authenticate with the same JWT that backs the REST API. Tokens are a
 - Standard `Authorization: Bearer <jwt>` header
 
 `AuthenticateByName` emits the JWT alongside a `SessionInfo` payload that mirrors Jellyfin's response. Tokens are validated with the configured `JWT_SECRET`, issuer, and audience. If JWT auth is disabled the Jellyfin endpoints reject authenticated operations.
+
+After authentication most clients call `/jellyfin/Users/Me`, `/jellyfin/Users/{userId}/Views`, and `/jellyfin/Sessions`. These routes now project the local LiteDB user and active libraries so apps such as Infuse can finish their connection wizard.
 
 ## Streaming Behaviour
 

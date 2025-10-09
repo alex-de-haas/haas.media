@@ -74,6 +74,107 @@ public static class JellyfinConfiguration
             .WithName("JellyfinMediaFolders");
 
         group.MapGet(
+                "/Users",
+                async (
+                    HttpContext context,
+                    JellyfinAuthService authService
+                ) =>
+                    await RequireAuthenticatedAsync(
+                        context,
+                        authService,
+                        user =>
+                        {
+                            var contract = authService.CreateUserContract(user);
+                            var envelope = new JellyfinUserEnvelope { Items = new[] { contract } };
+                            return Task.FromResult<IResult>(Results.Ok(envelope));
+                        }
+                    )
+            )
+            .WithName("JellyfinUsers");
+
+        group.MapGet(
+                "/Users/Me",
+                async (
+                    HttpContext context,
+                    JellyfinAuthService authService
+                ) =>
+                    await RequireAuthenticatedAsync(
+                        context,
+                        authService,
+                        user => Task.FromResult<IResult>(Results.Ok(authService.CreateUserContract(user)))
+                    )
+            )
+            .WithName("JellyfinCurrentUser");
+
+        group.MapGet(
+                "/Users/{userId}",
+                async (
+                    HttpContext context,
+                    string userId,
+                    JellyfinAuthService authService
+                ) =>
+                    await RequireAuthenticatedAsync(
+                        context,
+                        authService,
+                        user =>
+                        {
+                            if (!string.Equals(user.Id, userId, StringComparison.OrdinalIgnoreCase))
+                            {
+                                return Task.FromResult<IResult>(Results.Forbid());
+                            }
+
+                            return Task.FromResult<IResult>(Results.Ok(authService.CreateUserContract(user)));
+                        }
+                    )
+            )
+            .WithName("JellyfinUserById");
+
+        group.MapGet(
+                "/Users/{userId}/Views",
+                async (
+                    HttpContext context,
+                    string userId,
+                    JellyfinAuthService authService,
+                    JellyfinService jellyfinService
+                ) =>
+                    await RequireAuthenticatedAsync(
+                        context,
+                        authService,
+                        async user =>
+                        {
+                            if (!string.Equals(user.Id, userId, StringComparison.OrdinalIgnoreCase))
+                            {
+                                return Results.Forbid();
+                            }
+
+                            var libraries = await jellyfinService.GetLibrariesAsync();
+                            return Results.Ok(libraries);
+                        }
+                    )
+            )
+            .WithName("JellyfinUserViews");
+
+        group.MapGet(
+                "/Sessions",
+                async (
+                    HttpContext context,
+                    JellyfinAuthService authService
+                ) =>
+                    await RequireAuthenticatedAsync(
+                        context,
+                        authService,
+                        user =>
+                        {
+                            var clientInfo = authService.GetClientInfo(context.Request);
+                            var session = authService.CreateSessionInfo(user, clientInfo);
+                            var envelope = new JellyfinSessionEnvelope { Items = new[] { session } };
+                            return Task.FromResult<IResult>(Results.Ok(envelope));
+                        }
+                    )
+            )
+            .WithName("JellyfinSessions");
+
+        group.MapGet(
                 "/Users/{userId}/Items",
                 async (
                     HttpContext context,
