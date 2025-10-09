@@ -19,7 +19,7 @@ Use this checklist to set up local authentication for Haas.Media.
   openssl rand -base64 48
   ```
 
-- [ ] Create/update `.env.local` in project root:
+- [ ] Create/update `.env` in project root:
   ```env
   DATA_DIRECTORY=/path/to/data
   FFMPEG_BINARY=/usr/bin/ffmpeg
@@ -128,7 +128,7 @@ Use this checklist to set up local authentication for Haas.Media.
 
 If you want to switch back to Auth0:
 
-- [ ] Comment out or remove `JWT_SECRET` from `.env.local`
+- [ ] Comment out or remove `JWT_SECRET` from `.env`
 
 - [ ] Uncomment and configure Auth0 variables:
   ```env
@@ -164,12 +164,12 @@ If you want to switch back to Auth0:
 
 ### "No authentication configured"
 - Ensure either JWT_SECRET or (AUTH0_DOMAIN + AUTH0_AUDIENCE) is set
-- Check .env.local file is in project root
+- Check .env file is in project root
 - Restart the application after changing env vars
 
 ### "KeyNotFoundException: The given key 'AUTH0_DOMAIN' was not present"
-- This means .env.local is missing or not in the correct location
-- Create .env.local in the project root directory
+- This means .env is missing or not in the correct location
+- Create .env in the project root directory
 - Add at minimum: `DATA_DIRECTORY`, `FFMPEG_BINARY`, `TMDB_API_KEY`, and `JWT_SECRET`
 - The AppHost.cs now safely handles missing environment variables
 

@@ -14,7 +14,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "$SECRET"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "Add this to your .env.local file:"
+echo "Add this to your .env file:"
 echo "JWT_SECRET=$SECRET"
 echo ""
 echo "For local authentication, make sure Auth0 variables are NOT set."

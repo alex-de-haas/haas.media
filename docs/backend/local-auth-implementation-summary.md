@@ -45,30 +45,17 @@ Added a complete local authentication system using LiteDB as an alternative to A
 
 ### Documentation
 - `docs/backend/local-authentication.md` - Complete documentation for local auth
-- `.env.example` - Updated with local auth configuration options
 
 ## Configuration
 
-### Local Authentication (Default if Auth0 not configured)
+### Local Authentication
 
-Add to `.env.local`:
+Add to `.env`:
 ```env
 JWT_SECRET=your-very-long-random-secret-key-at-least-32-characters-long
 JWT_ISSUER=haas-media-local
 JWT_AUDIENCE=haas-media-api
 JWT_EXPIRATION_MINUTES=1440
-```
-
-### Auth0 Authentication (If preferred)
-
-Add to `.env.local`:
-```env
-AUTH0_DOMAIN=your-domain.auth0.com
-AUTH0_AUDIENCE=your-api-identifier
-AUTH0_SECRET=your-long-random-secret
-AUTH0_BASE_URL=http://localhost:3000
-AUTH0_CLIENT_ID=your-client-id
-AUTH0_CLIENT_SECRET=your-client-secret
 ```
 
 ## How It Works
@@ -122,7 +109,7 @@ const useAuth0 = !!auth0Domain;
    openssl rand -base64 48
    ```
 
-2. Add to `.env.local`:
+2. Add to `.env`:
    ```env
    JWT_SECRET=<generated-secret>
    ```

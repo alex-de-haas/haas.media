@@ -41,7 +41,7 @@ src/Haas.Media.Downloader.Api/Authentication/
 
 ### Configuration
 
-Add to `.env.local`:
+Add to `.env`:
 
 ```env
 # Required for local auth
@@ -114,7 +114,7 @@ const useAuth0 = !!process.env.AUTH0_DOMAIN;
 
 ### Using Local Auth
 
-1. Copy `.env.example` to `.env.local`
+1. Copy `.env.example` to `.env`
 2. Generate a secret: `openssl rand -base64 48`
 3. Set `JWT_SECRET` (remove or comment out Auth0 vars)
 4. Start the app

@@ -94,7 +94,7 @@ npm run dev
 ```
 
 ### Environment Setup
-Create `.env.local` at project root:
+Create `.env` at project root:
 ```env
 JWT_SECRET=your-very-long-random-secret-key-at-least-32-characters-long
 JWT_ISSUER=haas-media-local
@@ -105,7 +105,7 @@ FFMPEG_BINARY=/usr/bin/ffmpeg
 TMDB_API_KEY=your-tmdb-key
 ```
 
-**Critical:** Aspire reads from `.env.local` via `DotNetEnv` package in `AppHost.cs`
+**Critical:** Aspire reads from `.env` via `DotNetEnv` package in `AppHost.cs`
 
 ### Code Formatting
 ```bash

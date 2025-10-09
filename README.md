@@ -75,7 +75,7 @@ A modern web application for downloading torrents and encoding videos to various
    ```
 
 2. **Configure environment variables**
-   Create a `.env.local` file in the root directory (see `.env.example` for all options):
+   Create a `.env` file in the root directory (see `.env.example` for all options):
 
    ```env
    # Required
@@ -206,7 +206,7 @@ The application supports two authentication modes:
 - **User Store**: LiteDB-based
 - **Password Security**: BCrypt hashing (work factor 12)
 - **Tokens**: Self-signed JWT tokens
-- **Setup**: Set `JWT_SECRET` in `.env.local`
+- **Setup**: Set `JWT_SECRET` in `.env`
 - **Registration**: Navigate to `/register` to create accounts
 
 ### Auth0 (Optional)
