@@ -38,6 +38,13 @@ public static class JellyfinConfiguration
             .AllowAnonymous()
             .WithName("JellyfinSystemInfo");
 
+        group.MapGet(
+                "/System/Ping",
+                () => Results.Ok("Pong")
+            )
+            .AllowAnonymous()
+            .WithName("JellyfinSystemPing");
+
         group.MapPost(
                 "/Users/AuthenticateByName",
                 async (
