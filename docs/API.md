@@ -55,12 +55,34 @@ Metadata is stored in LiteDB collections inside `common.db`. Responses include L
 
 ### Metadata Catalog
 
-- `GET /api/metadata/movies?libraryId=<optional>` — list movie metadata. Includes cast and crew arrays.
+- `GET /api/metadata/movies?libraryId=<optional>` — list movie metadata. Includes cast and crew arrays. Note: Files are accessed via separate FileMetadata endpoints.
 - `GET /api/metadata/movies/{id}` — fetch a single movie record.
+- `GET /api/metadata/movies/{id}/files` — fetch all file associations for a specific movie.
 - `DELETE /api/metadata/movies/{id}` — delete a movie metadata record.
 - `GET /api/metadata/tvshows?libraryId=<optional>` — list TV show metadata with nested season/episode information.
 - `GET /api/metadata/tvshows/{id}` — fetch a single TV show record.
+- `GET /api/metadata/tvshows/{id}/files` — fetch all file associations for a specific TV show (includes episode files with season/episode numbers).
 - `DELETE /api/metadata/tvshows/{id}` — delete a TV show metadata record.
+
+### File Metadata (Many-to-Many Associations)
+
+The system uses `FileMetadata` records to link physical files to media items, enabling multiple files per movie or episode.
+
+- `GET /api/metadata/files?libraryId=<optional>&mediaId=<optional>` — list file associations. Filter by library or specific media item.
+- `GET /api/metadata/files/{id}` — fetch a single file metadata record.
+- `POST /api/metadata/files` — create a new file-to-media association. Body:
+  ```json
+  {
+    "libraryId": "658f2ab9c6e2f3c47b1f9a88",
+    "mediaId": "550",
+    "mediaType": 1,
+    "filePath": "Movies/Fight Club (1999)/Fight Club.mkv",
+    "seasonNumber": null,
+    "episodeNumber": null
+  }
+  ```
+  For TV episodes, include `seasonNumber` and `episodeNumber`. Returns the created `FileMetadata` record with generated `id`.
+- `DELETE /api/metadata/files/{id}` — remove a file association. Does not delete the physical file or metadata record.
 
 ### Discovery & Library Population
 

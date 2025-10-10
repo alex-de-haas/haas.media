@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { MoreVertical, Trash2, Star, ArrowLeft, Film } from "lucide-react";
 
 import { useMovie, useDeleteMovieMetadata } from "@/features/media/hooks";
+import { useFilesByMediaId } from "@/features/media/hooks/useFileMetadata";
+import { LibraryType } from "@/types/library";
 import { Spinner } from "@/components/ui";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
 import { formatCurrency } from "@/lib/utils";
@@ -38,6 +40,7 @@ interface MovieDetailsProps {
 
 export default function MovieDetails({ movieId }: MovieDetailsProps) {
   const { movie, loading, error } = useMovie(movieId);
+  const { files: movieFiles, loading: filesLoading } = useFilesByMediaId(movieId, LibraryType.Movies);
   const [imageError, setImageError] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const router = useRouter();
@@ -274,7 +277,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                   </div>
                 )}
 
-                {(movie.releaseDate || theatricalReleaseDate || digitalReleaseDate || movie.budget || movie.revenue || movie.filePath) && (
+                {(movie.releaseDate || theatricalReleaseDate || digitalReleaseDate || movie.budget || movie.revenue || movieFiles.length > 0) && (
                   <div className="space-y-4">
                     <div className="grid gap-4 text-sm sm:grid-cols-2">
                       {movie.releaseDate && (
@@ -309,11 +312,22 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                       )}
                     </div>
                     <Separator />
-                    {movie.filePath ? (
-                      <p className="font-mono text-xs text-muted-foreground break-all">{movie.filePath}</p>
-                    ) : (
-                      <p className="text-xs italic text-muted-foreground">No local file linked</p>
-                    )}
+                    <div className="space-y-2">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Associated Files {filesLoading && <Spinner className="inline-block ml-2 size-3" />}
+                      </span>
+                      {movieFiles.length > 0 ? (
+                        <div className="space-y-1">
+                          {movieFiles.map((file) => (
+                            <p key={file.id} className="font-mono text-xs text-muted-foreground break-all">
+                              {file.filePath}
+                            </p>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs italic text-muted-foreground">No local files linked</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </CardContent>

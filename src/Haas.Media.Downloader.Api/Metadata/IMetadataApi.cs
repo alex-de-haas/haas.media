@@ -17,4 +17,11 @@ public interface IMetadataApi
     Task<bool> DeleteTVShowMetadataAsync(int id);
     Task<IEnumerable<SearchResult>> SearchAsync(string query, LibraryType? libraryType = null);
     Task<AddToLibraryResponse> AddToLibraryAsync(AddToLibraryRequest request);
+    
+    // File Metadata operations
+    Task<IEnumerable<FileMetadata>> GetFileMetadataAsync(string? libraryId = null, string? mediaId = null);
+    Task<FileMetadata?> GetFileMetadataByIdAsync(string id);
+    Task<FileMetadata> AddFileMetadataAsync(FileMetadata fileMetadata);
+    Task<bool> DeleteFileMetadataAsync(string id);
+    Task<IEnumerable<FileMetadata>> GetFilesByMediaIdAsync(string mediaId, LibraryType mediaType);
 }

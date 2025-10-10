@@ -10,9 +10,6 @@ public class TVEpisodeMetadata
     public required string Name { get; set; }
     public required string Overview { get; set; }
     public required double VoteAverage { get; set; }
-    
-    // File relation if tv show episode file exists in library
-    public string? FilePath { get; set; }
 }
 
 static class TVEpisodeMetadataMapper

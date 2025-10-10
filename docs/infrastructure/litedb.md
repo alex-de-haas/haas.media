@@ -29,13 +29,26 @@ services.AddSingleton(_ => new LiteDatabase($"Filename={databasePath};Connection
 
 `MetadataService` lazy-creates collections and ensures indexes on startup.
 
-| Collection       | Indexes                                 |
-| ---------------- | --------------------------------------- |
-| `libraries`      | `DirectoryPath` (unique), `Title`       |
-| `movieMetadata`  | `LibraryId`, `TmdbId` (unique), `Title` |
-| `tvShowMetadata` | `LibraryId`, `TmdbId` (unique), `Title` |
+| Collection       | Indexes                                                    | Purpose                           |
+| ---------------- | ---------------------------------------------------------- | --------------------------------- |
+| `libraries`      | `DirectoryPath` (unique), `Title`                          | Library definitions               |
+| `movieMetadata`  | `TmdbId` (unique), `Title`                                 | Movie metadata from TMDb          |
+| `tvShowMetadata` | `TmdbId` (unique), `Title`                                 | TV show metadata from TMDb        |
+| `fileMetadata`   | `LibraryId`, `MediaId`, `FilePath`, `MediaType`            | File-to-media associations        |
 
-`TmdbId` uniqueness prevents duplicate imports. Missing file clean-up happens during metadata scans.
+### Many-to-Many File Associations
+
+The `fileMetadata` collection enables multiple files per media item:
+- `LibraryId` — Links file to a specific library
+- `MediaId` — TMDb ID of the movie or TV show (stored as string)
+- `MediaType` — Distinguishes between Movies (1) and TVShows (2)
+- `FilePath` — Relative path from DATA_DIRECTORY
+- `SeasonNumber`, `EpisodeNumber` — For TV episodes (nullable for movies)
+
+**Key behaviors:**
+- `TmdbId` uniqueness in movie/tvshow collections prevents duplicate metadata imports
+- Multiple `FileMetadata` records can reference the same `MediaId`, enabling versions (4K, Director's Cut, etc.)
+- Missing file clean-up removes `FileMetadata` records but preserves metadata during scans
 
 ## Identifiers & Timestamps
 

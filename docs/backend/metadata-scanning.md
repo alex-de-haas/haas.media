@@ -16,10 +16,16 @@
 4. For movie libraries, call `ScanMovieLibraryWithProgressAsync` which:
    - Iterates files, extracts a clean title using regex + heuristics (year, resolution, codecs, release groups, season/episode markers, etc.).
    - Queries TMDb for the best match and fetches full details when found.
-   - Updates or inserts `MovieMetadata`, linking the file path and library id.
+   - Updates or inserts `MovieMetadata` (without file/library associations).
+   - Creates `FileMetadata` records linking files to movie metadata via `MediaId`.
    - Broadcasts progress increments including files processed, matches found, instantaneous speed, and ETA.
-5. For TV libraries, `ScanTVShowLibraryAsync` walks multi-level folder structures, fetches TMDb show, season, and episode details, and links episodes to file paths when available.
-6. After processing a library, stale LiteDB records whose files disappeared are removed via `ClearMissingMovieFiles`/`ClearMissingTvShowFiles`.
+5. For TV libraries, `ScanTVShowLibraryAsync` walks multi-level folder structures, fetches TMDb show, season, and episode details:
+   - Creates or updates `TVShowMetadata` with nested season/episode structures.
+   - Creates `FileMetadata` records for each episode file with `SeasonNumber` and `EpisodeNumber`.
+   - Supports multiple files per episode through separate `FileMetadata` entries.
+6. After processing a library, stale file associations are removed via `ClearMissingMovieFiles`/`ClearMissingTvShowFiles`:
+   - Deletes `FileMetadata` records for files that no longer exist on disk.
+   - Preserves `MovieMetadata` and `TVShowMetadata` records even when files are missing.
 7. When all libraries finish, the background task infrastructure transitions the task to `Completed`; operations remain available for auditing until the service restarts.
 
 ## ScanOperationInfo Contract
@@ -46,7 +52,7 @@ Progress, status, and error details are sourced from the associated `BackgroundT
 ## Rate Limiting & TMDb Usage
 
 - Every TMDb request path goes through the throttled HTTP client (token bucket + retries).
-- The executor still applies `Task.Delay(250ms)` between lookups to minimise burst load and support deployments without aggressive throttling configuration.
+- The executor still applies `Task.Delay(250ms)` between lookups to minimize burst load and support deployments without aggressive throttling configuration.
 
 ## Error Handling
 

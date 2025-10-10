@@ -7,9 +7,11 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, MoreVertical, Trash2, Tv, Star } from "lucide-react";
 
 import { useTVShow, useDeleteTVShowMetadata } from "@/features/media/hooks";
+import { useFilesByMediaId } from "@/features/media/hooks/useFileMetadata";
+import { LibraryType } from "@/types/library";
 import { Spinner } from "@/components/ui";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
-import type { TVEpisodeMetadata } from "@/types/metadata";
+import type { TVEpisodeMetadata, FileMetadata } from "@/types/metadata";
 import { useNotifications } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,9 +40,10 @@ interface TVShowDetailsProps {
 
 interface EpisodeCardProps {
   episode: TVEpisodeMetadata;
+  episodeFiles: FileMetadata[];
 }
 
-function EpisodeCard({ episode }: EpisodeCardProps) {
+function EpisodeCard({ episode, episodeFiles }: EpisodeCardProps) {
   return (
     <Card>
       <CardContent className="space-y-2 p-4">
@@ -58,7 +61,17 @@ function EpisodeCard({ episode }: EpisodeCardProps) {
           )}
         </div>
         {episode.overview && <p className="text-sm text-muted-foreground line-clamp-2">{episode.overview}</p>}
-        <p className="font-mono text-xs text-muted-foreground break-all">{episode.filePath || "No local file linked"}</p>
+        {episodeFiles.length > 0 ? (
+          <div className="space-y-1">
+            {episodeFiles.map((file) => (
+              <p key={file.id} className="font-mono text-xs text-muted-foreground break-all">
+                {file.filePath}
+              </p>
+            ))}
+          </div>
+        ) : (
+          <p className="font-mono text-xs text-muted-foreground italic">No local file linked</p>
+        )}
       </CardContent>
     </Card>
   );
@@ -66,6 +79,7 @@ function EpisodeCard({ episode }: EpisodeCardProps) {
 
 export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
   const { tvShow, loading, error } = useTVShow(tvShowId);
+  const { files: showFiles } = useFilesByMediaId(tvShowId, LibraryType.TVShows);
   const [imageError, setImageError] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expandedSeasons, setExpandedSeasons] = useState<string[]>([]);
@@ -86,6 +100,13 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
   }, [tvShow?.seasons]);
 
   const seasonValues = useMemo(() => tvShow?.seasons?.map((season) => season.seasonNumber.toString()) ?? [], [tvShow?.seasons]);
+
+  // Helper function to get files for a specific episode
+  const getEpisodeFiles = (seasonNumber: number, episodeNumber: number): FileMetadata[] => {
+    return showFiles.filter(
+      (file) => file.seasonNumber === seasonNumber && file.episodeNumber === episodeNumber
+    );
+  };
 
   const handleDelete = async () => {
     if (!tvShow || deletingTVShow) {
@@ -299,7 +320,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                   </div>
                 )}
 
-                {(tvShow.networks?.length || tvShow.libraryId) && (
+                {tvShow.networks?.length && (
                   <div className="space-y-4">
                     {tvShow.networks && tvShow.networks.length > 0 && (
                       <div className="space-y-2">
@@ -311,12 +332,6 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                             </Badge>
                           ))}
                         </div>
-                      </div>
-                    )}
-                    {tvShow.libraryId && (
-                      <div className="space-y-1 text-sm">
-                        <h3 className="font-semibold">Library</h3>
-                        <p className="text-muted-foreground font-mono break-all">{tvShow.libraryId}</p>
                       </div>
                     )}
                     <Separator />
@@ -471,7 +486,11 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                             {episodeCount > 0 ? (
                               <div className="space-y-3">
                                 {season.episodes.map((episode) => (
-                                  <EpisodeCard key={`${episode.seasonNumber}-${episode.episodeNumber}`} episode={episode} />
+                                  <EpisodeCard 
+                                    key={`${episode.seasonNumber}-${episode.episodeNumber}`} 
+                                    episode={episode}
+                                    episodeFiles={getEpisodeFiles(episode.seasonNumber, episode.episodeNumber)}
+                                  />
                                 ))}
                               </div>
                             ) : (

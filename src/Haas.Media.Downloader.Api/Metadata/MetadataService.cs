@@ -9,6 +9,7 @@ public class MetadataService : IMetadataApi
     private readonly ILiteCollection<LibraryInfo> _librariesCollection;
     private readonly ILiteCollection<MovieMetadata> _movieMetadataCollection;
     private readonly ILiteCollection<TVShowMetadata> _tvShowMetadataCollection;
+    private readonly ILiteCollection<FileMetadata> _fileMetadataCollection;
     private readonly ILogger<MetadataService> _logger;
     private readonly TMDbClient _tmdbClient;
     private readonly IBackgroundTaskManager _backgroundTaskManager;
@@ -23,6 +24,7 @@ public class MetadataService : IMetadataApi
         _librariesCollection = database.GetCollection<LibraryInfo>("libraries");
         _movieMetadataCollection = database.GetCollection<MovieMetadata>("movieMetadata");
         _tvShowMetadataCollection = database.GetCollection<TVShowMetadata>("tvShowMetadata");
+        _fileMetadataCollection = database.GetCollection<FileMetadata>("fileMetadata");
         _logger = logger;
         _backgroundTaskManager = backgroundTaskManager;
 
@@ -113,9 +115,23 @@ public class MetadataService : IMetadataApi
 
     public Task<IEnumerable<MovieMetadata>> GetMovieMetadataAsync(string? libraryId = null)
     {
-        IEnumerable<MovieMetadata> results = string.IsNullOrEmpty(libraryId)
-            ? _movieMetadataCollection.FindAll()
-            : _movieMetadataCollection.Find(m => m.LibraryId == libraryId);
+        IEnumerable<MovieMetadata> results;
+        
+        if (string.IsNullOrEmpty(libraryId))
+        {
+            results = _movieMetadataCollection.FindAll();
+        }
+        else
+        {
+            // Get all movie IDs associated with this library via FileMetadata
+            var movieIds = _fileMetadataCollection
+                .Find(f => f.LibraryId == libraryId && f.MediaType == LibraryType.Movies)
+                .Select(f => int.Parse(f.MediaId))
+                .Distinct()
+                .ToList();
+            
+            results = _movieMetadataCollection.Find(m => movieIds.Contains(m.Id));
+        }
 
         var movieMetadata = results.ToList();
         _logger.LogDebug("Retrieved {Count} movie metadata records", movieMetadata.Count);
@@ -144,9 +160,23 @@ public class MetadataService : IMetadataApi
 
     public Task<IEnumerable<TVShowMetadata>> GetTVShowMetadataAsync(string? libraryId = null)
     {
-        IEnumerable<TVShowMetadata> results = string.IsNullOrEmpty(libraryId)
-            ? _tvShowMetadataCollection.FindAll()
-            : _tvShowMetadataCollection.Find(tv => tv.LibraryId == libraryId);
+        IEnumerable<TVShowMetadata> results;
+        
+        if (string.IsNullOrEmpty(libraryId))
+        {
+            results = _tvShowMetadataCollection.FindAll();
+        }
+        else
+        {
+            // Get all TV show IDs associated with this library via FileMetadata
+            var tvShowIds = _fileMetadataCollection
+                .Find(f => f.LibraryId == libraryId && f.MediaType == LibraryType.TVShows)
+                .Select(f => int.Parse(f.MediaId))
+                .Distinct()
+                .ToList();
+            
+            results = _tvShowMetadataCollection.Find(tv => tvShowIds.Contains(tv.Id));
+        }
 
         var tvShowMetadata = results.ToList();
         _logger.LogDebug("Retrieved {Count} TV show metadata records", tvShowMetadata.Count);
@@ -307,14 +337,17 @@ public class MetadataService : IMetadataApi
         _librariesCollection.EnsureIndex(x => x.DirectoryPath, true);
         _librariesCollection.EnsureIndex(x => x.Title);
 
-        _movieMetadataCollection.EnsureIndex(x => x.LibraryId);
         _movieMetadataCollection.EnsureIndex(x => x.Title);
 
-        _tvShowMetadataCollection.EnsureIndex(x => x.LibraryId);
         _tvShowMetadataCollection.EnsureIndex(x => x.Title);
 
+        _fileMetadataCollection.EnsureIndex(x => x.LibraryId);
+        _fileMetadataCollection.EnsureIndex(x => x.MediaId);
+        _fileMetadataCollection.EnsureIndex(x => x.FilePath);
+        _fileMetadataCollection.EnsureIndex(x => x.MediaType);
+
         _logger.LogDebug(
-            "Created indexes for libraries, movie metadata, and TV show metadata collections"
+            "Created indexes for libraries, movie metadata, TV show metadata, and file metadata collections"
         );
     }
 
@@ -369,5 +402,80 @@ public class MetadataService : IMetadataApi
         }
 
         return Task.FromResult(operationId);
+    }
+
+    // File Metadata operations
+    public Task<IEnumerable<FileMetadata>> GetFileMetadataAsync(string? libraryId = null, string? mediaId = null)
+    {
+        IEnumerable<FileMetadata> results;
+        
+        if (!string.IsNullOrEmpty(libraryId) && !string.IsNullOrEmpty(mediaId))
+        {
+            results = _fileMetadataCollection.Find(f => f.LibraryId == libraryId && f.MediaId == mediaId);
+        }
+        else if (!string.IsNullOrEmpty(libraryId))
+        {
+            results = _fileMetadataCollection.Find(f => f.LibraryId == libraryId);
+        }
+        else if (!string.IsNullOrEmpty(mediaId))
+        {
+            results = _fileMetadataCollection.Find(f => f.MediaId == mediaId);
+        }
+        else
+        {
+            results = _fileMetadataCollection.FindAll();
+        }
+
+        var fileMetadata = results.ToList();
+        _logger.LogDebug("Retrieved {Count} file metadata records", fileMetadata.Count);
+        return Task.FromResult<IEnumerable<FileMetadata>>(fileMetadata);
+    }
+
+    public Task<FileMetadata?> GetFileMetadataByIdAsync(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            _logger.LogWarning("Invalid ID format: {Id}", id);
+            return Task.FromResult<FileMetadata?>(null);
+        }
+
+        var fileMetadata = _fileMetadataCollection.FindById(new BsonValue(id));
+        _logger.LogDebug("Retrieved file metadata with ID: {Id}", id);
+        return Task.FromResult<FileMetadata?>(fileMetadata);
+    }
+
+    public Task<FileMetadata> AddFileMetadataAsync(FileMetadata fileMetadata)
+    {
+        fileMetadata.Id = ObjectId.NewObjectId().ToString();
+        fileMetadata.UpdatedAt = DateTime.UtcNow;
+
+        _fileMetadataCollection.Insert(fileMetadata);
+        _logger.LogInformation(
+            "Added new file metadata: MediaId={MediaId}, FilePath={FilePath}",
+            fileMetadata.MediaId,
+            fileMetadata.FilePath
+        );
+        return Task.FromResult(fileMetadata);
+    }
+
+    public Task<bool> DeleteFileMetadataAsync(string id)
+    {
+        var deleted = _fileMetadataCollection.Delete(new BsonValue(id));
+        if (deleted)
+        {
+            _logger.LogInformation("Deleted file metadata with ID: {Id}", id);
+            return Task.FromResult(true);
+        }
+
+        _logger.LogWarning("File metadata not found with ID: {Id}", id);
+        return Task.FromResult(false);
+    }
+
+    public Task<IEnumerable<FileMetadata>> GetFilesByMediaIdAsync(string mediaId, LibraryType mediaType)
+    {
+        var results = _fileMetadataCollection.Find(f => f.MediaId == mediaId && f.MediaType == mediaType);
+        var fileMetadata = results.ToList();
+        _logger.LogDebug("Retrieved {Count} files for media ID: {MediaId}", fileMetadata.Count, mediaId);
+        return Task.FromResult<IEnumerable<FileMetadata>>(fileMetadata);
     }
 }

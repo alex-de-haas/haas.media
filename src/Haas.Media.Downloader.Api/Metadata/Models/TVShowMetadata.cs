@@ -26,9 +26,6 @@ public class TVShowMetadata
     public Network[] Networks { get; set; } = [];
     public TVSeasonMetadata[] Seasons { get; set; } = [];
 
-    // Library relation if tv show exists in library
-    public string? LibraryId { get; set; }
-
     public required DateTime CreatedAt { get; set; }
 
     public required DateTime UpdatedAt { get; set; }

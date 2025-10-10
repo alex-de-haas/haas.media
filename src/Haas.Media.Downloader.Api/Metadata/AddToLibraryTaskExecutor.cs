@@ -16,6 +16,7 @@ internal sealed class AddToLibraryTaskExecutor
     private readonly ILiteCollection<LibraryInfo> _librariesCollection;
     private readonly ILiteCollection<MovieMetadata> _movieMetadataCollection;
     private readonly ILiteCollection<TVShowMetadata> _tvShowMetadataCollection;
+    private readonly ILiteCollection<FileMetadata> _fileMetadataCollection;
     private readonly TMDbClient _tmdbClient;
     private readonly ILogger<AddToLibraryTaskExecutor> _logger;
 
@@ -28,6 +29,7 @@ internal sealed class AddToLibraryTaskExecutor
         _librariesCollection = database.GetCollection<LibraryInfo>("libraries");
         _movieMetadataCollection = database.GetCollection<MovieMetadata>("movieMetadata");
         _tvShowMetadataCollection = database.GetCollection<TVShowMetadata>("tvShowMetadata");
+        _fileMetadataCollection = database.GetCollection<FileMetadata>("fileMetadata");
         _tmdbClient = tmdbClient;
         _logger = logger;
     }
@@ -161,11 +163,10 @@ internal sealed class AddToLibraryTaskExecutor
 
         var existingMovie = _movieMetadataCollection.FindById(new BsonValue(tmdbId.ToString()));
 
+        MovieMetadata movieMetadata;
         if (existingMovie is not null)
         {
             movieDetails.Update(existingMovie);
-
-            existingMovie.LibraryId = library.Id;
 
             if (!_movieMetadataCollection.Update(existingMovie))
             {
@@ -185,13 +186,12 @@ internal sealed class AddToLibraryTaskExecutor
                 Title = existingMovie.Title,
                 PosterPath = existingMovie.PosterPath
             };
+            
+            movieMetadata = existingMovie;
         }
         else
         {
-            var movieMetadata = movieDetails.Create();
-
-            movieMetadata.LibraryId = library.Id;
-
+            movieMetadata = movieDetails.Create();
             _movieMetadataCollection.Insert(movieMetadata);
 
             _logger.LogInformation(
@@ -245,22 +245,6 @@ internal sealed class AddToLibraryTaskExecutor
 
         var existingTVShow = _tvShowMetadataCollection.FindById(new BsonValue(tmdbId.ToString()));
 
-        Dictionary<(int SeasonNumber, int EpisodeNumber), string?>? existingEpisodeLookup =
-            existingTVShow
-                ?.Seasons?
-                .SelectMany(season =>
-                    season.Episodes.Select(episode => new
-                    {
-                        season.SeasonNumber,
-                        episode.EpisodeNumber,
-                        episode.FilePath,
-                    })
-                )
-                .ToDictionary(
-                    keySelector => (keySelector.SeasonNumber, keySelector.EpisodeNumber),
-                    elementSelector => elementSelector.FilePath
-                );
-
         var seasons = new List<TVSeasonMetadata>();
         var orderedSeasons = tvShowDetails
             .Seasons?
@@ -311,18 +295,6 @@ internal sealed class AddToLibraryTaskExecutor
                 );
 
                 var episodeMetadata = episodeDetails.Create();
-                episodeMetadata.FilePath = null;
-
-                if (
-                    existingEpisodeLookup?.TryGetValue(
-                        (season.SeasonNumber, episode.EpisodeNumber),
-                        out var existingFilePath
-                    ) == true
-                )
-                {
-                    episodeMetadata.FilePath = existingFilePath;
-                }
-
                 episodes.Add(episodeMetadata);
                 processedEpisodes++;
 
@@ -355,12 +327,11 @@ internal sealed class AddToLibraryTaskExecutor
             context.ReportProgress(Math.Min(99, seasonProgress));
         }
 
+        TVShowMetadata tvShowMetadata;
         if (existingTVShow is not null)
         {
             tvShowDetails.Update(existingTVShow);
-
             existingTVShow.Seasons = seasons.ToArray();
-            existingTVShow.LibraryId = library.Id;
 
             if (!_tvShowMetadataCollection.Update(existingTVShow))
             {
@@ -384,14 +355,13 @@ internal sealed class AddToLibraryTaskExecutor
                 ProcessedEpisodes = processedEpisodes,
                 TotalEpisodes = totalEpisodes
             };
+            
+            tvShowMetadata = existingTVShow;
         }
         else
         {
-            var tvShowMetadata = tvShowDetails.Create();
-
-            tvShowMetadata.LibraryId = library.Id;
+            tvShowMetadata = tvShowDetails.Create();
             tvShowMetadata.Seasons = seasons.ToArray();
-
             _tvShowMetadataCollection.Insert(tvShowMetadata);
 
             _logger.LogInformation(

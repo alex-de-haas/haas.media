@@ -12,17 +12,25 @@ The metadata service provides library management, TMDb search, and catalog stora
 
 - `DATA_DIRECTORY` (required): used to resolve library roots and database location (`.db/common.db`).
 - `TMDB_API_KEY` (required): bound to `TMDbClient`. The application fails fast during startup when missing.
-- `Tmdb` options section: tunes retry and rate-limit behaviour.
+- `Tmdb` options section: tunes retry and rate-limit behavior.
 
 ## Collections & Indexes
 
 | Collection       | Purpose                               | Key Indexes                             |
 | ---------------- | ------------------------------------- | --------------------------------------- |
 | `libraries`      | Library definitions                   | `DirectoryPath` (unique), `Title`       |
-| `movieMetadata`  | Movies synced from TMDb               | `LibraryId`, `TmdbId` (unique), `Title` |
-| `tvShowMetadata` | TV shows with nested seasons/episodes | `LibraryId`, `TmdbId` (unique), `Title` |
+| `movieMetadata`  | Movies synced from TMDb               | `TmdbId` (unique), `Title` |
+| `tvShowMetadata` | TV shows with nested seasons/episodes | `TmdbId` (unique), `Title` |
+| `fileMetadata`   | File-to-media associations (many-to-many) | `LibraryId`, `MediaId`, `FilePath`, `MediaType` |
 
 Document identifiers are LiteDB `ObjectId` values stored as strings in API responses.
+
+### File-Media Relationship
+
+The system uses a **many-to-many relationship** between media items (movies/TV shows) and physical files through the `fileMetadata` collection. This allows:
+- Multiple files per movie (e.g., Director's Cut, 4K version, theatrical version)
+- Multiple files per TV episode (e.g., different quality versions)
+- Flexible file associations managed independently from metadata
 
 ## Core Models
 
@@ -63,8 +71,7 @@ public class MovieMetadata
     public CastMember[] Cast { get; set; } = [];
     public required string PosterPath { get; set; }
     public required string BackdropPath { get; set; }
-    public string? LibraryId { get; set; }
-    public string? FilePath { get; set; }
+    // Note: LibraryId and FilePath removed - now tracked via FileMetadata
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
@@ -89,13 +96,33 @@ public class TVShowMetadata
     public TVSeasonMetadata[] Seasons { get; set; } = [];
     public required string PosterPath { get; set; }
     public required string BackdropPath { get; set; }
-    public string? LibraryId { get; set; }
+    // Note: LibraryId removed - now tracked via FileMetadata
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
 ```
 
-`TVSeasonMetadata` and `TVEpisodeMetadata` mirror TMDb data and keep optional `FilePath` associations when scans detect on-disk files.
+`TVSeasonMetadata` and `TVEpisodeMetadata` mirror TMDb data. File associations are now managed through `FileMetadata` records, allowing multiple files per episode.
+
+### FileMetadata
+
+```csharp
+public class FileMetadata
+{
+    [BsonId]
+    public string? Id { get; set; }
+    public required string LibraryId { get; init; }
+    public required string MediaId { get; init; }        // TMDb ID as string
+    public required LibraryType MediaType { get; init; } // Movies or TVShows
+    public required string FilePath { get; init; }
+    public int? SeasonNumber { get; init; }              // For TV episodes only
+    public int? EpisodeNumber { get; init; }             // For TV episodes only
+    public required DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; set; }
+}
+```
+
+This model enables many-to-many relationships between media items and files. For TV episodes, `SeasonNumber` and `EpisodeNumber` identify which specific episode the file belongs to.
 
 ### People & Networks
 
@@ -152,7 +179,7 @@ public class SearchResult
 
 ## Library & Catalog Operations
 
-See [API.md](../API.md) for endpoint shapes. Service-level behaviour includes:
+See [API.md](../API.md) for endpoint shapes. Service-level behavior includes:
 
 - Validating IDs loaded from LiteDB and logging misses.
 - Maintaining `CreatedAt`/`UpdatedAt` timestamps whenever documents change.

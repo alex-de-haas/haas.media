@@ -222,6 +222,73 @@ public static class MetadataConfiguration
             .WithName("DeleteTVShowMetadata")
             .RequireAuthorization();
 
+        // FileMetadata endpoints
+        app.MapGet(
+                "api/metadata/files",
+                async (IMetadataApi metadataService, string? libraryId = null, string? mediaId = null) =>
+                {
+                    var fileMetadata = await metadataService.GetFileMetadataAsync(libraryId, mediaId);
+                    return Results.Ok(fileMetadata);
+                }
+            )
+            .WithName("GetFileMetadata")
+            .RequireAuthorization();
+
+        app.MapGet(
+                "api/metadata/files/{id}",
+                async (IMetadataApi metadataService, string id) =>
+                {
+                    var fileMetadata = await metadataService.GetFileMetadataByIdAsync(id);
+                    return fileMetadata != null ? Results.Ok(fileMetadata) : Results.NotFound();
+                }
+            )
+            .WithName("GetFileMetadataById")
+            .RequireAuthorization();
+
+        app.MapPost(
+                "api/metadata/files",
+                async (FileMetadata fileMetadata, IMetadataApi metadataService) =>
+                {
+                    var createdFileMetadata = await metadataService.AddFileMetadataAsync(fileMetadata);
+                    return Results.Created($"api/metadata/files/{createdFileMetadata.Id}", createdFileMetadata);
+                }
+            )
+            .WithName("AddFileMetadata")
+            .RequireAuthorization();
+
+        app.MapDelete(
+                "api/metadata/files/{id}",
+                async (IMetadataApi metadataService, string id) =>
+                {
+                    var deleted = await metadataService.DeleteFileMetadataAsync(id);
+                    return deleted ? Results.Ok() : Results.NotFound();
+                }
+            )
+            .WithName("DeleteFileMetadata")
+            .RequireAuthorization();
+
+        app.MapGet(
+                "api/metadata/movies/{id}/files",
+                async (IMetadataApi metadataService, int id) =>
+                {
+                    var fileMetadata = await metadataService.GetFilesByMediaIdAsync(id.ToString(), LibraryType.Movies);
+                    return Results.Ok(fileMetadata);
+                }
+            )
+            .WithName("GetMovieFiles")
+            .RequireAuthorization();
+
+        app.MapGet(
+                "api/metadata/tvshows/{id}/files",
+                async (IMetadataApi metadataService, int id) =>
+                {
+                    var fileMetadata = await metadataService.GetFilesByMediaIdAsync(id.ToString(), LibraryType.TVShows);
+                    return Results.Ok(fileMetadata);
+                }
+            )
+            .WithName("GetTVShowFiles")
+            .RequireAuthorization();
+
         app.MapGet(
                 "api/metadata/search",
                 async (

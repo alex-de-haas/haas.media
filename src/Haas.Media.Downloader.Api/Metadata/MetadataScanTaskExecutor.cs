@@ -15,6 +15,7 @@ internal sealed class MetadataScanTaskExecutor
     private readonly ILiteCollection<LibraryInfo> _librariesCollection;
     private readonly ILiteCollection<MovieMetadata> _movieMetadataCollection;
     private readonly ILiteCollection<TVShowMetadata> _tvShowMetadataCollection;
+    private readonly ILiteCollection<FileMetadata> _fileMetadataCollection;
     private readonly TMDbClient _tmdbClient;
     private readonly ILogger<MetadataScanTaskExecutor> _logger;
 
@@ -31,6 +32,7 @@ internal sealed class MetadataScanTaskExecutor
         _librariesCollection = database.GetCollection<LibraryInfo>("libraries");
         _movieMetadataCollection = database.GetCollection<MovieMetadata>("movieMetadata");
         _tvShowMetadataCollection = database.GetCollection<TVShowMetadata>("tvShowMetadata");
+        _fileMetadataCollection = database.GetCollection<FileMetadata>("fileMetadata");
         _tmdbClient = tmdbClient;
         _logger = logger;
     }
@@ -319,9 +321,8 @@ internal sealed class MetadataScanTaskExecutor
 
             try
             {
-                var existingMetadata = _tvShowMetadataCollection.FindOne(tv =>
-                    tv.LibraryId == library.Id && tv.Title == showTitle
-                );
+                // Check if TV show already exists by title
+                var existingMetadata = _tvShowMetadataCollection.FindOne(tv => tv.Title == showTitle);
 
                 if (existingMetadata != null)
                 {
@@ -519,8 +520,6 @@ internal sealed class MetadataScanTaskExecutor
         var tvShowDetails = await _tmdbClient.GetTvShowAsync(tmdbTvShowId, extraMethods: TvShowMethods.Credits);
         var tvShowMetadata = tvShowDetails.Create();
 
-        tvShowMetadata.LibraryId = libraryId;
-
         var seasons = new List<TVSeasonMetadata>();
 
         foreach (var season in tvShowDetails.Seasons.Where(s => s.SeasonNumber > 0))
@@ -548,7 +547,23 @@ internal sealed class MetadataScanTaskExecutor
                 );
 
                 var episodeMetadata = episodeDetails.Create();
-                episodeMetadata.FilePath = filePath; // Will be null if no file found
+
+                // Create FileMetadata if file exists
+                if (filePath != null)
+                {
+                    var fileMetadata = new FileMetadata
+                    {
+                        LibraryId = libraryId,
+                        MediaId = tmdbTvShowId.ToString(),
+                        MediaType = LibraryType.TVShows,
+                        FilePath = filePath,
+                        SeasonNumber = season.SeasonNumber,
+                        EpisodeNumber = episode.EpisodeNumber,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    _fileMetadataCollection.Insert(fileMetadata);
+                }
 
                 episodes.Add(episodeMetadata);
             }
@@ -619,83 +634,59 @@ internal sealed class MetadataScanTaskExecutor
 
     private void ClearMissingMovieFiles(string libraryId)
     {
-        var movieMetadataEntries = _movieMetadataCollection
-            .Find(m => m.LibraryId == libraryId)
+        var fileMetadataEntries = _fileMetadataCollection
+            .Find(f => f.LibraryId == libraryId && f.MediaType == LibraryType.Movies)
             .ToList();
 
-        foreach (var metadata in movieMetadataEntries)
+        foreach (var fileMetadata in fileMetadataEntries)
         {
-            if (string.IsNullOrWhiteSpace(metadata.FilePath))
-            {
-                continue;
-            }
-
-            var storedPath = metadata.FilePath;
-            var absolutePath = ResolveMediaPath(storedPath);
+            var absolutePath = ResolveMediaPath(fileMetadata.FilePath);
 
             if (absolutePath != null && File.Exists(absolutePath))
             {
                 continue;
             }
 
-            metadata.LibraryId = null;
-            metadata.FilePath = null;
-            metadata.UpdatedAt = DateTime.UtcNow;
-            _movieMetadataCollection.Update(metadata);
+            // Delete the file metadata record if file no longer exists
+            _fileMetadataCollection.Delete(new BsonValue(fileMetadata.Id!));
+
+            var movieMetadata = _movieMetadataCollection.FindById(new BsonValue(int.Parse(fileMetadata.MediaId)));
 
             _logger.LogInformation(
-                "Cleared file path for movie '{Title}' because the file is missing: {FilePath}",
-                metadata.Title,
-                storedPath
+                "Deleted file metadata for movie '{Title}' because the file is missing: {FilePath}",
+                movieMetadata?.Title ?? fileMetadata.MediaId,
+                fileMetadata.FilePath
             );
         }
     }
 
     private void ClearMissingTvShowFiles(string libraryId)
     {
-        var tvShows = _tvShowMetadataCollection.Find(tv => tv.LibraryId == libraryId).ToList();
+        var fileMetadataEntries = _fileMetadataCollection
+            .Find(f => f.LibraryId == libraryId && f.MediaType == LibraryType.TVShows)
+            .ToList();
 
-        foreach (var tvShow in tvShows)
+        foreach (var fileMetadata in fileMetadataEntries)
         {
-            var hasChanges = false;
+            var absolutePath = ResolveMediaPath(fileMetadata.FilePath);
 
-            foreach (var season in tvShow.Seasons ?? Array.Empty<TVSeasonMetadata>())
-            {
-                foreach (var episode in season.Episodes ?? Array.Empty<TVEpisodeMetadata>())
-                {
-                    if (string.IsNullOrWhiteSpace(episode.FilePath))
-                    {
-                        continue;
-                    }
-
-                    var storedPath = episode.FilePath;
-                    var absolutePath = ResolveMediaPath(storedPath);
-
-                    if (absolutePath != null && File.Exists(absolutePath))
-                    {
-                        continue;
-                    }
-
-                    episode.FilePath = null;
-                    hasChanges = true;
-
-                    _logger.LogInformation(
-                        "Cleared file path for TV episode '{Title}' S{Season:D2}E{Episode:D2} because the file is missing: {FilePath}",
-                        tvShow.Title,
-                        episode.SeasonNumber,
-                        episode.EpisodeNumber,
-                        storedPath
-                    );
-                }
-            }
-
-            if (!hasChanges)
+            if (absolutePath != null && File.Exists(absolutePath))
             {
                 continue;
             }
 
-            tvShow.UpdatedAt = DateTime.UtcNow;
-            _tvShowMetadataCollection.Update(tvShow);
+            // Delete the file metadata record if file no longer exists
+            _fileMetadataCollection.Delete(new BsonValue(fileMetadata.Id!));
+
+            var tvShow = _tvShowMetadataCollection.FindById(new BsonValue(int.Parse(fileMetadata.MediaId)));
+
+            _logger.LogInformation(
+                "Deleted file metadata for TV episode '{Title}' S{Season:D2}E{Episode:D2} because the file is missing: {FilePath}",
+                tvShow?.Title ?? fileMetadata.MediaId,
+                fileMetadata.SeasonNumber ?? 0,
+                fileMetadata.EpisodeNumber ?? 0,
+                fileMetadata.FilePath
+            );
         }
     }
 
@@ -783,15 +774,24 @@ internal sealed class MetadataScanTaskExecutor
             }
 
             var relativePath = Path.GetRelativePath(_dataPath, filePath);
-            var existingMetadata = _movieMetadataCollection.FindOne(m =>
-                m.LibraryId == library.Id && m.FilePath == relativePath
+            
+            // Check if this file already has metadata
+            var existingFileMetadata = _fileMetadataCollection.FindOne(f =>
+                f.LibraryId == library.Id && f.FilePath == relativePath && f.MediaType == LibraryType.Movies
             );
 
-            if (existingMetadata != null && !refreshExisting)
+            if (existingFileMetadata != null && !refreshExisting)
             {
                 processed++;
                 found++;
                 continue;
+            }
+            
+            // Get existing movie metadata if file is already associated
+            MovieMetadata? existingMetadata = null;
+            if (existingFileMetadata != null)
+            {
+                existingMetadata = _movieMetadataCollection.FindById(new BsonValue(int.Parse(existingFileMetadata.MediaId)));
             }
 
             try
@@ -835,19 +835,39 @@ internal sealed class MetadataScanTaskExecutor
                         cancellationToken: context.CancellationToken
                     );
 
+                    MovieMetadata movieMetadata;
                     if (existingMetadata != null)
                     {
+                        // Update existing metadata
                         movieDetails.Update(existingMetadata);
-                        existingMetadata.LibraryId = library.Id;
-                        existingMetadata.FilePath = relativePath;
                         _movieMetadataCollection.Update(existingMetadata);
+                        movieMetadata = existingMetadata;
                     }
                     else
                     {
-                        var movieMetadata = movieDetails.Create();
-                        movieMetadata.LibraryId = library.Id;
-                        movieMetadata.FilePath = relativePath;
+                        // Create new metadata
+                        movieMetadata = movieDetails.Create();
                         _movieMetadataCollection.Insert(movieMetadata);
+                    }
+
+                    // Create or update FileMetadata
+                    if (existingFileMetadata != null)
+                    {
+                        existingFileMetadata.UpdatedAt = DateTime.UtcNow;
+                        _fileMetadataCollection.Update(existingFileMetadata);
+                    }
+                    else
+                    {
+                        var fileMetadata = new FileMetadata
+                        {
+                            LibraryId = library.Id!,
+                            MediaId = movieMetadata.Id.ToString(),
+                            MediaType = LibraryType.Movies,
+                            FilePath = relativePath,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        };
+                        _fileMetadataCollection.Insert(fileMetadata);
                     }
 
                     found++;

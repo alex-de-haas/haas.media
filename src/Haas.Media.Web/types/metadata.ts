@@ -35,6 +35,18 @@ export interface SearchResult {
   originalLanguage: string;
 }
 
+export interface FileMetadata {
+  id?: string;
+  libraryId: string;
+  mediaId: string;
+  mediaType: LibraryType;
+  filePath: string;
+  seasonNumber?: number | null;
+  episodeNumber?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CrewMember {
   id: number;
   name: string;
@@ -90,8 +102,6 @@ export interface MovieMetadata {
   cast: CastMember[];
   posterPath?: string;
   backdropPath?: string;
-  libraryId?: string | null;
-  filePath?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -111,7 +121,6 @@ export interface TVShowMetadata {
   seasons: TVSeasonMetadata[];
   posterPath?: string;
   backdropPath?: string;
-  libraryId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -130,7 +139,6 @@ export interface TVEpisodeMetadata {
   name: string;
   overview: string;
   voteAverage: number;
-  filePath?: string | null;
 }
 
 export interface MetadataRefreshOperationInfo {

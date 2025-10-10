@@ -271,18 +271,7 @@ internal sealed class MetadataRefreshTaskExecutor
             cancellationToken: cancellationToken
         );
 
-        var existingEpisodeLookup = tvShow
-            .Seasons?.SelectMany(
-                season => season.Episodes ?? Array.Empty<TVEpisodeMetadata>(),
-                (season, episode) =>
-                    new
-                    {
-                        season.SeasonNumber,
-                        episode.EpisodeNumber,
-                        episode.FilePath,
-                    }
-            )
-            .ToDictionary(x => (x.SeasonNumber, x.EpisodeNumber), x => x.FilePath);
+        // Note: FileMetadata is now managed separately and not updated during refresh
 
         var orderedSeasons =
             tvShowDetails
@@ -322,17 +311,6 @@ internal sealed class MetadataRefreshTaskExecutor
                 }
 
                 var episodeMetadata = episodeDetails.Create();
-
-                if (
-                    existingEpisodeLookup?.TryGetValue(
-                        (episodeMetadata.SeasonNumber, episodeMetadata.EpisodeNumber),
-                        out var filePath
-                    ) == true
-                )
-                {
-                    episodeMetadata.FilePath = filePath;
-                }
-
                 episodes.Add(episodeMetadata);
 
                 await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);

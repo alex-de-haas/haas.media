@@ -28,10 +28,6 @@ public class MovieMetadata
     public CrewMember[] Crew { get; set; } = [];
     public CastMember[] Cast { get; set; } = [];
     
-    // Library and file relation if movie file exists in library
-    public string? LibraryId { get; set; }
-    public string? FilePath { get; set; }
-    
     public required DateTime CreatedAt { get; set; }
 
     public required DateTime UpdatedAt { get; set; }
