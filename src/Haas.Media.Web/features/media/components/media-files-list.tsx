@@ -8,7 +8,6 @@ import { streamTypeIcon, streamCodecIcon, resolutionIcon } from "@/components/en
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDate, formatFileSize } from "@/lib/utils";
 
 interface Props {
@@ -104,67 +103,65 @@ export default function MediaFilesList({ mediaFiles, selectedStreams, setSelecte
                         {fileSelection.size}/{streams.length} selected
                       </div>
                     </div>
-                    <ScrollArea className="max-h-[480px]">
-                      <div className="space-y-4 pr-2">
-                        {streams.map((stream) => {
-                          const features = streamFeaturesToStrings(stream.features);
-                          const checked = fileSelection.has(stream.index);
+                    <div className="space-y-4 pr-2">
+                      {streams.map((stream) => {
+                        const features = streamFeaturesToStrings(stream.features);
+                        const checked = fileSelection.has(stream.index);
 
-                          return (
-                            <div key={stream.index} className="rounded-lg border border-border bg-background/90 p-3 shadow-sm">
-                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                <div className="flex flex-1 items-start gap-3">
-                                  <Checkbox
-                                    checked={checked}
-                                    disabled={encoding}
-                                    onCheckedChange={(value) => {
-                                      setSelectedStreams((prev) => {
-                                        const current = new Set(prev[file.relativePath] ?? []);
-                                        if (value === true || value === "indeterminate") {
-                                          current.add(stream.index);
-                                        } else {
-                                          current.delete(stream.index);
-                                        }
-                                        return { ...prev, [file.relativePath]: current };
-                                      });
-                                    }}
-                                  />
-                                  <div className="space-y-2 text-sm">
-                                    <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                      {streamTypeIcon(stream.type)}
-                                      {streamCodecIcon(stream.codec)}
-                                      {resolutionIcon(stream.width ?? undefined, stream.height ?? undefined)}
-                                      {features.map((feature) => (
-                                        <Badge key={feature} variant="secondary" className="text-[10px]">
-                                          {feature}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                    <div className="space-y-1 text-sm">
-                                      {stream.title && <div className="font-medium text-foreground">{stream.title}</div>}
-                                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                                        <MetadataItem label="Index" value={`#${stream.index}`} />
-                                        <MetadataItem label="Language" value={stream.language ?? "—"} />
-                                        {stream.duration && <MetadataItem label="Duration" value={stream.duration} />}
-                                        {typeof stream.bitRate === "number" && stream.type !== StreamType.Subtitle && (
-                                          <MetadataItem label="Bitrate" value={`${(stream.bitRate / 1000).toFixed(0)} kb/s`} />
-                                        )}
-                                        {typeof stream.channels === "number" && (
-                                          <MetadataItem label="Channels" value={String(stream.channels)} />
-                                        )}
-                                        {typeof stream.sampleRate === "number" && (
-                                          <MetadataItem label="Sample rate" value={`${stream.sampleRate} Hz`} />
-                                        )}
-                                      </div>
+                        return (
+                          <div key={stream.index} className="rounded-lg border border-border bg-background/90 p-3 shadow-sm">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div className="flex flex-1 items-start gap-3">
+                                <Checkbox
+                                  checked={checked}
+                                  disabled={encoding}
+                                  onCheckedChange={(value) => {
+                                    setSelectedStreams((prev) => {
+                                      const current = new Set(prev[file.relativePath] ?? []);
+                                      if (value === true || value === "indeterminate") {
+                                        current.add(stream.index);
+                                      } else {
+                                        current.delete(stream.index);
+                                      }
+                                      return { ...prev, [file.relativePath]: current };
+                                    });
+                                  }}
+                                />
+                                <div className="space-y-2 text-sm">
+                                  <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                    {streamTypeIcon(stream.type)}
+                                    {streamCodecIcon(stream.codec)}
+                                    {resolutionIcon(stream.width ?? undefined, stream.height ?? undefined)}
+                                    {features.map((feature) => (
+                                      <Badge key={feature} variant="secondary" className="text-[10px]">
+                                        {feature}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                  <div className="space-y-1 text-sm">
+                                    {stream.title && <div className="font-medium text-foreground">{stream.title}</div>}
+                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                      <MetadataItem label="Index" value={`#${stream.index}`} />
+                                      <MetadataItem label="Language" value={stream.language ?? "—"} />
+                                      {stream.duration && <MetadataItem label="Duration" value={stream.duration} />}
+                                      {typeof stream.bitRate === "number" && stream.type !== StreamType.Subtitle && (
+                                        <MetadataItem label="Bitrate" value={`${(stream.bitRate / 1000).toFixed(0)} kb/s`} />
+                                      )}
+                                      {typeof stream.channels === "number" && (
+                                        <MetadataItem label="Channels" value={String(stream.channels)} />
+                                      )}
+                                      {typeof stream.sampleRate === "number" && (
+                                        <MetadataItem label="Sample rate" value={`${stream.sampleRate} Hz`} />
+                                      )}
                                     </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </ScrollArea>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </CardContent>
                 </>
               ) : (
