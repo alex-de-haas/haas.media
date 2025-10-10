@@ -11,6 +11,6 @@ public class AddToLibraryRequest
     public required string LibraryId { get; set; }
     
     [Required]
-    public required string Id { get; set; }
+    public required int Id { get; set; }
 }
 

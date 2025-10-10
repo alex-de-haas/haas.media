@@ -310,11 +310,6 @@ public class MetadataService : IMetadataApi
             );
         }
 
-        if (!int.TryParse(request.Id, out var tmdbId))
-        {
-            throw new ArgumentException("Invalid TMDB ID format. Must be a valid integer.");
-        }
-
         if (string.IsNullOrWhiteSpace(library.Id))
         {
             throw new InvalidOperationException(
@@ -322,7 +317,7 @@ public class MetadataService : IMetadataApi
             );
         }
 
-        var task = new AddToLibraryTask(library.Id, library.Type, tmdbId, library.Title);
+        var task = new AddToLibraryTask(library.Id, library.Type, request.Id, library.Title);
         var taskId = _backgroundTaskManager.RunTask<AddToLibraryTask, AddToLibraryOperationInfo>(
             task
         );
@@ -330,7 +325,7 @@ public class MetadataService : IMetadataApi
         _logger.LogInformation(
             "Queued add-to-library task {TaskId} for TMDB {TmdbId} in library {LibraryId}",
             taskId,
-            tmdbId,
+            request.Id,
             library.Id
         );
 

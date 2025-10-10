@@ -29,8 +29,7 @@ public static class MetadataConfiguration
             return client;
         });
 
-        builder.Services.AddSingleton<MetadataService>();
-        builder.Services.AddScoped<IMetadataApi>(sp => sp.GetRequiredService<MetadataService>());
+        builder.Services.AddScoped<IMetadataApi, MetadataService>();
 
         builder.Services.AddBackgroundTask<
             MetadataScanTask,
