@@ -513,8 +513,11 @@ public class JellyfinService
             ParentId = null,
             IsFolder = true,
             ServerId = _serverId,
+            MediaSources = Array.Empty<JellyfinMediaSource>(),
             UserData = new JellyfinUserData { Played = false },
             ChildCount = library.ChildCount,
+            ImageTags = new Dictionary<string, string>(),
+            BackdropImageTags = new Dictionary<string, string>(),
         };
     }
 

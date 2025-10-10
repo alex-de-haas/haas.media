@@ -141,6 +141,11 @@ public sealed record JellyfinItem
     public string? SeasonId { get; init; }
     public string? SeasonName { get; init; }
     public IReadOnlyList<string>? Genres { get; init; }
+    public int? LocalTrailerCount { get; init; }
+    public int? RemoteTrailerCount { get; init; }
+    public bool? CanDelete { get; init; }
+    public bool? CanDownload { get; init; }
+    public IReadOnlyList<string>? LockedFields { get; init; }
 }
 
 public sealed record JellyfinMediaSource
@@ -213,6 +218,8 @@ public sealed record JellyfinUserData
     public bool Played { get; init; }
     public double? PlaybackPositionTicks { get; init; }
     public double? PlayedPercentage { get; init; }
+    public bool? IsFavorite { get; init; }
+    public int? PlayCount { get; init; }
 }
 
 public sealed record JellyfinMediaPath

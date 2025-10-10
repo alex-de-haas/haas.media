@@ -360,11 +360,7 @@ public static class JellyfinConfiguration
                             
                             // For now, return empty array as resume functionality requires playback tracking
                             // This will be implemented when playback progress is persisted
-                            var resumeItems = new JellyfinItemsEnvelope
-                            {
-                                Items = Array.Empty<JellyfinItem>(),
-                                TotalRecordCount = 0
-                            };
+                            var resumeItems = Array.Empty<JellyfinItem>();
                             
                             LogResponse(logger, $"Users/{userId}/Items/Resume", resumeItems);
                             return JellyfinJson(resumeItems);
