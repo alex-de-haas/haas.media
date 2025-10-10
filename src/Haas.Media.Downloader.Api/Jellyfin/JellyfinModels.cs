@@ -101,12 +101,14 @@ public sealed record JellyfinItemsEnvelope
 {
     public required JellyfinItem[] Items { get; init; }
     public int TotalRecordCount { get; init; }
+    public int StartIndex { get; init; } = 0;
 }
 
 public sealed record JellyfinLibraryEnvelope
 {
     public required JellyfinLibraryItem[] Items { get; init; }
     public int TotalRecordCount { get; init; }
+    public int StartIndex { get; init; } = 0;
 }
 
 public sealed record JellyfinItem
@@ -357,4 +359,3 @@ public sealed record JellyfinBaseItemDto
     public string? Type { get; init; }
     public string? MediaType { get; init; }
 }
-
