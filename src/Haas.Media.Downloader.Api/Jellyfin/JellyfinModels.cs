@@ -109,16 +109,6 @@ public sealed record JellyfinLibraryEnvelope
     public int TotalRecordCount { get; init; }
 }
 
-public sealed record JellyfinSessionEnvelope
-{
-    public required JellyfinSessionInfo[] Items { get; init; }
-}
-
-public sealed record JellyfinUserEnvelope
-{
-    public required JellyfinUserContract[] Items { get; init; }
-}
-
 public sealed record JellyfinItem
 {
     public required string Id { get; init; }
@@ -142,6 +132,7 @@ public sealed record JellyfinItem
     public IReadOnlyList<JellyfinMediaSource> MediaSources { get; init; } =
         Array.Empty<JellyfinMediaSource>();
     public JellyfinUserData? UserData { get; init; }
+    public int? ChildCount { get; init; }
     public string? ParentIndexNumberName { get; init; }
     public int? IndexNumber { get; init; }
     public int? ParentIndexNumber { get; init; }

@@ -93,6 +93,21 @@ public class JellyfinService
         };
     }
 
+    public async Task<JellyfinItemsEnvelope> GetLibraryViewsAsync(CancellationToken cancellationToken = default)
+    {
+        var librariesEnvelope = await GetLibrariesAsync(cancellationToken);
+        var items = librariesEnvelope
+            .Items
+            .Select(MapLibraryItemToFolder)
+            .ToArray();
+
+        return new JellyfinItemsEnvelope
+        {
+            Items = items,
+            TotalRecordCount = items.Length,
+        };
+    }
+
     public async Task<JellyfinItemsEnvelope> GetItemsAsync(
         JellyfinItemsQuery query,
         CancellationToken cancellationToken = default
@@ -500,6 +515,7 @@ public class JellyfinService
             ServerId = _serverId,
             MediaSources = Array.Empty<JellyfinMediaSource>(),
             UserData = new JellyfinUserData { Played = false },
+            ChildCount = library.ChildCount,
         };
     }
 
