@@ -137,11 +137,25 @@ public sealed record JellyfinMediaSource
     public string Protocol { get; init; } = "File";
     public string? Container { get; init; }
     public long? Size { get; init; }
+    public string? Name { get; init; }
+    public bool IsRemote { get; init; } = false;
     public bool SupportsDirectPlay { get; init; } = true;
     public bool SupportsDirectStream { get; init; } = true;
     public bool SupportsTranscoding { get; init; } = true;
+    public string? ETag { get; init; }
+    public long? RunTimeTicks { get; init; }
+    public bool ReadAtNativeFramerate { get; init; } = false;
+    public bool IgnoreDts { get; init; } = false;
+    public bool IgnoreIndex { get; init; } = false;
+    public bool GenPtsInput { get; init; } = false;
+    public bool SupportsTranscode { get; init; } = true;
+    public bool SupportsDirectPlayback { get; init; } = true;
+    public string Type { get; init; } = "Default";
     public IReadOnlyList<JellyfinMediaStream> MediaStreams { get; init; } =
         Array.Empty<JellyfinMediaStream>();
+    public string? VideoType { get; init; }
+    public int? DefaultAudioStreamIndex { get; init; }
+    public int? DefaultSubtitleStreamIndex { get; init; }
 }
 
 public sealed record JellyfinMediaStream
@@ -151,6 +165,34 @@ public sealed record JellyfinMediaStream
     public int Index { get; init; }
     public string? Language { get; init; }
     public bool? IsDefault { get; init; }
+    public bool? IsForced { get; init; }
+    public bool? IsExternal { get; init; }
+    public string? Title { get; init; }
+    public string? DisplayTitle { get; init; }
+    public string? CodecTag { get; init; }
+    public string? Profile { get; init; }
+    public int? Height { get; init; }
+    public int? Width { get; init; }
+    public double? AverageFrameRate { get; init; }
+    public double? RealFrameRate { get; init; }
+    public string? AspectRatio { get; init; }
+    public int? BitRate { get; init; }
+    public int? BitDepth { get; init; }
+    public int? Channels { get; init; }
+    public int? SampleRate { get; init; }
+    public string? ChannelLayout { get; init; }
+    public bool? IsInterlaced { get; init; }
+    public bool? IsAVC { get; init; }
+    public string? TimeBase { get; init; }
+    public int? RefFrames { get; init; }
+    public string? VideoRange { get; init; }
+    public string? ColorSpace { get; init; }
+    public string? ColorTransfer { get; init; }
+    public string? ColorPrimaries { get; init; }
+    public bool? SupportsExternalStream { get; init; }
+    public string? Path { get; init; }
+    public string? PixelFormat { get; init; }
+    public int? Level { get; init; }
 }
 
 public sealed record JellyfinUserData

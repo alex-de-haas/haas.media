@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
 using Haas.Media.Downloader.Api.Authentication;
 using Haas.Media.Downloader.Api.Files;
@@ -56,6 +53,23 @@ public static class JellyfinConfiguration
             )
             .AllowAnonymous()
             .WithName("JellyfinSystemPing");
+
+        group.MapGet(
+                "/Branding/Configuration",
+                (ILogger<JellyfinService> logger) =>
+                {
+                    var branding = new
+                    {
+                        LoginDisclaimer = "",
+                        CustomCss = "",
+                        SplashscreenEnabled = false
+                    };
+                    LogResponse(logger, "Branding/Configuration", branding);
+                    return Results.Ok(branding);
+                }
+            )
+            .AllowAnonymous()
+            .WithName("JellyfinBrandingConfiguration");
 
         group.MapPost(
                 "/Users/AuthenticateByName",
@@ -256,6 +270,103 @@ public static class JellyfinConfiguration
             .WithName("JellyfinUserItems");
 
         group.MapGet(
+                "/Users/{userId}/Items/Latest",
+                async (
+                    HttpContext context,
+                    string userId,
+                    JellyfinAuthService authService,
+                    JellyfinService jellyfinService,
+                    ILogger<JellyfinService> logger
+                ) =>
+                    await RequireAuthenticatedAsync(
+                        context,
+                        authService,
+                        async user =>
+                        {
+                            if (!string.Equals(user.Id, userId, StringComparison.OrdinalIgnoreCase))
+                            {
+                                return Results.Forbid();
+                            }
+
+                            var limit = int.TryParse(context.Request.Query["Limit"].FirstOrDefault(), out var l) ? l : 16;
+                            var parentId = context.Request.Query["ParentId"].FirstOrDefault();
+                            var includeTypes = context.Request.Query["IncludeItemTypes"].FirstOrDefault();
+                            
+                            // Build query for latest items
+                            var includeTypesSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                            if (!string.IsNullOrWhiteSpace(includeTypes))
+                            {
+                                foreach (var type in includeTypes.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                                {
+                                    includeTypesSet.Add(type);
+                                }
+                            }
+                            
+                            var query = new JellyfinItemsQuery(parentId, includeTypesSet, true, null);
+                            var allItems = await jellyfinService.GetItemsAsync(query);
+                            
+                            // Return latest items (sorted by premiere date or creation date)
+                            var latestItems = allItems.Items
+                                .OrderByDescending(i => i.PremiereDate ?? DateTimeOffset.MinValue)
+                                .Take(limit)
+                                .ToArray();
+                            
+                            LogResponse(logger, $"Users/{userId}/Items/Latest", latestItems);
+                            return Results.Ok(latestItems);
+                        }
+                    )
+            )
+            .WithName("JellyfinUserItemsLatest");
+
+        group.MapGet(
+                "/Users/{userId}/Items/Resume",
+                async (
+                    HttpContext context,
+                    string userId,
+                    JellyfinAuthService authService,
+                    JellyfinService jellyfinService,
+                    ILogger<JellyfinService> logger
+                ) =>
+                    await RequireAuthenticatedAsync(
+                        context,
+                        authService,
+                        async user =>
+                        {
+                            if (!string.Equals(user.Id, userId, StringComparison.OrdinalIgnoreCase))
+                            {
+                                return Results.Forbid();
+                            }
+
+                            var limit = int.TryParse(context.Request.Query["Limit"].FirstOrDefault(), out var l) ? l : 12;
+                            var parentId = context.Request.Query["ParentId"].FirstOrDefault();
+                            var includeTypes = context.Request.Query["IncludeItemTypes"].FirstOrDefault();
+                            
+                            // Build query for resume items
+                            var includeTypesSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                            if (!string.IsNullOrWhiteSpace(includeTypes))
+                            {
+                                foreach (var type in includeTypes.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                                {
+                                    includeTypesSet.Add(type);
+                                }
+                            }
+                            
+                            // For now, return empty array as resume functionality requires playback tracking
+                            // This will be implemented when playback progress is persisted
+                            var resumeItems = new JellyfinItemsEnvelope
+                            {
+                                Items = Array.Empty<JellyfinItem>(),
+                                TotalRecordCount = 0
+                            };
+                            
+                            LogResponse(logger, $"Users/{userId}/Items/Resume", resumeItems);
+                            return Results.Ok(resumeItems);
+                        }
+                    )
+            )
+            .WithName("JellyfinUserItemsResume");
+
+        group.MapGet(
                 "/Items",
                 async (
                     HttpContext context,
@@ -344,7 +455,8 @@ public static class JellyfinConfiguration
                     string itemId,
                     JellyfinAuthService authService,
                     JellyfinService jellyfinService,
-                    VideoStreamingService videoStreamingService
+                    VideoStreamingService videoStreamingService,
+                    ILogger<JellyfinService> logger
                 ) =>
                     await RequireAuthenticatedAsync(
                         context,
@@ -357,10 +469,22 @@ public static class JellyfinConfiguration
                                 return Results.NotFound();
                             }
 
-                            var shouldTranscode = ParseBool(context.Request.Query, "transcode");
+                            // Parse query parameters according to Jellyfin API spec
+                            var isStatic = ParseBool(context.Request.Query, "static");
+                            var shouldTranscode = !isStatic && ParseBool(context.Request.Query, "transcode");
+                            
                             var format = context.Request.Query["container"].FirstOrDefault()
                                 ?? context.Request.Query["format"].FirstOrDefault();
                             var quality = context.Request.Query["quality"].FirstOrDefault();
+                            
+                            // Log playback request for debugging
+                            var mediaSourceId = context.Request.Query["mediaSourceId"].FirstOrDefault();
+                            var playSessionId = context.Request.Query["playSessionId"].FirstOrDefault();
+                            
+                            logger.LogInformation(
+                                "Video stream request: ItemId={ItemId}, Static={IsStatic}, Transcode={ShouldTranscode}, Container={Container}, MediaSourceId={MediaSourceId}, PlaySessionId={PlaySessionId}",
+                                itemId, isStatic, shouldTranscode, format, mediaSourceId, playSessionId
+                            );
 
                             await videoStreamingService.StreamVideoAsync(
                                 mediaPath.AbsolutePath,
@@ -375,6 +499,84 @@ public static class JellyfinConfiguration
                     )
             )
             .WithName("JellyfinStreamVideo");
+
+        group.MapGet(
+                "/Videos/{itemId}/stream.{container}",
+                async (
+                    HttpContext context,
+                    string itemId,
+                    string container,
+                    JellyfinAuthService authService,
+                    JellyfinService jellyfinService,
+                    VideoStreamingService videoStreamingService,
+                    ILogger<JellyfinService> logger
+                ) =>
+                    await RequireAuthenticatedAsync(
+                        context,
+                        authService,
+                        async _ =>
+                        {
+                            var mediaPath = await jellyfinService.ResolveMediaPathAsync(itemId);
+                            if (mediaPath is null)
+                            {
+                                return Results.NotFound();
+                            }
+
+                            var isStatic = ParseBool(context.Request.Query, "static");
+                            var shouldTranscode = !isStatic;
+                            var quality = context.Request.Query["quality"].FirstOrDefault();
+                            
+                            logger.LogInformation(
+                                "Video stream request with extension: ItemId={ItemId}, Container={Container}, Static={IsStatic}",
+                                itemId, container, isStatic
+                            );
+
+                            await videoStreamingService.StreamVideoAsync(
+                                mediaPath.AbsolutePath,
+                                context,
+                                shouldTranscode,
+                                container,
+                                quality
+                            );
+
+                            return Results.Empty;
+                        }
+                    )
+            )
+            .WithName("JellyfinStreamVideoWithContainer");
+
+        group.MapGet(
+                "/Items/{itemId}/PlaybackInfo",
+                async (
+                    HttpContext context,
+                    string itemId,
+                    JellyfinAuthService authService,
+                    JellyfinService jellyfinService,
+                    ILogger<JellyfinService> logger
+                ) =>
+                    await RequireAuthenticatedAsync(
+                        context,
+                        authService,
+                        async _ =>
+                        {
+                            var item = await jellyfinService.GetItemByIdAsync(itemId);
+                            if (item is null)
+                            {
+                                return Results.NotFound();
+                            }
+
+                            var playbackInfo = new
+                            {
+                                MediaSources = item.MediaSources,
+                                PlaySessionId = Guid.NewGuid().ToString("N"),
+                            };
+
+                            LogResponse(logger, $"Items/{itemId}/PlaybackInfo", playbackInfo);
+                            return Results.Ok(playbackInfo);
+                        }
+                    )
+            )
+            .WithName("JellyfinPlaybackInfoGet");
 
         group.MapPost(
                 "/Items/{itemId}/PlaybackInfo",
@@ -407,19 +609,22 @@ public static class JellyfinConfiguration
                         }
                     )
             )
-            .WithName("JellyfinPlaybackInfo");
+            .WithName("JellyfinPlaybackInfoPost");
 
         return app;
     }
 
     private static JellyfinItemsQuery BuildItemsQuery(HttpRequest request)
     {
+        // Support both ParentId and parentId (case variations)
         var parentId =
             request.Query.TryGetValue("ParentId", out var parent) && parent.Count > 0
                 ? parent[0]
-                : request.Query.TryGetValue("ParentID", out var parentAlt) && parentAlt.Count > 0
-                    ? parentAlt[0]
-                    : null;
+                : request.Query.TryGetValue("parentId", out var parentLower) && parentLower.Count > 0
+                    ? parentLower[0]
+                    : request.Query.TryGetValue("ParentID", out var parentAlt) && parentAlt.Count > 0
+                        ? parentAlt[0]
+                        : null;
 
         var includeTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (request.Query.TryGetValue("IncludeItemTypes", out var typeValues))
@@ -439,10 +644,13 @@ public static class JellyfinConfiguration
             }
         }
 
-        var recursive = ParseBool(request.Query, "Recursive");
+        var recursive = ParseBool(request.Query, "Recursive") || ParseBool(request.Query, "recursive");
+        
         var searchTerm = request.Query.TryGetValue("SearchTerm", out var searchValues)
             ? searchValues.FirstOrDefault()
-            : null;
+            : request.Query.TryGetValue("searchTerm", out var searchAlt)
+                ? searchAlt.FirstOrDefault()
+                : null;
 
         return new JellyfinItemsQuery(parentId, includeTypes, recursive, searchTerm);
     }
