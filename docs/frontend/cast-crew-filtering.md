@@ -11,6 +11,7 @@ Added people filtering functionality to both Movies and TV Shows list pages usin
 **File**: `src/Haas.Media.Web/components/ui/multi-select.tsx`
 
 A reusable multi-select component that provides:
+
 - Search/filter functionality
 - Badge display for selected items
 - Easy removal of selected items (X button on badges)
@@ -18,6 +19,7 @@ A reusable multi-select component that provides:
 - Clean, accessible UI using shadcn/ui design system
 
 **Key Features**:
+
 - Uses Command component for search functionality
 - Displays selected values as removable badges
 - Supports custom placeholder and empty message
@@ -37,6 +39,7 @@ A reusable multi-select component that provides:
 **File**: `src/Haas.Media.Web/features/media/components/movies-list.tsx`
 
 **Changes**:
+
 1. Added state management for selected people filter
 2. Created `peopleOptions` memoized list combining cast and crew from all movies
 3. Implemented filtering logic that matches movies containing ALL selected people
@@ -45,6 +48,7 @@ A reusable multi-select component that provides:
 6. Added empty state when no movies match the selected filters
 
 **Filter Behavior**:
+
 - People filter: Shows all unique people (cast and crew) across all movies
 - Each person displays their roles (e.g., "Christopher Nolan (Director, Producer, Writer)")
 - If a person is only an actor, it shows "Actor" as the role
@@ -56,6 +60,7 @@ A reusable multi-select component that provides:
 **File**: `src/Haas.Media.Web/features/media/components/tvshows-list.tsx`
 
 **Changes**:
+
 1. Added state management for selected people filter
 2. Created `peopleOptions` memoized list combining cast and crew from all TV shows
 3. Implemented filtering logic that matches TV shows containing ALL selected people
@@ -64,6 +69,7 @@ A reusable multi-select component that provides:
 6. Added empty state when no TV shows match the selected filters
 
 **Filter Behavior**:
+
 - Same as Movies list, but for TV shows
 - Cast and crew data comes from the main TV show metadata (not individual episodes)
 - Each person displays all their roles across the show
@@ -71,6 +77,7 @@ A reusable multi-select component that provides:
 ## UI/UX Features
 
 ### Filter Display
+
 - Single, full-width filter control
 - Clear label: "Filter by People"
 - Inline search within the multi-select
@@ -78,12 +85,14 @@ A reusable multi-select component that provides:
 - People shown with all their roles (e.g., "Christopher Nolan (Director, Producer, Writer)")
 
 ### Visual Feedback
+
 - Title count updates dynamically: "5 of 20 titles" when filtering
 - Empty state with helpful message when no results match
 - Smooth transitions and animations
 - Consistent with existing design system
 
 ### Performance
+
 - Uses `useMemo` to prevent unnecessary recalculation of options
 - Efficient filtering algorithm
 - Only re-renders when necessary
@@ -91,11 +100,13 @@ A reusable multi-select component that provides:
 ## Technical Details
 
 ### Type Safety
+
 - Full TypeScript support
 - `Option` type exported for reusability: `{ label: string; value: string }`
 - Proper typing for all component props and state
 
 ### Data Structure
+
 - People options use person ID as value for uniqueness
 - Labels formatted as "Name (Role1, Role2, ...)" combining all roles alphabetically
 - Options sorted alphabetically by label
@@ -103,6 +114,7 @@ A reusable multi-select component that provides:
 - When a person appears as both cast and crew, all roles are combined
 
 ### Accessibility
+
 - Proper ARIA labels and roles
 - Keyboard navigation support
 - Focus management
@@ -123,6 +135,7 @@ A reusable multi-select component that provides:
 ## Future Enhancements
 
 Potential improvements:
+
 1. Add OR logic option (match ANY selected person instead of ALL)
 2. Add "Clear all filters" button
 3. Save filter preferences to localStorage

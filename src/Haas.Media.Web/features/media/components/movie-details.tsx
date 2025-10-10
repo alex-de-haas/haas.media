@@ -59,9 +59,9 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
     }
 
     const theatrical = movie.releaseDates.find(
-      (rd) => rd.type === ReleaseDateType.Theatrical || rd.type === ReleaseDateType.TheatricalLimited
+      (rd) => rd.type === ReleaseDateType.Theatrical || rd.type === ReleaseDateType.TheatricalLimited,
     );
-    
+
     if (!theatrical) {
       return null;
     }
@@ -76,7 +76,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
     }
 
     const digital = movie.releaseDates.find((rd) => rd.type === ReleaseDateType.Digital);
-    
+
     if (!digital) {
       return null;
     }

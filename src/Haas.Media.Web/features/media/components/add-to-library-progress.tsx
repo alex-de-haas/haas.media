@@ -28,7 +28,8 @@ const clampProgress = (value: unknown): number => {
 const statusBadgeClass: Record<BackgroundTaskStatus, string> = {
   [BackgroundTaskStatus.Pending]: "border-amber-200 bg-amber-500/10 text-amber-600 dark:border-amber-400/20 dark:text-amber-300",
   [BackgroundTaskStatus.Running]: "border-blue-200 bg-blue-500/10 text-blue-600 dark:border-blue-400/20 dark:text-blue-300",
-  [BackgroundTaskStatus.Completed]: "border-emerald-200 bg-emerald-500/10 text-emerald-600 dark:border-emerald-400/20 dark:text-emerald-300",
+  [BackgroundTaskStatus.Completed]:
+    "border-emerald-200 bg-emerald-500/10 text-emerald-600 dark:border-emerald-400/20 dark:text-emerald-300",
   [BackgroundTaskStatus.Failed]: "border-destructive/40 bg-destructive/10 text-destructive",
   [BackgroundTaskStatus.Cancelled]: "border-muted bg-muted/40 text-muted-foreground",
 };
@@ -67,7 +68,7 @@ export default function AddToLibraryProgress({ libraryType }: AddToLibraryProgre
 
         return { task, payload };
       })
-      .filter((value): value is { task: typeof tasks[number]; payload: AddToLibraryOperationInfo } => value !== null);
+      .filter((value): value is { task: (typeof tasks)[number]; payload: AddToLibraryOperationInfo } => value !== null);
   }, [libraryType, tasks]);
 
   if (activeOperations.length === 0) {
@@ -150,9 +151,7 @@ export default function AddToLibraryProgress({ libraryType }: AddToLibraryProgre
                     <Progress value={progressValue} className="h-2" />
                   </div>
 
-                  {statusMessage && statusMessage !== stageLabel && (
-                    <p className="text-xs text-muted-foreground">{statusMessage}</p>
-                  )}
+                  {statusMessage && statusMessage !== stageLabel && <p className="text-xs text-muted-foreground">{statusMessage}</p>}
                 </div>
               </CardContent>
             </Card>

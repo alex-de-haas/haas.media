@@ -18,13 +18,13 @@ The downloader API ships with a lightweight Jellyfin-compatible surface so sidec
 
 All IDs are stable and encode the entity type:
 
-| Kind    | Format                                  | Example                       |
-| ------- | --------------------------------------- | ----------------------------- |
-| Library | `library-{liteDbId}`                    | `library-6623f1fbe6d...`      |
-| Movie   | `movie-{tmdbId}`                        | `movie-603`                  |
-| Series  | `series-{tmdbId}`                       | `series-1399`                |
-| Season  | `season-{tmdbId}-{seasonNumber}`        | `season-1399-1`              |
-| Episode | `episode-{tmdbId}-{season}-{episode}`   | `episode-1399-1-1`           |
+| Kind    | Format                                | Example                  |
+| ------- | ------------------------------------- | ------------------------ |
+| Library | `library-{liteDbId}`                  | `library-6623f1fbe6d...` |
+| Movie   | `movie-{tmdbId}`                      | `movie-603`              |
+| Series  | `series-{tmdbId}`                     | `series-1399`            |
+| Season  | `season-{tmdbId}-{seasonNumber}`      | `season-1399-1`          |
+| Episode | `episode-{tmdbId}-{season}-{episode}` | `episode-1399-1-1`       |
 
 ## Token Handling
 

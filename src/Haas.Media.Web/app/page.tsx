@@ -29,7 +29,7 @@ const quickActions = [
 
 export default function HomePage() {
   const { isAuthenticated, isLoading } = useAuthGuard();
-  
+
   usePageTitle("Dashboard");
 
   // Show loading state while checking authentication

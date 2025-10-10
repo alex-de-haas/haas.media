@@ -5,7 +5,7 @@
 The application was throwing a `KeyNotFoundException` when starting via .NET Aspire:
 
 ```
-Exception thrown: 'System.Collections.Generic.KeyNotFoundException' in System.Private.CoreLib.dll: 
+Exception thrown: 'System.Collections.Generic.KeyNotFoundException' in System.Private.CoreLib.dll:
 'The given key 'AUTH0_DOMAIN' was not present in the dictionary.'
 ```
 
@@ -73,6 +73,7 @@ Added `NEXT_PUBLIC_AUTH0_DOMAIN` to allow the frontend to detect authentication 
 ## Result
 
 The application now:
+
 - ✅ Starts successfully even when Auth0 variables are missing
 - ✅ Starts successfully even when JWT variables are missing
 - ✅ Works with Auth0 authentication when configured
@@ -84,17 +85,21 @@ The application now:
 To verify the fix:
 
 1. **With local auth**:
+
    ```bash
    # Ensure .env has JWT_SECRET but no Auth0 vars
    dotnet run --project src/Haas.Media.Aspire
    ```
+
    Expected: "🔐 Local JWT Authentication ENABLED"
 
 2. **With Auth0**:
+
    ```bash
    # Ensure .env has AUTH0_DOMAIN and AUTH0_AUDIENCE
    dotnet run --project src/Haas.Media.Aspire
    ```
+
    Expected: "🔐 Auth0 Authentication ENABLED"
 
 3. **With neither**:
@@ -102,7 +107,7 @@ To verify the fix:
    # Remove both JWT_SECRET and Auth0 vars
    dotnet run --project src/Haas.Media.Aspire
    ```
-   Expected: "⚠️  Authentication DISABLED"
+   Expected: "⚠️ Authentication DISABLED"
 
 ## Related Files
 
@@ -114,6 +119,7 @@ To verify the fix:
 ## Prevention
 
 To prevent similar issues in the future:
+
 1. Always use `TryGetValue()` or similar safe accessors for dictionary/configuration access
 2. Consider all environment variables as optional unless explicitly required
 3. Provide sensible defaults for optional configuration

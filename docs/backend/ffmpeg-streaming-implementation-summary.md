@@ -1,12 +1,15 @@
 # FFmpeg Video Streaming Implementation Summary
 
 ## Overview
+
 Implemented FFmpeg-based video streaming with on-the-fly transcoding to improve compatibility across different browsers and devices. The solution provides both direct streaming (for compatible formats) and transcoded streaming (for better compatibility).
 
 ## Recent Updates
 
 ### Audio Playback Fix (October 5, 2025)
+
 Fixed critical audio issues:
+
 1. **Frontend**: Video player now properly initializes audio volume and unmuted state
 2. **Backend**: Format-specific audio codecs (Opus for WebM, AAC for MP4/MKV)
 
@@ -17,11 +20,13 @@ See [Audio Playback Fix](./audio-playback-fix.md) for details.
 ### Backend (.NET)
 
 #### 1. New File: `VideoStreamingService.cs`
+
 **Location:** `src/Haas.Media.Downloader.Api/Files/VideoStreamingService.cs`
 
 **Purpose:** Core service for handling video streaming with optional FFmpeg transcoding.
 
 **Key Features:**
+
 - Direct streaming with HTTP range request support (seeking enabled)
 - On-the-fly transcoding using FFmpeg (no temporary files)
 - Quality presets: low, medium, high, ultra
@@ -31,6 +36,7 @@ See [Audio Playback Fix](./audio-playback-fix.md) for details.
 - Proper error handling and logging
 
 **Key Methods:**
+
 - `StreamVideoAsync()` - Main entry point for streaming
 - `StreamDirectAsync()` - Direct file streaming with range support
 - `TranscodeAndStreamAsync()` - FFmpeg-based transcoding
@@ -38,9 +44,11 @@ See [Audio Playback Fix](./audio-playback-fix.md) for details.
 - `GetQualitySettings()` - Maps quality presets to encoding parameters
 
 #### 2. Updated: `FilesConfiguration.cs`
+
 **Location:** `src/Haas.Media.Downloader.Api/Files/FilesConfiguration.cs`
 
 **Changes:**
+
 - Registered `VideoStreamingService` in DI container
 - Updated `api/files/stream` endpoint to support transcoding parameters
 - Added query parameters: `transcode`, `format`, `quality`
@@ -48,6 +56,7 @@ See [Audio Playback Fix](./audio-playback-fix.md) for details.
 - Removed duplicate helper methods (moved to service)
 
 **New Endpoint Signature:**
+
 ```csharp
 GET /api/files/stream?path={path}&transcode={bool}&format={format}&quality={quality}
 ```
@@ -55,11 +64,13 @@ GET /api/files/stream?path={path}&transcode={bool}&format={format}&quality={qual
 ### Frontend (Next.js/React)
 
 #### 3. New File: `video-stream-utils.ts`
+
 **Location:** `src/Haas.Media.Web/lib/video-stream-utils.ts`
 
 **Purpose:** Utility functions for video streaming logic.
 
 **Key Functions:**
+
 - `shouldTranscodeVideo()` - Detects if format needs transcoding
 - `buildVideoStreamUrl()` - Constructs streaming URL with parameters
 - `getVideoMimeType()` - Returns MIME type for format
@@ -68,11 +79,13 @@ GET /api/files/stream?path={path}&transcode={bool}&format={format}&quality={qual
 - `getFormatInfo()` - Provides format metadata
 
 #### 4. New File: `smart-video-player.tsx`
+
 **Location:** `src/Haas.Media.Web/components/ui/smart-video-player.tsx`
 
 **Purpose:** React component that auto-detects and handles streaming strategy.
 
 **Features:**
+
 - Automatic transcoding detection based on file format
 - Optional manual override with `forceTranscode` prop
 - Quality and format selection
@@ -80,6 +93,7 @@ GET /api/files/stream?path={path}&transcode={bool}&format={format}&quality={qual
 - Built on top of existing `VideoPlayer` component
 
 **Props:**
+
 - `path` - Video file path (required)
 - `forceTranscode` - Override auto-detection
 - `format` - Output format (mp4, webm, mkv)
@@ -89,9 +103,11 @@ GET /api/files/stream?path={path}&transcode={bool}&format={format}&quality={qual
 ### Documentation
 
 #### 5. New File: `ffmpeg-video-streaming.md`
+
 **Location:** `docs/backend/ffmpeg-video-streaming.md`
 
 Comprehensive documentation covering:
+
 - Feature overview and comparison (direct vs transcoded)
 - API usage examples
 - Frontend integration patterns
@@ -102,9 +118,11 @@ Comprehensive documentation covering:
 - Future enhancements
 
 #### 6. New File: `ffmpeg-streaming-quickstart.md`
+
 **Location:** `docs/backend/ffmpeg-streaming-quickstart.md`
 
 Quick reference guide with:
+
 - Common usage examples
 - Parameter reference table
 - Quality presets comparison
@@ -114,9 +132,11 @@ Quick reference guide with:
 - Troubleshooting guide
 
 #### 7. New File: `smart-video-player-examples.md`
+
 **Location:** `docs/frontend/smart-video-player-examples.md`
 
 Frontend usage examples:
+
 - Basic and advanced component usage
 - Real-world implementation patterns
 - Time tracking integration
@@ -128,17 +148,21 @@ Frontend usage examples:
 ## API Usage Examples
 
 ### Direct Streaming (Default)
+
 ```
 GET /api/files/stream?path=Movies/example.mp4
 ```
+
 - Streams original file
 - Supports HTTP range requests (seeking)
 - Low latency, no CPU overhead
 
 ### Transcoded Streaming
+
 ```
 GET /api/files/stream?path=Movies/example.mkv&transcode=true&format=mp4&quality=medium
 ```
+
 - On-the-fly transcoding
 - Better compatibility
 - No seeking support
@@ -146,25 +170,21 @@ GET /api/files/stream?path=Movies/example.mkv&transcode=true&format=mp4&quality=
 ## Frontend Usage Examples
 
 ### Basic Auto-Detection
+
 ```tsx
 <SmartVideoPlayer path="Movies/example.mkv" />
 ```
 
 ### Force High Quality Transcode
+
 ```tsx
-<SmartVideoPlayer 
-  path="Movies/example.mkv"
-  forceTranscode
-  quality="high"
-/>
+<SmartVideoPlayer path="Movies/example.mkv" forceTranscode quality="high" />
 ```
 
 ### Show Streaming Info
+
 ```tsx
-<SmartVideoPlayer 
-  path="Movies/example.mkv"
-  showStreamInfo
-/>
+<SmartVideoPlayer path="Movies/example.mkv" showStreamInfo />
 ```
 
 ## Key Benefits
@@ -193,12 +213,14 @@ GET /api/files/stream?path=Movies/example.mkv&transcode=true&format=mp4&quality=
 ## Limitations
 
 ### Transcoded Streams
+
 - **No seeking support** - Range requests not supported during transcoding
 - **Unknown duration** - Total length may not be available initially
 - **CPU intensive** - ~50-200% CPU per stream
 - **Initial latency** - 1-3 seconds before playback starts
 
 ### Recommendations
+
 - Use direct streaming by default
 - Enable transcoding only when format is incompatible
 - Monitor server CPU usage with concurrent streams
@@ -206,13 +228,13 @@ GET /api/files/stream?path=Movies/example.mkv&transcode=true&format=mp4&quality=
 
 ## Performance Characteristics
 
-| Metric | Direct Streaming | Transcoded Streaming |
-|--------|-----------------|---------------------|
-| CPU Usage | Minimal (~1%) | High (50-200%) |
-| Memory | ~10MB | ~50-100MB |
-| Latency | <50ms | 1-3 seconds |
-| Seeking | ✅ Yes | ❌ No |
-| Compatibility | Format-dependent | Universal |
+| Metric        | Direct Streaming | Transcoded Streaming |
+| ------------- | ---------------- | -------------------- |
+| CPU Usage     | Minimal (~1%)    | High (50-200%)       |
+| Memory        | ~10MB            | ~50-100MB            |
+| Latency       | <50ms            | 1-3 seconds          |
+| Seeking       | ✅ Yes           | ❌ No                |
+| Compatibility | Format-dependent | Universal            |
 
 ## Technical Stack
 
@@ -225,26 +247,29 @@ GET /api/files/stream?path=Movies/example.mkv&transcode=true&format=mp4&quality=
 
 ## Quality Settings
 
-| Preset | CRF | Audio Bitrate | Use Case |
-|--------|-----|---------------|----------|
-| Low | 28 | 96kbps | Mobile, slow connections |
-| Medium | 23 | 128kbps | Default, balanced |
-| High | 20 | 192kbps | Desktop, high quality |
-| Ultra | 18 | 256kbps | Premium viewing |
+| Preset | CRF | Audio Bitrate | Use Case                 |
+| ------ | --- | ------------- | ------------------------ |
+| Low    | 28  | 96kbps        | Mobile, slow connections |
+| Medium | 23  | 128kbps       | Default, balanced        |
+| High   | 20  | 192kbps       | Desktop, high quality    |
+| Ultra  | 18  | 256kbps       | Premium viewing          |
 
-*Note: Lower CRF = higher quality. Range: 0 (lossless) to 51 (worst)*
+_Note: Lower CRF = higher quality. Range: 0 (lossless) to 51 (worst)_
 
 ## Files Modified/Created
 
 ### Backend
+
 - ✅ **Created:** `src/Haas.Media.Downloader.Api/Files/VideoStreamingService.cs`
 - ✅ **Modified:** `src/Haas.Media.Downloader.Api/Files/FilesConfiguration.cs`
 
 ### Frontend
+
 - ✅ **Created:** `src/Haas.Media.Web/lib/video-stream-utils.ts`
 - ✅ **Created:** `src/Haas.Media.Web/components/ui/smart-video-player.tsx`
 
 ### Documentation
+
 - ✅ **Created:** `docs/backend/ffmpeg-video-streaming.md`
 - ✅ **Created:** `docs/backend/ffmpeg-streaming-quickstart.md`
 - ✅ **Created:** `docs/frontend/smart-video-player-examples.md`

@@ -36,10 +36,12 @@ interface FileActionsProps {
 
 function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorrent, onPlayVideo }: FileActionsProps) {
   const isTorrent = item.extension?.toLowerCase() === ".torrent";
-  const isVideo = item.extension && ["mp4", "mkv", "webm", "avi", "mov", "wmv", "flv", "m4v", "mpg", "mpeg", "ogv", "3gp"].includes(
-    item.extension.toLowerCase().replace(".", "")
-  );
-  
+  const isVideo =
+    item.extension &&
+    ["mp4", "mkv", "webm", "avi", "mov", "wmv", "flv", "m4v", "mpg", "mpeg", "ogv", "3gp"].includes(
+      item.extension.toLowerCase().replace(".", ""),
+    );
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -100,7 +102,7 @@ function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorre
 
 export default function FilesPage() {
   const { isOpen, videoPath, videoTitle, openVideo, setIsOpen, transcode, quality, showStreamInfo } = useVideoPlayer();
-  
+
   const {
     files,
     copyOperations,
@@ -247,10 +249,10 @@ export default function FilesPage() {
       />
 
       {/* Video Player Dialog */}
-      <VideoPlayerDialog 
-        open={isOpen} 
-        onOpenChange={setIsOpen} 
-        videoPath={videoPath} 
+      <VideoPlayerDialog
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        videoPath={videoPath}
         title={videoTitle}
         {...(transcode !== undefined && { transcode })}
         {...(quality && { quality })}

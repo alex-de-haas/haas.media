@@ -98,7 +98,7 @@ await MediaEncodingBuilder.Create()
 The builder's `SupportsCrf()` method determines if a specific encoder supports CRF:
 
 | Encoder Type | H.264 | HEVC | AV1 | VP9 | VP8 |
-|--------------|-------|------|-----|-----|-----|
+| ------------ | ----- | ---- | --- | --- | --- |
 | Software     | ✅    | ✅   | ✅  | ✅  | ✅  |
 | NVENC        | ❌    | ❌   | ❌  | ❌  | ❌  |
 | QSV          | ❌    | ❌   | ❌  | ❌  | ❌  |

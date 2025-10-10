@@ -9,6 +9,7 @@ Successfully implemented local authentication using LiteDB as an alternative to 
 ## Implementation Overview
 
 ### Backend (.NET API)
+
 - ✅ Created `Authentication` feature module following project patterns
 - ✅ BCrypt password hashing (work factor 12)
 - ✅ JWT token generation and validation
@@ -17,6 +18,7 @@ Successfully implemented local authentication using LiteDB as an alternative to 
 - ✅ Auto-detection of authentication mode (Auth0 vs Local)
 
 ### Frontend (Next.js)
+
 - ✅ Local auth context with React hooks
 - ✅ Registration and login pages
 - ✅ API route proxies for local auth
@@ -29,19 +31,23 @@ Successfully implemented local authentication using LiteDB as an alternative to 
 ### Fix #1: KeyNotFoundException in AppHost.cs
 
 **Problem:** Application crashed on startup with:
+
 ```
 KeyNotFoundException: 'The given key 'AUTH0_DOMAIN' was not present in the dictionary.'
 ```
 
 **Solution:** Added safe dictionary access in `AppHost.cs`:
+
 ```csharp
 string GetEnvOrEmpty(string key) => env.TryGetValue(key, out var value) ? value : string.Empty;
 ```
 
 **Files Modified:**
+
 - `src/Haas.Media.Aspire/AppHost.cs`
 
 **Documentation:**
+
 - `docs/operations/apphost-configuration-fix.md`
 
 ---
@@ -49,12 +55,14 @@ string GetEnvOrEmpty(string key) => env.TryGetValue(key, out var value) ? value 
 ### Fix #2: Auth0 Route 500 Errors
 
 **Problem:** HTTP 500 errors when accessing `/api/auth/login` with Auth0 not configured:
+
 ```
 Failed to load resource: the server responded with a status of 500 (Internal Server Error)
 http://localhost:3000/api/auth/login?returnTo=%2F
 ```
 
-**Solution:** 
+**Solution:**
+
 1. Added configuration check before using Auth0 SDK
 2. Dynamic import of Auth0 only when configured
 3. Redirect to `/login` instead of throwing errors
@@ -62,11 +70,13 @@ http://localhost:3000/api/auth/login?returnTo=%2F
 5. Changed 401 redirects from `/api/auth/login` to `/login`
 
 **Files Modified:**
+
 - `src/Haas.Media.Web/app/api/auth/[auth0]/route.ts`
 - `src/Haas.Media.Web/lib/hooks/useAuth.ts`
 - `src/Haas.Media.Web/lib/auth/fetch-with-auth.ts`
 
 **Documentation:**
+
 - `docs/backend/auth0-route-500-fix.md`
 
 ## Configuration
@@ -83,6 +93,7 @@ TMDB_API_KEY=your_tmdb_api_key
 ### Authentication Options
 
 **Option 1: Local Authentication (Default)**
+
 ```env
 JWT_SECRET=your-very-long-random-secret-key-at-least-32-characters-long
 JWT_ISSUER=haas-media-local
@@ -91,6 +102,7 @@ JWT_EXPIRATION_MINUTES=1440
 ```
 
 **Option 2: Auth0 (Optional)**
+
 ```env
 AUTH0_DOMAIN=your-domain.auth0.com
 AUTH0_AUDIENCE=your-api-identifier
@@ -103,24 +115,29 @@ AUTH0_CLIENT_SECRET=your-client-secret
 ## Quick Start
 
 ### 1. Generate JWT Secret
+
 ```bash
 ./scripts/generate-jwt-secret.sh
 ```
 
 ### 2. Configure Environment
+
 Create `.env` in project root with JWT_SECRET (see above).
 
 ### 3. Start Application
+
 ```bash
 dotnet run --project src/Haas.Media.Aspire
 ```
 
 ### 4. Create Account
+
 Navigate to `http://localhost:3000/register`
 
 ## File Structure
 
 ### Backend
+
 ```
 src/Haas.Media.Downloader.Api/Authentication/
 ├── User.cs
@@ -133,6 +150,7 @@ src/Haas.Media.Downloader.Api/Authentication/
 ```
 
 ### Frontend
+
 ```
 src/Haas.Media.Web/
 ├── app/
@@ -156,6 +174,7 @@ src/Haas.Media.Web/
 ## Key Features
 
 ### Security
+
 - ✅ BCrypt password hashing
 - ✅ JWT token-based authentication
 - ✅ Token expiration
@@ -163,6 +182,7 @@ src/Haas.Media.Web/
 - ✅ HTTPS recommended for production
 
 ### User Experience
+
 - ✅ Seamless auth mode switching
 - ✅ No errors when Auth0 not configured
 - ✅ Graceful fallbacks
@@ -170,6 +190,7 @@ src/Haas.Media.Web/
 - ✅ Unified login interface
 
 ### Developer Experience
+
 - ✅ Simple configuration
 - ✅ Auto-detection of auth mode
 - ✅ Clear error messages
@@ -221,6 +242,7 @@ src/Haas.Media.Web/
 ## Status
 
 ✅ **Complete and Working**
+
 - Local authentication fully implemented
 - Auth0 compatibility maintained
 - All critical bugs fixed

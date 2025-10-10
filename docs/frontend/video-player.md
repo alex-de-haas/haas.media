@@ -27,6 +27,7 @@ A fully-featured video player component with the following features:
 ### Video Player Dialog (`components/ui/video-player-dialog.tsx`)
 
 A dialog component that displays the video player in a modal overlay. Provides:
+
 - Full-width video display (max-width: 6xl)
 - Close button overlay
 - Accessibility support with proper ARIA labels
@@ -34,6 +35,7 @@ A dialog component that displays the video player in a modal overlay. Provides:
 ### Video Player Hook (`features/files/hooks/use-video-player.ts`)
 
 A custom React hook for managing video player state:
+
 - `openVideo(path, title)`: Opens the video player with the specified file
 - `closeVideo()`: Closes the video player
 - `isOpen`: Boolean state for dialog visibility
@@ -49,6 +51,7 @@ Added a new endpoint to the Files API for streaming video files:
 **Endpoint**: `GET /api/files/stream?path={relativePath}`
 
 **Features**:
+
 - Range request support (HTTP 206 Partial Content) for efficient video streaming
 - Content type detection based on file extension
 - Security: Prevents path traversal attacks
@@ -56,6 +59,7 @@ Added a new endpoint to the Files API for streaming video files:
 - **Requires Authorization**: Bearer token required in Authorization header
 
 **Response Headers**:
+
 - `Accept-Ranges: bytes`
 - `Content-Range`: (for partial content requests)
 - `Content-Type`: Appropriate video MIME type
@@ -67,6 +71,7 @@ Since HTML5 video elements cannot send custom headers (like Authorization), a Ne
 **Endpoint**: `GET /api/video-stream?path={relativePath}`
 
 **Features**:
+
 - Authenticates using Auth0 session
 - Adds Authorization header to downstream API request
 - Proxies range requests for video seeking
@@ -74,6 +79,7 @@ Since HTML5 video elements cannot send custom headers (like Authorization), a Ne
 - Error handling for unauthorized access
 
 **Flow**:
+
 1. Video player requests `/api/video-stream?path={relativePath}`
 2. Next.js API route authenticates user and gets access token
 3. Makes authenticated request to backend `/api/files/stream`
@@ -84,6 +90,7 @@ Since HTML5 video elements cannot send custom headers (like Authorization), a Ne
 ### Files Page
 
 The video player is integrated into the Files page (`app/files/page.tsx`):
+
 - Added "Play video" option in the file actions dropdown menu
 - Only shows for supported video file formats
 - Opens the video player dialog when selected
@@ -91,6 +98,7 @@ The video player is integrated into the Files page (`app/files/page.tsx`):
 ### Media Files List
 
 The video player is integrated into the Media Files List component:
+
 - Added "Play" button in the card header for each media file
 - Opens the video player dialog to view the file
 - Useful for previewing media files before encoding
@@ -130,6 +138,7 @@ The video player is integrated into the Media Files List component:
 ### Video Streaming
 
 The backend uses HTTP range requests to enable efficient video streaming:
+
 - Browsers can request specific byte ranges of the video file
 - Enables seeking to different positions in the video without downloading the entire file
 - Returns 206 Partial Content status with appropriate Content-Range headers
@@ -137,6 +146,7 @@ The backend uses HTTP range requests to enable efficient video streaming:
 ### Security
 
 Path traversal protection is implemented:
+
 - All file paths are normalized and validated
 - Access is restricted to files within the configured DATA_DIRECTORY
 - Returns 403 Forbidden for attempts to access files outside the allowed directory
@@ -152,12 +162,14 @@ Path traversal protection is implemented:
 The video player includes comprehensive error handling:
 
 **Playback Errors**:
+
 - `MEDIA_ERR_ABORTED`: Video playback was aborted
 - `MEDIA_ERR_NETWORK`: Network error occurred while loading video
 - `MEDIA_ERR_DECODE`: Video decoding failed
 - `MEDIA_ERR_SRC_NOT_SUPPORTED`: Video format not supported
 
 **Authentication Errors**:
+
 - 401 Unauthorized: User session expired or not authenticated
 - 403 Forbidden: User doesn't have access to the requested file
 - 404 Not Found: File doesn't exist

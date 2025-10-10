@@ -5,6 +5,7 @@
 **[→ Complete Authentication Guide](./AUTHENTICATION-COMPLETE-GUIDE.md)**
 
 The complete authentication guide contains everything you need:
+
 - Quick start guide
 - API reference
 - Migration instructions
@@ -15,15 +16,18 @@ The complete authentication guide contains everything you need:
 ## 📚 Quick Links
 
 ### For New Users
+
 - [Quick Start](#quick-start)
 - [Basic Usage Examples](#usage-examples)
 
 ### For Developers
+
 - [Migration Guide](./AUTHENTICATION-COMPLETE-GUIDE.md#migration-guide)
 - [API Reference](./AUTHENTICATION-COMPLETE-GUIDE.md#api-reference)
 - [Common Patterns](./AUTHENTICATION-COMPLETE-GUIDE.md#common-patterns)
 
 ### For Troubleshooting
+
 - [Troubleshooting Guide](./AUTHENTICATION-COMPLETE-GUIDE.md#troubleshooting)
 - [Testing Guide](./AUTHENTICATION-COMPLETE-GUIDE.md#testing)
 
@@ -40,6 +44,7 @@ import { fetchWithAuth, fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 ### 2. Replace your fetch calls
 
 **Before:**
+
 ```typescript
 const token = await getValidToken();
 const headers: HeadersInit = {};
@@ -48,6 +53,7 @@ const res = await fetch(url, { headers });
 ```
 
 **After:**
+
 ```typescript
 const res = await fetchWithAuth(url);
 ```
@@ -63,11 +69,13 @@ const data = await fetchJsonWithAuth<DataType>("/api/endpoint");
 ## Usage Examples
 
 ### GET Request
+
 ```typescript
 const files = await fetchJsonWithAuth<FileItem[]>("/api/files");
 ```
 
 ### POST Request
+
 ```typescript
 await fetchWithAuth("/api/files", {
   method: "POST",
@@ -77,11 +85,13 @@ await fetchWithAuth("/api/files", {
 ```
 
 ### DELETE Request
+
 ```typescript
 await fetchWithAuth(`/api/files/${id}`, { method: "DELETE" });
 ```
 
 ### File Upload
+
 ```typescript
 const formData = new FormData();
 formData.append("file", file);
@@ -98,22 +108,23 @@ When you use `fetchWithAuth()` or `fetchJsonWithAuth()`:
 ✅ Handles 401 (Unauthorized) responses  
 ✅ Redirects to login when needed  
 ✅ Brings you back to your page after login  
-✅ Clears stale tokens automatically  
+✅ Clears stale tokens automatically
 
 ---
 
 ## When to Use Each Function
 
-| Function | Best For |
-|----------|----------|
-| `fetchJsonWithAuth<T>()` | Simple GET/POST requests with JSON responses |
-| `fetchWithAuth()` | File uploads, custom headers, or when you need the full Response object |
+| Function                 | Best For                                                                |
+| ------------------------ | ----------------------------------------------------------------------- |
+| `fetchJsonWithAuth<T>()` | Simple GET/POST requests with JSON responses                            |
+| `fetchWithAuth()`        | File uploads, custom headers, or when you need the full Response object |
 
 ---
 
 ## Need More Info?
 
 **Read the [Complete Authentication Guide](./AUTHENTICATION-COMPLETE-GUIDE.md)** for:
+
 - Detailed API reference
 - Step-by-step migration guide
 - Troubleshooting tips

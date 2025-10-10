@@ -15,6 +15,7 @@ The backend API (`/api/files/stream`) requires JWT authentication with specific 
 ## Current Configuration
 
 From `.env`:
+
 ```
 AUTH0_DOMAIN=dev-o1l0rjv003cd8mmq.us.auth0.com
 AUTH0_AUDIENCE=https://dev-o1l0rjv003cd8mmq.us.auth0.com/api/v2/
@@ -32,6 +33,7 @@ AUTH0_AUDIENCE=https://dev-o1l0rjv003cd8mmq.us.auth0.com/api/v2/
    - Signing Algorithm: RS256
 
 3. **Update `.env` file:**
+
    ```properties
    AUTH0_AUDIENCE=https://api.haas.media
    ```
@@ -43,6 +45,7 @@ AUTH0_AUDIENCE=https://dev-o1l0rjv003cd8mmq.us.auth0.com/api/v2/
 If you want to keep using the Management API audience:
 
 1. **Verify Backend Configuration** in `Program.cs`:
+
    ```csharp
    options.Authority = $"https://{auth0Domain}";  // Should be: https://dev-o1l0rjv003cd8mmq.us.auth0.com
    options.Audience = auth0Audience;              // Should be: https://dev-o1l0rjv003cd8mmq.us.auth0.com/api/v2/
@@ -73,7 +76,7 @@ Then remove `.RequireAuthorization()` from the `/api/files/stream` endpoint or w
 ```csharp
 var endpoint = app.MapGet(
     "api/files/stream",
-    async (string path, HttpContext context, IFilesApi filesApi, IConfiguration configuration) => 
+    async (string path, HttpContext context, IFilesApi filesApi, IConfiguration configuration) =>
     {
         // ... existing code
     }
@@ -94,6 +97,7 @@ if (app.Environment.IsProduction())
 Look for these log messages in your terminal:
 
 **Frontend (Next.js):**
+
 ```
 [video-stream] Streaming video from: http://localhost:8000/api/files/stream?path=...
 [video-stream] Using audience: https://dev-o1l0rjv003cd8mmq.us.auth0.com/api/v2/
@@ -108,6 +112,7 @@ Look for JWT Bearer authentication errors.
 Copy the token from the console log and decode it at https://jwt.io
 
 Check these claims:
+
 - `iss` (issuer): Should be `https://dev-o1l0rjv003cd8mmq.us.auth0.com/`
 - `aud` (audience): Should match `AUTH0_AUDIENCE` in `.env`
 - `exp` (expiration): Should be in the future
@@ -135,7 +140,7 @@ if (!string.IsNullOrWhiteSpace(auth0Domain) && !string.IsNullOrWhiteSpace(auth0A
     logger.LogInformation($"   Domain: {auth0Domain}");
     logger.LogInformation($"   Audience: {auth0Audience}");
     logger.LogInformation($"   Authority: https://{auth0Domain}");
-    
+
     app.UseAuthentication();
     app.UseAuthorization();
 }
@@ -157,24 +162,29 @@ After applying the fix, you should see:
 ## Common Issues
 
 ### Issue: "No access token available"
+
 **Cause:** User session doesn't have a valid token
 **Fix:** Logout and login again
 
 ### Issue: "Token expired"
+
 **Cause:** Token lifetime exceeded
 **Fix:** Refresh the page or use the token refresh endpoint
 
 ### Issue: "Invalid audience"
+
 **Cause:** Token audience doesn't match backend configuration
 **Fix:** Ensure `AUTH0_AUDIENCE` is the same in both frontend and backend
 
 ### Issue: "Invalid issuer"
+
 **Cause:** Token issuer doesn't match Auth0 domain
 **Fix:** Verify `AUTH0_DOMAIN` is correct and includes the trailing slash check
 
 ## Next Steps
 
 Once you've resolved the 403 error, the video player should work correctly with:
+
 - ✅ Authenticated video streaming
 - ✅ Range request support for seeking
 - ✅ Proper error handling

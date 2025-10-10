@@ -22,12 +22,12 @@ async function handler(req: NextRequest) {
     // Build the downstream API URL
     const downloaderApi = process.env.NEXT_PUBLIC_DOWNLOADER_API || "http://localhost:8000";
     const apiUrl = `${downloaderApi}/api/files/stream?path=${encodeURIComponent(path)}`;
-    
+
     console.log(`[video-stream] Streaming video from: ${apiUrl}`);
 
     // Get range header from incoming request
     const range = req.headers.get("range");
-    
+
     if (range) {
       console.log(`[video-stream] Range request: ${range}`);
     }
@@ -52,19 +52,19 @@ async function handler(req: NextRequest) {
       console.error(`[video-stream] Failed to fetch video from ${apiUrl}`);
       console.error(`[video-stream] Status: ${response.status} ${response.statusText}`);
       console.error(`[video-stream] Response body: ${errorText}`);
-      
+
       const isDev = process.env.NODE_ENV === "development";
       return NextResponse.json(
-        { 
-          error: `Failed to fetch video: ${response.statusText}`, 
+        {
+          error: `Failed to fetch video: ${response.statusText}`,
           details: errorText,
-          ...(isDev && { 
+          ...(isDev && {
             debugInfo: {
               url: apiUrl,
               status: response.status,
-              hasToken: !!token
-            }
-          })
+              hasToken: !!token,
+            },
+          }),
         },
         { status: response.status },
       );
@@ -73,15 +73,9 @@ async function handler(req: NextRequest) {
     // Stream the response directly without buffering
     // This is crucial for large video files and proper range request handling
     const responseHeaders = new Headers();
-    
+
     // Copy important headers from downstream response
-    const headersToProxy = [
-      "content-type",
-      "content-length",
-      "content-range",
-      "accept-ranges",
-      "cache-control",
-    ];
+    const headersToProxy = ["content-type", "content-length", "content-range", "accept-ranges", "cache-control"];
 
     headersToProxy.forEach((headerName) => {
       const value = response.headers.get(headerName);
@@ -105,9 +99,9 @@ async function handler(req: NextRequest) {
     console.error("Error streaming video:", error);
     const isDev = process.env.NODE_ENV === "development";
     return NextResponse.json(
-      { 
+      {
         error: "Internal server error",
-        ...(isDev && { details: error instanceof Error ? error.message : String(error) })
+        ...(isDev && { details: error instanceof Error ? error.message : String(error) }),
       },
       { status: 500 },
     );

@@ -6,18 +6,18 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   return NextResponse.json(
-    { 
-      error: "This endpoint is deprecated. Use localStorage.getItem('auth_token') or getValidToken() from lib/auth/token.ts instead." 
-    }, 
-    { status: 410 } // 410 Gone - indicates the resource is no longer available
+    {
+      error: "This endpoint is deprecated. Use localStorage.getItem('auth_token') or getValidToken() from lib/auth/token.ts instead.",
+    },
+    { status: 410 }, // 410 Gone - indicates the resource is no longer available
   );
 }
 
 export async function POST() {
   return NextResponse.json(
-    { 
-      error: "This endpoint is deprecated. Use localStorage.getItem('auth_token') or getValidToken() from lib/auth/token.ts instead." 
-    }, 
-    { status: 410 }
+    {
+      error: "This endpoint is deprecated. Use localStorage.getItem('auth_token') or getValidToken() from lib/auth/token.ts instead.",
+    },
+    { status: 410 },
   );
 }

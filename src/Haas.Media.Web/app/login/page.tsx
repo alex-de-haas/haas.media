@@ -61,7 +61,6 @@ export default function LoginPage() {
           <CardDescription>Sign in to Haas Media Server</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <Alert variant="destructive">

@@ -9,6 +9,7 @@ Added support for extracting and displaying theatrical release dates from TMDb's
 ### Backend
 
 #### 1. MovieReleaseDateHelper.cs
+
 - Added `GetTheatricalReleaseDate()` method
 - Extracts theatrical release dates from TMDb's ReleaseDates API
 - Supports both `ReleaseDateType.Theatrical` and `ReleaseDateType.TheatricalLimited`
@@ -16,6 +17,7 @@ Added support for extracting and displaying theatrical release dates from TMDb's
 - Returns the earliest theatrical release date
 
 #### 2. MovieMetadata.cs
+
 - Added `TheatricalReleaseDate` property (nullable DateTime)
 - Updated `Create()` mapper to populate theatrical release date
 - Updated `Update()` mapper to refresh theatrical release date during metadata refresh
@@ -23,14 +25,17 @@ Added support for extracting and displaying theatrical release dates from TMDb's
 ### Frontend
 
 #### 1. types/metadata.ts
+
 - Added `theatricalReleaseDate?: string | null` to `MovieMetadata` interface
 
 #### 2. movie-details.tsx
+
 - Added `theatricalReleaseDate` computed property using `useMemo`
 - Display theatrical release date in the movie details card
 - Shows separately from the general release date
 
 #### 3. digital-release-calendar.tsx
+
 - Updated to prefer `theatricalReleaseDate` over `releaseDate`
 - Falls back to `releaseDate` if `theatricalReleaseDate` is not available
 - Calendar now shows accurate theatrical release dates from TMDb
@@ -38,6 +43,7 @@ Added support for extracting and displaying theatrical release dates from TMDb's
 ### Documentation
 
 #### metadata.md
+
 - Updated `MovieMetadata` documentation to include `TheatricalReleaseDate` field
 
 ## Release Date Fields Explained
@@ -51,6 +57,7 @@ The `MovieMetadata` model now has three date-related fields:
 ## TMDb Release Date Types
 
 The helper uses TMDb's `ReleaseDateType` enum:
+
 - `Premiere = 1` - World premiere
 - `TheatricalLimited = 2` - Limited theatrical release
 - `Theatrical = 3` - Wide theatrical release
@@ -61,12 +68,15 @@ The helper uses TMDb's `ReleaseDateType` enum:
 ## User Experience
 
 ### Movie Details Page
+
 Shows three separate date fields when available:
+
 - Release Date (general)
 - Theatrical Release Date (specific theatrical release)
 - Digital Release Date (streaming/digital release)
 
 ### Release Calendar
+
 - Displays both theatrical and digital releases on the calendar
 - Theatrical releases shown with blue indicator
 - Digital releases shown with purple indicator
@@ -75,6 +85,7 @@ Shows three separate date fields when available:
 ## Data Consistency
 
 When metadata is scanned or refreshed:
+
 1. TMDb movie details are fetched with `ReleaseDates` extra method
 2. `GetTheatricalReleaseDate()` extracts the theatrical date
 3. `GetDigitalReleaseDate()` extracts the digital date
@@ -84,6 +95,7 @@ When metadata is scanned or refreshed:
 ## Future Enhancements
 
 Potential improvements:
+
 - Support country-specific release dates (currently defaults to US)
 - Add configuration to specify preferred country code
 - Display all available release dates by country

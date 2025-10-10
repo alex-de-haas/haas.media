@@ -102,6 +102,7 @@ import { fetchWithAuth, fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 ### 2. Replace fetch() Calls
 
 **Before:**
+
 ```typescript
 const token = await getValidToken();
 const headers: HeadersInit = {};
@@ -110,6 +111,7 @@ const res = await fetch(url, { headers });
 ```
 
 **After:**
+
 ```typescript
 const res = await fetchWithAuth(url);
 ```
@@ -136,14 +138,13 @@ const data = await fetchJsonWithAuth<DataType>("/api/endpoint");
 A drop-in replacement for the native `fetch` API.
 
 **Signature:**
+
 ```typescript
-async function fetchWithAuth(
-  input: RequestInfo | URL,
-  init?: RequestInit
-): Promise<Response>
+async function fetchWithAuth(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
 ```
 
 **What it does:**
+
 1. Retrieves the current access token using `getValidToken()`
 2. Adds the token to the `Authorization` header as a Bearer token
 3. Makes the HTTP request
@@ -153,6 +154,7 @@ async function fetchWithAuth(
 5. Returns the response for all other status codes
 
 **Example:**
+
 ```typescript
 import { fetchWithAuth } from "@/lib/auth/fetch-with-auth";
 
@@ -177,20 +179,20 @@ const response = await fetchWithAuth(`/api/files/${id}`, {
 A convenience wrapper that automatically parses JSON responses.
 
 **Signature:**
+
 ```typescript
-async function fetchJsonWithAuth<T = unknown>(
-  input: RequestInfo | URL,
-  init?: RequestInit
-): Promise<T>
+async function fetchJsonWithAuth<T = unknown>(input: RequestInfo | URL, init?: RequestInit): Promise<T>;
 ```
 
 **What it does:**
+
 1. Calls `fetchWithAuth()` with the same parameters
 2. Checks if response is OK (status 200-299)
 3. If not OK, throws an error with the response message
 4. Parses and returns the JSON response with type safety
 
 **Example:**
+
 ```typescript
 import { fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 
@@ -217,14 +219,14 @@ const newUser = await fetchJsonWithAuth<User>("/api/users", {
 
 ### When to Use Each Function
 
-| Scenario | Use | Reason |
-|----------|-----|--------|
-| GET request returning JSON | `fetchJsonWithAuth<T>()` | Cleanest, type-safe |
-| POST/PUT with JSON response | `fetchJsonWithAuth<T>()` | Automatic parsing |
-| FormData upload | `fetchWithAuth()` | Non-JSON body |
-| Need response headers | `fetchWithAuth()` | Full Response object |
-| Custom error handling | `fetchWithAuth()` | More control |
-| DELETE with no response | `fetchWithAuth()` | No parsing needed |
+| Scenario                    | Use                      | Reason               |
+| --------------------------- | ------------------------ | -------------------- |
+| GET request returning JSON  | `fetchJsonWithAuth<T>()` | Cleanest, type-safe  |
+| POST/PUT with JSON response | `fetchJsonWithAuth<T>()` | Automatic parsing    |
+| FormData upload             | `fetchWithAuth()`        | Non-JSON body        |
+| Need response headers       | `fetchWithAuth()`        | Full Response object |
+| Custom error handling       | `fetchWithAuth()`        | More control         |
+| DELETE with no response     | `fetchWithAuth()`        | No parsing needed    |
 
 ### Basic Patterns
 
@@ -317,7 +319,7 @@ export function useFiles() {
     try {
       const url = new URL(`${downloaderApi}/api/files`);
       if (path) url.searchParams.set("path", path);
-      
+
       return await fetchJsonWithAuth<FileItem[]>(url.toString());
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -372,6 +374,7 @@ import { fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 #### Step 2: Remove Token Management
 
 **Remove these lines:**
+
 ```typescript
 const token = await getValidToken();
 const headers: HeadersInit = {};
@@ -381,11 +384,13 @@ if (token) (headers as any).Authorization = `Bearer ${token}`;
 #### Step 3: Replace fetch() Call
 
 **Before:**
+
 ```typescript
 const res = await fetch(`${downloaderApi}/api/files`, { headers });
 ```
 
 **After:**
+
 ```typescript
 const res = await fetchWithAuth(`${downloaderApi}/api/files`);
 ```
@@ -393,6 +398,7 @@ const res = await fetchWithAuth(`${downloaderApi}/api/files`);
 #### Step 4: Update Error Handling
 
 **Before:**
+
 ```typescript
 } catch (err: any) {
   setError(err?.message ?? String(err));
@@ -401,6 +407,7 @@ const res = await fetchWithAuth(`${downloaderApi}/api/files`);
 ```
 
 **After:**
+
 ```typescript
 } catch (err: unknown) {
   const message = err instanceof Error ? err.message : String(err);
@@ -412,6 +419,7 @@ const res = await fetchWithAuth(`${downloaderApi}/api/files`);
 #### Step 5: Simplify JSON Parsing (Optional)
 
 **Before:**
+
 ```typescript
 const res = await fetchWithAuth(url);
 if (!res.ok) {
@@ -422,6 +430,7 @@ return await res.json();
 ```
 
 **After:**
+
 ```typescript
 return await fetchJsonWithAuth<ReturnType>(url);
 ```
@@ -627,7 +636,7 @@ if (response.ok) {
 
 ```typescript
 const formData = new FormData();
-files.forEach(file => formData.append("files", file));
+files.forEach((file) => formData.append("files", file));
 
 const response = await fetchWithAuth("/api/upload", {
   method: "POST",
@@ -674,6 +683,7 @@ const reader = response.body?.getReader();
 ### Manual Testing Steps
 
 1. **Test Successful Requests**
+
    ```typescript
    // Make a normal API call
    const data = await fetchJsonWithAuth("/api/files");
@@ -708,9 +718,7 @@ import { fetchWithAuth } from "@/lib/auth/fetch-with-auth";
 
 describe("fetchWithAuth", () => {
   it("should add Authorization header", async () => {
-    const mockFetch = jest.fn(() =>
-      Promise.resolve(new Response(JSON.stringify({}), { status: 200 }))
-    );
+    const mockFetch = jest.fn(() => Promise.resolve(new Response(JSON.stringify({}), { status: 200 })));
     global.fetch = mockFetch;
 
     await fetchWithAuth("/api/test");
@@ -721,14 +729,12 @@ describe("fetchWithAuth", () => {
         headers: expect.objectContaining({
           Authorization: expect.stringMatching(/^Bearer /),
         }),
-      })
+      }),
     );
   });
 
   it("should redirect on 401", async () => {
-    const mockFetch = jest.fn(() =>
-      Promise.resolve(new Response(null, { status: 401 }))
-    );
+    const mockFetch = jest.fn(() => Promise.resolve(new Response(null, { status: 401 })));
     global.fetch = mockFetch;
 
     delete window.location;
@@ -749,14 +755,16 @@ describe("fetchWithAuth", () => {
 ### 1. Always Use fetchWithAuth for Authenticated Requests
 
 ❌ **Don't:**
+
 ```typescript
 const token = await getValidToken();
 const res = await fetch(url, {
-  headers: { Authorization: `Bearer ${token}` }
+  headers: { Authorization: `Bearer ${token}` },
 });
 ```
 
 ✅ **Do:**
+
 ```typescript
 const res = await fetchWithAuth(url);
 ```
@@ -764,12 +772,14 @@ const res = await fetchWithAuth(url);
 ### 2. Use fetchJsonWithAuth for Simple JSON Requests
 
 ❌ **Don't:**
+
 ```typescript
 const res = await fetchWithAuth(url);
 const data = await res.json();
 ```
 
 ✅ **Do:**
+
 ```typescript
 const data = await fetchJsonWithAuth<DataType>(url);
 ```
@@ -777,6 +787,7 @@ const data = await fetchJsonWithAuth<DataType>(url);
 ### 3. Proper Error Typing
 
 ❌ **Don't:**
+
 ```typescript
 catch (err: any) {
   console.error(err?.message);
@@ -784,6 +795,7 @@ catch (err: any) {
 ```
 
 ✅ **Do:**
+
 ```typescript
 catch (err: unknown) {
   const message = err instanceof Error ? err.message : String(err);
@@ -794,11 +806,13 @@ catch (err: unknown) {
 ### 4. Type Your Responses
 
 ❌ **Don't:**
+
 ```typescript
 const data = await fetchJsonWithAuth(url);
 ```
 
 ✅ **Do:**
+
 ```typescript
 const data = await fetchJsonWithAuth<FileItem[]>(url);
 ```
@@ -806,6 +820,7 @@ const data = await fetchJsonWithAuth<FileItem[]>(url);
 ### 5. Handle Errors Appropriately
 
 ✅ **Do:**
+
 ```typescript
 try {
   const data = await fetchJsonWithAuth<Data>(url);
@@ -820,6 +835,7 @@ try {
 ### 6. Don't Set Content-Type for FormData
 
 ❌ **Don't:**
+
 ```typescript
 await fetchWithAuth(url, {
   method: "POST",
@@ -829,6 +845,7 @@ await fetchWithAuth(url, {
 ```
 
 ✅ **Do:**
+
 ```typescript
 await fetchWithAuth(url, {
   method: "POST",
@@ -839,11 +856,13 @@ await fetchWithAuth(url, {
 ### 7. Use URL Objects for Query Parameters
 
 ❌ **Don't:**
+
 ```typescript
 const url = `${baseUrl}/api/search?query=${query}&limit=${limit}`;
 ```
 
 ✅ **Do:**
+
 ```typescript
 const url = new URL(`${baseUrl}/api/search`);
 url.searchParams.set("query", query);
@@ -859,11 +878,13 @@ url.searchParams.set("limit", limit.toString());
 **Symptom:** Browser keeps redirecting between login and app
 
 **Causes:**
+
 - Login endpoint returns 401
 - Auth0 configuration issues
 - Cookie problems
 
 **Solutions:**
+
 1. Check Auth0 configuration in `.env`
 2. Verify `AUTH0_AUDIENCE` is correct
 3. Clear browser cookies and try again
@@ -874,10 +895,12 @@ url.searchParams.set("limit", limit.toString());
 **Symptom:** 401 errors even after login
 
 **Causes:**
+
 - Using `fetch()` instead of `fetchWithAuth()`
 - Token cache not populated
 
 **Solutions:**
+
 1. Verify using `fetchWithAuth()` or `fetchJsonWithAuth()`
 2. Check browser console for token fetch errors
 3. Verify `/api/token` endpoint is working
@@ -887,10 +910,12 @@ url.searchParams.set("limit", limit.toString());
 **Symptom:** After login, user goes to home page instead of original page
 
 **Causes:**
+
 - Return URL encoding issues
 - Middleware configuration
 
 **Solutions:**
+
 1. Check that `returnTo` parameter is properly encoded
 2. Verify middleware config allows the return path
 3. Check Auth0 allowed callback URLs
@@ -900,6 +925,7 @@ url.searchParams.set("limit", limit.toString());
 **Symptom:** Type errors when using `fetchJsonWithAuth`
 
 **Solutions:**
+
 1. Provide explicit type parameter: `fetchJsonWithAuth<YourType>(url)`
 2. Ensure types are properly defined
 3. Use `unknown` instead of `any` in catch blocks
@@ -909,6 +935,7 @@ url.searchParams.set("limit", limit.toString());
 **Symptom:** CORS errors in browser console
 
 **Solutions:**
+
 1. Verify backend CORS configuration
 2. Check `ALLOWED_CORS_ORIGINS` in backend `.env`
 3. Ensure `credentials: 'include'` if using cookies
@@ -920,25 +947,25 @@ url.searchParams.set("limit", limit.toString());
 ### fetchWithAuth()
 
 ```typescript
-function fetchWithAuth(
-  input: RequestInfo | URL,
-  init?: RequestInit
-): Promise<Response>
+function fetchWithAuth(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
 ```
 
 **Parameters:**
+
 - `input`: URL or Request object
 - `init`: Optional fetch options (headers, method, body, etc.)
 
 **Returns:** `Promise<Response>` - Standard fetch Response object
 
 **Behavior:**
+
 - Adds Authorization header automatically
 - Intercepts 401 responses
 - Redirects to login on 401
 - Returns Response for all other status codes
 
 **Example:**
+
 ```typescript
 const response = await fetchWithAuth("/api/files", {
   method: "POST",
@@ -950,13 +977,11 @@ const response = await fetchWithAuth("/api/files", {
 ### fetchJsonWithAuth()
 
 ```typescript
-function fetchJsonWithAuth<T = unknown>(
-  input: RequestInfo | URL,
-  init?: RequestInit
-): Promise<T>
+function fetchJsonWithAuth<T = unknown>(input: RequestInfo | URL, init?: RequestInit): Promise<T>;
 ```
 
 **Parameters:**
+
 - `T`: Type parameter for response data
 - `input`: URL or Request object
 - `init`: Optional fetch options
@@ -966,12 +991,14 @@ function fetchJsonWithAuth<T = unknown>(
 **Throws:** Error if response is not OK (status not 200-299)
 
 **Behavior:**
+
 - Calls `fetchWithAuth()` internally
 - Checks response status
 - Parses JSON automatically
 - Provides type safety
 
 **Example:**
+
 ```typescript
 interface User {
   id: string;
@@ -985,10 +1012,11 @@ const user = await fetchJsonWithAuth<User>("/api/user");
 ### getValidToken()
 
 ```typescript
-function getValidToken(forceRefresh?: boolean): Promise<string | null>
+function getValidToken(forceRefresh?: boolean): Promise<string | null>;
 ```
 
 **Parameters:**
+
 - `forceRefresh`: Optional, force token refresh
 
 **Returns:** `Promise<string | null>` - Access token or null
@@ -998,7 +1026,7 @@ function getValidToken(forceRefresh?: boolean): Promise<string | null>
 ### clearCachedToken()
 
 ```typescript
-function clearCachedToken(): void
+function clearCachedToken(): void;
 ```
 
 **Clears the in-memory token cache.**
@@ -1074,6 +1102,7 @@ function clearCachedToken(): void
 ### Contributing
 
 When adding features:
+
 1. Update this documentation
 2. Add tests for new functionality
 3. Follow existing patterns

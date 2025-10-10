@@ -57,7 +57,9 @@ export function TorrentOverview({ torrents, loading }: TorrentOverviewProps) {
           {showSkeleton ? (
             <Skeleton className="h-4 w-32" />
           ) : metrics.total > 0 ? (
-            <>Tracking {metrics.total} torrent{metrics.total === 1 ? "" : "s"} in total.</>
+            <>
+              Tracking {metrics.total} torrent{metrics.total === 1 ? "" : "s"} in total.
+            </>
           ) : (
             <>No torrents are currently being tracked.</>
           )}

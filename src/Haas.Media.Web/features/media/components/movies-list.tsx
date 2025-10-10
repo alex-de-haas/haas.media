@@ -80,13 +80,13 @@ export default function MoviesList({ libraryId }: MoviesListProps) {
   const searchParams = useSearchParams();
   const effectiveLibraryId = libraryId || searchParams.get("libraryId") || undefined;
   const { movies, loading, error, refetch } = useMovies(effectiveLibraryId);
-  
+
   const [selectedPeople, setSelectedPeople] = useState<string[]>([]);
 
   // Extract unique people (cast and crew) from all movies
   const peopleOptions = useMemo<Option[]>(() => {
     const peopleMap = new Map<number, { name: string; roles: Set<string> }>();
-    
+
     movies.forEach((movie) => {
       // Add cast members
       movie.cast.forEach((member) => {
@@ -95,7 +95,7 @@ export default function MoviesList({ libraryId }: MoviesListProps) {
         }
         peopleMap.get(member.id)!.roles.add("Actor");
       });
-      
+
       // Add crew members
       movie.crew.forEach((member) => {
         if (!peopleMap.has(member.id)) {
@@ -104,7 +104,7 @@ export default function MoviesList({ libraryId }: MoviesListProps) {
         peopleMap.get(member.id)!.roles.add(member.job);
       });
     });
-    
+
     return Array.from(peopleMap.entries())
       .map(([id, data]) => {
         const roles = Array.from(data.roles).sort().join(", ");

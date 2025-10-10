@@ -1,14 +1,17 @@
 # Files Page - Smart Video Player Integration
 
 ## Overview
+
 The Files page now uses the `SmartVideoPlayer` component instead of the basic `VideoPlayer`, providing automatic format detection and transcoding support.
 
 ## Changes Made
 
 ### 1. Updated VideoPlayerDialog Component
+
 **File:** `components/ui/video-player-dialog.tsx`
 
 **Changes:**
+
 - Replaced `VideoPlayer` with `SmartVideoPlayer`
 - Changed prop from `videoUrl` (string) to `videoPath` (relative path)
 - Added optional transcoding parameters:
@@ -17,30 +20,29 @@ The Files page now uses the `SmartVideoPlayer` component instead of the basic `V
   - `showStreamInfo?: boolean` - Display streaming info
 
 **Before:**
+
 ```tsx
-<VideoPlayerDialog 
-  open={isOpen} 
-  onOpenChange={setIsOpen} 
-  videoUrl="/api/video-stream?path=Movies/example.mkv"
-  title="Example Video"
-/>
+<VideoPlayerDialog open={isOpen} onOpenChange={setIsOpen} videoUrl="/api/video-stream?path=Movies/example.mkv" title="Example Video" />
 ```
 
 **After:**
+
 ```tsx
-<VideoPlayerDialog 
-  open={isOpen} 
-  onOpenChange={setIsOpen} 
-  videoPath="Movies/example.mkv"  // Just the path
+<VideoPlayerDialog
+  open={isOpen}
+  onOpenChange={setIsOpen}
+  videoPath="Movies/example.mkv" // Just the path
   title="Example Video"
   // Optional: transcode, quality, showStreamInfo
 />
 ```
 
 ### 2. Updated useVideoPlayer Hook
+
 **File:** `features/files/hooks/use-video-player.ts`
 
 **Changes:**
+
 - Removed URL construction logic (now handled by SmartVideoPlayer)
 - Changed from `videoUrl` to `videoPath`
 - Added optional configuration:
@@ -49,6 +51,7 @@ The Files page now uses the `SmartVideoPlayer` component instead of the basic `V
   - `showStreamInfo?: boolean` - Show streaming info by default
 
 **Usage:**
+
 ```tsx
 // Basic usage (auto-detect transcoding)
 const { isOpen, videoPath, videoTitle, openVideo, setIsOpen } = useVideoPlayer();
@@ -56,38 +59,46 @@ const { isOpen, videoPath, videoTitle, openVideo, setIsOpen } = useVideoPlayer()
 // With default transcoding enabled
 const { isOpen, videoPath, videoTitle, openVideo, setIsOpen } = useVideoPlayer({
   transcode: true,
-  quality: 'high',
-  showStreamInfo: true
+  quality: "high",
+  showStreamInfo: true,
 });
 ```
 
 ### 3. Updated Files Page
+
 **File:** `app/files/page.tsx`
 
 **Changes:**
+
 - Updated to use new `videoPath` instead of `videoUrl`
 - Passes transcoding options to VideoPlayerDialog
 - Maintains all existing functionality
 
 ### 4. Updated Media Files List
+
 **File:** `features/media/components/media-files-list.tsx`
 
 **Changes:**
+
 - Same updates as Files page
 - Uses SmartVideoPlayer through VideoPlayerDialog
 
 ## Benefits
 
 ### Automatic Format Detection
+
 Videos are now automatically analyzed:
+
 - **MP4/M4V** → Direct streaming (fast, with seeking)
 - **MKV/AVI/WMV** → Transcoded to MP4 (universal compatibility)
 - **WebM** → Direct if browser supports, otherwise transcoded
 
 ### Better Compatibility
+
 All video formats now work in all browsers through automatic transcoding when needed.
 
 ### Improved User Experience
+
 - Videos play immediately when format is supported
 - Graceful fallback to transcoding for incompatible formats
 - Optional streaming info for debugging
@@ -95,6 +106,7 @@ All video formats now work in all browsers through automatic transcoding when ne
 ## User Experience
 
 ### Default Behavior
+
 ```tsx
 // User clicks play on any video
 openVideo("Movies/Sintel.mkv", "Sintel");
@@ -106,6 +118,7 @@ openVideo("Movies/Sintel.mkv", "Sintel");
 ```
 
 ### For MP4 Files
+
 ```tsx
 openVideo("Movies/Sintel.mp4", "Sintel");
 
@@ -118,18 +131,20 @@ openVideo("Movies/Sintel.mp4", "Sintel");
 ## Configuration Options
 
 ### Global Default Settings
+
 Configure default behavior in `useVideoPlayer()`:
 
 ```tsx
 // Enable transcoding for all videos by default
 const player = useVideoPlayer({
   transcode: true,
-  quality: 'high',
-  showStreamInfo: true  // For debugging
+  quality: "high",
+  showStreamInfo: true, // For debugging
 });
 ```
 
 ### Per-Video Override
+
 Override per video when opening:
 
 ```tsx
@@ -140,12 +155,14 @@ Override per video when opening:
 ## Performance Considerations
 
 ### Direct Streaming (MP4)
+
 - ✅ Instant playback
 - ✅ Seeking enabled
 - ✅ No server CPU usage
 - ✅ Best user experience
 
 ### Transcoded Streaming (MKV, AVI, etc.)
+
 - ⏱️ 1-3 second startup delay
 - ❌ Seeking disabled
 - ⚠️ Server CPU usage (50-200% per stream)
@@ -154,6 +171,7 @@ Override per video when opening:
 ## Testing
 
 ### Test Direct Streaming
+
 1. Upload or select an MP4 file
 2. Click Play
 3. Verify:
@@ -162,6 +180,7 @@ Override per video when opening:
    - No transcoding message
 
 ### Test Transcoded Streaming
+
 1. Upload or select an MKV file
 2. Click Play
 3. Verify:
@@ -170,12 +189,15 @@ Override per video when opening:
    - Video plays smoothly
 
 ### Test Streaming Info
+
 Temporarily enable in hook:
+
 ```tsx
 const player = useVideoPlayer({ showStreamInfo: true });
 ```
 
 Should display:
+
 - Streaming Mode: Direct or Transcoded
 - Format: MP4, WebM, etc.
 - Quality: low, medium, high, ultra
@@ -204,6 +226,7 @@ Potential improvements:
 ## Migration Notes
 
 This update is **backward compatible** in terms of API:
+
 - Backend `/api/files/stream` endpoint unchanged
 - Frontend components updated but maintain same props structure
 - Existing code that doesn't use video playback is unaffected
@@ -211,25 +234,29 @@ This update is **backward compatible** in terms of API:
 ## Troubleshooting
 
 ### Video Won't Play
+
 1. Check browser console for errors
 2. Enable `showStreamInfo: true` to see streaming strategy
 3. Verify FFmpeg is installed on server
 4. Check backend logs for transcoding errors
 
 ### Seeking Doesn't Work
+
 - **Cause**: Video is being transcoded
 - **Solution**: Use direct streaming (only works with compatible formats like MP4)
 
 ### Poor Video Quality
+
 - Increase quality preset:
   ```tsx
-  useVideoPlayer({ quality: 'high' })
+  useVideoPlayer({ quality: "high" });
   ```
 
 ### High Server CPU
+
 - Reduce quality preset:
   ```tsx
-  useVideoPlayer({ quality: 'low' })
+  useVideoPlayer({ quality: "low" });
   ```
 - Limit concurrent video playback sessions
 

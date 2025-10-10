@@ -3,6 +3,7 @@
 ## Problem Confirmed
 
 Your debug info shows:
+
 - ✅ Token is present (`hasToken: true`)
 - ✅ Request is reaching the backend (`url: http://localhost:8000/api/files/stream`)
 - ❌ Backend is rejecting the token (403 Forbidden)
@@ -42,6 +43,7 @@ AUTH0_AUDIENCE=https://api.haas.media
 ### Step 3: Restart Services
 
 In your terminal running Aspire:
+
 1. Press `Ctrl+C` to stop
 2. Run the build command again:
    ```bash
@@ -61,6 +63,7 @@ In your terminal running Aspire:
 After applying the fix, check the backend logs (in the terminal running Aspire):
 
 You should see:
+
 ```
 🔐 Auth0 Authentication ENABLED
    Domain: dev-o1l0rjv003cd8mmq.us.auth0.com
@@ -69,11 +72,13 @@ You should see:
 ```
 
 When you try to play a video, you should see:
+
 ```
 Token validated successfully for /api/files/stream
 ```
 
 Instead of:
+
 ```
 Auth challenge for /api/files/stream: invalid_token - ...
 ```
@@ -109,8 +114,8 @@ var streamEndpoint = app.MapGet(
 .WithName("StreamFile");
 
 // Only require auth in production or when Auth0 is properly configured
-if (!app.Environment.IsDevelopment() || 
-    (!string.IsNullOrWhiteSpace(app.Configuration["AUTH0_DOMAIN"]) && 
+if (!app.Environment.IsDevelopment() ||
+    (!string.IsNullOrWhiteSpace(app.Configuration["AUTH0_DOMAIN"]) &&
      !string.IsNullOrWhiteSpace(app.Configuration["AUTH0_AUDIENCE"]) &&
      app.Configuration["AUTH0_AUDIENCE"] != "https://dev-o1l0rjv003cd8mmq.us.auth0.com/api/v2/"))
 {
@@ -121,6 +126,7 @@ if (!app.Environment.IsDevelopment() ||
 ## Why This Happens
 
 The Auth0 Management API (`/api/v2/`) is a special API that Auth0 provides for managing your Auth0 tenant. Tokens for this API:
+
 - Have specific scopes related to Auth0 management operations
 - Are NOT meant for authenticating to your custom applications
 - Will be rejected by your backend because they're for a different purpose
@@ -130,6 +136,7 @@ Your backend needs tokens issued specifically for your API, which is why you nee
 ## Expected Result
 
 After the fix:
+
 - ✅ Video player opens when clicking "Play"
 - ✅ Video loads and plays
 - ✅ Seeking (scrubbing) works
@@ -141,6 +148,7 @@ After the fix:
 If you still see 403 after following these steps:
 
 1. **Check Backend Logs**: Look for the authentication error message
+
    ```
    Authentication failed for /api/files/stream: <error details>
    ```

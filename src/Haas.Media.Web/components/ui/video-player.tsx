@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 
-interface VideoPlayerProps extends Omit<React.VideoHTMLAttributes<HTMLVideoElement>, 'onTimeUpdate'> {
+interface VideoPlayerProps extends Omit<React.VideoHTMLAttributes<HTMLVideoElement>, "onTimeUpdate"> {
   src: string;
   className?: string;
   onTimeUpdate?: (currentTime: number, duration: number) => void;
@@ -30,11 +30,11 @@ export function VideoPlayer({ src, className, onTimeUpdate, ...props }: VideoPla
   // Format time in MM:SS or HH:MM:SS
   const formatTime = (seconds: number) => {
     if (isNaN(seconds)) return "0:00";
-    
+
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
-    
+
     if (hours > 0) {
       return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
     }
@@ -265,15 +265,7 @@ export function VideoPlayer({ src, className, onTimeUpdate, ...props }: VideoPla
       onMouseMove={resetControlsTimeout}
       onMouseLeave={() => isPlaying && setShowControls(false)}
     >
-      <video
-        ref={videoRef}
-        src={src}
-        className="h-full w-full"
-        onClick={togglePlayPause}
-        preload="metadata"
-        playsInline
-        {...props}
-      />
+      <video ref={videoRef} src={src} className="h-full w-full" onClick={togglePlayPause} preload="metadata" playsInline {...props} />
 
       {/* Buffering Indicator */}
       {isBuffering && !hasError && (
@@ -301,13 +293,7 @@ export function VideoPlayer({ src, className, onTimeUpdate, ...props }: VideoPla
       >
         {/* Progress Bar */}
         <div className="mb-3">
-          <Slider
-            value={[currentTime]}
-            max={duration || 100}
-            step={0.1}
-            onValueChange={handleSeek}
-            className="cursor-pointer"
-          />
+          <Slider value={[currentTime]} max={duration || 100} step={0.1} onValueChange={handleSeek} className="cursor-pointer" />
           <div className="mt-1 flex justify-between text-xs text-white">
             <span>{formatTime(currentTime)}</span>
             <span>{formatTime(duration)}</span>
@@ -317,31 +303,13 @@ export function VideoPlayer({ src, className, onTimeUpdate, ...props }: VideoPla
         {/* Control Buttons */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={skipBackward}
-              className="h-8 w-8 text-white hover:bg-white/20"
-            >
+            <Button type="button" variant="ghost" size="icon" onClick={skipBackward} className="h-8 w-8 text-white hover:bg-white/20">
               <SkipBack className="h-5 w-5" />
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={togglePlayPause}
-              className="h-10 w-10 text-white hover:bg-white/20"
-            >
+            <Button type="button" variant="ghost" size="icon" onClick={togglePlayPause} className="h-10 w-10 text-white hover:bg-white/20">
               {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={skipForward}
-              className="h-8 w-8 text-white hover:bg-white/20"
-            >
+            <Button type="button" variant="ghost" size="icon" onClick={skipForward} className="h-8 w-8 text-white hover:bg-white/20">
               <SkipForward className="h-5 w-5" />
             </Button>
           </div>
@@ -349,38 +317,16 @@ export function VideoPlayer({ src, className, onTimeUpdate, ...props }: VideoPla
           <div className="flex items-center gap-2">
             {/* Volume Control */}
             <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={toggleMute}
-                className="h-8 w-8 text-white hover:bg-white/20"
-              >
-                {isMuted || volume === 0 ? (
-                  <VolumeX className="h-5 w-5" />
-                ) : (
-                  <Volume2 className="h-5 w-5" />
-                )}
+              <Button type="button" variant="ghost" size="icon" onClick={toggleMute} className="h-8 w-8 text-white hover:bg-white/20">
+                {isMuted || volume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
               </Button>
               <div className="hidden w-24 sm:block">
-                <Slider
-                  value={[volume]}
-                  max={100}
-                  step={1}
-                  onValueChange={handleVolumeChange}
-                  className="cursor-pointer"
-                />
+                <Slider value={[volume]} max={100} step={1} onValueChange={handleVolumeChange} className="cursor-pointer" />
               </div>
             </div>
 
             {/* Fullscreen */}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={toggleFullscreen}
-              className="h-8 w-8 text-white hover:bg-white/20"
-            >
+            <Button type="button" variant="ghost" size="icon" onClick={toggleFullscreen} className="h-8 w-8 text-white hover:bg-white/20">
               {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
             </Button>
           </div>

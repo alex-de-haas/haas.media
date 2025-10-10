@@ -126,7 +126,7 @@ interface UserMenuProps {
 
 function UserMenu({ variant = "sidebar" }: UserMenuProps) {
   const router = useRouter();
-  
+
   // Local auth state
   const { user: localUser, isLoading: localLoading, isAuthenticated: localAuthenticated, logout: localLogout } = useLocalAuth();
 

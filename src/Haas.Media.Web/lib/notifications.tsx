@@ -27,14 +27,14 @@ const NotificationsContext = createContext<NotificationsContextValue | undefined
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const notify: NotificationsContextValue["notify"] = useCallback((n: NotificationItem) => {
     const { title, message, type = "success", timeout } = n;
-    
+
     const options = {
       description: title ? message : undefined,
       duration: timeout === -1 ? Infinity : timeout || 5000,
     };
 
     const displayMessage = title || message;
-    
+
     switch (type) {
       case "error":
         return toast.error(displayMessage, options);

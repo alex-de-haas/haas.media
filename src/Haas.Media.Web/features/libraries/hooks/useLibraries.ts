@@ -113,8 +113,7 @@ export function useLibraries() {
         return { success: false, message: errorText || "Failed to start background scan" };
       }
     } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Network error occurred while starting background scan";
+      const message = error instanceof Error ? error.message : "Network error occurred while starting background scan";
       return { success: false, message };
     }
   }, []);
@@ -138,8 +137,7 @@ export function useLibraries() {
       const errorText = await response.text();
       return { success: false, message: errorText || "Failed to start metadata refresh" };
     } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Network error occurred while starting metadata refresh";
+      const message = error instanceof Error ? error.message : "Network error occurred while starting metadata refresh";
       return { success: false, message };
     }
   }, []);

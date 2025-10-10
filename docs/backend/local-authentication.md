@@ -72,6 +72,7 @@ JWT_EXPIRATION_MINUTES=1440  # 24 hours
 ### Middleware
 
 The middleware (`middleware.ts`) detects auth mode:
+
 - **Auth0 mode**: Uses `withMiddlewareAuthRequired` from Auth0 SDK
 - **Local mode**: Allows through (auth checked client-side)
 
@@ -96,6 +97,7 @@ const useAuth0 = !!process.env.AUTH0_DOMAIN;
 ## Security Considerations
 
 ### Local Authentication
+
 - ✅ Passwords hashed with BCrypt (work factor 12)
 - ✅ JWT tokens with expiration
 - ✅ HTTPS recommended for production
@@ -104,6 +106,7 @@ const useAuth0 = !!process.env.AUTH0_DOMAIN;
 - ⚠️ No rate limiting (add if needed)
 
 ### Auth0 Authentication
+
 - ✅ Enterprise-grade security
 - ✅ MFA support
 - ✅ Social logins

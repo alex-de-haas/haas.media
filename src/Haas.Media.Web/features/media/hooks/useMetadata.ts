@@ -1,13 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchWithAuth } from "@/lib/auth/fetch-with-auth";
 import { getApiDownloaderUrl } from "@/lib/env";
-import type {
-  MovieMetadata,
-  TVShowMetadata,
-  SearchResult,
-  AddToLibraryResponse,
-  AddToLibraryOperationInfo,
-} from "@/types/metadata";
+import type { MovieMetadata, TVShowMetadata, SearchResult, AddToLibraryResponse, AddToLibraryOperationInfo } from "@/types/metadata";
 import { LibraryType } from "@/types/library";
 import { BackgroundTaskStatus } from "@/types";
 import { useBackgroundTasks } from "@/features/background-tasks/hooks/useBackgroundTasks";

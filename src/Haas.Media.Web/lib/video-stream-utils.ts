@@ -8,31 +8,31 @@ export interface VideoStreamOptions {
   /** Force transcoding even if format is supported */
   forceTranscode?: boolean;
   /** Output format when transcoding (default: mp4) */
-  format?: 'mp4' | 'webm' | 'mkv';
+  format?: "mp4" | "webm" | "mkv";
   /** Quality preset when transcoding (default: medium) */
-  quality?: 'low' | 'medium' | 'high' | 'ultra';
+  quality?: "low" | "medium" | "high" | "ultra";
 }
 
 /**
  * Check if a video format requires transcoding for better compatibility
  */
 export function shouldTranscodeVideo(filename: string): boolean {
-  const ext = filename.split('.').pop()?.toLowerCase();
-  
+  const ext = filename.split(".").pop()?.toLowerCase();
+
   // Formats that work well across all browsers
-  const universalFormats = ['mp4', 'm4v'];
-  
+  const universalFormats = ["mp4", "m4v"];
+
   // Formats that may need transcoding
-  const needsTranscode = ['mkv', 'avi', 'wmv', 'flv', 'mov', 'mpg', 'mpeg', '3gp'];
-  
+  const needsTranscode = ["mkv", "avi", "wmv", "flv", "mov", "mpg", "mpeg", "3gp"];
+
   if (ext && universalFormats.includes(ext)) {
     return false; // No transcoding needed
   }
-  
+
   if (ext && needsTranscode.includes(ext)) {
     return true; // Transcoding recommended
   }
-  
+
   // For WebM and OGV, depends on browser support
   // Generally supported in modern browsers, but can transcode for older ones
   return false;
@@ -42,21 +42,21 @@ export function shouldTranscodeVideo(filename: string): boolean {
  * Build video stream URL with appropriate parameters
  */
 export function buildVideoStreamUrl(options: VideoStreamOptions): string {
-  const { path, forceTranscode, format = 'mp4', quality = 'medium' } = options;
-  
+  const { path, forceTranscode, format = "mp4", quality = "medium" } = options;
+
   const params = new URLSearchParams({
     path: path,
   });
-  
+
   // Determine if we should transcode
   const needsTranscode = forceTranscode || shouldTranscodeVideo(path);
-  
+
   if (needsTranscode) {
-    params.set('transcode', 'true');
-    params.set('format', format);
-    params.set('quality', quality);
+    params.set("transcode", "true");
+    params.set("format", format);
+    params.set("quality", quality);
   }
-  
+
   return `/api/video-stream?${params.toString()}`;
 }
 
@@ -65,21 +65,21 @@ export function buildVideoStreamUrl(options: VideoStreamOptions): string {
  */
 export function getVideoMimeType(format: string): string {
   switch (format.toLowerCase()) {
-    case 'mp4':
-    case 'm4v':
-      return 'video/mp4';
-    case 'webm':
-      return 'video/webm';
-    case 'mkv':
-      return 'video/x-matroska';
-    case 'avi':
-      return 'video/x-msvideo';
-    case 'mov':
-      return 'video/quicktime';
-    case 'ogv':
-      return 'video/ogg';
+    case "mp4":
+    case "m4v":
+      return "video/mp4";
+    case "webm":
+      return "video/webm";
+    case "mkv":
+      return "video/x-matroska";
+    case "avi":
+      return "video/x-msvideo";
+    case "mov":
+      return "video/quicktime";
+    case "ogv":
+      return "video/ogg";
     default:
-      return 'video/mp4';
+      return "video/mp4";
   }
 }
 
@@ -89,14 +89,14 @@ export function getVideoMimeType(format: string): string {
  */
 export function getStreamMimeType(options: VideoStreamOptions): string {
   const needsTranscode = options.forceTranscode || shouldTranscodeVideo(options.path);
-  
+
   if (needsTranscode) {
     // When transcoding, use the output format's MIME type
-    return getVideoMimeType(options.format || 'mp4');
+    return getVideoMimeType(options.format || "mp4");
   }
-  
+
   // When streaming directly, use the source file's MIME type
-  const ext = options.path.split('.').pop() || 'mp4';
+  const ext = options.path.split(".").pop() || "mp4";
   return getVideoMimeType(ext);
 }
 
@@ -104,15 +104,15 @@ export function getStreamMimeType(options: VideoStreamOptions): string {
  * Check if the current browser supports a specific video codec
  */
 export function canPlayVideoCodec(mimeType: string): boolean {
-  if (typeof document === 'undefined') {
+  if (typeof document === "undefined") {
     return false;
   }
-  
-  const video = document.createElement('video');
+
+  const video = document.createElement("video");
   const canPlay = video.canPlayType(mimeType);
-  
+
   // Returns 'probably', 'maybe', or ''
-  return canPlay === 'probably' || canPlay === 'maybe';
+  return canPlay === "probably" || canPlay === "maybe";
 }
 
 /**
@@ -120,44 +120,44 @@ export function canPlayVideoCodec(mimeType: string): boolean {
  */
 export function detectStreamingStrategy(filename: string): {
   transcode: boolean;
-  format: 'mp4' | 'webm' | 'mkv';
+  format: "mp4" | "webm" | "mkv";
   reason: string;
 } {
-  const ext = filename.split('.').pop()?.toLowerCase() || '';
-  
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
+
   // MP4 is universally supported
-  if (ext === 'mp4' || ext === 'm4v') {
+  if (ext === "mp4" || ext === "m4v") {
     return {
       transcode: false,
-      format: 'mp4',
-      reason: 'MP4 format is universally supported'
+      format: "mp4",
+      reason: "MP4 format is universally supported",
     };
   }
-  
+
   // WebM is well supported in modern browsers
-  if (ext === 'webm' && canPlayVideoCodec('video/webm; codecs="vp9"')) {
+  if (ext === "webm" && canPlayVideoCodec('video/webm; codecs="vp9"')) {
     return {
       transcode: false,
-      format: 'webm',
-      reason: 'Browser supports WebM natively'
+      format: "webm",
+      reason: "Browser supports WebM natively",
     };
   }
-  
+
   // Check if browser can play the source format
   const sourceMimeType = getVideoMimeType(ext);
   if (canPlayVideoCodec(sourceMimeType)) {
     return {
       transcode: false,
-      format: 'mp4', // Doesn't matter, won't transcode
-      reason: `Browser supports ${ext.toUpperCase()} natively`
+      format: "mp4", // Doesn't matter, won't transcode
+      reason: `Browser supports ${ext.toUpperCase()} natively`,
     };
   }
-  
+
   // Default: transcode to MP4 for maximum compatibility
   return {
     transcode: true,
-    format: 'mp4',
-    reason: `Format ${ext.toUpperCase()} requires transcoding for compatibility`
+    format: "mp4",
+    reason: `Format ${ext.toUpperCase()} requires transcoding for compatibility`,
   };
 }
 
@@ -169,34 +169,34 @@ export interface FormatInfo {
   videoCodec: string;
   audioCodec: string;
   description: string;
-  browserSupport: 'excellent' | 'good' | 'limited';
+  browserSupport: "excellent" | "good" | "limited";
 }
 
-export function getFormatInfo(format: 'mp4' | 'webm' | 'mkv'): FormatInfo {
+export function getFormatInfo(format: "mp4" | "webm" | "mkv"): FormatInfo {
   switch (format) {
-    case 'mp4':
+    case "mp4":
       return {
-        name: 'MP4 (H.264)',
-        videoCodec: 'H.264',
-        audioCodec: 'AAC',
-        description: 'Best compatibility across all browsers and devices',
-        browserSupport: 'excellent'
+        name: "MP4 (H.264)",
+        videoCodec: "H.264",
+        audioCodec: "AAC",
+        description: "Best compatibility across all browsers and devices",
+        browserSupport: "excellent",
       };
-    case 'webm':
+    case "webm":
       return {
-        name: 'WebM (VP9)',
-        videoCodec: 'VP9',
-        audioCodec: 'Opus',
-        description: 'Better compression, supported in modern browsers',
-        browserSupport: 'good'
+        name: "WebM (VP9)",
+        videoCodec: "VP9",
+        audioCodec: "Opus",
+        description: "Better compression, supported in modern browsers",
+        browserSupport: "good",
       };
-    case 'mkv':
+    case "mkv":
       return {
-        name: 'Matroska (H.264)',
-        videoCodec: 'H.264',
-        audioCodec: 'AAC',
-        description: 'Limited browser support, use for download',
-        browserSupport: 'limited'
+        name: "Matroska (H.264)",
+        videoCodec: "H.264",
+        audioCodec: "AAC",
+        description: "Limited browser support, use for download",
+        browserSupport: "limited",
       };
   }
 }

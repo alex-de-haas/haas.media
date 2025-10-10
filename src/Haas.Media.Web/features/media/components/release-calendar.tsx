@@ -46,35 +46,35 @@ const STATUSES: Record<"upcoming" | "released", Status> = {
 };
 
 const RELEASE_TYPE_CONFIG: Record<ReleaseDateType, { label: string; color: string; bgColor: string }> = {
-  [ReleaseDateType.Theatrical]: { 
-    label: "Theatrical", 
-    color: "text-blue-700 dark:text-blue-300", 
-    bgColor: "bg-blue-500/10" 
+  [ReleaseDateType.Theatrical]: {
+    label: "Theatrical",
+    color: "text-blue-700 dark:text-blue-300",
+    bgColor: "bg-blue-500/10",
   },
-  [ReleaseDateType.TheatricalLimited]: { 
-    label: "Limited Theatrical", 
-    color: "text-cyan-700 dark:text-cyan-300", 
-    bgColor: "bg-cyan-500/10" 
+  [ReleaseDateType.TheatricalLimited]: {
+    label: "Limited Theatrical",
+    color: "text-cyan-700 dark:text-cyan-300",
+    bgColor: "bg-cyan-500/10",
   },
-  [ReleaseDateType.Digital]: { 
-    label: "Digital", 
-    color: "text-purple-700 dark:text-purple-300", 
-    bgColor: "bg-purple-500/10" 
+  [ReleaseDateType.Digital]: {
+    label: "Digital",
+    color: "text-purple-700 dark:text-purple-300",
+    bgColor: "bg-purple-500/10",
   },
-  [ReleaseDateType.Physical]: { 
-    label: "Physical", 
-    color: "text-green-700 dark:text-green-300", 
-    bgColor: "bg-green-500/10" 
+  [ReleaseDateType.Physical]: {
+    label: "Physical",
+    color: "text-green-700 dark:text-green-300",
+    bgColor: "bg-green-500/10",
   },
-  [ReleaseDateType.Tv]: { 
-    label: "TV", 
-    color: "text-orange-700 dark:text-orange-300", 
-    bgColor: "bg-orange-500/10" 
+  [ReleaseDateType.Tv]: {
+    label: "TV",
+    color: "text-orange-700 dark:text-orange-300",
+    bgColor: "bg-orange-500/10",
   },
-  [ReleaseDateType.Premiere]: { 
-    label: "Premiere", 
-    color: "text-pink-700 dark:text-pink-300", 
-    bgColor: "bg-pink-500/10" 
+  [ReleaseDateType.Premiere]: {
+    label: "Premiere",
+    color: "text-pink-700 dark:text-pink-300",
+    bgColor: "bg-pink-500/10",
   },
 };
 
@@ -90,13 +90,7 @@ function getReleaseTypeConfig(type: ReleaseDateType) {
  * Component that syncs calendar state with selected date
  * Must be rendered inside CalendarProvider
  */
-function CalendarSync({
-  selectedDate,
-  onSelectDate,
-}: {
-  selectedDate: Date | undefined;
-  onSelectDate: (date?: Date) => void;
-}) {
+function CalendarSync({ selectedDate, onSelectDate }: { selectedDate: Date | undefined; onSelectDate: (date?: Date) => void }) {
   const [month, setMonth] = useCalendarMonth();
   const [year, setYear] = useCalendarYear();
   const prevSelectedDateRef = useRef<Date | undefined>();
@@ -137,8 +131,7 @@ function CalendarSync({
     }
 
     // Check if selected date is in current view
-    const selectedMatchesCurrent =
-      selectedDate && selectedDate.getMonth() === month && selectedDate.getFullYear() === year;
+    const selectedMatchesCurrent = selectedDate && selectedDate.getMonth() === month && selectedDate.getFullYear() === year;
 
     if (!selectedMatchesCurrent) {
       // Clear selection when navigating to a different month/year
@@ -156,10 +149,10 @@ export default function ReleaseCalendar() {
   const { movies, loading, error } = useMovies();
 
   const today = useMemo(() => startOfDay(new Date()), []);
-  
+
   // State for selected release types (all enabled by default)
   const [selectedReleaseTypes, setSelectedReleaseTypes] = useState<Set<ReleaseDateType>>(
-    () => new Set(Object.values(ReleaseDateType).filter((v): v is ReleaseDateType => typeof v === 'number'))
+    () => new Set(Object.values(ReleaseDateType).filter((v): v is ReleaseDateType => typeof v === "number")),
   );
 
   const toggleReleaseType = useCallback((type: ReleaseDateType) => {
@@ -185,7 +178,7 @@ export default function ReleaseCalendar() {
           if (!selectedReleaseTypes.has(release.type)) {
             continue;
           }
-          
+
           const parsed = new Date(release.date);
           if (!Number.isNaN(parsed.getTime())) {
             const normalized = startOfDay(parsed);
@@ -197,23 +190,23 @@ export default function ReleaseCalendar() {
               startAt: normalized,
               endAt: normalized,
               status,
-              data: { 
-                movie, 
+              data: {
+                movie,
                 releaseType: release.type,
-                countryCode: release.countryCode
+                countryCode: release.countryCode,
               },
             });
           }
         }
       }
-      
+
       // Fallback to general releaseDate if no specific release dates
       if ((!movie.releaseDates || movie.releaseDates.length === 0) && movie.releaseDate) {
         // Only include if Theatrical type is selected
         if (!selectedReleaseTypes.has(ReleaseDateType.Theatrical)) {
           continue;
         }
-        
+
         const parsed = new Date(movie.releaseDate);
         if (!Number.isNaN(parsed.getTime())) {
           const normalized = startOfDay(parsed);
@@ -225,10 +218,10 @@ export default function ReleaseCalendar() {
             startAt: normalized,
             endAt: normalized,
             status,
-            data: { 
-              movie, 
+            data: {
+              movie,
               releaseType: ReleaseDateType.Theatrical,
-              countryCode: undefined
+              countryCode: undefined,
             },
           });
         }
@@ -284,11 +277,11 @@ export default function ReleaseCalendar() {
     (date: Date) => {
       handleSelectDate(date);
     },
-    [handleSelectDate]
+    [handleSelectDate],
   );
 
   const selectedKey = selectedDate ? getDateKey(selectedDate) : undefined;
-  const selectedFeatures = selectedKey !== undefined ? featuresByDate.get(selectedKey) ?? [] : [];
+  const selectedFeatures = selectedKey !== undefined ? (featuresByDate.get(selectedKey) ?? []) : [];
 
   if (loading) {
     return (
@@ -315,13 +308,11 @@ export default function ReleaseCalendar() {
       return (
         <Alert>
           <AlertTitle>No release types selected</AlertTitle>
-          <AlertDescription>
-            Select at least one release type from the filter to view the calendar.
-          </AlertDescription>
+          <AlertDescription>Select at least one release type from the filter to view the calendar.</AlertDescription>
         </Alert>
       );
     }
-    
+
     return (
       <Alert>
         <AlertTitle>No releases found</AlertTitle>
@@ -344,18 +335,11 @@ export default function ReleaseCalendar() {
               {Object.entries(RELEASE_TYPE_CONFIG).map(([typeKey, config]) => {
                 const type = Number(typeKey) as ReleaseDateType;
                 const isChecked = selectedReleaseTypes.has(type);
-                
+
                 return (
                   <div key={type} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`release-type-${type}`}
-                      checked={isChecked}
-                      onCheckedChange={() => toggleReleaseType(type)}
-                    />
-                    <Label
-                      htmlFor={`release-type-${type}`}
-                      className="flex cursor-pointer items-center gap-2 text-sm font-normal"
-                    >
+                    <Checkbox id={`release-type-${type}`} checked={isChecked} onCheckedChange={() => toggleReleaseType(type)} />
+                    <Label htmlFor={`release-type-${type}`} className="flex cursor-pointer items-center gap-2 text-sm font-normal">
                       <span
                         className={cn(
                           "h-2 w-2 rounded-full flex-shrink-0",
@@ -364,7 +348,7 @@ export default function ReleaseCalendar() {
                           type === ReleaseDateType.Digital && "bg-purple-500",
                           type === ReleaseDateType.Physical && "bg-green-500",
                           type === ReleaseDateType.Tv && "bg-orange-500",
-                          type === ReleaseDateType.Premiere && "bg-pink-500"
+                          type === ReleaseDateType.Premiere && "bg-pink-500",
                         )}
                       />
                       {config.label}
@@ -376,10 +360,7 @@ export default function ReleaseCalendar() {
           </div>
 
           <CalendarProvider className="space-y-4">
-            <CalendarSync
-              selectedDate={selectedDate}
-              onSelectDate={handleSelectDate}
-            />
+            <CalendarSync selectedDate={selectedDate} onSelectDate={handleSelectDate} />
             <CalendarDate>
               <CalendarDatePicker>
                 <CalendarMonthPicker />
@@ -397,18 +378,16 @@ export default function ReleaseCalendar() {
               {({ feature, isSelected }) => {
                 const releaseType = feature.data?.releaseType ?? ReleaseDateType.Theatrical;
                 const config = getReleaseTypeConfig(releaseType);
-                
+
                 return (
                   <div
                     className={cn(
                       "flex items-center gap-1.5 rounded-md px-2 py-1 text-[0.7rem] font-medium transition-colors",
-                      feature.status.id === STATUSES.upcoming.id
-                        ? "bg-primary/15 text-primary"
-                        : "bg-muted text-muted-foreground",
-                      isSelected && "ring-1 ring-primary/50"
+                      feature.status.id === STATUSES.upcoming.id ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+                      isSelected && "ring-1 ring-primary/50",
                     )}
                   >
-                    <span 
+                    <span
                       className={cn(
                         "h-1.5 w-1.5 rounded-full flex-shrink-0",
                         releaseType === ReleaseDateType.Digital && "bg-purple-500",
@@ -416,7 +395,7 @@ export default function ReleaseCalendar() {
                         releaseType === ReleaseDateType.TheatricalLimited && "bg-cyan-500",
                         releaseType === ReleaseDateType.Physical && "bg-green-500",
                         releaseType === ReleaseDateType.Tv && "bg-orange-500",
-                        releaseType === ReleaseDateType.Premiere && "bg-pink-500"
+                        releaseType === ReleaseDateType.Premiere && "bg-pink-500",
                       )}
                       title={config.label}
                     />
@@ -428,7 +407,8 @@ export default function ReleaseCalendar() {
           </CalendarProvider>
           <div className="mt-4 space-y-2">
             <p className="text-sm text-muted-foreground">
-              Dates with color accents indicate movie releases. Pick a day to explore all release types. Today&apos;s date is highlighted in blue.
+              Dates with color accents indicate movie releases. Pick a day to explore all release types. Today&apos;s date is highlighted in
+              blue.
             </p>
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
@@ -480,7 +460,7 @@ export default function ReleaseCalendar() {
               const movie = feature.data?.movie;
               const releaseType = feature.data?.releaseType;
               const countryCode = feature.data?.countryCode;
-              
+
               if (!movie || releaseType === undefined || releaseType === null) {
                 return null;
               }
@@ -493,18 +473,12 @@ export default function ReleaseCalendar() {
                   <CardHeader className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <CardTitle className="text-xl font-semibold leading-tight">
-                        <Link 
-                          href={`/movies/${movie.id}`}
-                          className="hover:underline hover:text-primary transition-colors"
-                        >
+                        <Link href={`/movies/${movie.id}`} className="hover:underline hover:text-primary transition-colors">
                           {feature.name}
                         </Link>
                       </CardTitle>
                       <Badge variant={isUpcoming ? "outline" : "secondary"}>{feature.status.name}</Badge>
-                      <Badge 
-                        variant="secondary" 
-                        className={cn(config.bgColor, config.color)}
-                      >
+                      <Badge variant="secondary" className={cn(config.bgColor, config.color)}>
                         {config.label}
                       </Badge>
                       {countryCode && (

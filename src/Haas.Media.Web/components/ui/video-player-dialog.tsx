@@ -17,7 +17,7 @@ interface VideoPlayerDialogProps {
   /** Enable transcoding for better compatibility */
   transcode?: boolean;
   /** Quality preset for transcoding */
-  quality?: 'low' | 'medium' | 'high' | 'ultra';
+  quality?: "low" | "medium" | "high" | "ultra";
   /** Show streaming information */
   showStreamInfo?: boolean;
 }
@@ -29,15 +29,12 @@ export function VideoPlayerDialog({
   title,
   className,
   transcode = false,
-  quality = 'medium',
+  quality = "medium",
   showStreamInfo = false,
 }: VideoPlayerDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={cn("max-w-6xl p-0", className)}
-        aria-describedby={undefined}
-      >
+      <DialogContent className={cn("max-w-6xl p-0", className)} aria-describedby={undefined}>
         <div className="relative">
           {/* Close button */}
           <Button
@@ -54,8 +51,8 @@ export function VideoPlayerDialog({
           <DialogTitle className="sr-only">{title || "Video Player"}</DialogTitle>
 
           {/* Smart Video Player */}
-          <SmartVideoPlayer 
-            path={videoPath} 
+          <SmartVideoPlayer
+            path={videoPath}
             className="aspect-video w-full"
             forceTranscode={transcode}
             quality={quality}

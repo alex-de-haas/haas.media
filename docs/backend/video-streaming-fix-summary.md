@@ -19,6 +19,7 @@
 ### Backend (`src/Haas.Media.Downloader.Api/Files/`)
 
 #### 1. `LimitedStream.cs` (new file)
+
 Stream wrapper that enforces maximum read length for HTTP range requests.
 
 ```csharp
@@ -27,12 +28,13 @@ public class LimitedStream : Stream
     private readonly Stream _innerStream;
     private readonly long _maxLength;
     private long _bytesRead;
-    
+
     // Overrides Read/ReadAsync to return 0 when limit reached
 }
 ```
 
 #### 2. `FilesConfiguration.cs`
+
 Updated range request handling to use `LimitedStream`:
 
 ```csharp
@@ -49,6 +51,7 @@ return Results.Stream(limitedStream, contentType, fileInfo.Name);  // ✅
 ### Frontend (`src/Haas.Media.Web/app/api/video-stream/`)
 
 #### `route.ts`
+
 Changed from buffering to streaming:
 
 ```typescript
@@ -63,6 +66,7 @@ return new NextResponse(response.body, { ... });  // ✅
 ## Testing Checklist
 
 ### 1. Basic Playback
+
 ```bash
 # Test video loads and plays
 1. Navigate to http://localhost:3000
@@ -71,6 +75,7 @@ return new NextResponse(response.body, { ... });  // ✅
 ```
 
 ### 2. Seeking (Range Requests)
+
 ```bash
 # Test scrubbing timeline
 1. Play video
@@ -79,6 +84,7 @@ return new NextResponse(response.body, { ... });  // ✅
 ```
 
 ### 3. Large File Handling
+
 ```bash
 # Test with multi-GB file
 1. Add a 4GB video file to Downloads/
@@ -88,7 +94,9 @@ return new NextResponse(response.body, { ... });  // ✅
 ```
 
 ### 4. Console Logs (Backend)
+
 Expected output when playing video:
+
 ```
 🔐 Auth0 Authentication ENABLED
    Domain: dev-o1l0rjv003cd8mmq.us.auth0.com
@@ -98,7 +106,9 @@ Token validated successfully for /api/files/stream
 ```
 
 ### 5. Console Logs (Frontend)
+
 Expected output in browser console:
+
 ```
 [video-stream] Streaming video from: http://localhost:8000/api/files/stream?path=...
 [video-stream] Range request: bytes=0-1048575
@@ -109,18 +119,18 @@ Expected output in browser console:
 
 ### Memory Usage (per request)
 
-| Scenario | Before | After |
-|----------|--------|-------|
-| Metadata (1 byte) | 1 byte buffered | Streamed |
-| First chunk (1MB) | 1MB buffered | ~64KB buffer |
-| Seek (1MB) | 1MB buffered | ~64KB buffer |
+| Scenario          | Before          | After        |
+| ----------------- | --------------- | ------------ |
+| Metadata (1 byte) | 1 byte buffered | Streamed     |
+| First chunk (1MB) | 1MB buffered    | ~64KB buffer |
+| Seek (1MB)        | 1MB buffered    | ~64KB buffer |
 | Full file request | ⚠️ 2GB buffered | ~64KB buffer |
 
 ### Time to First Byte
 
-| Scenario | Before | After |
-|----------|--------|-------|
-| Metadata | ~50ms | ~10ms |
+| Scenario          | Before | After |
+| ----------------- | ------ | ----- |
+| Metadata          | ~50ms  | ~10ms |
 | First chunk (1MB) | ~200ms | ~10ms |
 | Seek (1MB at 50%) | ~200ms | ~10ms |
 
@@ -164,21 +174,25 @@ Expected output in browser console:
 ## Troubleshooting
 
 ### Video won't play
+
 1. Check browser console for errors
 2. Check Auth0 audience configuration
 3. Verify backend is running and accessible
 
 ### Seeking is slow
+
 1. Verify `Accept-Ranges: bytes` header is present
 2. Check backend logs for range parsing errors
 3. Ensure using streaming (not buffering) in proxy
 
 ### Memory grows during playback
+
 1. Verify using `response.body` not `arrayBuffer()`
 2. Check for memory leaks in video player component
 3. Monitor Node.js heap with `node --inspect`
 
 ### 403 Forbidden errors
+
 1. Check `AUTH0_AUDIENCE` matches custom API identifier
 2. Verify token has correct audience claim (decode at jwt.io)
 3. Ensure both frontend and backend restarted after config change

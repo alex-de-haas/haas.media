@@ -96,6 +96,7 @@ A modern web application for downloading torrents and encoding videos to various
    ```
 
    **Generate a JWT secret for local authentication:**
+
    ```bash
    ./scripts/generate-jwt-secret.sh
    ```
@@ -203,6 +204,7 @@ Use the provided Docker Compose files for different environments:
 The application supports two authentication modes:
 
 ### Local Authentication (Default)
+
 - **User Store**: LiteDB-based
 - **Password Security**: BCrypt hashing (work factor 12)
 - **Tokens**: Self-signed JWT tokens
@@ -210,6 +212,7 @@ The application supports two authentication modes:
 - **Registration**: Navigate to `/register` to create accounts
 
 ### Auth0 (Optional)
+
 - **Enterprise Security**: Cloud-based authentication
 - **Features**: MFA, social logins, email verification
 - **Setup**: Configure Auth0 environment variables

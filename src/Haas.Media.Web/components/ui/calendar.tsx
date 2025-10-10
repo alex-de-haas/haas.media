@@ -2,26 +2,11 @@
 
 import { getDay, getDaysInMonth, isSameDay } from "date-fns";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-import {
-  createContext,
-  Dispatch,
-  ReactNode,
-  SetStateAction,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, Dispatch, ReactNode, SetStateAction, useCallback, useContext, useMemo, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type CalendarState = {
   month: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
@@ -77,10 +62,7 @@ export type Feature<T = unknown> = {
   data?: T;
 };
 
-export const monthsForLocale = (
-  localeName: Intl.LocalesArgument,
-  monthFormat: Intl.DateTimeFormatOptions["month"] = "long"
-) => {
+export const monthsForLocale = (localeName: Intl.LocalesArgument, monthFormat: Intl.DateTimeFormatOptions["month"] = "long") => {
   const format = new Intl.DateTimeFormat(localeName, { month: monthFormat }).format;
 
   return [...new Array(12).keys()].map((m) => format(new Date(Date.UTC(2021, m, 2))));
@@ -103,9 +85,7 @@ type OutOfBoundsDayProps = {
 };
 
 const OutOfBoundsDay = ({ day }: OutOfBoundsDayProps) => (
-  <div className="relative h-full w-full bg-secondary p-2 text-right text-xs text-muted-foreground">
-    {day}
-  </div>
+  <div className="relative h-full w-full bg-secondary p-2 text-right text-xs text-muted-foreground">{day}</div>
 );
 
 export type CalendarBodyProps<T = unknown> = {
@@ -170,7 +150,7 @@ export function CalendarBody<T>({ features, children, onSelectDate, selectedDate
       days.push(
         <div className="relative aspect-square overflow-hidden border-r border-t" key={`prev-${i}`}>
           <OutOfBoundsDay day={day} />
-        </div>
+        </div>,
       );
     }
   }
@@ -189,27 +169,23 @@ export function CalendarBody<T>({ features, children, onSelectDate, selectedDate
             "group flex h-full w-full flex-col gap-2 p-3 text-left text-xs text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             hasFeatures ? "bg-muted/50 hover:bg-muted" : "bg-background hover:bg-muted/40",
             isToday && "ring-2 ring-inset ring-blue-500/50 bg-blue-500/5",
-            isSelected && "ring-2 ring-inset ring-primary/60 bg-primary/10 text-foreground"
+            isSelected && "ring-2 ring-inset ring-primary/60 bg-primary/10 text-foreground",
           )}
           onClick={() => onSelectDate?.(date)}
           type="button"
         >
           <span className="flex items-center justify-between text-foreground">
             <span className={cn("font-medium", isToday && "text-blue-600 dark:text-blue-400")}>{day}</span>
-            {hasFeatures && (
-              <span className="h-2 w-2 rounded-full bg-primary/70" aria-hidden="true" />
-            )}
+            {hasFeatures && <span className="h-2 w-2 rounded-full bg-primary/70" aria-hidden="true" />}
           </span>
           <div className="flex flex-col gap-1">
             {featuresForDay.slice(0, 3).map((feature) => (
               <div key={feature.id}>{children({ feature, isSelected })}</div>
             ))}
-            {featuresForDay.length > 3 && (
-              <span className="text-muted-foreground text-[0.7rem]">+{featuresForDay.length - 3} more</span>
-            )}
+            {featuresForDay.length > 3 && <span className="text-muted-foreground text-[0.7rem]">+{featuresForDay.length - 3} more</span>}
           </div>
         </button>
-      </div>
+      </div>,
     );
   }
 
@@ -222,7 +198,7 @@ export function CalendarBody<T>({ features, children, onSelectDate, selectedDate
         days.push(
           <div className="relative aspect-square overflow-hidden border-r border-t" key={`next-${i}`}>
             <OutOfBoundsDay day={day} />
-          </div>
+          </div>,
         );
       }
     }
@@ -250,14 +226,11 @@ export function CalendarMonthPicker({ className }: CalendarMonthPickerProps) {
 
   const monthData = useMemo<{ value: string; label: string }[]>(
     () => monthsForLocale(locale).map((label, index) => ({ value: index.toString(), label })),
-    [locale]
+    [locale],
   );
 
   return (
-    <Select
-      value={month.toString()}
-      onValueChange={(value) => setMonth(Number.parseInt(value, 10) as CalendarState["month"])}
-    >
+    <Select value={month.toString()} onValueChange={(value) => setMonth(Number.parseInt(value, 10) as CalendarState["month"])}>
       <SelectTrigger className={cn("w-40 capitalize", className)}>
         <SelectValue placeholder="Select month" />
       </SelectTrigger>
@@ -378,11 +351,7 @@ export type CalendarItemProps<T = unknown> = {
 export function CalendarItem<T>({ feature, className }: CalendarItemProps<T>) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <span
-        aria-hidden="true"
-        className="h-2 w-2 shrink-0 rounded-full"
-        style={{ backgroundColor: feature.status.color }}
-      />
+      <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: feature.status.color }} />
       <span className="truncate text-foreground text-xs font-medium">{feature.name}</span>
     </div>
   );
@@ -401,7 +370,7 @@ export function CalendarProvider({ locale = "en-US", startDay = 0, children, cla
 
   const contextValue = useMemo(
     () => ({ locale, startDay, month, year, setMonth, setYear }),
-    [locale, startDay, month, year, setMonth, setYear]
+    [locale, startDay, month, year, setMonth, setYear],
   );
 
   return (

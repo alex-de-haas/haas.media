@@ -11,15 +11,19 @@ Use this checklist to set up local authentication for Haas.Media.
 ## Backend Setup
 
 - [ ] Generate a JWT secret:
+
   ```bash
   ./scripts/generate-jwt-secret.sh
   ```
+
   Or manually:
+
   ```bash
   openssl rand -base64 48
   ```
 
 - [ ] Create/update `.env` in project root:
+
   ```env
   DATA_DIRECTORY=/path/to/data
   FFMPEG_BINARY=/usr/bin/ffmpeg
@@ -40,6 +44,7 @@ Use this checklist to set up local authentication for Haas.Media.
 ## Frontend Setup
 
 - [ ] Install npm dependencies:
+
   ```bash
   cd src/Haas.Media.Web
   npm install
@@ -53,6 +58,7 @@ Use this checklist to set up local authentication for Haas.Media.
 ## Run the Application
 
 - [ ] Start via .NET Aspire:
+
   ```bash
   cd src/Haas.Media.Aspire
   dotnet run
@@ -87,6 +93,7 @@ Use this checklist to set up local authentication for Haas.Media.
 ## Verify User Storage
 
 - [ ] Check LiteDB for user:
+
   ```bash
   # Users stored at: {DATA_DIRECTORY}/.db/common.db
   # Collection: users
@@ -103,6 +110,7 @@ Use this checklist to set up local authentication for Haas.Media.
 ## Test API Endpoints
 
 - [ ] Test registration endpoint:
+
   ```bash
   curl -X POST http://localhost:8000/api/auth/register \
     -H "Content-Type: application/json" \
@@ -110,6 +118,7 @@ Use this checklist to set up local authentication for Haas.Media.
   ```
 
 - [ ] Test login endpoint:
+
   ```bash
   curl -X POST http://localhost:8000/api/auth/login \
     -H "Content-Type: application/json" \
@@ -131,6 +140,7 @@ If you want to switch back to Auth0:
 - [ ] Comment out or remove `JWT_SECRET` from `.env`
 
 - [ ] Uncomment and configure Auth0 variables:
+
   ```env
   AUTH0_DOMAIN=your-domain.auth0.com
   AUTH0_AUDIENCE=your-api-identifier
@@ -152,22 +162,26 @@ If you want to switch back to Auth0:
 ## Troubleshooting
 
 ### "Registration failed"
+
 - Check password is at least 8 characters
 - Check username is at least 3 characters
 - Check email is valid format
 - Check username/email not already taken
 
 ### "Authentication failed"
+
 - Verify JWT_SECRET is set correctly
 - Check token hasn't expired
 - Verify token is included in Authorization header
 
 ### "No authentication configured"
+
 - Ensure either JWT_SECRET or (AUTH0_DOMAIN + AUTH0_AUDIENCE) is set
 - Check .env file is in project root
 - Restart the application after changing env vars
 
 ### "KeyNotFoundException: The given key 'AUTH0_DOMAIN' was not present"
+
 - This means .env is missing or not in the correct location
 - Create .env in the project root directory
 - Add at minimum: `DATA_DIRECTORY`, `FFMPEG_BINARY`, `TMDB_API_KEY`, and `JWT_SECRET`

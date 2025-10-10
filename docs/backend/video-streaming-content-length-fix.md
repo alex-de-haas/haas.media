@@ -13,6 +13,7 @@ This occurred at line 77 in `FilesConfiguration.cs` when handling range requests
 ## Root Cause
 
 The original code:
+
 1. Set `Content-Length` header to the range size (e.g., `end - start + 1`)
 2. Called `fileStream.CopyToAsync(context.Response.Body)` which read **the entire remaining file** instead of just the requested range
 3. Kestrel detected the mismatch between the declared Content-Length and actual bytes written
@@ -81,12 +82,14 @@ return Results.Stream(limitedStream, contentType, fileInfo.Name);  // ✅ reads 
 ## Testing
 
 Build verification:
+
 ```bash
 dotnet build src/Haas.Media.Downloader.Api/Haas.Media.Downloader.Api.csproj
 # ✅ Build succeeded
 ```
 
 Expected behavior after restart:
+
 - Video player loads and plays without exceptions
 - Seeking (scrubbing) works correctly
 - Range requests (206 responses) have matching Content-Length headers

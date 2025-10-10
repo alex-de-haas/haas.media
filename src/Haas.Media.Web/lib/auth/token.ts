@@ -28,7 +28,7 @@ export async function getValidToken(forceRefresh = false): Promise<string | null
 
 export function clearCachedToken() {
   cachedToken = null;
-  
+
   // Also clear from localStorage
   try {
     if (typeof window !== "undefined") {

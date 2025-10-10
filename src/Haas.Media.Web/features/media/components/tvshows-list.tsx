@@ -84,13 +84,13 @@ export default function TVShowsList({ libraryId }: TVShowsListProps) {
   const searchParams = useSearchParams();
   const effectiveLibraryId = libraryId || searchParams.get("libraryId") || undefined;
   const { tvShows, loading, error, refetch } = useTVShows(effectiveLibraryId);
-  
+
   const [selectedPeople, setSelectedPeople] = useState<string[]>([]);
 
   // Extract unique people (cast and crew) from all TV shows
   const peopleOptions = useMemo<Option[]>(() => {
     const peopleMap = new Map<number, { name: string; roles: Set<string> }>();
-    
+
     tvShows.forEach((show) => {
       // Add cast members
       show.cast.forEach((member) => {
@@ -99,7 +99,7 @@ export default function TVShowsList({ libraryId }: TVShowsListProps) {
         }
         peopleMap.get(member.id)!.roles.add("Actor");
       });
-      
+
       // Add crew members
       show.crew.forEach((member) => {
         if (!peopleMap.has(member.id)) {
@@ -108,7 +108,7 @@ export default function TVShowsList({ libraryId }: TVShowsListProps) {
         peopleMap.get(member.id)!.roles.add(member.job);
       });
     });
-    
+
     return Array.from(peopleMap.entries())
       .map(([id, data]) => {
         const roles = Array.from(data.roles).sort().join(", ");

@@ -244,27 +244,13 @@ export default function MediaInfoPage({ params }: PageProps) {
 
             {qualityMode === "bitrate" && (
               <ControlField label="Video bitrate (bps)" helper="Target bitrate in bits per second (e.g., 5000000 for 5 Mbps)">
-                <Input
-                  type="number"
-                  value={videoBitrate}
-                  onChange={(e) => setVideoBitrate(e.target.value)}
-                  placeholder="5000000"
-                  min="1"
-                />
+                <Input type="number" value={videoBitrate} onChange={(e) => setVideoBitrate(e.target.value)} placeholder="5000000" min="1" />
               </ControlField>
             )}
 
             {qualityMode === "crf" && (
               <ControlField label="CRF value" helper="Lower values = higher quality. Range: 0-51, recommended: 18-28">
-                <Input
-                  type="number"
-                  value={crf}
-                  onChange={(e) => setCrf(e.target.value)}
-                  placeholder="23"
-                  min="0"
-                  max="51"
-                  step="1"
-                />
+                <Input type="number" value={crf} onChange={(e) => setCrf(e.target.value)} placeholder="23" min="0" max="51" step="1" />
               </ControlField>
             )}
           </div>
