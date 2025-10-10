@@ -848,12 +848,16 @@ internal sealed class MetadataScanTaskExecutor
                     );
 
                     MovieMetadata movieMetadata;
-                    if (existingMetadata != null)
+                    
+                    // Check if movie metadata exists (either from file association or by TMDb ID)
+                    var movieMetadataInDb = existingMetadata ?? _movieMetadataCollection.FindById(new BsonValue(movieResult.Id));
+                    
+                    if (movieMetadataInDb != null)
                     {
                         // Update existing metadata
-                        movieDetails.Update(existingMetadata);
-                        _movieMetadataCollection.Update(existingMetadata);
-                        movieMetadata = existingMetadata;
+                        movieDetails.Update(movieMetadataInDb);
+                        _movieMetadataCollection.Update(movieMetadataInDb);
+                        movieMetadata = movieMetadataInDb;
                     }
                     else
                     {

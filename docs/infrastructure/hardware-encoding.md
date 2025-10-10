@@ -137,6 +137,10 @@ await MediaEncodingBuilder.Create()
     .EncodeAsync();
 ```
 
+### VideoToolbox Hardware Encoding
+
+When using VideoToolbox hardware acceleration, the builder automatically applies a `format=nv12` filter even when using source resolution (no scaling). This ensures frames are properly formatted for hardware encoding and prevents fallback to CPU encoding. When scaling is applied, the format filter is combined with the scale filter.
+
 ## VAAPI Device Guardrails
 
 When VAAPI is requested, the builder validates the supplied or auto-detected device path. Missing devices throw `InvalidOperationException`. The search order is `/dev/dri/renderD128`, `renderD129`, `card0`, `card1`.

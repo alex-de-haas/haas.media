@@ -233,6 +233,8 @@ public class MediaEncodingBuilder
                 break;
 
             case HardwareAcceleration.VideoToolbox:
+                // VideoToolbox: Enable hardware-accelerated decoding + encoding
+                // This keeps frames in hardware memory (nv12 format) for better performance
                 command.Append(" -hwaccel videotoolbox");
                 break;
 
@@ -296,6 +298,18 @@ public class MediaEncodingBuilder
 
         if (VideoCrf.HasValue)
         {
+            // VideoToolbox uses -q:v instead of -crf
+            // CRF 0-51 (lower = better) maps to q:v 0-100 (higher = better)
+            // Rough conversion: q:v = 100 - (CRF * 1.96)
+            if (videoCodec.Contains("videotoolbox", StringComparison.OrdinalIgnoreCase))
+            {
+                var quality = Math.Max(0, Math.Min(100, 100 - (VideoCrf.Value * 1.96)));
+                command.Append(
+                    $" -q:v {quality.ToString(CultureInfo.InvariantCulture)}"
+                );
+                return;
+            }
+
             if (!SupportsCrf(videoCodec))
             {
                 throw new NotSupportedException(
@@ -320,24 +334,36 @@ public class MediaEncodingBuilder
 
     private void AppendVideoResolutionArgs(StringBuilder command, string videoCodec)
     {
+        if (string.Equals(videoCodec, "copy", StringComparison.OrdinalIgnoreCase))
+        {
+            if (VideoResolution.HasValue)
+            {
+                throw new InvalidOperationException("Cannot apply scaling when copying the source video stream.");
+            }
+            return;
+        }
+
+        // For VideoToolbox, always add a format filter to ensure hardware encoding
+        // even when no scaling is needed (source resolution)
+        if (HardwareAccel == HardwareAcceleration.VideoToolbox && !VideoResolution.HasValue)
+        {
+            command.Append(" -vf \"format=nv12\"");
+            return;
+        }
+
         if (!VideoResolution.HasValue)
         {
             return;
         }
 
-        if (string.Equals(videoCodec, "copy", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException("Cannot apply scaling when copying the source video stream.");
-        }
-
-        var filter = BuildScaleFilter(VideoResolution.Value);
+        var filter = BuildScaleFilter(VideoResolution.Value, HardwareAccel);
         if (!string.IsNullOrEmpty(filter))
         {
             command.Append($" -vf \"{filter}\"");
         }
     }
 
-    private static string? BuildScaleFilter(EncodingResolution resolution)
+    private static string? BuildScaleFilter(EncodingResolution resolution, HardwareAcceleration hwAccel)
     {
         var targetHeight = resolution switch
         {
@@ -353,6 +379,22 @@ public class MediaEncodingBuilder
             return null;
         }
 
+        // VideoToolbox requires special handling for scaling
+        // When using videotoolbox_vld format, we need to convert back to software for scaling
+        if (hwAccel == HardwareAcceleration.VideoToolbox)
+        {
+            // Use format conversion + scale + back to videotoolbox format
+            return $"format=nv12,scale='if(gt(ih,{targetHeight.Value}),-2,iw)':'if(gt(ih,{targetHeight.Value}),{targetHeight.Value},ih)':flags=lanczos";
+        }
+
+        // VAAPI requires special filter for hardware scaling
+        if (hwAccel == HardwareAcceleration.VAAPI)
+        {
+            // Use scale_vaapi for hardware-accelerated scaling on VAAPI
+            return $"scale_vaapi='if(gt(ih,{targetHeight.Value}),-2,iw)':'if(gt(ih,{targetHeight.Value}),{targetHeight.Value},ih)'";
+        }
+
+        // Default software scaling for other cases
         return $"scale='if(gt(ih,{targetHeight.Value}),-2,iw)':'if(gt(ih,{targetHeight.Value}),{targetHeight.Value},ih)':flags=lanczos";
     }
 
@@ -373,9 +415,9 @@ public class MediaEncodingBuilder
             "libaom-av1" => true,
             "libvpx-vp9" => true,
             "libvpx" => true,
-            // Apple VideoToolbox (supports CRF-style quality control)
-            "h264_videotoolbox" => true,
-            "hevc_videotoolbox" => true,
+            // Apple VideoToolbox does NOT support CRF - uses -q:v instead
+            "h264_videotoolbox" => false,
+            "hevc_videotoolbox" => false,
             _ => false,
         };
     }
