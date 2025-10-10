@@ -162,6 +162,7 @@ public class JellyfinAuthService
             AccessToken = authResponse.Token,
             User = userContract,
             SessionInfo = session,
+            ServerId = _serverId,
         };
     }
 
@@ -173,6 +174,15 @@ public class JellyfinAuthService
             Name = user.Username,
             PrimaryImageTag = null,
             ServerId = _serverId,
+            ServerName = "Haas.Media",
+            HasPassword = true,
+            HasConfiguredPassword = true,
+            EnableAutoLogin = false,
+            LastLoginDate = user.LastLoginAt,
+            LastActivityDate = user.LastLoginAt,
+            Configuration = JellyfinUserConfiguration.Default,
+            Policy = JellyfinUserPolicy.Default,
+            PrimaryImageAspectRatio = null,
         };
     }
 
@@ -193,6 +203,18 @@ public class JellyfinAuthService
             UserName = user.Username,
             ApplicationVersion = version,
             ServerId = _serverId,
+            PlayState = null,
+            RemoteEndPoint = null,
+            PlayableMediaTypes = new[] { "Video", "Audio" },
+            LastActivityDate = DateTime.UtcNow,
+            LastPlaybackCheckIn = null,
+            DeviceType = null,
+            NowPlayingItem = null,
+            IsActive = true,
+            SupportsMediaControl = false,
+            SupportsRemoteControl = false,
+            HasCustomDeviceName = false,
+            SupportedCommands = Array.Empty<string>(),
         };
     }
 

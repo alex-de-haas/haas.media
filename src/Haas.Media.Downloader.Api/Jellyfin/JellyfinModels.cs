@@ -44,6 +44,15 @@ public sealed record JellyfinUserContract
     public required string Name { get; init; }
     public string? PrimaryImageTag { get; init; }
     public string? ServerId { get; init; }
+    public string? ServerName { get; init; }
+    public bool HasPassword { get; init; }
+    public bool HasConfiguredPassword { get; init; }
+    public bool EnableAutoLogin { get; init; }
+    public DateTime? LastLoginDate { get; init; }
+    public DateTime? LastActivityDate { get; init; }
+    public JellyfinUserConfiguration Configuration { get; init; } = JellyfinUserConfiguration.Default;
+    public JellyfinUserPolicy Policy { get; init; } = JellyfinUserPolicy.Default;
+    public double? PrimaryImageAspectRatio { get; init; }
 }
 
 public sealed record JellyfinSessionInfo
@@ -56,6 +65,18 @@ public sealed record JellyfinSessionInfo
     public required string UserName { get; init; }
     public required string ApplicationVersion { get; init; }
     public required string ServerId { get; init; }
+    public JellyfinPlayState? PlayState { get; init; }
+    public string? RemoteEndPoint { get; init; }
+    public string[]? PlayableMediaTypes { get; init; }
+    public DateTime? LastActivityDate { get; init; }
+    public DateTime? LastPlaybackCheckIn { get; init; }
+    public string? DeviceType { get; init; }
+    public JellyfinBaseItemDto? NowPlayingItem { get; init; }
+    public bool IsActive { get; init; }
+    public bool SupportsMediaControl { get; init; }
+    public bool SupportsRemoteControl { get; init; }
+    public bool HasCustomDeviceName { get; init; }
+    public string[]? SupportedCommands { get; init; }
 }
 
 public sealed record JellyfinAuthenticateResponse
@@ -63,6 +84,7 @@ public sealed record JellyfinAuthenticateResponse
     public required string AccessToken { get; init; }
     public required JellyfinUserContract User { get; init; }
     public required JellyfinSessionInfo SessionInfo { get; init; }
+    public required string ServerId { get; init; }
 }
 
 public sealed record JellyfinLibraryItem
@@ -312,3 +334,29 @@ public sealed record JellyfinAccessSchedule
     public string Start { get; init; } = "00:00";
     public string End { get; init; } = "23:59";
 }
+
+public sealed record JellyfinPlayState
+{
+    public long PositionTicks { get; init; }
+    public bool CanSeek { get; init; }
+    public bool IsPaused { get; init; }
+    public bool IsMuted { get; init; }
+    public int VolumeLevel { get; init; } = 100;
+    public int? AudioStreamIndex { get; init; }
+    public int? SubtitleStreamIndex { get; init; }
+    public string? MediaSourceId { get; init; }
+    public string PlayMethod { get; init; } = "DirectPlay";
+    public string RepeatMode { get; init; } = "RepeatNone";
+    public string PlaybackOrder { get; init; } = "Default";
+}
+
+public sealed record JellyfinBaseItemDto
+{
+    public required string Id { get; init; }
+    public required string Name { get; init; }
+    public string? OriginalTitle { get; init; }
+    public string? ServerId { get; init; }
+    public string? Type { get; init; }
+    public string? MediaType { get; init; }
+}
+
