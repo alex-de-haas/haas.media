@@ -32,6 +32,7 @@ src/Haas.Media.Downloader.Api/Authentication/
 - **JWT Tokens**: Self-signed JWT tokens for stateless authentication
 - **User Store**: LiteDB-based user storage
 - **Validation**: Username (min 3 chars), email format, password (min 8 chars)
+- **Admin Role**: First registered user is automatically marked as admin
 
 ### API Endpoints
 
@@ -141,17 +142,21 @@ Users are stored in LiteDB at `{DATA_DIRECTORY}/.db/common.db` in the `users` co
   "username": "string",
   "email": "string",
   "passwordHash": "bcrypt hash",
+  "isAdmin": "boolean",
   "createdAt": "datetime",
   "lastLoginAt": "datetime"
 }
 ```
+
+**Note:** The first user registered in the system is automatically granted admin privileges (`isAdmin: true`).
 
 ## Future Enhancements
 
 - [ ] Email verification
 - [ ] Password reset flow
 - [ ] Rate limiting on auth endpoints
-- [ ] User roles and permissions
+- [x] User roles and permissions (first user is admin)
+- [ ] Additional role management UI
 - [ ] Session management
 - [ ] Remember me functionality
 - [ ] Account lockout after failed attempts

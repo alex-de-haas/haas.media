@@ -147,8 +147,17 @@ Each user has:
 - `username` (unique, min 3 chars)
 - `email` (unique, validated)
 - `passwordHash` (BCrypt)
+- `isAdmin` (boolean, true for first registered user)
 - `createdAt` (UTC timestamp)
 - `lastLoginAt` (UTC timestamp, nullable)
+
+## Admin Role
+
+The first user registered in the system is automatically granted admin privileges. This is tracked via:
+
+- `IsAdmin` property on the `User` model
+- `Role` claim in JWT tokens (`Admin` or `User`)
+- `IsAdministrator` flag in Jellyfin user policy for compatibility
 
 ## Future Enhancements
 
@@ -158,6 +167,6 @@ Consider adding:
 - Password reset functionality
 - Rate limiting on auth endpoints
 - Account lockout after failed attempts
-- User roles and permissions
+- Additional role management UI
 - Session management
 - Audit logging

@@ -45,12 +45,16 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
         // Hash password
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, WorkFactor);
 
+        // Check if this is the first user
+        var isFirstUser = _users.Count() == 0;
+
         // Create user
         var user = new User
         {
             Username = request.Username,
             Email = request.Email,
             PasswordHash = passwordHash,
+            IsAdmin = isFirstUser,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -58,7 +62,7 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
         _users.EnsureIndex(u => u.Username);
         _users.EnsureIndex(u => u.Email);
 
-        logger.LogInformation("User registered: {Username}", user.Username);
+        logger.LogInformation("User registered: {Username} (Admin: {IsAdmin})", user.Username, user.IsAdmin);
 
         // Generate token
         var token = GenerateJwtToken(user);
@@ -136,7 +140,8 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim("auth_type", "local")
+            new Claim("auth_type", "local"),
+            new Claim(ClaimTypes.Role, user.IsAdmin ? "Admin" : "User")
         };
 
         var token = new JwtSecurityToken(

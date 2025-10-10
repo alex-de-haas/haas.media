@@ -168,6 +168,10 @@ public class JellyfinAuthService
 
     public JellyfinUserContract CreateUserContract(User user)
     {
+        var policy = user.IsAdmin
+            ? JellyfinUserPolicy.Default with { IsAdministrator = true }
+            : JellyfinUserPolicy.Default;
+
         return new JellyfinUserContract
         {
             Id = user.Id,
@@ -181,7 +185,7 @@ public class JellyfinAuthService
             LastLoginDate = user.LastLoginAt,
             LastActivityDate = user.LastLoginAt,
             Configuration = JellyfinUserConfiguration.Default,
-            Policy = JellyfinUserPolicy.Default,
+            Policy = policy,
             PrimaryImageAspectRatio = null,
         };
     }
