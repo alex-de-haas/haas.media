@@ -1,14 +1,16 @@
 # Haas.Media - AI Agent Instructions
 
+> A modern media management platform combining .NET 9 backend with Next.js 15 frontend, orchestrated by .NET Aspire. Supports torrent downloads, FFmpeg-based video encoding with hardware acceleration, metadata management via TMDb, and real-time updates through SignalR.
+
 ## Architecture Overview
 
 **Tech Stack:** Hybrid .NET 9 backend + Next.js 15 frontend with .NET Aspire orchestration
 
 ### Service Boundaries
 
-- **Haas.Media.Downloader.Api** - Main API backend (torrents, files, encoding, metadata)
-- **Haas.Media.Core** - Shared FFmpeg utilities, media analysis, and encoding builders
-- **Haas.Media.Web** - Next.js frontend (App Router, React 18, TypeScript)
+- **Haas.Media.Downloader.Api** - Main API backend (torrents, files, encoding, metadata, Jellyfin compatibility)
+- **Haas.Media.Core** - Shared FFmpeg utilities (`MediaEncodingBuilder`), media analysis, hardware acceleration detection
+- **Haas.Media.Web** - Next.js frontend (App Router, React 18, TypeScript, Jotai state, ShadCN UI)
 - **Haas.Media.Aspire** - Orchestrates services using `AppHost.cs` with Docker Compose integration
 - **Haas.Media.ServiceDefaults** - Shared telemetry, health checks, and service configurations
 
@@ -20,27 +22,60 @@ Frontend (Next.js) → API (/api/*) → Background Tasks → SignalR Hub → Rea
                               LiteDB + File System (DATA_DIRECTORY)
 ```
 
+**Key Interaction:** All long-running operations (encoding, metadata scans, torrent downloads) run through the unified background task system, broadcasting status via SignalR to maintain live UI updates.
+
 ## Critical Patterns
 
 ### 1. Background Task Infrastructure
 
 **Location:** `src/Haas.Media.Downloader.Api/Infrastructure/BackgroundTasks/`
 
-All long-running operations (encoding, metadata scans, file copies) use a unified background task system:
+All long-running operations (encoding, metadata scans, file copies) use a unified background task system with automatic SignalR broadcasting:
 
-- **Create tasks** by extending `BackgroundTaskBase` (defines `Id`, `Type`, `Name`)
-- **Implement executors** via `IBackgroundTaskExecutor<TTask, TPayload>` interface
-- **Register** with `builder.Services.AddBackgroundTask<TTask, TPayload, TExecutor>()`
-- **Execute** via `IBackgroundTaskManager.RunTask<TTask, TPayload>(task)`
-- **Track** via SignalR hub at `/hub/background-tasks` - auto-broadcasts updates to connected clients
+**Creating a new background task:**
 
-**Key files:**
+1. **Define task** by extending `BackgroundTaskBase`:
+   ```csharp
+   public sealed record MyTask : BackgroundTaskBase
+   {
+       public MyTask() : base("MyTask", "my-task", "My Task Display Name") { }
+   }
+   ```
 
-- `BackgroundTaskManager.cs` - Singleton manager, runs as IHostedService
-- `BackgroundWorkerContext.cs` - Provides task, state, cancellation, and progress reporting
-- `BackgroundTaskHub.cs` - SignalR hub replays active tasks on connect
+2. **Create payload** (data needed during execution):
+   ```csharp
+   public sealed record MyTaskPayload(string FilePath, bool SomeOption);
+   ```
 
-**Example:** `EncodingTask` (task) → `EncodingTaskExecutor` (worker) → Registered in `EncodingConfiguration.cs`
+3. **Implement executor** via `IBackgroundTaskExecutor<TTask, TPayload>`:
+   ```csharp
+   public class MyTaskExecutor : IBackgroundTaskExecutor<MyTask, MyTaskPayload>
+   {
+       public async Task ExecuteAsync(BackgroundWorkerContext<MyTaskPayload> context, CancellationToken cancellationToken)
+       {
+           context.ReportProgress(50, "Processing...");
+           // Do work
+           context.Complete();
+       }
+   }
+   ```
+
+4. **Register in feature configuration**:
+   ```csharp
+   builder.Services.AddBackgroundTask<MyTask, MyTaskPayload, MyTaskExecutor>();
+   ```
+
+5. **Execute** via `IBackgroundTaskManager`:
+   ```csharp
+   var taskId = _taskManager.RunTask<MyTask, MyTaskPayload>(task);
+   ```
+
+**Key features:**
+- SignalR hub (`/hub/background-tasks`) auto-broadcasts task updates (200ms throttle to prevent flooding)
+- `BackgroundTaskHub` replays active tasks on client connect
+- `BackgroundWorkerContext` provides progress reporting, cancellation, and state management
+
+**Example:** `EncodingTask` → `EncodingTaskExecutor` → Registered in `EncodingConfiguration.cs`
 
 ### 2. Feature Module Pattern (.NET API)
 
@@ -64,9 +99,27 @@ Each domain (Torrents, Encodings, Files, Metadata) follows this structure:
 - **Direct streaming** (default) - Range requests supported, seeking enabled, original quality
 - **Transcoded streaming** (`?transcode=true`) - On-the-fly FFmpeg transcoding via `pipe:1`, NO range requests, NO seeking
 
-**Encoding:** Use `MediaEncodingBuilder` (fluent API) in `Haas.Media.Core` for quality presets, hardware acceleration (VAAPI, NVENC, QSV), and codec selection.
+**Encoding:** Use `MediaEncodingBuilder` fluent API in `Haas.Media.Core`:
 
-**Critical:** FFmpeg path configured via `FFMPEG_BINARY` env var, set in `GlobalFFOptions.Configure()` during startup
+```csharp
+var builder = MediaEncodingBuilder.Create()
+    .FromFileInput(inputPath)
+    .ToFileOutput(outputPath)
+    .WithAutoHardwareAcceleration()  // Auto-detects VAAPI/NVENC/QSV/AMF/VideoToolbox
+    .WithQualityPreset(QualityPreset.High)
+    .WithVideoCodec(StreamCodec.H264)
+    .CopyAllAudioStreams()
+    .CopyAllSubtitleStreams();
+
+var arguments = builder.Build();
+```
+
+**Hardware acceleration detection:**
+- `HardwareAccelerationInfo.DetectAvailable()` probes system capabilities
+- VAAPI: Validates device exists (`/dev/dri/renderD128`, `/dev/dri/renderD129`, etc.)
+- Auto mode: Picks best available (NVENC > VAAPI > QSV > AMF > VideoToolbox > None)
+
+**Critical:** FFmpeg path configured via `FFMPEG_BINARY` env var, set in `GlobalFFOptions.Configure()` during startup in feature configurations (e.g., `EncodingConfiguration.cs`)
 
 ### 4. Feature-Based Structure (Next.js)
 
@@ -76,9 +129,11 @@ Each domain (Torrents, Encodings, Files, Metadata) follows this structure:
 features/
   ├── <feature>/
       ├── components/      # Feature-specific UI components
-      ├── hooks/          # Feature-specific hooks
+      ├── hooks/           # Feature-specific hooks (e.g., useMetadataSignalR)
       └── api calls or utilities
 ```
+
+**Available features:** `auth/`, `background-tasks/`, `files/`, `libraries/`, `media/`, `torrent/`
 
 Shared components live in `src/Haas.Media.Web/components/` (ShadCN UI components + layouts)
 
@@ -86,10 +141,25 @@ Shared components live in `src/Haas.Media.Web/components/` (ShadCN UI components
 
 **Pattern:** Frontend hooks (`useMetadataSignalR`, `useTorrentSignalR`) connect to hubs:
 
-- `/hub/background-tasks` - Task status updates
+- `/hub/background-tasks` - Task status updates (throttled to 200ms)
 - `/hub/torrents` - Torrent progress updates
 
-**Auth:** JWT token passed via query string (`?access_token=...`) for WebSocket upgrade
+**Auth:** JWT token passed via query string (`?access_token=...`) for WebSocket upgrade. Configured in `Program.cs`:
+
+```csharp
+options.Events = new JwtBearerEvents
+{
+    OnMessageReceived = context =>
+    {
+        var accessToken = context.Request.Query["access_token"];
+        if (!string.IsNullOrEmpty(accessToken) && context.HttpContext.Request.Path.StartsWithSegments("/hub"))
+        {
+            context.Token = accessToken!;
+        }
+        return Task.CompletedTask;
+    }
+};
+```
 
 ## Developer Workflows
 
@@ -174,12 +244,20 @@ Types: feat, fix, refactor, perf, docs, test, build, ci, chore, revert
 - **Backend:** JWT validation in `Program.cs`, supports query string tokens for SignalR
 - **Frontend:** Local auth context in `features/auth/local-auth-context.tsx`, middleware in `middleware.ts`
 - **Storage:** User credentials stored in LiteDB
+- **Env vars:** `JWT_SECRET` (required), `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_EXPIRATION_MINUTES`
 
 ### TMDB Metadata
 
 - **Service:** `TMDbLib.Client` in metadata scanning tasks
 - **Rate limiting:** Implements throttling in `BackgroundTaskManager` (200ms broadcast throttle)
 - **Docs:** See `docs/backend/tmdb-throttling.md` and `docs/backend/theatrical-release-dates.md`
+
+### Jellyfin Compatibility
+
+- **Location:** `src/Haas.Media.Downloader.Api/Jellyfin/`
+- **Purpose:** Provides Jellyfin-compatible endpoints for sidecar clients (Infuse, etc.)
+- **Models:** `JellyfinModels.cs` mirrors Jellyfin API structures
+- **Service:** `JellyfinService.cs` translates internal data to Jellyfin format
 
 ### Hardware Acceleration
 
