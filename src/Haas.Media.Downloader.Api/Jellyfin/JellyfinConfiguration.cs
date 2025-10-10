@@ -10,6 +10,7 @@ public static class JellyfinConfiguration
     {
         PropertyNamingPolicy = null,
         DictionaryKeyPolicy = null,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
     };
 
     private static readonly JsonSerializerOptions LoggingJsonOptions = new(ResponseJsonOptions)

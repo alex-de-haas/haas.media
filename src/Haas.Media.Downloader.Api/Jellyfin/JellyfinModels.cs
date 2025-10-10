@@ -130,8 +130,7 @@ public sealed record JellyfinItem
     public long? RunTimeTicks { get; init; }
     public IReadOnlyDictionary<string, string>? ImageTags { get; init; }
     public IReadOnlyDictionary<string, string>? BackdropImageTags { get; init; }
-    public IReadOnlyList<JellyfinMediaSource> MediaSources { get; init; } =
-        Array.Empty<JellyfinMediaSource>();
+    public IReadOnlyList<JellyfinMediaSource>? MediaSources { get; init; }
     public JellyfinUserData? UserData { get; init; }
     public int? ChildCount { get; init; }
     public string? ParentIndexNumberName { get; init; }

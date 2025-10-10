@@ -192,7 +192,6 @@ public class JellyfinService
                 Overview = library.Description,
                 ServerId = _serverId,
                 Genres = null,
-                MediaSources = Array.Empty<JellyfinMediaSource>(),
                 UserData = new JellyfinUserData { Played = false },
             };
         }
@@ -513,9 +512,7 @@ public class JellyfinService
             MediaType = "Folder",
             ParentId = null,
             IsFolder = true,
-            Overview = null,
             ServerId = _serverId,
-            MediaSources = [],
             UserData = new JellyfinUserData { Played = false },
             ChildCount = library.ChildCount,
         };
@@ -592,7 +589,6 @@ public class JellyfinService
             RunTimeTicks = null,
             ImageTags = posterTags,
             BackdropImageTags = backdropTags,
-            MediaSources = Array.Empty<JellyfinMediaSource>(),
             UserData = new JellyfinUserData { Played = false },
             Genres = metadata.Genres,
         };
@@ -625,7 +621,6 @@ public class JellyfinService
             RunTimeTicks = null,
             ImageTags = imageTags,
             BackdropImageTags = null,
-            MediaSources = Array.Empty<JellyfinMediaSource>(),
             UserData = new JellyfinUserData { Played = false },
             ParentIndexNumberName = metadata.Title,
             IndexNumber = season?.SeasonNumber ?? seasonNumber,
