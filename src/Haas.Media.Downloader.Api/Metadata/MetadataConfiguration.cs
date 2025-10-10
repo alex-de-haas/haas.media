@@ -225,9 +225,16 @@ public static class MetadataConfiguration
         // FileMetadata endpoints
         app.MapGet(
                 "api/metadata/files",
-                async (IMetadataApi metadataService, string? libraryId = null, string? mediaId = null) =>
+                async (
+                    IMetadataApi metadataService,
+                    string? libraryId = null,
+                    string? mediaId = null
+                ) =>
                 {
-                    var fileMetadata = await metadataService.GetFileMetadataAsync(libraryId, mediaId);
+                    var fileMetadata = await metadataService.GetFileMetadataAsync(
+                        libraryId,
+                        mediaId
+                    );
                     return Results.Ok(fileMetadata);
                 }
             )
@@ -249,8 +256,13 @@ public static class MetadataConfiguration
                 "api/metadata/files",
                 async (FileMetadata fileMetadata, IMetadataApi metadataService) =>
                 {
-                    var createdFileMetadata = await metadataService.AddFileMetadataAsync(fileMetadata);
-                    return Results.Created($"api/metadata/files/{createdFileMetadata.Id}", createdFileMetadata);
+                    var createdFileMetadata = await metadataService.AddFileMetadataAsync(
+                        fileMetadata
+                    );
+                    return Results.Created(
+                        $"api/metadata/files/{createdFileMetadata.Id}",
+                        createdFileMetadata
+                    );
                 }
             )
             .WithName("AddFileMetadata")
@@ -271,7 +283,10 @@ public static class MetadataConfiguration
                 "api/metadata/movies/{id}/files",
                 async (IMetadataApi metadataService, int id) =>
                 {
-                    var fileMetadata = await metadataService.GetFilesByMediaIdAsync(id.ToString(), LibraryType.Movies);
+                    var fileMetadata = await metadataService.GetFilesByMediaIdAsync(
+                        id.ToString(),
+                        LibraryType.Movies
+                    );
                     return Results.Ok(fileMetadata);
                 }
             )
@@ -282,7 +297,10 @@ public static class MetadataConfiguration
                 "api/metadata/tvshows/{id}/files",
                 async (IMetadataApi metadataService, int id) =>
                 {
-                    var fileMetadata = await metadataService.GetFilesByMediaIdAsync(id.ToString(), LibraryType.TVShows);
+                    var fileMetadata = await metadataService.GetFilesByMediaIdAsync(
+                        id.ToString(),
+                        LibraryType.TVShows
+                    );
                     return Results.Ok(fileMetadata);
                 }
             )
@@ -313,19 +331,8 @@ public static class MetadataConfiguration
                 "api/metadata/add-to-library",
                 async (AddToLibraryRequest request, IMetadataApi metadataService) =>
                 {
-                    try
-                    {
-                        var result = await metadataService.AddToLibraryAsync(request);
-                        return Results.Ok(result);
-                    }
-                    catch (ArgumentException ex)
-                    {
-                        return Results.BadRequest(new { message = ex.Message });
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        return Results.Conflict(new { message = ex.Message });
-                    }
+                    var result = await metadataService.AddToLibraryAsync(request);
+                    return Results.Ok(result);
                 }
             )
             .WithName("AddToLibrary")

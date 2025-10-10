@@ -294,7 +294,7 @@ public class MetadataService : IMetadataApi
             "Queueing add-to-library request: LibraryId={LibraryId}, Type={Type}, TmdbId={TmdbId}",
             request.LibraryId,
             request.Type,
-            request.TmdbId
+            request.Id
         );
 
         var library = await GetLibraryAsync(request.LibraryId);
@@ -310,7 +310,7 @@ public class MetadataService : IMetadataApi
             );
         }
 
-        if (!int.TryParse(request.TmdbId, out var tmdbId))
+        if (!int.TryParse(request.Id, out var tmdbId))
         {
             throw new ArgumentException("Invalid TMDB ID format. Must be a valid integer.");
         }
