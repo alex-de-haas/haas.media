@@ -10,6 +10,7 @@ public record EncodeRequest
     public required Stream[] Streams { get; init; }
     public long? VideoBitrate { get; init; }
     public double? Crf { get; init; }
+    public EncodingResolution? Resolution { get; init; }
 
     public record Stream
     {

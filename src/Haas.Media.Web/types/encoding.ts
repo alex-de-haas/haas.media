@@ -34,6 +34,7 @@ export interface EncodeRequest {
   streams: EncodeRequestStream[];
   videoBitrate?: number | null;
   crf?: number | null;
+  resolution?: EncodingResolution | null;
 }
 
 export interface EncodeRequestStream {
@@ -51,6 +52,14 @@ export enum HardwareAcceleration {
   VideoToolbox = 4,
   VAAPI = 5,
   Auto = 99,
+}
+
+export enum EncodingResolution {
+  Source = 0,
+  SD = 1,
+  HD = 2,
+  FHD = 3,
+  UHD4K = 4,
 }
 
 export function isHardwareAccelerationInfo(value: unknown): value is HardwareAccelerationInfo {

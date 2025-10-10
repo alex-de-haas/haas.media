@@ -12,7 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { HardwareAcceleration } from "@/types/encoding";
+import { HardwareAcceleration, EncodingResolution } from "@/types/encoding";
 import { StreamCodec } from "@/types/media-info";
 import { Loader2, PlayCircle } from "lucide-react";
 
@@ -37,6 +37,7 @@ export default function MediaInfoPage({ params }: PageProps) {
   const [qualityMode, setQualityMode] = React.useState<"auto" | "bitrate" | "crf">("auto");
   const [videoBitrate, setVideoBitrate] = React.useState<string>("");
   const [crf, setCrf] = React.useState<string>("23");
+  const [resolution, setResolution] = React.useState<EncodingResolution | null>(null);
 
   const selectedHardwareInfo = React.useMemo(() => {
     return hardwareAccelerations?.find((hw) => hw.hardwareAcceleration === hardwareAccel);
@@ -60,6 +61,7 @@ export default function MediaInfoPage({ params }: PageProps) {
     availableDevices,
     parsedVideoBitrate,
     parsedCrf,
+    resolution,
   );
 
   const availableCodecs = React.useMemo(() => {
@@ -223,6 +225,30 @@ export default function MediaInfoPage({ params }: PageProps) {
                       No codecs available
                     </SelectItem>
                   )}
+                </SelectContent>
+              </Select>
+            </ControlField>
+
+            <ControlField label="Resolution" helper="Downscale the output video to a target height; source is kept when smaller.">
+              <Select
+                value={resolution === null ? "source" : String(resolution)}
+                onValueChange={(value) => {
+                  if (value === "source") {
+                    setResolution(null);
+                  } else {
+                    setResolution(Number(value) as EncodingResolution);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Keep source resolution" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="source">Source</SelectItem>
+                  <SelectItem value={String(EncodingResolution.SD)}>SD (480p)</SelectItem>
+                  <SelectItem value={String(EncodingResolution.HD)}>HD (720p)</SelectItem>
+                  <SelectItem value={String(EncodingResolution.FHD)}>FHD (1080p)</SelectItem>
+                  <SelectItem value={String(EncodingResolution.UHD4K)}>4K (2160p)</SelectItem>
                 </SelectContent>
               </Select>
             </ControlField>

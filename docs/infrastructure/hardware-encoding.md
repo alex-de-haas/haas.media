@@ -124,6 +124,19 @@ foreach (var info in hwInfo)
 
 This information is exposed via the `/api/encodings/info` endpoint for frontend consumption.
 
+## Resolution Scaling
+
+Use `WithVideoResolution()` to ask the builder to downscale output video to one of the predefined heights while preserving aspect ratio (and skipping upscale when the source is already smaller). Accepted values are `EncodingResolution.SD` (480p), `EncodingResolution.HD` (720p), `EncodingResolution.FHD` (1080p), and `EncodingResolution.UHD4K` (2160p). Passing `EncodingResolution.Source` or omitting the call keeps the original resolution.
+
+```csharp
+await MediaEncodingBuilder.Create()
+    .FromFileInput("input.mp4")
+    .ToFileOutput("output-720p.mp4")
+    .WithVideoCodec(StreamCodec.H264)
+    .WithVideoResolution(EncodingResolution.HD)
+    .EncodeAsync();
+```
+
 ## VAAPI Device Guardrails
 
 When VAAPI is requested, the builder validates the supplied or auto-detected device path. Missing devices throw `InvalidOperationException`. The search order is `/dev/dri/renderD128`, `renderD129`, `card0`, `card1`.

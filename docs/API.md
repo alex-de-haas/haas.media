@@ -22,7 +22,7 @@ The Haas.Media backend exposes REST endpoints grouped by domain. Every endpoint 
 
 - `GET /api/encodings` — list active encoding jobs. Response includes job id, status, target files, and configured codecs.
 - `GET /api/encodings/info?path=<relative-or-absolute>` — inspect a directory or media file and return detected streams.
-- `POST /api/encodings` — start an encode job. Body follows `EncodeRequest` (source path, destination path, selected streams, codecs, optional hardware acceleration hints).
+- `POST /api/encodings` — start an encode job. Body follows `EncodeRequest` (source path, destination path, selected streams, codecs, optional hardware acceleration hints, optional resolution target of SD/HD/FHD/4K).
 - `DELETE /api/encodings/{id}` — stop a running job and remove it from the queue.
 - SignalR: `/hub/encodings` broadcasts job state transitions and progress percentage.
 

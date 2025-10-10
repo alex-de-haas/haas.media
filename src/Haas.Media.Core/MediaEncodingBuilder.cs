@@ -30,6 +30,7 @@ public class MediaEncodingBuilder
     protected bool VideoBitrateExplicitlySet { get; set; }
     protected double? VideoCrf { get; set; }
     protected bool VideoCrfExplicitlySet { get; set; }
+    protected EncodingResolution? VideoResolution { get; set; }
 
     public static MediaEncodingBuilder Create()
     {
@@ -131,6 +132,12 @@ public class MediaEncodingBuilder
         return this;
     }
 
+    public MediaEncodingBuilder WithVideoResolution(EncodingResolution resolution)
+    {
+        VideoResolution = resolution == EncodingResolution.Source ? null : resolution;
+        return this;
+    }
+
     public MediaEncodingBuilder WithStream(MediaInfo.Stream stream)
     {
         Streams.Add(stream);
@@ -192,6 +199,7 @@ public class MediaEncodingBuilder
         var videoCodec = GetFFMpegCodec(VideoCodec, HardwareAccel);
         command.Append($" -c:v {videoCodec}");
 
+        AppendVideoResolutionArgs(command, videoCodec);
         AppendVideoQualityArgs(command, videoCodec);
 
         command.Append(" -c:a copy");
@@ -308,6 +316,44 @@ public class MediaEncodingBuilder
                 $" -b:v {Math.Max(1, resolvedBitrate.Value).ToString(CultureInfo.InvariantCulture)}"
             );
         }
+    }
+
+    private void AppendVideoResolutionArgs(StringBuilder command, string videoCodec)
+    {
+        if (!VideoResolution.HasValue)
+        {
+            return;
+        }
+
+        if (string.Equals(videoCodec, "copy", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Cannot apply scaling when copying the source video stream.");
+        }
+
+        var filter = BuildScaleFilter(VideoResolution.Value);
+        if (!string.IsNullOrEmpty(filter))
+        {
+            command.Append($" -vf \"{filter}\"");
+        }
+    }
+
+    private static string? BuildScaleFilter(EncodingResolution resolution)
+    {
+        var targetHeight = resolution switch
+        {
+            EncodingResolution.SD => 480,
+            EncodingResolution.HD => 720,
+            EncodingResolution.FHD => 1080,
+            EncodingResolution.UHD4K => 2160,
+            _ => (int?)null,
+        };
+
+        if (!targetHeight.HasValue)
+        {
+            return null;
+        }
+
+        return $"scale='if(gt(ih,{targetHeight.Value}),-2,iw)':'if(gt(ih,{targetHeight.Value}),{targetHeight.Value},ih)':flags=lanczos";
     }
 
     /// <summary>

@@ -45,6 +45,11 @@ internal sealed class EncodingTaskExecutor : IBackgroundTaskExecutor<EncodingTas
             builder.WithVideoConstantRateFactor(task.Crf.Value);
         }
 
+        if (task.Resolution.HasValue)
+        {
+            builder.WithVideoResolution(task.Resolution.Value);
+        }
+
         MediaInfo.Stream? videoStream = null;
         string? videoSourceFilePath = null;
         foreach (var sourceFilePath in sourceFilePaths)

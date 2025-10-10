@@ -126,7 +126,8 @@ public class EncodingService : IEncodingApi
                 request.HardwareAcceleration,
                 request.Device,
                 request.VideoBitrate,
-                request.Crf
+                request.Crf,
+                request.Resolution
             );
 
             var taskId = _backgroundTaskManager.RunTask<EncodingTask, EncodingProcessInfo>(

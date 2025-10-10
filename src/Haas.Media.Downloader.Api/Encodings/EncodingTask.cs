@@ -12,7 +12,8 @@ public sealed class EncodingTask : BackgroundTaskBase
         HardwareAcceleration hardwareAcceleration,
         string? device,
         long? videoBitrate = null,
-        double? crf = null
+        double? crf = null,
+        EncodingResolution? resolution = null
     )
     {
         OutputPath = outputPath ?? throw new ArgumentNullException(nameof(outputPath));
@@ -22,6 +23,7 @@ public sealed class EncodingTask : BackgroundTaskBase
         Device = device;
         VideoBitrate = videoBitrate;
         Crf = crf;
+        Resolution = resolution;
     }
 
     public override string Name => "Encode media file";
@@ -39,6 +41,8 @@ public sealed class EncodingTask : BackgroundTaskBase
     public long? VideoBitrate { get; }
 
     public double? Crf { get; }
+
+    public EncodingResolution? Resolution { get; }
 
     public sealed class Stream
     {

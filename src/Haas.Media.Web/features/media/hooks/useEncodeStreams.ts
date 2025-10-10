@@ -5,7 +5,7 @@ import { fetchWithAuth } from "@/lib/auth/fetch-with-auth";
 import { downloaderApi } from "@/lib/api";
 import type { MediaFileInfo } from "@/types/media-file-info";
 import type { EncodeRequest } from "@/types/encoding";
-import { HardwareAcceleration } from "@/types/encoding";
+import { HardwareAcceleration, EncodingResolution } from "@/types/encoding";
 import { StreamCodec } from "@/types/media-info";
 
 export function useEncodeStreams(
@@ -18,6 +18,7 @@ export function useEncodeStreams(
   availableDevices?: string[],
   videoBitrate?: number | null,
   crf?: number | null,
+  resolution?: EncodingResolution | null,
 ) {
   const [encoding, setEncoding] = React.useState(false);
   const [encodeError, setEncodeError] = React.useState<string | null>(null);
@@ -65,6 +66,7 @@ export function useEncodeStreams(
         device: device || null,
         videoBitrate: videoBitrate || null,
         crf: crf || null,
+        resolution: resolution ?? null,
       };
 
       const res = await fetchWithAuth(`${downloaderApi}/api/encodings`, {
@@ -87,7 +89,7 @@ export function useEncodeStreams(
     } finally {
       setEncoding(false);
     }
-  }, [path, mediaFiles, selectedStreams, hardwareAcceleration, videoCodec, device, availableDevices, videoBitrate, crf, encoding]);
+  }, [path, mediaFiles, selectedStreams, hardwareAcceleration, videoCodec, device, availableDevices, videoBitrate, crf, resolution, encoding]);
 
   return { encodeAll, encoding, encodeError } as const;
 }
