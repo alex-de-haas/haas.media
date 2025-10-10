@@ -553,6 +553,7 @@ internal sealed class MetadataScanTaskExecutor
                 {
                     var fileMetadata = new FileMetadata
                     {
+                        Id = ObjectId.NewObjectId().ToString(),
                         LibraryId = libraryId,
                         MediaId = tmdbTvShowId.ToString(),
                         MediaType = LibraryType.TVShows,
@@ -860,6 +861,7 @@ internal sealed class MetadataScanTaskExecutor
                     {
                         var fileMetadata = new FileMetadata
                         {
+                            Id = ObjectId.NewObjectId().ToString(),
                             LibraryId = library.Id!,
                             MediaId = movieMetadata.Id.ToString(),
                             MediaType = LibraryType.Movies,

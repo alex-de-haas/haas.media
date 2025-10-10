@@ -12,7 +12,7 @@ public class FileMetadata
     /// Unique identifier for this file metadata record.
     /// </summary>
     [BsonId]
-    public string? Id { get; set; }
+    public required string Id { get; set; }
     
     /// <summary>
     /// The library this file belongs to.
