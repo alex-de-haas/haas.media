@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { HardwareAcceleration, EncodingResolution } from "@/types/encoding";
-import { StreamCodec } from "@/types/media-info";
+import { StreamCodec, StreamType } from "@/types/media-info";
+import type { MediaStream as MediaInfoStream } from "@/types/media-info";
 import { Loader2, PlayCircle } from "lucide-react";
 
 interface PageProps {
@@ -39,6 +40,23 @@ export default function MediaInfoPage({ params }: PageProps) {
   const [crf, setCrf] = React.useState<string>("23");
   const [resolution, setResolution] = React.useState<EncodingResolution | null>(null);
 
+  const selectedVideoStreams = React.useMemo<MediaInfoStream[]>(() => {
+    if (!mediaFiles) return [];
+    const videoStreams: MediaInfoStream[] = [];
+    for (const file of mediaFiles) {
+      const selection = selectedStreams[file.relativePath];
+      if (!selection || selection.size === 0) continue;
+      const fileStreams = file.mediaInfo?.streams ?? [];
+      selection.forEach((index) => {
+        const stream = fileStreams.find((s) => s.index === index);
+        if (stream && stream.type === StreamType.Video) {
+          videoStreams.push(stream);
+        }
+      });
+    }
+    return videoStreams;
+  }, [mediaFiles, selectedStreams]);
+
   const selectedHardwareInfo = React.useMemo(() => {
     return hardwareAccelerations?.find((hw) => hw.hardwareAcceleration === hardwareAccel);
   }, [hardwareAccelerations, hardwareAccel]);
@@ -51,6 +69,49 @@ export default function MediaInfoPage({ params }: PageProps) {
   const parsedVideoBitrate = qualityMode === "bitrate" && videoBitrate ? parseInt(videoBitrate, 10) : null;
   const parsedCrf = qualityMode === "crf" && crf ? parseFloat(crf) : null;
 
+  const targetOutputHeight = React.useMemo(() => {
+    const resolutionHeight = getResolutionHeight(resolution);
+    if (resolutionHeight) {
+      return resolutionHeight;
+    }
+    let maxHeight = 0;
+    for (const stream of selectedVideoStreams) {
+      const inferred = inferHeightFromStream(stream);
+      if (inferred && inferred > maxHeight) {
+        maxHeight = inferred;
+      }
+    }
+    return maxHeight > 0 ? maxHeight : null;
+  }, [resolution, selectedVideoStreams]);
+
+  const autoQuality = React.useMemo(
+    () => {
+      if (qualityMode !== "auto") {
+        return { videoBitrate: null as number | null, crf: null as number | null };
+      }
+
+      const height = targetOutputHeight;
+      if (!height) {
+        return { videoBitrate: null, crf: null };
+      }
+
+      const defaults = getAutoQualityDefaults(height);
+      const encoderCrfSupport = selectedHardwareInfo?.encoderCrfSupport?.[videoCodec];
+      const canUseCrf =
+        encoderCrfSupport === true || (!selectedHardwareInfo && hardwareAccel === HardwareAcceleration.None);
+
+      if (canUseCrf) {
+        return { videoBitrate: null, crf: defaults.crf };
+      }
+
+      return { videoBitrate: defaults.bitrate, crf: null };
+    },
+    [qualityMode, targetOutputHeight, selectedHardwareInfo, videoCodec, hardwareAccel],
+  );
+
+  const effectiveVideoBitrate = qualityMode === "bitrate" ? parsedVideoBitrate : autoQuality.videoBitrate;
+  const effectiveCrf = qualityMode === "crf" ? parsedCrf : autoQuality.crf;
+
   const { encodeAll, encoding, encodeError } = useEncodeStreams(
     decodedPath,
     mediaFiles,
@@ -59,8 +120,8 @@ export default function MediaInfoPage({ params }: PageProps) {
     videoCodec,
     device,
     availableDevices,
-    parsedVideoBitrate,
-    parsedCrf,
+    effectiveVideoBitrate,
+    effectiveCrf,
     resolution,
   );
 
@@ -379,4 +440,56 @@ function ControlField({ label, helper, children }: { label: string; helper?: str
       {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
     </div>
   );
+}
+
+function getResolutionHeight(resolution: EncodingResolution | null): number | null {
+  switch (resolution) {
+    case EncodingResolution.SD:
+      return 480;
+    case EncodingResolution.HD:
+      return 720;
+    case EncodingResolution.FHD:
+      return 1080;
+    case EncodingResolution.UHD4K:
+      return 2160;
+    case EncodingResolution.Source:
+      return null;
+    default:
+      return null;
+  }
+}
+
+function inferHeightFromStream(stream: MediaInfoStream): number | null {
+  const { height, width } = stream;
+  if (typeof height === "number" && height > 0) {
+    return height;
+  }
+  if (typeof width === "number" && width > 0) {
+    if (width >= 3840) return 2160;
+    if (width >= 2560) return 1440;
+    if (width >= 1920) return 1080;
+    if (width >= 1280) return 720;
+    if (width >= 854) return 480;
+    return 360;
+  }
+  return null;
+}
+
+function getAutoQualityDefaults(height: number): { crf: number; bitrate: number } {
+  if (height >= 2160) {
+    return { crf: 18, bitrate: 35_000_000 };
+  }
+  if (height >= 1440) {
+    return { crf: 20, bitrate: 16_000_000 };
+  }
+  if (height >= 1080) {
+    return { crf: 22, bitrate: 8_000_000 };
+  }
+  if (height >= 720) {
+    return { crf: 24, bitrate: 5_000_000 };
+  }
+  if (height >= 480) {
+    return { crf: 26, bitrate: 2_500_000 };
+  }
+  return { crf: 28, bitrate: 1_000_000 };
 }
