@@ -116,6 +116,7 @@ public sealed record JellyfinItem
     public string? OriginalTitle { get; init; }
     public string? SortName { get; init; }
     public required string Type { get; init; }
+    public string? DisplayPreferencesId { get; init; }
     public string? CollectionType { get; init; }
     public string? MediaType { get; init; }
     public string? ParentId { get; init; }
