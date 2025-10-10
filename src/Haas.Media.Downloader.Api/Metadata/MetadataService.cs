@@ -124,8 +124,12 @@ public class MetadataService : IMetadataApi
         else
         {
             // Get all movie IDs associated with this library via FileMetadata
+            // Query by MediaType first to avoid ObjectId/String cast issues with LibraryId
             var movieIds = _fileMetadataCollection
-                .Find(f => f.LibraryId == libraryId && f.MediaType == LibraryType.Movies)
+                .Query()
+                .Where(f => f.MediaType == LibraryType.Movies)
+                .ToList()
+                .Where(f => f.LibraryId == libraryId)
                 .Select(f => int.Parse(f.MediaId))
                 .Distinct()
                 .ToList();
@@ -169,8 +173,12 @@ public class MetadataService : IMetadataApi
         else
         {
             // Get all TV show IDs associated with this library via FileMetadata
+            // Query by MediaType first to avoid ObjectId/String cast issues with LibraryId
             var tvShowIds = _fileMetadataCollection
-                .Find(f => f.LibraryId == libraryId && f.MediaType == LibraryType.TVShows)
+                .Query()
+                .Where(f => f.MediaType == LibraryType.TVShows)
+                .ToList()
+                .Where(f => f.LibraryId == libraryId)
                 .Select(f => int.Parse(f.MediaId))
                 .Distinct()
                 .ToList();
@@ -411,11 +419,15 @@ public class MetadataService : IMetadataApi
         
         if (!string.IsNullOrEmpty(libraryId) && !string.IsNullOrEmpty(mediaId))
         {
-            results = _fileMetadataCollection.Find(f => f.LibraryId == libraryId && f.MediaId == mediaId);
+            // Fetch all and filter in memory to avoid ObjectId/String cast issues
+            results = _fileMetadataCollection.FindAll()
+                .Where(f => f.LibraryId == libraryId && f.MediaId == mediaId);
         }
         else if (!string.IsNullOrEmpty(libraryId))
         {
-            results = _fileMetadataCollection.Find(f => f.LibraryId == libraryId);
+            // Fetch all and filter in memory to avoid ObjectId/String cast issues
+            results = _fileMetadataCollection.FindAll()
+                .Where(f => f.LibraryId == libraryId);
         }
         else if (!string.IsNullOrEmpty(mediaId))
         {

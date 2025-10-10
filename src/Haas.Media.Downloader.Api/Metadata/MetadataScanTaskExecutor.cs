@@ -553,7 +553,7 @@ internal sealed class MetadataScanTaskExecutor
                 {
                     var fileMetadata = new FileMetadata
                     {
-                        Id = ObjectId.NewObjectId().ToString(),
+                        Id = Guid.CreateVersion7().ToString(),
                         LibraryId = libraryId,
                         MediaId = tmdbTvShowId.ToString(),
                         MediaType = LibraryType.TVShows,
@@ -635,8 +635,12 @@ internal sealed class MetadataScanTaskExecutor
 
     private void ClearMissingMovieFiles(string libraryId)
     {
+        // Query by MediaType first to avoid ObjectId/String cast issues with LibraryId
         var fileMetadataEntries = _fileMetadataCollection
-            .Find(f => f.LibraryId == libraryId && f.MediaType == LibraryType.Movies)
+            .Query()
+            .Where(f => f.MediaType == LibraryType.Movies)
+            .ToList()
+            .Where(f => f.LibraryId == libraryId)
             .ToList();
 
         foreach (var fileMetadata in fileMetadataEntries)
@@ -663,8 +667,12 @@ internal sealed class MetadataScanTaskExecutor
 
     private void ClearMissingTvShowFiles(string libraryId)
     {
+        // Query by MediaType first to avoid ObjectId/String cast issues with LibraryId
         var fileMetadataEntries = _fileMetadataCollection
-            .Find(f => f.LibraryId == libraryId && f.MediaType == LibraryType.TVShows)
+            .Query()
+            .Where(f => f.MediaType == LibraryType.TVShows)
+            .ToList()
+            .Where(f => f.LibraryId == libraryId)
             .ToList();
 
         foreach (var fileMetadata in fileMetadataEntries)
@@ -777,9 +785,12 @@ internal sealed class MetadataScanTaskExecutor
             var relativePath = Path.GetRelativePath(_dataPath, filePath);
             
             // Check if this file already has metadata
-            var existingFileMetadata = _fileMetadataCollection.FindOne(f =>
-                f.LibraryId == library.Id && f.FilePath == relativePath && f.MediaType == LibraryType.Movies
-            );
+            // Note: Query by FilePath first to avoid ObjectId/String cast issues with LibraryId
+            var existingFileMetadata = _fileMetadataCollection
+                .Query()
+                .Where(f => f.FilePath == relativePath && f.MediaType == LibraryType.Movies)
+                .ToList()
+                .FirstOrDefault(f => f.LibraryId == library.Id);
 
             if (existingFileMetadata != null && !refreshExisting)
             {
@@ -861,7 +872,7 @@ internal sealed class MetadataScanTaskExecutor
                     {
                         var fileMetadata = new FileMetadata
                         {
-                            Id = ObjectId.NewObjectId().ToString(),
+                            Id = Guid.CreateVersion7().ToString(),
                             LibraryId = library.Id!,
                             MediaId = movieMetadata.Id.ToString(),
                             MediaType = LibraryType.Movies,
