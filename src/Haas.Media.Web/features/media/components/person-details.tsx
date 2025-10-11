@@ -239,7 +239,7 @@ export default function PersonDetails({ personId }: PersonDetailsProps) {
                   <Film className="h-5 w-5" />
                   Movies
                 </div>
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {movieCredits.slice(0, 12).map((movie) => {
                     const posterUrl = getPosterUrlWithSize(movie.posterPath, "w342");
                     const rolesSummary = buildRolesSummary(personId, movie);
@@ -247,7 +247,7 @@ export default function PersonDetails({ personId }: PersonDetailsProps) {
 
                     return (
                       <Link key={movie.id} href={`/movies/${movie.id}`} className="group block">
-                        <Card className="h-full overflow-hidden border-border/60 transition duration-200 hover:-translate-y-1 hover:shadow-lg">
+                        <Card className="h-full overflow-hidden border-border/60 text-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
                           <div className="relative aspect-[2/3] bg-muted">
                             {posterUrl ? (
                               <Image
@@ -262,9 +262,9 @@ export default function PersonDetails({ personId }: PersonDetailsProps) {
                               </div>
                             )}
                           </div>
-                          <CardContent className="space-y-2 p-4">
-                            <div className="space-y-1">
-                              <h3 className="line-clamp-2 text-base font-semibold leading-tight text-foreground">
+                          <CardContent className="space-y-1.5 p-3">
+                            <div className="space-y-0.5">
+                              <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-foreground">
                                 {movie.title}
                               </h3>
                               {releaseYear ? <p className="text-xs text-muted-foreground">Released {releaseYear}</p> : null}
@@ -285,14 +285,14 @@ export default function PersonDetails({ personId }: PersonDetailsProps) {
                   <Tv className="h-5 w-5" />
                   TV Shows
                 </div>
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {tvCredits.slice(0, 12).map((show) => {
                     const posterUrl = getPosterUrlWithSize(show.posterPath, "w342");
                     const rolesSummary = buildRolesSummary(personId, show);
 
                     return (
                       <Link key={show.id} href={`/tvshows/${show.id}`} className="group block">
-                        <Card className="h-full overflow-hidden border-border/60 transition duration-200 hover:-translate-y-1 hover:shadow-lg">
+                        <Card className="h-full overflow-hidden border-border/60 text-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
                           <div className="relative aspect-[2/3] bg-muted">
                             {posterUrl ? (
                               <Image
@@ -307,8 +307,8 @@ export default function PersonDetails({ personId }: PersonDetailsProps) {
                               </div>
                             )}
                           </div>
-                          <CardContent className="space-y-2 p-4">
-                            <h3 className="line-clamp-2 text-base font-semibold leading-tight text-foreground">
+                          <CardContent className="space-y-1.5 p-3">
+                            <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-foreground">
                               {show.title}
                             </h3>
                             {rolesSummary ? <p className="text-xs text-muted-foreground/90">{rolesSummary}</p> : null}
