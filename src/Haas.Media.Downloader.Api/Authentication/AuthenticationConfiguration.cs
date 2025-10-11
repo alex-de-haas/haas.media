@@ -42,10 +42,38 @@ public static class AuthenticationConfiguration
                 return Results.NotFound();
             }
 
-            return Results.Ok(new { user.Username, user.Email, user.CreatedAt, user.LastLoginAt });
+            return Results.Ok(new { user.Username, user.Email, user.CreatedAt, user.LastLoginAt, Nickname = user.Nickname ?? user.Username });
         })
         .RequireAuthorization()
         .WithName("GetCurrentUser");
+
+        group.MapPut("/me", async (HttpContext context, UpdateProfileRequest request, IAuthenticationApi authService) =>
+        {
+            var username = context.User.Identity?.Name;
+            if (string.IsNullOrEmpty(username))
+            {
+                return Results.Unauthorized();
+            }
+
+            var response = await authService.UpdateProfileAsync(username, request);
+            return response != null ? Results.Ok(response) : Results.BadRequest(new { error = "Profile update failed" });
+        })
+        .RequireAuthorization()
+        .WithName("UpdateCurrentUser");
+
+        group.MapPut("/me/password", async (HttpContext context, UpdatePasswordRequest request, IAuthenticationApi authService) =>
+        {
+            var username = context.User.Identity?.Name;
+            if (string.IsNullOrEmpty(username))
+            {
+                return Results.Unauthorized();
+            }
+
+            var success = await authService.UpdatePasswordAsync(username, request);
+            return success ? Results.NoContent() : Results.BadRequest(new { error = "Password update failed" });
+        })
+        .RequireAuthorization()
+        .WithName("UpdatePassword");
 
         return app;
     }

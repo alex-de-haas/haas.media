@@ -3,12 +3,20 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { AuthResponse } from "@/types/auth";
 
+interface LocalUser {
+  username: string;
+  email: string;
+  nickname?: string | null;
+}
+
 interface LocalAuthContextType {
   isAuthenticated: boolean;
   token: string | null;
-  user: { username: string; email: string } | null;
+  user: LocalUser | null;
   login: (username: string, password: string) => Promise<boolean>;
   register: (username: string, email: string, password: string) => Promise<boolean>;
+  updateProfile: (email: string, nickname: string) => Promise<{ success: boolean; error?: string }>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -17,7 +25,7 @@ const LocalAuthContext = createContext<LocalAuthContextType | undefined>(undefin
 
 export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<{ username: string; email: string } | null>(null);
+  const [user, setUser] = useState<LocalUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -39,7 +47,7 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
         .then((data) => {
           // Only set token and user if verification succeeds
           setToken(storedToken);
-          setUser({ username: data.username, email: data.email });
+          setUser({ username: data.username, email: data.email, nickname: data.nickname ?? data.username });
         })
         .catch(() => {
           // Clear invalid token
@@ -71,7 +79,7 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
 
       const data: AuthResponse = await res.json();
       setToken(data.token);
-      setUser({ username: data.username, email: data.email });
+      setUser({ username: data.username, email: data.email, nickname: data.nickname ?? data.username });
       localStorage.setItem("auth_token", data.token);
       return true;
     } catch (error) {
@@ -96,12 +104,70 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
 
       const data: AuthResponse = await res.json();
       setToken(data.token);
-      setUser({ username: data.username, email: data.email });
+      setUser({ username: data.username, email: data.email, nickname: data.nickname ?? data.username });
       localStorage.setItem("auth_token", data.token);
       return true;
     } catch (error) {
       console.error("Registration error:", error);
       return false;
+    }
+  };
+
+  const updateProfile = async (email: string, nickname: string): Promise<{ success: boolean; error?: string }> => {
+    if (!token) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    try {
+      const res = await fetch("/api/local-auth/me", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ email, nickname }),
+      });
+
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => ({}));
+        return { success: false, error: errorBody?.error };
+      }
+
+      const data: AuthResponse = await res.json();
+      setToken(data.token);
+      setUser({ username: data.username, email: data.email, nickname: data.nickname ?? data.username });
+      localStorage.setItem("auth_token", data.token);
+      return { success: true };
+    } catch (error) {
+      console.error("Profile update error:", error);
+      return { success: false, error: "Failed to update profile" };
+    }
+  };
+
+  const updatePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    if (!token) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    try {
+      const res = await fetch("/api/local-auth/password", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => ({}));
+        return { success: false, error: errorBody?.error };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("Password update error:", error);
+      return { success: false, error: "Failed to update password" };
     }
   };
 
@@ -119,6 +185,8 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
         user,
         login,
         register,
+        updateProfile,
+        updatePassword,
         logout,
         isLoading,
       }}

@@ -47,6 +47,7 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
 
         // Check if this is the first user
         var isFirstUser = _users.Count() == 0;
+        var nickname = string.IsNullOrWhiteSpace(request.Nickname) ? request.Username : request.Nickname.Trim();
 
         // Create user
         var user = new User
@@ -55,18 +56,20 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             Email = request.Email,
             PasswordHash = passwordHash,
             IsAdmin = isFirstUser,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            Nickname = nickname
         };
 
         _users.Insert(user);
         _users.EnsureIndex(u => u.Username);
         _users.EnsureIndex(u => u.Email);
+        _users.EnsureIndex(u => u.Nickname);
 
         logger.LogInformation("User registered: {Username} (Admin: {IsAdmin})", user.Username, user.IsAdmin);
 
         // Generate token
         var token = GenerateJwtToken(user);
-        return new AuthResponse(token, user.Username, user.Email);
+        return new AuthResponse(token, user.Username, user.Email, user.Nickname);
     }
 
     public async Task<AuthResponse?> LoginAsync(LoginRequest request)
@@ -100,7 +103,7 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
 
         // Generate token
         var token = GenerateJwtToken(user);
-        return new AuthResponse(token, user.Username, user.Email);
+        return new AuthResponse(token, user.Username, user.Email, user.Nickname);
     }
 
     public async Task<User?> GetUserByUsernameAsync(string username)
@@ -117,6 +120,79 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
     {
         var users = _users.FindAll().ToList();
         return Task.FromResult<IReadOnlyList<User>>(users);
+    }
+
+    public async Task<AuthResponse?> UpdateProfileAsync(string username, UpdateProfileRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            logger.LogWarning("Profile update failed: username missing");
+            return null;
+        }
+
+        var user = _users.FindOne(u => u.Username == username);
+        if (user == null)
+        {
+            logger.LogWarning("Profile update failed: user {Username} not found", username);
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Email) || !IsValidEmail(request.Email))
+        {
+            logger.LogWarning("Profile update failed for {Username}: invalid email", username);
+            return null;
+        }
+
+        var normalizedEmail = request.Email.Trim();
+        var nickname = string.IsNullOrWhiteSpace(request.Nickname) ? user.Username : request.Nickname.Trim();
+
+        var emailOwner = _users.FindOne(u => u.Email == normalizedEmail);
+        if (emailOwner != null && emailOwner.Id != user.Id)
+        {
+            logger.LogWarning("Profile update failed for {Username}: email already in use", username);
+            return null;
+        }
+
+        user.Email = normalizedEmail;
+        user.Nickname = nickname;
+        _users.Update(user);
+
+        var token = GenerateJwtToken(user);
+        return new AuthResponse(token, user.Username, user.Email, user.Nickname);
+    }
+
+    public async Task<bool> UpdatePasswordAsync(string username, UpdatePasswordRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            logger.LogWarning("Password update failed: username missing");
+            return false;
+        }
+
+        var user = _users.FindOne(u => u.Username == username);
+        if (user == null)
+        {
+            logger.LogWarning("Password update failed: user {Username} not found", username);
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
+        {
+            logger.LogWarning("Password update failed for {Username}: password too short", username);
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(request.CurrentPassword) || !BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+        {
+            logger.LogWarning("Password update failed for {Username}: current password invalid", username);
+            return false;
+        }
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, WorkFactor);
+        _users.Update(user);
+
+        logger.LogInformation("Password updated for user {Username}", username);
+        return true;
     }
 
     private string GenerateJwtToken(User user)
@@ -141,7 +217,8 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim("auth_type", "local"),
-            new Claim(ClaimTypes.Role, user.IsAdmin ? "Admin" : "User")
+            new Claim(ClaimTypes.Role, user.IsAdmin ? "Admin" : "User"),
+            new Claim("nickname", user.Nickname ?? user.Username)
         };
 
         var token = new JwtSecurityToken(

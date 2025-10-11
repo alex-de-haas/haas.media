@@ -3,12 +3,14 @@ export interface User {
   email: string;
   createdAt: string;
   lastLoginAt?: string;
+  nickname?: string | null;
 }
 
 export interface AuthResponse {
   token: string;
   username: string;
   email: string;
+  nickname?: string | null;
 }
 
 export interface LoginRequest {
@@ -20,4 +22,14 @@ export interface RegisterRequest {
   username: string;
   email: string;
   password: string;
+}
+
+export interface UpdateProfileRequest {
+  email: string;
+  nickname?: string;
+}
+
+export interface UpdatePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }

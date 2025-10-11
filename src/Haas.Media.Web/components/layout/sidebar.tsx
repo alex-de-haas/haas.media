@@ -16,6 +16,7 @@ import {
   LogOut,
   ChevronDown,
   CalendarDays,
+  UserRound,
 } from "lucide-react";
 
 import { useLayout } from "./layout-provider";
@@ -140,7 +141,7 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
 
   if (isLoading) return null;
 
-  const displayName = localUser?.username || localUser?.email || "Guest";
+  const displayName = localUser?.nickname || localUser?.username || localUser?.email || "Guest";
   const initials = getInitials(displayName);
   const email = localUser?.email;
 
@@ -185,6 +186,15 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
             {email && <div className="truncate text-xs">{email}</div>}
           </div>
           <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => {
+              router.push("/profile");
+            }}
+          >
+            <UserRound className="h-4 w-4" />
+            Profile
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout}>
             <LogOut className="h-4 w-4" />
             Logout
@@ -214,6 +224,15 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
           <div className="font-medium text-foreground">{displayName}</div>
           {email && <div className="truncate text-xs">{email}</div>}
         </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => {
+            router.push("/profile");
+          }}
+        >
+          <UserRound className="h-4 w-4" />
+          Profile
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="h-4 w-4" />
