@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 using LiteDB;
 using TMDbLib.Client;
@@ -350,6 +353,38 @@ public class MetadataService : IMetadataApi
         }
 
         return Task.FromResult<PersonMetadata?>(personMetadata);
+    }
+
+    public Task<PersonLibraryCredits?> GetPersonCreditsByIdAsync(int id)
+    {
+        var associatedMovies = _movieMetadataCollection
+            .FindAll()
+            .Where(movie => movie.Cast.Any(member => member.Id == id) || movie.Crew.Any(member => member.Id == id))
+            .OrderByDescending(movie => movie.ReleaseDate ?? DateTime.MinValue)
+            .ThenBy(movie => movie.Title)
+            .ToList();
+
+        var associatedTvShows = _tvShowMetadataCollection
+            .FindAll()
+            .Where(show => show.Cast.Any(member => member.Id == id) || show.Crew.Any(member => member.Id == id))
+            .OrderByDescending(show => show.VoteAverage)
+            .ThenBy(show => show.Title)
+            .ToList();
+
+        _logger.LogDebug(
+            "Retrieved credits for person {Id}: {MovieCount} movies, {TvShowCount} TV shows",
+            id,
+            associatedMovies.Count,
+            associatedTvShows.Count
+        );
+
+        var result = new PersonLibraryCredits
+        {
+            Movies = associatedMovies,
+            TvShows = associatedTvShows
+        };
+
+        return Task.FromResult<PersonLibraryCredits?>(result);
     }
 
     private void CreateIndexes()

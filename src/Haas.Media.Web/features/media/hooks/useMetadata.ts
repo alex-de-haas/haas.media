@@ -8,6 +8,7 @@ import type {
   AddToLibraryResponse,
   AddToLibraryOperationInfo,
   PersonMetadata,
+  PersonLibraryCredits,
 } from "@/types/metadata";
 import { LibraryType } from "@/types/library";
 import { BackgroundTaskStatus } from "@/types";
@@ -325,6 +326,59 @@ export function usePerson(id?: number) {
   }, [fetchPerson]);
 
   return { person, loading, error, refetch: fetchPerson };
+}
+
+export function usePersonCredits(id?: number) {
+  const [movies, setMovies] = useState<MovieMetadata[]>([]);
+  const [tvShows, setTvShows] = useState<TVShowMetadata[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchCredits = useCallback(async () => {
+    if (!id) {
+      setMovies([]);
+      setTvShows([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/people/${id}/credits`);
+
+      if (response.status === 404) {
+        setMovies([]);
+        setTvShows([]);
+        setError(null);
+        return;
+      }
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        const message = (errorBody as { message?: string } | null)?.message ?? response.statusText;
+        throw new Error(message || "Failed to load person credits");
+      }
+
+      const credits = (await response.json()) as PersonLibraryCredits;
+      setMovies(credits.movies ?? []);
+      setTvShows(credits.tvShows ?? []);
+    } catch (err) {
+      setMovies([]);
+      setTvShows([]);
+      setError(err instanceof Error ? err.message : "Failed to load person credits");
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void fetchCredits();
+  }, [fetchCredits]);
+
+  return { movies, tvShows, loading, error, refetch: fetchCredits };
 }
 
 export function useDeleteTVShowMetadata() {

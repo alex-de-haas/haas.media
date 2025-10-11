@@ -84,6 +84,11 @@ export interface PersonMetadata {
   updatedAt: string;
 }
 
+export interface PersonLibraryCredits {
+  movies: MovieMetadata[];
+  tvShows: TVShowMetadata[];
+}
+
 export interface Network {
   id: number;
   name: string;

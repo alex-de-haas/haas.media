@@ -348,6 +348,17 @@ public static class MetadataConfiguration
             .WithName("GetPersonMetadataById")
             .RequireAuthorization();
 
+        app.MapGet(
+                "api/metadata/people/{id}/credits",
+                async (IMetadataApi metadataService, int id) =>
+                {
+                    var personCredits = await metadataService.GetPersonCreditsByIdAsync(id);
+                    return personCredits != null ? Results.Ok(personCredits) : Results.NotFound();
+                }
+            )
+            .WithName("GetPersonCreditsById")
+            .RequireAuthorization();
+
         return app;
     }
 }

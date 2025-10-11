@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CalendarDays, MapPin, Star, Film, Tv } from "lucide-react";
 
-import { usePerson, useMovies, useTVShows } from "@/features/media/hooks";
+import { usePerson, usePersonCredits } from "@/features/media/hooks";
 import { getProfileUrl, getPosterUrlWithSize } from "@/lib/tmdb";
 import { Spinner } from "@/components/ui";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -80,28 +80,10 @@ function buildRolesSummary(personId: number, entry: MovieMetadata | TVShowMetada
 export default function PersonDetails({ personId }: PersonDetailsProps) {
   const router = useRouter();
   const { person, loading, error } = usePerson(personId);
-  const { movies, loading: moviesLoading, error: moviesError } = useMovies();
-  const { tvShows, loading: tvShowsLoading, error: tvShowsError } = useTVShows();
+  const { movies, tvShows, loading: creditsLoading, error: creditsError } = usePersonCredits(personId);
 
-  const movieCredits = useMemo(() => {
-    return movies
-      .filter((movie) => {
-        return movie.cast.some((member) => member.id === personId) || movie.crew.some((member) => member.id === personId);
-      })
-      .sort((a, b) => {
-        const aDate = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
-        const bDate = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
-        return bDate - aDate;
-      });
-  }, [movies, personId]);
-
-  const tvCredits = useMemo(() => {
-    return tvShows
-      .filter((show) => {
-        return show.cast.some((member) => member.id === personId) || show.crew.some((member) => member.id === personId);
-      })
-      .sort((a, b) => b.voteAverage - a.voteAverage);
-  }, [personId, tvShows]);
+  const movieCredits = movies;
+  const tvCredits = tvShows;
 
   const biographyParagraphs = useMemo(() => {
     if (!person?.biography) {
@@ -119,8 +101,6 @@ export default function PersonDetails({ personId }: PersonDetailsProps) {
   const formattedDeathday = formatDate(person?.deathday);
   const age = calculateAge(person?.birthday, person?.deathday);
   const genderLabel = person ? getGenderLabel(person.gender) : null;
-  const creditsLoading = moviesLoading || tvShowsLoading;
-  const creditsError = moviesError || tvShowsError;
 
   if (loading) {
     return (

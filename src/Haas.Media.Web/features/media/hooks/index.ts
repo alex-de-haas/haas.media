@@ -10,6 +10,7 @@ export {
   useTVShows,
   useTVShow,
   usePerson,
+  usePersonCredits,
   useDeleteTVShowMetadata,
   useAddToLibrary,
   useSearch,
