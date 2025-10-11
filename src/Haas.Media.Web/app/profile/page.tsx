@@ -17,7 +17,6 @@ export default function ProfilePage() {
   const { user, updateProfile, updatePassword } = useLocalAuth();
   const { notify } = useNotifications();
   const [email, setEmail] = useState(user?.email ?? "");
-  const [nickname, setNickname] = useState(user?.nickname ?? user?.username ?? "");
   const [preferredLanguage, setPreferredLanguage] = useState(() => {
     const code = user?.preferredMetadataLanguage ?? "en";
     return isSupportedTmdbLanguage(code) ? code : "en";
@@ -33,7 +32,6 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       setEmail(user.email);
-      setNickname(user.nickname ?? user.username);
       const code = user.preferredMetadataLanguage ?? "en";
       setPreferredLanguage(isSupportedTmdbLanguage(code) ? code : "en");
     }
@@ -55,20 +53,14 @@ export default function ProfilePage() {
     event.preventDefault();
 
     const trimmedEmail = email.trim();
-    const trimmedNickname = nickname.trim();
 
     if (!trimmedEmail) {
       notify({ type: "error", message: "Email is required" });
       return;
     }
 
-    if (!trimmedNickname) {
-      notify({ type: "error", message: "Nickname cannot be empty" });
-      return;
-    }
-
     setProfileLoading(true);
-  const result = await updateProfile(trimmedEmail, trimmedNickname, preferredLanguage);
+    const result = await updateProfile(trimmedEmail, preferredLanguage);
     setProfileLoading(false);
 
     if (result.success) {
@@ -110,10 +102,14 @@ export default function ProfilePage() {
       <Card>
         <CardHeader>
           <CardTitle>Profile</CardTitle>
-          <CardDescription>Update the email address and nickname associated with your account.</CardDescription>
+          <CardDescription>Update the email address and metadata language associated with your account.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-6" onSubmit={handleProfileSubmit}>
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input id="username" type="text" value={user?.username ?? ""} disabled readOnly />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -124,19 +120,6 @@ export default function ProfilePage() {
                 autoComplete="email"
                 required
                 disabled={profileLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="nickname">Nickname</Label>
-              <Input
-                id="nickname"
-                type="text"
-                value={nickname}
-                onChange={(event) => setNickname(event.target.value)}
-                autoComplete="nickname"
-                required
-                disabled={profileLoading}
-                placeholder="What should we call you?"
               />
             </div>
             <div className="space-y-2">

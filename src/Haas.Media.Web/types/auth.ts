@@ -3,16 +3,14 @@ export interface User {
   email: string;
   createdAt: string;
   lastLoginAt?: string;
-  nickname?: string | null;
-  preferredMetadataLanguage?: string;
+  preferredMetadataLanguage: string;
 }
 
 export interface AuthResponse {
   token: string;
   username: string;
   email: string;
-  nickname?: string | null;
-  preferredMetadataLanguage?: string;
+  preferredMetadataLanguage: string;
 }
 
 export interface LoginRequest {
@@ -29,7 +27,6 @@ export interface RegisterRequest {
 
 export interface UpdateProfileRequest {
   email: string;
-  nickname?: string;
   preferredMetadataLanguage: string;
 }
 

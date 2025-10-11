@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Fragment } from "react";
+import { Fragment, type MouseEventHandler } from "react";
 import {
   LayoutDashboard,
   CloudDownload,
@@ -101,12 +101,17 @@ function NavigationList({ pathname, onNavigate }: { pathname: string; onNavigate
       {navigationItems.map((item) => {
         const Icon = item.icon;
         const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+        const handleClick: MouseEventHandler<HTMLAnchorElement> | undefined = onNavigate
+          ? () => {
+              onNavigate();
+            }
+          : undefined;
 
         return (
           <Link
             key={item.name}
             href={item.href}
-            onClick={onNavigate}
+            {...(handleClick ? { onClick: handleClick } : {})}
             className={cn(
               "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -141,7 +146,7 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
 
   if (isLoading) return null;
 
-  const displayName = localUser?.nickname || localUser?.username || localUser?.email || "Guest";
+  const displayName = localUser?.username || localUser?.email || "Guest";
   const initials = getInitials(displayName);
   const email = localUser?.email;
 
@@ -245,17 +250,22 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const homeClick: MouseEventHandler<HTMLAnchorElement> | undefined = onNavigate
+    ? () => {
+        onNavigate();
+      }
+    : undefined;
 
   return (
     <div className="flex h-full flex-col">
       <div className="px-6 pb-4 pt-6">
-        <Link href="/" onClick={onNavigate} className="flex flex-col">
+  <Link href="/" {...(homeClick ? { onClick: homeClick } : {})} className="flex flex-col">
           <span className="text-sm font-semibold uppercase text-muted-foreground">Haas Media Server</span>
           <span className="text-lg font-bold tracking-tight text-foreground">Control Center</span>
         </Link>
       </div>
       <ScrollArea className="flex-1">
-        <NavigationList pathname={pathname} onNavigate={onNavigate} />
+  <NavigationList pathname={pathname} {...(onNavigate ? { onNavigate } : {})} />
       </ScrollArea>
       <div className="mt-auto space-y-4 border-t border-border px-6 py-5">
         <ThemeSwitch variant="dropdown" className="w-full" />

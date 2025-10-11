@@ -4,6 +4,5 @@ public record RegisterRequest(
 	string Username,
 	string Email,
 	string Password,
-	string? Nickname = null,
 	string? PreferredMetadataLanguage = null
 );

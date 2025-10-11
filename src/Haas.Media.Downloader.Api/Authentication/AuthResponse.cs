@@ -4,6 +4,5 @@ public record AuthResponse(
 	string Token,
 	string Username,
 	string Email,
-	string? Nickname,
 	string PreferredMetadataLanguage
 );
