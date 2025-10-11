@@ -128,6 +128,7 @@ export interface MovieMetadata {
   cast: CastMember[];
   posterPath?: string;
   backdropPath?: string;
+  filePath?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -165,6 +166,7 @@ export interface TVEpisodeMetadata {
   name: string;
   overview: string;
   voteAverage: number;
+  filePath?: string | null;
 }
 
 export interface MetadataRefreshOperationInfo {

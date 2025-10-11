@@ -2,18 +2,21 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useMovies } from "@/features/media/hooks";
+import { useLibraries } from "@/features/libraries";
 import type { MovieMetadata } from "@/types/metadata";
+import { LibraryType } from "@/types/library";
 import { MultiSelect, type Option, Spinner } from "@/components/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getPosterUrl } from "@/lib/tmdb";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Film, HardDrive, PackageOpen, RefreshCw, Star } from "lucide-react";
+import { CircleX, Film, Filter, HardDrive, Library, PackageOpen, RefreshCw, Star, Users } from "lucide-react";
 
 interface MovieCardProps {
   movie: MovieMetadata;
@@ -77,11 +80,44 @@ interface MoviesListProps {
 }
 
 export default function MoviesList({ libraryId }: MoviesListProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const effectiveLibraryId = libraryId || searchParams.get("libraryId") || undefined;
-  const { movies, loading, error, refetch } = useMovies(effectiveLibraryId);
+  const queryLibraryId = searchParams.get("libraryId");
+  const activeLibraryId = libraryId ?? queryLibraryId ?? null;
+  const { libraries, loading: librariesLoading } = useLibraries();
+  const libraryOptions = useMemo(
+    () =>
+      libraries
+        .filter((lib) => lib.type === LibraryType.Movies && Boolean(lib.id))
+        .map((lib) => ({
+          value: lib.id as string,
+          label: lib.title,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    [libraries],
+  );
+  const { movies, loading, error, refetch } = useMovies(activeLibraryId ?? undefined);
 
   const [selectedPeople, setSelectedPeople] = useState<string[]>([]);
+
+  const handleLibraryChange = (value: string) => {
+    if (libraryId !== undefined) {
+      return;
+    }
+
+    const nextLibraryId = value === "__all__" ? null : value;
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextLibraryId) {
+      params.set("libraryId", nextLibraryId);
+    } else {
+      params.delete("libraryId");
+    }
+
+    const queryString = params.toString();
+    router.replace(`${pathname}${queryString ? `?${queryString}` : ""}`, { scroll: false });
+  };
 
   // Extract unique people (cast and crew) from all movies
   const peopleOptions = useMemo<Option[]>(() => {
@@ -168,7 +204,21 @@ export default function MoviesList({ libraryId }: MoviesListProps) {
     );
   }
 
-  const hasActiveFilters = selectedPeople.length > 0;
+  const hasActivePeopleFilter = selectedPeople.length > 0;
+  const canModifyLibraryFilter = libraryId === undefined;
+  const hasLibraryFilter = canModifyLibraryFilter && activeLibraryId !== null;
+  const filtersApplied = hasLibraryFilter || hasActivePeopleFilter;
+  const activeFilterCount = selectedPeople.length + (hasLibraryFilter ? 1 : 0);
+
+  const handleClearFilters = () => {
+    if (selectedPeople.length > 0) {
+      setSelectedPeople([]);
+    }
+
+    if (hasLibraryFilter) {
+      handleLibraryChange("__all__");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -176,20 +226,90 @@ export default function MoviesList({ libraryId }: MoviesListProps) {
         <h2 className="text-lg font-semibold tracking-tight">Movies</h2>
         <Badge variant="outline" className="gap-1 text-xs">
           <Film className="h-3.5 w-3.5" />
-          {filteredMovies.length} {hasActiveFilters && `of ${movies.length}`} titles
+          {filteredMovies.length} {hasActivePeopleFilter && `of ${movies.length}`} titles
         </Badge>
       </div>
 
       {/* Filters */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Filter by People</label>
-        <MultiSelect
-          options={peopleOptions}
-          selected={selectedPeople}
-          onChange={setSelectedPeople}
-          placeholder="Search cast and crew..."
-          emptyMessage="No person found."
-        />
+      <div className="rounded-xl border border-border/60 bg-card/40 p-4 shadow-sm backdrop-blur">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
+          <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+            <Filter className="h-4 w-4 text-primary" />
+            Filters
+            {filtersApplied ? (
+              <Badge variant="secondary" className="gap-1 text-xs">
+                {activeFilterCount} active
+              </Badge>
+            ) : (
+              <span className="text-xs font-normal text-muted-foreground/80">Refine the library with quick filters</span>
+            )}
+          </div>
+          {filtersApplied && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleClearFilters}
+              className="gap-2 px-3 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <CircleX className="h-4 w-4" />
+              Clear filters
+            </Button>
+          )}
+        </div>
+
+        <div className="grid gap-4 pt-4 md:grid-cols-2">
+          <div className="flex flex-col gap-2">
+            <div className="space-y-1">
+              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Library className="h-4 w-4 text-muted-foreground" />
+                Filter by library
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {libraryId !== undefined ? "Library is locked by the current page." : "Select a specific library or browse them all."}
+              </span>
+            </div>
+            <Select
+              value={activeLibraryId ?? "__all__"}
+              onValueChange={handleLibraryChange}
+              disabled={libraryId !== undefined || librariesLoading || libraryOptions.length === 0}
+            >
+              <SelectTrigger className="h-11 w-full rounded-lg border border-border/60 bg-background/80 px-3 text-sm shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30">
+                <SelectValue
+                  placeholder={
+                    librariesLoading ? "Loading libraries..." : libraryOptions.length === 0 ? "No movie libraries found" : "All libraries"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All libraries</SelectItem>
+                {libraryOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <div className="space-y-1">
+              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                Filter by people
+              </span>
+              <span className="text-xs text-muted-foreground">Combine cast and crew to surface the perfect picks.</span>
+            </div>
+            <MultiSelect
+              options={peopleOptions}
+              selected={selectedPeople}
+              onChange={setSelectedPeople}
+              placeholder="Search cast and crew..."
+              emptyMessage="No person found."
+              className="h-11 w-full"
+            />
+          </div>
+        </div>
       </div>
 
       {filteredMovies.length === 0 ? (
