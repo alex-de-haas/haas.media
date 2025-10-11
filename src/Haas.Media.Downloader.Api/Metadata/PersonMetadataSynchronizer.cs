@@ -17,7 +17,8 @@ internal static class PersonMetadataSynchronizer
         ILogger logger,
         IEnumerable<int> personIds,
         bool refreshExisting,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        Action<PersonSyncProgress>? reportProgress = null
     )
     {
         var distinctIds = personIds.Where(id => id > 0).Distinct().ToList();
@@ -52,6 +53,7 @@ internal static class PersonMetadataSynchronizer
             if (existingMetadata is not null && !refreshExisting)
             {
                 syncedCount++;
+                reportProgress?.Invoke(new PersonSyncProgress(personId, PersonSyncOutcome.Skipped));
                 continue;
             }
 
@@ -69,6 +71,7 @@ internal static class PersonMetadataSynchronizer
                         personId
                     );
                     failedCount++;
+                    reportProgress?.Invoke(new PersonSyncProgress(personId, PersonSyncOutcome.Failed));
                     continue;
                 }
 
@@ -84,6 +87,7 @@ internal static class PersonMetadataSynchronizer
                 }
 
                 syncedCount++;
+                reportProgress?.Invoke(new PersonSyncProgress(personId, PersonSyncOutcome.Synced));
             }
             catch (OperationCanceledException)
             {
@@ -97,6 +101,7 @@ internal static class PersonMetadataSynchronizer
                     personId
                 );
                 failedCount++;
+                reportProgress?.Invoke(new PersonSyncProgress(personId, PersonSyncOutcome.Failed));
             }
 
             await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
@@ -119,3 +124,12 @@ internal readonly record struct PersonSyncStatistics(int Requested, int Synced, 
         );
     }
 }
+
+internal enum PersonSyncOutcome
+{
+    Synced,
+    Skipped,
+    Failed,
+}
+
+internal readonly record struct PersonSyncProgress(int PersonId, PersonSyncOutcome Outcome);
