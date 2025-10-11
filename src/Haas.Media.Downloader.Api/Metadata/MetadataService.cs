@@ -10,6 +10,7 @@ public class MetadataService : IMetadataApi
     private readonly ILiteCollection<MovieMetadata> _movieMetadataCollection;
     private readonly ILiteCollection<TVShowMetadata> _tvShowMetadataCollection;
     private readonly ILiteCollection<FileMetadata> _fileMetadataCollection;
+    private readonly ILiteCollection<PersonMetadata> _personMetadataCollection;
     private readonly ILogger<MetadataService> _logger;
     private readonly TMDbClient _tmdbClient;
     private readonly IBackgroundTaskManager _backgroundTaskManager;
@@ -25,6 +26,7 @@ public class MetadataService : IMetadataApi
         _movieMetadataCollection = database.GetCollection<MovieMetadata>("movieMetadata");
         _tvShowMetadataCollection = database.GetCollection<TVShowMetadata>("tvShowMetadata");
         _fileMetadataCollection = database.GetCollection<FileMetadata>("fileMetadata");
+        _personMetadataCollection = database.GetCollection<PersonMetadata>("personMetadata");
         _logger = logger;
         _backgroundTaskManager = backgroundTaskManager;
 
@@ -348,9 +350,10 @@ public class MetadataService : IMetadataApi
         _fileMetadataCollection.EnsureIndex(x => x.MediaId);
         _fileMetadataCollection.EnsureIndex(x => x.FilePath);
         _fileMetadataCollection.EnsureIndex(x => x.MediaType);
+        _personMetadataCollection.EnsureIndex(x => x.Name);
 
         _logger.LogDebug(
-            "Created indexes for libraries, movie metadata, TV show metadata, and file metadata collections"
+            "Created indexes for libraries, movie metadata, TV show metadata, person metadata, and file metadata collections"
         );
     }
 

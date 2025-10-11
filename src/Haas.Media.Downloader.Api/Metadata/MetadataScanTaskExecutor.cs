@@ -16,6 +16,7 @@ internal sealed class MetadataScanTaskExecutor
     private readonly ILiteCollection<MovieMetadata> _movieMetadataCollection;
     private readonly ILiteCollection<TVShowMetadata> _tvShowMetadataCollection;
     private readonly ILiteCollection<FileMetadata> _fileMetadataCollection;
+    private readonly ILiteCollection<PersonMetadata> _personMetadataCollection;
     private readonly TMDbClient _tmdbClient;
     private readonly ILogger<MetadataScanTaskExecutor> _logger;
 
@@ -33,6 +34,7 @@ internal sealed class MetadataScanTaskExecutor
         _movieMetadataCollection = database.GetCollection<MovieMetadata>("movieMetadata");
         _tvShowMetadataCollection = database.GetCollection<TVShowMetadata>("tvShowMetadata");
         _fileMetadataCollection = database.GetCollection<FileMetadata>("fileMetadata");
+        _personMetadataCollection = database.GetCollection<PersonMetadata>("personMetadata");
         _tmdbClient = tmdbClient;
         _logger = logger;
     }
@@ -347,7 +349,9 @@ internal sealed class MetadataScanTaskExecutor
                             var updatedTvShowMetadata = await CreateTVShowMetadata(
                                 updatedTmdbResult.Id,
                                 library.Id!,
-                                showDirectory
+                                showDirectory,
+                                refreshExisting,
+                                context.CancellationToken
                             );
 
                             updatedTvShowMetadata.Id = existingMetadata.Id;
@@ -385,7 +389,9 @@ internal sealed class MetadataScanTaskExecutor
                         var tvShowMetadata = await CreateTVShowMetadata(
                             tmdbResult.Id,
                             library.Id!,
-                            showDirectory
+                            showDirectory,
+                            refreshExisting,
+                            context.CancellationToken
                         );
                         _tvShowMetadataCollection.Insert(tvShowMetadata);
 
@@ -514,26 +520,55 @@ internal sealed class MetadataScanTaskExecutor
     private async Task<TVShowMetadata> CreateTVShowMetadata(
         int tmdbTvShowId,
         string libraryId,
-        string showDirectory
+        string showDirectory,
+        bool refreshExisting,
+        CancellationToken cancellationToken
     )
     {
-        var tvShowDetails = await _tmdbClient.GetTvShowAsync(tmdbTvShowId, extraMethods: TvShowMethods.Credits);
+        var tvShowDetails = await _tmdbClient.GetTvShowAsync(
+            tmdbTvShowId,
+            extraMethods: TvShowMethods.Credits,
+            cancellationToken: cancellationToken
+        );
+
+        if (tvShowDetails is null)
+        {
+            throw new InvalidOperationException(
+                $"TV show with TMDb ID {tmdbTvShowId} was not found."
+            );
+        }
+
         var tvShowMetadata = tvShowDetails.Create();
+        var associatedPersonIds = new HashSet<int>();
+        associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(tvShowDetails.Credits));
+        associatedPersonIds.UnionWith(PersonMetadataCollector.FromCreators(tvShowDetails.CreatedBy));
 
         var seasons = new List<TVSeasonMetadata>();
 
         foreach (var season in tvShowDetails.Seasons.Where(s => s.SeasonNumber > 0))
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var seasonDetails = await _tmdbClient.GetTvSeasonAsync(
                 tmdbTvShowId,
-                season.SeasonNumber
+                season.SeasonNumber,
+                cancellationToken: cancellationToken
             );
+
+            if (seasonDetails is null)
+            {
+                continue;
+            }
+
+            associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(seasonDetails.Credits));
 
             var seasonMetadata = seasonDetails.Create();
             var episodes = new List<TVEpisodeMetadata>();
 
-            foreach (var episode in seasonDetails.Episodes)
+            foreach (var episode in seasonDetails.Episodes ?? Enumerable.Empty<TvSeasonEpisode>())
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 var filePath = FindEpisodeFile(
                     showDirectory,
                     season.SeasonNumber,
@@ -543,12 +578,21 @@ internal sealed class MetadataScanTaskExecutor
                 var episodeDetails = await _tmdbClient.GetTvEpisodeAsync(
                     tmdbTvShowId,
                     season.SeasonNumber,
-                    episode.EpisodeNumber
+                    episode.EpisodeNumber,
+                    cancellationToken: cancellationToken
                 );
+
+                if (episodeDetails is null)
+                {
+                    continue;
+                }
 
                 var episodeMetadata = episodeDetails.Create();
 
-                // Create FileMetadata if file exists
+                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(episodeDetails.Credits));
+                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCrew(episodeDetails.Crew));
+                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCast(episodeDetails.GuestStars));
+
                 if (filePath != null)
                 {
                     var fileMetadata = new FileMetadata
@@ -567,15 +611,26 @@ internal sealed class MetadataScanTaskExecutor
                 }
 
                 episodes.Add(episodeMetadata);
+
+                await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
             }
 
             seasonMetadata.Episodes = episodes.ToArray();
             seasons.Add(seasonMetadata);
 
-            await Task.Delay(250);
+            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
         }
 
         tvShowMetadata.Seasons = seasons.ToArray();
+
+        await PersonMetadataSynchronizer.SyncAsync(
+            _tmdbClient,
+            _personMetadataCollection,
+            _logger,
+            associatedPersonIds,
+            refreshExisting,
+            cancellationToken
+        );
 
         return tvShowMetadata;
     }
@@ -845,6 +900,15 @@ internal sealed class MetadataScanTaskExecutor
                         movieResult.Id,
                         extraMethods: MovieMethods.ReleaseDates | MovieMethods.Credits,
                         cancellationToken: context.CancellationToken
+                    );
+
+                    await PersonMetadataSynchronizer.SyncAsync(
+                        _tmdbClient,
+                        _personMetadataCollection,
+                        _logger,
+                        PersonMetadataCollector.FromCredits(movieDetails.Credits),
+                        refreshExisting,
+                        context.CancellationToken
                     );
 
                     MovieMetadata movieMetadata;

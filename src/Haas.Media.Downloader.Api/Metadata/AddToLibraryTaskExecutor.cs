@@ -17,6 +17,7 @@ internal sealed class AddToLibraryTaskExecutor
     private readonly ILiteCollection<MovieMetadata> _movieMetadataCollection;
     private readonly ILiteCollection<TVShowMetadata> _tvShowMetadataCollection;
     private readonly ILiteCollection<FileMetadata> _fileMetadataCollection;
+    private readonly ILiteCollection<PersonMetadata> _personMetadataCollection;
     private readonly TMDbClient _tmdbClient;
     private readonly ILogger<AddToLibraryTaskExecutor> _logger;
 
@@ -30,6 +31,7 @@ internal sealed class AddToLibraryTaskExecutor
         _movieMetadataCollection = database.GetCollection<MovieMetadata>("movieMetadata");
         _tvShowMetadataCollection = database.GetCollection<TVShowMetadata>("tvShowMetadata");
         _fileMetadataCollection = database.GetCollection<FileMetadata>("fileMetadata");
+        _personMetadataCollection = database.GetCollection<PersonMetadata>("personMetadata");
         _tmdbClient = tmdbClient;
         _logger = logger;
     }
@@ -163,6 +165,15 @@ internal sealed class AddToLibraryTaskExecutor
 
         var existingMovie = _movieMetadataCollection.FindById(new BsonValue(tmdbId.ToString()));
 
+        await PersonMetadataSynchronizer.SyncAsync(
+            _tmdbClient,
+            _personMetadataCollection,
+            _logger,
+            PersonMetadataCollector.FromCredits(movieDetails.Credits),
+            refreshExisting: existingMovie is not null,
+            cancellationToken: cancellationToken
+        );
+
         MovieMetadata movieMetadata;
         if (existingMovie is not null)
         {
@@ -239,6 +250,10 @@ internal sealed class AddToLibraryTaskExecutor
             throw new ArgumentException($"TV show with TMDB ID {tmdbId} not found on TMDB.");
         }
 
+        var associatedPersonIds = new HashSet<int>();
+        associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(tvShowDetails.Credits));
+        associatedPersonIds.UnionWith(PersonMetadataCollector.FromCreators(tvShowDetails.CreatedBy));
+
         payload = payload with { Stage = "Fetching TV show credits" };
         context.SetPayload(payload);
         context.ReportProgress(20);
@@ -281,6 +296,8 @@ internal sealed class AddToLibraryTaskExecutor
             var seasonMetadata = seasonDetails.Create();
             var episodes = new List<TVEpisodeMetadata>();
 
+            associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(seasonDetails.Credits));
+
             totalEpisodes += seasonDetails.Episodes.Count;
 
             foreach (var episode in seasonDetails.Episodes)
@@ -297,6 +314,10 @@ internal sealed class AddToLibraryTaskExecutor
                 var episodeMetadata = episodeDetails.Create();
                 episodes.Add(episodeMetadata);
                 processedEpisodes++;
+
+                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(episodeDetails.Credits));
+                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCrew(episodeDetails.Crew));
+                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCast(episodeDetails.GuestStars));
 
                 var episodeProgress = totalEpisodes > 0
                     ? 20 + Math.Min(80, 80 * (double)processedEpisodes / totalEpisodes)
@@ -326,6 +347,15 @@ internal sealed class AddToLibraryTaskExecutor
                 : 20;
             context.ReportProgress(Math.Min(99, seasonProgress));
         }
+
+        await PersonMetadataSynchronizer.SyncAsync(
+            _tmdbClient,
+            _personMetadataCollection,
+            _logger,
+            associatedPersonIds,
+            refreshExisting: existingTVShow is not null,
+            cancellationToken: cancellationToken
+        );
 
         TVShowMetadata tvShowMetadata;
         if (existingTVShow is not null)

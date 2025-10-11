@@ -16,6 +16,7 @@ internal sealed class MetadataRefreshTaskExecutor
 {
     private readonly ILiteCollection<MovieMetadata> _movieMetadataCollection;
     private readonly ILiteCollection<TVShowMetadata> _tvShowMetadataCollection;
+    private readonly ILiteCollection<PersonMetadata> _personMetadataCollection;
     private readonly TMDbClient _tmdbClient;
     private readonly ILogger<MetadataRefreshTaskExecutor> _logger;
 
@@ -27,6 +28,7 @@ internal sealed class MetadataRefreshTaskExecutor
     {
         _movieMetadataCollection = database.GetCollection<MovieMetadata>("movieMetadata");
         _tvShowMetadataCollection = database.GetCollection<TVShowMetadata>("tvShowMetadata");
+        _personMetadataCollection = database.GetCollection<PersonMetadata>("personMetadata");
         _tmdbClient = tmdbClient;
         _logger = logger;
     }
@@ -242,6 +244,15 @@ internal sealed class MetadataRefreshTaskExecutor
             );
         }
 
+        await PersonMetadataSynchronizer.SyncAsync(
+            _tmdbClient,
+            _personMetadataCollection,
+            _logger,
+            PersonMetadataCollector.FromCredits(movieDetails.Credits),
+            refreshExisting: true,
+            cancellationToken: cancellationToken
+        );
+
         movieDetails.Update(movie);
 
         _movieMetadataCollection.Update(movie);
@@ -266,12 +277,9 @@ internal sealed class MetadataRefreshTaskExecutor
             );
         }
 
-        var tvShowCredits = await _tmdbClient.GetTvShowCreditsAsync(
-            tmdbId,
-            cancellationToken: cancellationToken
-        );
-
-        // Note: FileMetadata is now managed separately and not updated during refresh
+        var associatedPersonIds = new HashSet<int>();
+        associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(tvShowDetails.Credits));
+        associatedPersonIds.UnionWith(PersonMetadataCollector.FromCreators(tvShowDetails.CreatedBy));
 
         var orderedSeasons =
             tvShowDetails
@@ -290,6 +298,8 @@ internal sealed class MetadataRefreshTaskExecutor
                 season.SeasonNumber,
                 cancellationToken: cancellationToken
             );
+
+            associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(seasonDetails.Credits));
 
             var seasonMetadata = seasonDetails.Create();
             var episodes = new List<TVEpisodeMetadata>();
@@ -311,6 +321,9 @@ internal sealed class MetadataRefreshTaskExecutor
                 }
 
                 var episodeMetadata = episodeDetails.Create();
+                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(episodeDetails.Credits));
+                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCrew(episodeDetails.Crew));
+                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCast(episodeDetails.GuestStars));
                 episodes.Add(episodeMetadata);
 
                 await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
@@ -325,6 +338,15 @@ internal sealed class MetadataRefreshTaskExecutor
         tvShowDetails.Update(tvShow);
 
         tvShow.Seasons = seasons.ToArray();
+
+        await PersonMetadataSynchronizer.SyncAsync(
+            _tmdbClient,
+            _personMetadataCollection,
+            _logger,
+            associatedPersonIds,
+            refreshExisting: true,
+            cancellationToken: cancellationToken
+        );
 
         _tvShowMetadataCollection.Update(tvShow);
     }
