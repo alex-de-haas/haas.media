@@ -48,6 +48,7 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
         // Check if this is the first user
         var isFirstUser = _users.Count() == 0;
         var nickname = string.IsNullOrWhiteSpace(request.Nickname) ? request.Username : request.Nickname.Trim();
+        var preferredLanguage = NormalizeLanguage(request.PreferredMetadataLanguage);
 
         // Create user
         var user = new User
@@ -57,7 +58,8 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             PasswordHash = passwordHash,
             IsAdmin = isFirstUser,
             CreatedAt = DateTime.UtcNow,
-            Nickname = nickname
+            Nickname = nickname,
+            PreferredMetadataLanguage = preferredLanguage
         };
 
         _users.Insert(user);
@@ -69,7 +71,7 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
 
         // Generate token
         var token = GenerateJwtToken(user);
-        return new AuthResponse(token, user.Username, user.Email, user.Nickname);
+    return new AuthResponse(token, user.Username, user.Email, user.Nickname, user.PreferredMetadataLanguage);
     }
 
     public async Task<AuthResponse?> LoginAsync(LoginRequest request)
@@ -102,8 +104,8 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
         logger.LogInformation("User logged in: {Username}", user.Username);
 
         // Generate token
-        var token = GenerateJwtToken(user);
-        return new AuthResponse(token, user.Username, user.Email, user.Nickname);
+    var token = GenerateJwtToken(user);
+    return new AuthResponse(token, user.Username, user.Email, user.Nickname, user.PreferredMetadataLanguage);
     }
 
     public async Task<User?> GetUserByUsernameAsync(string username)
@@ -144,7 +146,8 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
         }
 
         var normalizedEmail = request.Email.Trim();
-        var nickname = string.IsNullOrWhiteSpace(request.Nickname) ? user.Username : request.Nickname.Trim();
+    var nickname = string.IsNullOrWhiteSpace(request.Nickname) ? user.Username : request.Nickname.Trim();
+    var preferredLanguage = NormalizeLanguage(request.PreferredMetadataLanguage);
 
         var emailOwner = _users.FindOne(u => u.Email == normalizedEmail);
         if (emailOwner != null && emailOwner.Id != user.Id)
@@ -153,12 +156,13 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             return null;
         }
 
-        user.Email = normalizedEmail;
-        user.Nickname = nickname;
+    user.Email = normalizedEmail;
+    user.Nickname = nickname;
+    user.PreferredMetadataLanguage = preferredLanguage;
         _users.Update(user);
 
-        var token = GenerateJwtToken(user);
-        return new AuthResponse(token, user.Username, user.Email, user.Nickname);
+    var token = GenerateJwtToken(user);
+    return new AuthResponse(token, user.Username, user.Email, user.Nickname, user.PreferredMetadataLanguage);
     }
 
     public async Task<bool> UpdatePasswordAsync(string username, UpdatePasswordRequest request)
@@ -218,7 +222,8 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim("auth_type", "local"),
             new Claim(ClaimTypes.Role, user.IsAdmin ? "Admin" : "User"),
-            new Claim("nickname", user.Nickname ?? user.Username)
+            new Claim("nickname", user.Nickname ?? user.Username),
+            new Claim("preferred_language", user.PreferredMetadataLanguage ?? "en")
         };
 
         var token = new JwtSecurityToken(
@@ -230,6 +235,16 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private static string NormalizeLanguage(string? language)
+    {
+        if (string.IsNullOrWhiteSpace(language))
+        {
+            return "en";
+        }
+
+        return language.Trim();
     }
 
     private static bool IsValidEmail(string email)

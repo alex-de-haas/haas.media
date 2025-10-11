@@ -19,12 +19,14 @@ internal sealed class MetadataScanTaskExecutor
     private readonly ILiteCollection<PersonMetadata> _personMetadataCollection;
     private readonly TMDbClient _tmdbClient;
     private readonly ILogger<MetadataScanTaskExecutor> _logger;
+    private readonly ITmdbLanguageProvider _languageProvider;
 
     public MetadataScanTaskExecutor(
         LiteDatabase database,
         TMDbClient tmdbClient,
         IConfiguration configuration,
-        ILogger<MetadataScanTaskExecutor> logger
+        ILogger<MetadataScanTaskExecutor> logger,
+        ITmdbLanguageProvider languageProvider
     )
     {
         _dataPath =
@@ -37,12 +39,15 @@ internal sealed class MetadataScanTaskExecutor
         _personMetadataCollection = database.GetCollection<PersonMetadata>("personMetadata");
         _tmdbClient = tmdbClient;
         _logger = logger;
+        _languageProvider = languageProvider;
     }
 
     public async Task ExecuteAsync(
         BackgroundWorkerContext<MetadataScanTask, ScanOperationInfo> context
     )
     {
+        ApplyPreferredLanguage();
+
         var task = context.Task;
         var operationId = task.Id.ToString();
         var currentOperation = new ScanOperationInfo(
@@ -200,6 +205,15 @@ internal sealed class MetadataScanTaskExecutor
             context.ReportStatus(BackgroundTaskStatus.Failed);
 
             throw;
+        }
+    }
+
+    private void ApplyPreferredLanguage()
+    {
+        var language = _languageProvider.GetPreferredLanguage();
+        if (!string.IsNullOrWhiteSpace(language))
+        {
+            _tmdbClient.DefaultLanguage = language;
         }
     }
 

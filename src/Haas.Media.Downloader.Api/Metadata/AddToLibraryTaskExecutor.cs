@@ -20,11 +20,13 @@ internal sealed class AddToLibraryTaskExecutor
     private readonly ILiteCollection<PersonMetadata> _personMetadataCollection;
     private readonly TMDbClient _tmdbClient;
     private readonly ILogger<AddToLibraryTaskExecutor> _logger;
+    private readonly ITmdbLanguageProvider _languageProvider;
 
     public AddToLibraryTaskExecutor(
         LiteDatabase database,
         TMDbClient tmdbClient,
-        ILogger<AddToLibraryTaskExecutor> logger
+        ILogger<AddToLibraryTaskExecutor> logger,
+        ITmdbLanguageProvider languageProvider
     )
     {
         _librariesCollection = database.GetCollection<LibraryInfo>("libraries");
@@ -34,12 +36,15 @@ internal sealed class AddToLibraryTaskExecutor
         _personMetadataCollection = database.GetCollection<PersonMetadata>("personMetadata");
         _tmdbClient = tmdbClient;
         _logger = logger;
+        _languageProvider = languageProvider;
     }
 
     public async Task ExecuteAsync(
         BackgroundWorkerContext<AddToLibraryTask, AddToLibraryOperationInfo> context
     )
     {
+        ApplyPreferredLanguage();
+
         var task = context.Task;
         context.State.StartedAt ??= DateTimeOffset.UtcNow;
 
@@ -53,6 +58,7 @@ internal sealed class AddToLibraryTaskExecutor
         );
 
         context.ReportStatus(BackgroundTaskStatus.Running);
+
         context.ReportProgress(1);
         context.SetPayload(payload);
 
@@ -417,5 +423,14 @@ internal sealed class AddToLibraryTaskExecutor
         context.ReportProgress(95);
 
         return payload;
+    }
+
+    private void ApplyPreferredLanguage()
+    {
+        var language = _languageProvider.GetPreferredLanguage();
+        if (!string.IsNullOrWhiteSpace(language))
+        {
+            _tmdbClient.DefaultLanguage = language;
+        }
     }
 }

@@ -42,7 +42,15 @@ public static class AuthenticationConfiguration
                 return Results.NotFound();
             }
 
-            return Results.Ok(new { user.Username, user.Email, user.CreatedAt, user.LastLoginAt, Nickname = user.Nickname ?? user.Username });
+            return Results.Ok(new
+            {
+                user.Username,
+                user.Email,
+                user.CreatedAt,
+                user.LastLoginAt,
+                Nickname = user.Nickname ?? user.Username,
+                PreferredMetadataLanguage = user.PreferredMetadataLanguage
+            });
         })
         .RequireAuthorization()
         .WithName("GetCurrentUser");

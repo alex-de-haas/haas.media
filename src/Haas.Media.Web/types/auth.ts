@@ -4,6 +4,7 @@ export interface User {
   createdAt: string;
   lastLoginAt?: string;
   nickname?: string | null;
+  preferredMetadataLanguage?: string;
 }
 
 export interface AuthResponse {
@@ -11,6 +12,7 @@ export interface AuthResponse {
   username: string;
   email: string;
   nickname?: string | null;
+  preferredMetadataLanguage?: string;
 }
 
 export interface LoginRequest {
@@ -22,11 +24,13 @@ export interface RegisterRequest {
   username: string;
   email: string;
   password: string;
+  preferredMetadataLanguage?: string;
 }
 
 export interface UpdateProfileRequest {
   email: string;
   nickname?: string;
+  preferredMetadataLanguage: string;
 }
 
 export interface UpdatePasswordRequest {

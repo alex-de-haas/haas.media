@@ -19,11 +19,13 @@ internal sealed class MetadataRefreshTaskExecutor
     private readonly ILiteCollection<PersonMetadata> _personMetadataCollection;
     private readonly TMDbClient _tmdbClient;
     private readonly ILogger<MetadataRefreshTaskExecutor> _logger;
+    private readonly ITmdbLanguageProvider _languageProvider;
 
     public MetadataRefreshTaskExecutor(
         LiteDatabase database,
         TMDbClient tmdbClient,
-        ILogger<MetadataRefreshTaskExecutor> logger
+        ILogger<MetadataRefreshTaskExecutor> logger,
+        ITmdbLanguageProvider languageProvider
     )
     {
         _movieMetadataCollection = database.GetCollection<MovieMetadata>("movieMetadata");
@@ -31,12 +33,15 @@ internal sealed class MetadataRefreshTaskExecutor
         _personMetadataCollection = database.GetCollection<PersonMetadata>("personMetadata");
         _tmdbClient = tmdbClient;
         _logger = logger;
+        _languageProvider = languageProvider;
     }
 
     public async Task ExecuteAsync(
         BackgroundWorkerContext<MetadataRefreshTask, MetadataRefreshOperationInfo> context
     )
     {
+        ApplyPreferredLanguage();
+
         var cancellationToken = context.CancellationToken;
         context.State.StartedAt ??= DateTimeOffset.UtcNow;
 
@@ -379,6 +384,15 @@ internal sealed class MetadataRefreshTaskExecutor
             _logger.LogError(ex, "Metadata refresh task failed unexpectedly");
 
             throw;
+        }
+    }
+
+    private void ApplyPreferredLanguage()
+    {
+        var language = _languageProvider.GetPreferredLanguage();
+        if (!string.IsNullOrWhiteSpace(language))
+        {
+            _tmdbClient.DefaultLanguage = language;
         }
     }
 

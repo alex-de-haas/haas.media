@@ -17,12 +17,14 @@ public class MetadataService : IMetadataApi
     private readonly ILogger<MetadataService> _logger;
     private readonly TMDbClient _tmdbClient;
     private readonly IBackgroundTaskManager _backgroundTaskManager;
+    private readonly ITmdbLanguageProvider _languageProvider;
 
     public MetadataService(
         ILogger<MetadataService> logger,
         LiteDatabase database,
         IBackgroundTaskManager backgroundTaskManager,
-        TMDbClient tmdbClient
+        TMDbClient tmdbClient,
+        ITmdbLanguageProvider languageProvider
     )
     {
         _librariesCollection = database.GetCollection<LibraryInfo>("libraries");
@@ -34,6 +36,7 @@ public class MetadataService : IMetadataApi
         _backgroundTaskManager = backgroundTaskManager;
 
         _tmdbClient = tmdbClient;
+        _languageProvider = languageProvider;
 
         CreateIndexes();
 
@@ -221,6 +224,8 @@ public class MetadataService : IMetadataApi
         LibraryType? libraryType = null
     )
     {
+        ApplyPreferredLanguage();
+
         _logger.LogDebug(
             "Searching TMDB for query: {Query}, libraryType: {LibraryType}",
             query,
@@ -385,6 +390,15 @@ public class MetadataService : IMetadataApi
         };
 
         return Task.FromResult<PersonLibraryCredits?>(result);
+    }
+
+    private void ApplyPreferredLanguage()
+    {
+        var language = _languageProvider.GetPreferredLanguage();
+        if (!string.IsNullOrWhiteSpace(language))
+        {
+            _tmdbClient.DefaultLanguage = language;
+        }
     }
 
     private void CreateIndexes()

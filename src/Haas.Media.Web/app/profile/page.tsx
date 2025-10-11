@@ -8,7 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNotifications } from "@/lib/notifications";
+import { TMDB_LANGUAGE_OPTIONS, isSupportedTmdbLanguage } from "@/lib/tmdb-languages";
 
 export default function ProfilePage() {
   const { isAuthenticated, isLoading } = useAuthGuard();
@@ -16,6 +18,10 @@ export default function ProfilePage() {
   const { notify } = useNotifications();
   const [email, setEmail] = useState(user?.email ?? "");
   const [nickname, setNickname] = useState(user?.nickname ?? user?.username ?? "");
+  const [preferredLanguage, setPreferredLanguage] = useState(() => {
+    const code = user?.preferredMetadataLanguage ?? "en";
+    return isSupportedTmdbLanguage(code) ? code : "en";
+  });
   const [profileLoading, setProfileLoading] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -28,6 +34,8 @@ export default function ProfilePage() {
     if (user) {
       setEmail(user.email);
       setNickname(user.nickname ?? user.username);
+      const code = user.preferredMetadataLanguage ?? "en";
+      setPreferredLanguage(isSupportedTmdbLanguage(code) ? code : "en");
     }
   }, [user]);
 
@@ -60,7 +68,7 @@ export default function ProfilePage() {
     }
 
     setProfileLoading(true);
-    const result = await updateProfile(trimmedEmail, trimmedNickname);
+  const result = await updateProfile(trimmedEmail, trimmedNickname, preferredLanguage);
     setProfileLoading(false);
 
     if (result.success) {
@@ -130,6 +138,25 @@ export default function ProfilePage() {
                 disabled={profileLoading}
                 placeholder="What should we call you?"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="preferredLanguage">Preferred TMDB language</Label>
+              <Select
+                value={preferredLanguage}
+                onValueChange={setPreferredLanguage}
+                disabled={profileLoading}
+              >
+                <SelectTrigger id="preferredLanguage" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TMDB_LANGUAGE_OPTIONS.map((option) => (
+                    <SelectItem key={option.code} value={option.code}>
+                      {option.label} ({option.code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex justify-end">
               <Button type="submit" disabled={profileLoading}>

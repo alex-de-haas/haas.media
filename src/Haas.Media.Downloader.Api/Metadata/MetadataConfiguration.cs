@@ -13,6 +13,7 @@ public static class MetadataConfiguration
 
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddSingleton<Tmdb.TmdbHttpClientAccessor>();
+        builder.Services.AddSingleton<ITmdbLanguageProvider, TmdbLanguageProvider>();
 
         builder.Services.AddSingleton(sp =>
         {
@@ -21,7 +22,13 @@ public static class MetadataConfiguration
                 configuration["TMDB_API_KEY"]
                 ?? throw new ArgumentException("TMDB_API_KEY configuration is required.");
 
-            var client = new TMDbLib.Client.TMDbClient(tmdbApiKey) { DefaultLanguage = "en" };
+            var languageProvider = sp.GetRequiredService<ITmdbLanguageProvider>();
+            var preferredLanguage = languageProvider.GetPreferredLanguage();
+
+            var client = new TMDbLib.Client.TMDbClient(tmdbApiKey)
+            {
+                DefaultLanguage = preferredLanguage
+            };
 
             var httpClient = sp.GetRequiredService<Tmdb.TmdbHttpClientAccessor>().HttpClient;
             Tmdb.TmdbClientConfigurator.UseHttpClient(client, httpClient);
