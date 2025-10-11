@@ -32,12 +32,14 @@ export default function LibrariesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedLibrary, setSelectedLibrary] = useState<Library | null>(null);
   const [libraryToDelete, setLibraryToDelete] = useState<Library | null>(null);
+  const [isCancellingScan, setIsCancellingScan] = useState(false);
+  const [isCancellingRefresh, setIsCancellingRefresh] = useState(false);
 
   const { libraries, loading, createLibrary, updateLibrary, deleteLibrary, startBackgroundScan, startMetadataRefresh } = useLibraries();
 
   const { notify } = useNotifications();
   const { scanOperations, isConnected } = useMetadataSignalR();
-  const { tasks: backgroundTasks } = useBackgroundTasks();
+  const { tasks: backgroundTasks, cancelTask } = useBackgroundTasks();
 
   const scanTasks = useMemo(() => backgroundTasks.filter((task) => task.type === "MetadataScanTask"), [backgroundTasks]);
   const refreshTasks = useMemo(() => backgroundTasks.filter((task) => task.type === "MetadataRefreshTask"), [backgroundTasks]);
@@ -167,6 +169,54 @@ export default function LibrariesPage() {
     });
   };
 
+  const handleCancelScan = async () => {
+    if (!activeScan?.task) {
+      return;
+    }
+
+    setIsCancellingScan(true);
+    try {
+      const result = await cancelTask(activeScan.task.id);
+      notify({
+        title: result.success ? "Cancellation Requested" : "Cancel Failed",
+        message: result.message ?? (result.success ? "Library scan cancellation requested." : "Unable to cancel library scan."),
+        type: result.success ? "success" : "error",
+      });
+    } catch (error: unknown) {
+      notify({
+        title: "Cancel Failed",
+        message: error instanceof Error ? error.message : "Unable to cancel library scan.",
+        type: "error",
+      });
+    } finally {
+      setIsCancellingScan(false);
+    }
+  };
+
+  const handleCancelRefresh = async () => {
+    if (!activeRefresh?.task) {
+      return;
+    }
+
+    setIsCancellingRefresh(true);
+    try {
+      const result = await cancelTask(activeRefresh.task.id);
+      notify({
+        title: result.success ? "Cancellation Requested" : "Cancel Failed",
+        message: result.message ?? (result.success ? "Metadata refresh cancellation requested." : "Unable to cancel metadata refresh."),
+        type: result.success ? "success" : "error",
+      });
+    } catch (error: unknown) {
+      notify({
+        title: "Cancel Failed",
+        message: error instanceof Error ? error.message : "Unable to cancel metadata refresh.",
+        type: "error",
+      });
+    } finally {
+      setIsCancellingRefresh(false);
+    }
+  };
+
   const fallbackProgress =
     activeOperation && activeOperation.totalFiles > 0
       ? Math.round((activeOperation.processedFiles / Math.max(1, activeOperation.totalFiles)) * 100)
@@ -265,10 +315,22 @@ export default function LibrariesPage() {
       {activeScan && (
         <Card className={cn("border-primary/40 bg-primary/5", !isConnected && "border-dashed")}>
           <CardHeader className="space-y-2">
-            <CardTitle className="flex items-center gap-2 text-primary">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Scan in Progress
-            </CardTitle>
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Scan in Progress
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancelScan}
+                disabled={!isScanRunning || isCancellingScan}
+                className="shrink-0"
+              >
+                {isCancellingScan && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                Cancel
+              </Button>
+            </div>
             <p className="text-sm text-muted-foreground">{fileProgressSummary}</p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -300,10 +362,22 @@ export default function LibrariesPage() {
       {activeRefresh && (
         <Card className={cn("border-primary/40 bg-primary/5", !isConnected && "border-dashed")}>
           <CardHeader className="space-y-2">
-            <CardTitle className="flex items-center gap-2 text-primary">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Refresh in Progress
-            </CardTitle>
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Refresh in Progress
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancelRefresh}
+                disabled={!isRefreshRunning || isCancellingRefresh}
+                className="shrink-0"
+              >
+                {isCancellingRefresh && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                Cancel
+              </Button>
+            </div>
             <p className="text-sm text-muted-foreground">{refreshProgressSummary}</p>
           </CardHeader>
           <CardContent className="space-y-4">
