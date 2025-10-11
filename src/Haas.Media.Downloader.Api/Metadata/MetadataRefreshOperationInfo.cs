@@ -12,5 +12,8 @@ public record MetadataRefreshOperationInfo(
     string? CurrentTitle = null,
     DateTime? StartedAt = null,
     DateTime? CompletedAt = null,
-    string? LastError = null
+    string? LastError = null,
+    int TotalPeople = 0,
+    int SyncedPeople = 0,
+    int FailedPeople = 0
 );

@@ -154,4 +154,7 @@ export interface MetadataRefreshOperationInfo {
   startedAt?: string | null;
   completedAt?: string | null;
   lastError?: string | null;
+  totalPeople?: number;
+  syncedPeople?: number;
+  failedPeople?: number;
 }

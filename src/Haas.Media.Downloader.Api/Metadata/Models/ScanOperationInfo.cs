@@ -10,5 +10,8 @@ public record ScanOperationInfo(
     DateTime StartTime,
     string? CurrentFile = null,
     double? SpeedFilesPerSecond = null,
-    double? EstimatedTimeSeconds = null
+    double? EstimatedTimeSeconds = null,
+    int TotalPeople = 0,
+    int SyncedPeople = 0,
+    int FailedPeople = 0
 );

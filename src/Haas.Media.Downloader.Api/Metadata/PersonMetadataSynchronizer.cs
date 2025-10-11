@@ -11,7 +11,7 @@ namespace Haas.Media.Downloader.Api.Metadata;
 
 internal static class PersonMetadataSynchronizer
 {
-    public static async Task SyncAsync(
+    public static async Task<PersonSyncStatistics> SyncAsync(
         TMDbClient tmdbClient,
         ILiteCollection<PersonMetadata> personCollection,
         ILogger logger,
@@ -23,8 +23,12 @@ internal static class PersonMetadataSynchronizer
         var distinctIds = personIds.Where(id => id > 0).Distinct().ToList();
         if (distinctIds.Count == 0)
         {
-            return;
+            return PersonSyncStatistics.Empty;
         }
+
+        var totalRequested = distinctIds.Count;
+        var syncedCount = 0;
+        var failedCount = 0;
 
         foreach (var personId in distinctIds)
         {
@@ -47,6 +51,7 @@ internal static class PersonMetadataSynchronizer
 
             if (existingMetadata is not null && !refreshExisting)
             {
+                syncedCount++;
                 continue;
             }
 
@@ -63,6 +68,7 @@ internal static class PersonMetadataSynchronizer
                         "TMDb returned null when requesting person metadata for {PersonId}",
                         personId
                     );
+                    failedCount++;
                     continue;
                 }
 
@@ -76,6 +82,8 @@ internal static class PersonMetadataSynchronizer
                     personDetails.Update(existingMetadata);
                     personCollection.Update(existingMetadata);
                 }
+
+                syncedCount++;
             }
             catch (OperationCanceledException)
             {
@@ -88,9 +96,26 @@ internal static class PersonMetadataSynchronizer
                     "Failed to synchronize person metadata for TMDb person {PersonId}",
                     personId
                 );
+                failedCount++;
             }
 
             await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
         }
+
+        return new PersonSyncStatistics(totalRequested, syncedCount, failedCount);
+    }
+}
+
+internal readonly record struct PersonSyncStatistics(int Requested, int Synced, int Failed)
+{
+    public static PersonSyncStatistics Empty { get; } = new(0, 0, 0);
+
+    public PersonSyncStatistics Add(PersonSyncStatistics other)
+    {
+        return new PersonSyncStatistics(
+            Requested + other.Requested,
+            Synced + other.Synced,
+            Failed + other.Failed
+        );
     }
 }

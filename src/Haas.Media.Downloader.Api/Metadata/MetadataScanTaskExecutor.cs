@@ -269,6 +269,9 @@ internal sealed class MetadataScanTaskExecutor
         var processedEpisodeFiles = 0;
         var found = 0;
         var currentOperation = operation;
+        var totalPeople = currentOperation.TotalPeople;
+        var syncedPeople = currentOperation.SyncedPeople;
+        var failedPeople = currentOperation.FailedPeople;
 
         foreach (var showDirectory in showDirectories)
         {
@@ -346,7 +349,7 @@ internal sealed class MetadataScanTaskExecutor
                         var updatedTmdbResult = await SearchTMDbForTVShow(showTitle, showYear);
                         if (updatedTmdbResult != null)
                         {
-                            var updatedTvShowMetadata = await CreateTVShowMetadata(
+                            var (updatedTvShowMetadata, personSyncStats) = await CreateTVShowMetadata(
                                 updatedTmdbResult.Id,
                                 library.Id!,
                                 showDirectory,
@@ -359,6 +362,21 @@ internal sealed class MetadataScanTaskExecutor
                             updatedTvShowMetadata.UpdatedAt = DateTime.UtcNow;
 
                             _tvShowMetadataCollection.Update(updatedTvShowMetadata);
+
+                            if (personSyncStats.Requested > 0)
+                            {
+                                totalPeople += personSyncStats.Requested;
+                                syncedPeople += personSyncStats.Synced;
+                                failedPeople += personSyncStats.Failed;
+
+                                currentOperation = currentOperation with
+                                {
+                                    TotalPeople = totalPeople,
+                                    SyncedPeople = syncedPeople,
+                                    FailedPeople = failedPeople,
+                                };
+                                context.SetPayload(currentOperation);
+                            }
 
                             _logger.LogInformation(
                                 "Updated metadata for TV show: {Title} - Directory: {DirectoryName}",
@@ -386,7 +404,7 @@ internal sealed class MetadataScanTaskExecutor
 
                     if (tmdbResult != null)
                     {
-                        var tvShowMetadata = await CreateTVShowMetadata(
+                        var (tvShowMetadata, personSyncStats) = await CreateTVShowMetadata(
                             tmdbResult.Id,
                             library.Id!,
                             showDirectory,
@@ -394,6 +412,21 @@ internal sealed class MetadataScanTaskExecutor
                             context.CancellationToken
                         );
                         _tvShowMetadataCollection.Insert(tvShowMetadata);
+
+                        if (personSyncStats.Requested > 0)
+                        {
+                            totalPeople += personSyncStats.Requested;
+                            syncedPeople += personSyncStats.Synced;
+                            failedPeople += personSyncStats.Failed;
+
+                            currentOperation = currentOperation with
+                            {
+                                TotalPeople = totalPeople,
+                                SyncedPeople = syncedPeople,
+                                FailedPeople = failedPeople,
+                            };
+                            context.SetPayload(currentOperation);
+                        }
 
                         _logger.LogInformation(
                             "Added metadata for TV show: {Title} - Directory: {DirectoryName}",
@@ -517,7 +550,7 @@ internal sealed class MetadataScanTaskExecutor
         }
     }
 
-    private async Task<TVShowMetadata> CreateTVShowMetadata(
+    private async Task<(TVShowMetadata Metadata, PersonSyncStatistics PersonSync)> CreateTVShowMetadata(
         int tmdbTvShowId,
         string libraryId,
         string showDirectory,
@@ -623,7 +656,7 @@ internal sealed class MetadataScanTaskExecutor
 
         tvShowMetadata.Seasons = seasons.ToArray();
 
-        await PersonMetadataSynchronizer.SyncAsync(
+        var personSyncStats = await PersonMetadataSynchronizer.SyncAsync(
             _tmdbClient,
             _personMetadataCollection,
             _logger,
@@ -632,7 +665,7 @@ internal sealed class MetadataScanTaskExecutor
             cancellationToken
         );
 
-        return tvShowMetadata;
+        return (tvShowMetadata, personSyncStats);
     }
 
     private string? FindEpisodeFile(string showDirectory, int seasonNumber, int episodeNumber)
@@ -792,6 +825,9 @@ internal sealed class MetadataScanTaskExecutor
         var processed = 0;
         var found = 0;
         var currentOperation = operation;
+        var totalPeople = currentOperation.TotalPeople;
+        var syncedPeople = currentOperation.SyncedPeople;
+        var failedPeople = currentOperation.FailedPeople;
 
         foreach (var filePath in mediaFiles)
         {
@@ -902,7 +938,7 @@ internal sealed class MetadataScanTaskExecutor
                         cancellationToken: context.CancellationToken
                     );
 
-                    await PersonMetadataSynchronizer.SyncAsync(
+                    var personSyncStats = await PersonMetadataSynchronizer.SyncAsync(
                         _tmdbClient,
                         _personMetadataCollection,
                         _logger,
@@ -910,6 +946,21 @@ internal sealed class MetadataScanTaskExecutor
                         refreshExisting,
                         context.CancellationToken
                     );
+
+                    if (personSyncStats.Requested > 0)
+                    {
+                        totalPeople += personSyncStats.Requested;
+                        syncedPeople += personSyncStats.Synced;
+                        failedPeople += personSyncStats.Failed;
+
+                        currentOperation = currentOperation with
+                        {
+                            TotalPeople = totalPeople,
+                            SyncedPeople = syncedPeople,
+                            FailedPeople = failedPeople,
+                        };
+                        context.SetPayload(currentOperation);
+                    }
 
                     MovieMetadata movieMetadata;
                     

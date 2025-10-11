@@ -81,6 +81,9 @@ export default function LibrariesPage() {
       startedAt,
       completedAt: toOptionalString(raw.completedAt),
       lastError: toOptionalString(raw.lastError) ?? activeRefreshTask.errorMessage ?? null,
+      totalPeople: toNumber(raw.totalPeople),
+      syncedPeople: toNumber(raw.syncedPeople),
+      failedPeople: toNumber(raw.failedPeople),
     };
   }, [activeRefreshTask]);
 
@@ -236,9 +239,28 @@ export default function LibrariesPage() {
 
   const statusMessage = activeScan?.task?.statusMessage ?? activeOperation?.currentFile ?? statusLabel;
 
-  const fileProgressSummary = activeOperation
-    ? `${activeOperation.processedFiles} of ${activeOperation.totalFiles} files processed • ${activeOperation.foundMetadata} metadata records found`
-    : statusMessage;
+  const fileProgressSummary = (() => {
+    if (!activeOperation) {
+      return statusMessage;
+    }
+
+    const summaryParts = [
+      `${activeOperation.processedFiles} of ${activeOperation.totalFiles} files processed`,
+      `${activeOperation.foundMetadata} metadata records found`,
+    ];
+
+    const totalPeople = activeOperation.totalPeople ?? 0;
+    if (totalPeople > 0) {
+      const syncedPeople = activeOperation.syncedPeople ?? 0;
+      const failedPeople = activeOperation.failedPeople ?? 0;
+      const peopleLabel = failedPeople > 0
+        ? `People ${syncedPeople}/${totalPeople} (${failedPeople} failed)`
+        : `People ${syncedPeople}/${totalPeople}`;
+      summaryParts.push(peopleLabel);
+    }
+
+    return summaryParts.join(" • ");
+  })();
 
   const refreshProgressPercentage = activeRefresh?.task ? Math.round(activeRefresh.task.progress) : 0;
 
@@ -266,6 +288,16 @@ export default function LibrariesPage() {
 
     if (refreshOperation.totalTvShows > 0) {
       refreshSummaryParts.push(`${refreshOperation.processedTvShows}/${refreshOperation.totalTvShows} TV shows`);
+    }
+
+    const totalPeople = refreshOperation.totalPeople ?? 0;
+    if (totalPeople > 0) {
+      const syncedPeople = refreshOperation.syncedPeople ?? 0;
+      const failedPeople = refreshOperation.failedPeople ?? 0;
+      const label = failedPeople > 0
+        ? `People ${syncedPeople}/${totalPeople} (${failedPeople} failed)`
+        : `People ${syncedPeople}/${totalPeople}`;
+      refreshSummaryParts.push(label);
     }
   }
 

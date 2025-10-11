@@ -63,6 +63,9 @@ internal sealed class MetadataRefreshTaskExecutor
         var processedItems = 0;
         var processedMovies = 0;
         var processedTvShows = 0;
+        var totalPeople = 0;
+        var syncedPeople = 0;
+        var failedPeople = 0;
 
         try
         {
@@ -80,15 +83,19 @@ internal sealed class MetadataRefreshTaskExecutor
                     CurrentTitle = displayTitle,
                     ProcessedItems = processedItems,
                     ProcessedMovies = processedMovies,
+                    TotalPeople = totalPeople,
+                    SyncedPeople = syncedPeople,
+                    FailedPeople = failedPeople,
                     LastError = null,
                 };
                 context.SetPayload(payload);
 
                 string? lastError = null;
+                var personSyncStats = PersonSyncStatistics.Empty;
 
                 try
                 {
-                    await RefreshMovieAsync(movie, cancellationToken);
+                    personSyncStats = await RefreshMovieAsync(movie, cancellationToken);
                 }
                 catch (OperationCanceledException)
                 {
@@ -105,6 +112,13 @@ internal sealed class MetadataRefreshTaskExecutor
                     );
                 }
 
+                if (personSyncStats.Requested > 0)
+                {
+                    totalPeople += personSyncStats.Requested;
+                    syncedPeople += personSyncStats.Synced;
+                    failedPeople += personSyncStats.Failed;
+                }
+
                 processedMovies++;
                 processedItems++;
 
@@ -118,6 +132,9 @@ internal sealed class MetadataRefreshTaskExecutor
                     ProcessedItems = processedItems,
                     ProcessedMovies = processedMovies,
                     Stage = lastError is null ? "Movie refreshed" : "Movie refresh failed",
+                    TotalPeople = totalPeople,
+                    SyncedPeople = syncedPeople,
+                    FailedPeople = failedPeople,
                     LastError = lastError,
                 };
 
@@ -141,15 +158,19 @@ internal sealed class MetadataRefreshTaskExecutor
                     CurrentTitle = displayTitle,
                     ProcessedItems = processedItems,
                     ProcessedTvShows = processedTvShows,
+                    TotalPeople = totalPeople,
+                    SyncedPeople = syncedPeople,
+                    FailedPeople = failedPeople,
                     LastError = null,
                 };
                 context.SetPayload(payload);
 
                 string? lastError = null;
+                var personSyncStats = PersonSyncStatistics.Empty;
 
                 try
                 {
-                    await RefreshTvShowAsync(tvShow, cancellationToken);
+                    personSyncStats = await RefreshTvShowAsync(tvShow, cancellationToken);
                 }
                 catch (OperationCanceledException)
                 {
@@ -166,6 +187,13 @@ internal sealed class MetadataRefreshTaskExecutor
                     );
                 }
 
+                if (personSyncStats.Requested > 0)
+                {
+                    totalPeople += personSyncStats.Requested;
+                    syncedPeople += personSyncStats.Synced;
+                    failedPeople += personSyncStats.Failed;
+                }
+
                 processedTvShows++;
                 processedItems++;
 
@@ -179,6 +207,9 @@ internal sealed class MetadataRefreshTaskExecutor
                     ProcessedItems = processedItems,
                     ProcessedTvShows = processedTvShows,
                     Stage = lastError is null ? "TV show refreshed" : "TV show refresh failed",
+                    TotalPeople = totalPeople,
+                    SyncedPeople = syncedPeople,
+                    FailedPeople = failedPeople,
                     LastError = lastError,
                 };
 
@@ -197,6 +228,9 @@ internal sealed class MetadataRefreshTaskExecutor
                 CurrentTitle = null,
                 LastError = null,
                 CompletedAt = DateTime.UtcNow,
+                TotalPeople = totalPeople,
+                SyncedPeople = syncedPeople,
+                FailedPeople = failedPeople,
             };
 
             context.SetPayload(payload);
@@ -228,7 +262,7 @@ internal sealed class MetadataRefreshTaskExecutor
         }
     }
 
-    private async Task RefreshMovieAsync(MovieMetadata movie, CancellationToken cancellationToken)
+    private async Task<PersonSyncStatistics> RefreshMovieAsync(MovieMetadata movie, CancellationToken cancellationToken)
     {
         var tmdbId =movie.Id;
         var movieDetails = await _tmdbClient.GetMovieAsync(
@@ -244,7 +278,7 @@ internal sealed class MetadataRefreshTaskExecutor
             );
         }
 
-        await PersonMetadataSynchronizer.SyncAsync(
+        var personSyncStats = await PersonMetadataSynchronizer.SyncAsync(
             _tmdbClient,
             _personMetadataCollection,
             _logger,
@@ -256,9 +290,11 @@ internal sealed class MetadataRefreshTaskExecutor
         movieDetails.Update(movie);
 
         _movieMetadataCollection.Update(movie);
+
+        return personSyncStats;
     }
 
-    private async Task RefreshTvShowAsync(
+    private async Task<PersonSyncStatistics> RefreshTvShowAsync(
         TVShowMetadata tvShow,
         CancellationToken cancellationToken
     )
@@ -339,7 +375,7 @@ internal sealed class MetadataRefreshTaskExecutor
 
         tvShow.Seasons = seasons.ToArray();
 
-        await PersonMetadataSynchronizer.SyncAsync(
+        var personSyncStats = await PersonMetadataSynchronizer.SyncAsync(
             _tmdbClient,
             _personMetadataCollection,
             _logger,
@@ -349,5 +385,7 @@ internal sealed class MetadataRefreshTaskExecutor
         );
 
         _tvShowMetadataCollection.Update(tvShow);
+
+        return personSyncStats;
     }
 }
