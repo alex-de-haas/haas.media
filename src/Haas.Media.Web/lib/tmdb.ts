@@ -43,3 +43,14 @@ export function getBackdropUrlWithSize(backdropPath?: string | null, size: strin
   if (!backdropPath) return null;
   return `https://image.tmdb.org/t/p/${size}${backdropPath}`;
 }
+
+/**
+ * Gets the full URL for a TMDB profile image with a specific size
+ * @param profilePath The relative profile path from TMDB
+ * @param size The image size (e.g., 'w185', 'h632', 'original')
+ * @returns Full image URL or null if path is null/empty
+ */
+export function getProfileUrl(profilePath?: string | null, size: string = "h632"): string | null {
+  if (!profilePath) return null;
+  return `https://image.tmdb.org/t/p/${size}${profilePath}`;
+}

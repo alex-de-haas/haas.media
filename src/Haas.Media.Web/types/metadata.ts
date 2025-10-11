@@ -63,6 +63,27 @@ export interface CastMember {
   profilePath?: string;
 }
 
+export enum PersonGender {
+  Unknown = 0,
+  Female = 1,
+  Male = 2,
+  NonBinary = 3,
+}
+
+export interface PersonMetadata {
+  id: number;
+  biography?: string | null;
+  birthday?: string | null;
+  deathday?: string | null;
+  gender: PersonGender;
+  name?: string | null;
+  placeOfBirth?: string | null;
+  popularity: number;
+  profilePath?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Network {
   id: number;
   name: string;

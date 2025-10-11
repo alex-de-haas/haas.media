@@ -1,7 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchWithAuth } from "@/lib/auth/fetch-with-auth";
 import { getApiDownloaderUrl } from "@/lib/env";
-import type { MovieMetadata, TVShowMetadata, SearchResult, AddToLibraryResponse, AddToLibraryOperationInfo } from "@/types/metadata";
+import type {
+  MovieMetadata,
+  TVShowMetadata,
+  SearchResult,
+  AddToLibraryResponse,
+  AddToLibraryOperationInfo,
+  PersonMetadata,
+} from "@/types/metadata";
 import { LibraryType } from "@/types/library";
 import { BackgroundTaskStatus } from "@/types";
 import { useBackgroundTasks } from "@/features/background-tasks/hooks/useBackgroundTasks";
@@ -271,6 +278,53 @@ export function useTVShow(id: number) {
   }, [fetchTVShow, id]);
 
   return { tvShow, loading, error, refetch: fetchTVShow };
+}
+
+export function usePerson(id?: number) {
+  const [person, setPerson] = useState<PersonMetadata | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchPerson = useCallback(async () => {
+    if (!id) {
+      setPerson(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/people/${id}`);
+
+      if (response.status === 404) {
+        setPerson(null);
+        setError(null);
+        return;
+      }
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        const message = (errorBody as { message?: string } | null)?.message ?? response.statusText;
+        throw new Error(message || "Failed to load person");
+      }
+
+      const personData = (await response.json()) as PersonMetadata;
+      setPerson(personData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load person");
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void fetchPerson();
+  }, [fetchPerson]);
+
+  return { person, loading, error, refetch: fetchPerson };
 }
 
 export function useDeleteTVShowMetadata() {

@@ -337,6 +337,21 @@ public class MetadataService : IMetadataApi
         );
     }
 
+    public Task<PersonMetadata?> GetPersonMetadataByIdAsync(int id)
+    {
+        var personMetadata = _personMetadataCollection.FindById(new BsonValue(id));
+        if (personMetadata is not null)
+        {
+            _logger.LogDebug("Retrieved person metadata with ID: {Id}", id);
+        }
+        else
+        {
+            _logger.LogWarning("Person metadata not found with ID: {Id}", id);
+        }
+
+        return Task.FromResult<PersonMetadata?>(personMetadata);
+    }
+
     private void CreateIndexes()
     {
         _librariesCollection.EnsureIndex(x => x.DirectoryPath, true);

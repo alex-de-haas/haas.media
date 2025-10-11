@@ -9,6 +9,7 @@ export {
   useDeleteMovieMetadata,
   useTVShows,
   useTVShow,
+  usePerson,
   useDeleteTVShowMetadata,
   useAddToLibrary,
   useSearch,

@@ -22,6 +22,8 @@ public class PersonMetadata
 
     public double Popularity { get; set; }
 
+    public string? ProfilePath { get; set; }
+
     public required DateTime CreatedAt { get; set; }
 
     public required DateTime UpdatedAt { get; set; }
@@ -41,6 +43,7 @@ static class PersonMetadataMapper
             Name = NormalizeWhitespace(source.Name),
             PlaceOfBirth = NormalizeWhitespace(source.PlaceOfBirth),
             Popularity = source.Popularity,
+            ProfilePath = source.ProfilePath,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -55,6 +58,7 @@ static class PersonMetadataMapper
         target.Name = NormalizeWhitespace(source.Name);
         target.PlaceOfBirth = NormalizeWhitespace(source.PlaceOfBirth);
         target.Popularity = source.Popularity;
+        target.ProfilePath = source.ProfilePath;
         target.UpdatedAt = DateTime.UtcNow;
     }
 

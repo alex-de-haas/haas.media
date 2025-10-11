@@ -337,6 +337,17 @@ public static class MetadataConfiguration
             .WithName("AddToLibrary")
             .RequireAuthorization();
 
+        app.MapGet(
+                "api/metadata/people/{id}",
+                async (IMetadataApi metadataService, int id) =>
+                {
+                    var personMetadata = await metadataService.GetPersonMetadataByIdAsync(id);
+                    return personMetadata != null ? Results.Ok(personMetadata) : Results.NotFound();
+                }
+            )
+            .WithName("GetPersonMetadataById")
+            .RequireAuthorization();
+
         return app;
     }
 }

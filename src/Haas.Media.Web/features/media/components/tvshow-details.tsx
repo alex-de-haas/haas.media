@@ -368,6 +368,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                                     name={castMember.name}
                                     {...(castMember.character ? { description: castMember.character } : {})}
                                     profilePath={castMember.profilePath ?? null}
+                                    href={`/people/${castMember.id}`}
                                     className="mx-auto h-full"
                                   />
                                 </CarouselItem>
@@ -412,6 +413,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                                     description={crewMember.job}
                                     {...(crewMember.department ? { meta: crewMember.department } : {})}
                                     profilePath={crewMember.profilePath ?? null}
+                                    href={`/people/${crewMember.id}`}
                                     className="mx-auto h-full"
                                   />
                                 </CarouselItem>

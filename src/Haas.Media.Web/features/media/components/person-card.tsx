@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -15,6 +16,7 @@ export interface PersonCardProps {
   profilePath?: string | null;
   imageSize?: TmdbImageSize;
   className?: string;
+  href?: string;
 }
 
 const DEFAULT_IMAGE_SIZE: TmdbImageSize = "w300";
@@ -30,10 +32,10 @@ function getInitials(name?: string) {
   return `${first.charAt(0)}${second.charAt(0)}`.toUpperCase();
 }
 
-export function PersonCard({ name, description, meta, profilePath, imageSize = DEFAULT_IMAGE_SIZE, className }: PersonCardProps) {
+export function PersonCard({ name, description, meta, profilePath, imageSize = DEFAULT_IMAGE_SIZE, className, href }: PersonCardProps) {
   const imageSrc = profilePath ? `https://image.tmdb.org/t/p/${imageSize}${profilePath}` : null;
 
-  return (
+  const card = (
     <Card
       className={cn(
         "group w-full max-w-[12rem] overflow-hidden rounded-2xl border border-border/60 bg-card/90 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl",
@@ -63,5 +65,15 @@ export function PersonCard({ name, description, meta, profilePath, imageSize = D
         {meta ? <p className="line-clamp-1 text-xs leading-tight text-muted-foreground/80">{meta}</p> : null}
       </CardContent>
     </Card>
+  );
+
+  if (!href) {
+    return card;
+  }
+
+  return (
+    <Link href={href} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl">
+      {card}
+    </Link>
   );
 }
