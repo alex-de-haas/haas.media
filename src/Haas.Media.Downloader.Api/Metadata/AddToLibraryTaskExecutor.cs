@@ -171,13 +171,39 @@ internal sealed class AddToLibraryTaskExecutor
 
         var existingMovie = _movieMetadataCollection.FindById(new BsonValue(tmdbId.ToString()));
 
+        var totalPeople = 0;
+        var syncedPeople = 0;
+        var failedPeople = 0;
+
         await PersonMetadataSynchronizer.SyncAsync(
             _tmdbClient,
             _personMetadataCollection,
             _logger,
             PersonMetadataCollector.FromCredits(movieDetails.Credits),
             refreshExisting: existingMovie is not null,
-            cancellationToken: cancellationToken
+            cancellationToken: cancellationToken,
+            reportProgress: progress =>
+            {
+                totalPeople++;
+
+                if (progress.Outcome == PersonSyncOutcome.Failed)
+                {
+                    failedPeople++;
+                }
+                else
+                {
+                    syncedPeople++;
+                }
+
+                payload = payload with
+                {
+                    Stage = "Syncing movie credits",
+                    TotalPeople = totalPeople,
+                    SyncedPeople = syncedPeople,
+                    FailedPeople = failedPeople,
+                };
+                context.SetPayload(payload);
+            }
         );
 
         MovieMetadata movieMetadata;
@@ -201,7 +227,10 @@ internal sealed class AddToLibraryTaskExecutor
             {
                 Stage = "Movie metadata updated",
                 Title = existingMovie.Title,
-                PosterPath = existingMovie.PosterPath
+                PosterPath = existingMovie.PosterPath,
+                TotalPeople = totalPeople,
+                SyncedPeople = syncedPeople,
+                FailedPeople = failedPeople
             };
             
             movieMetadata = existingMovie;
@@ -222,7 +251,10 @@ internal sealed class AddToLibraryTaskExecutor
             {
                 Stage = "Movie metadata added",
                 Title = movieMetadata.Title,
-                PosterPath = movieMetadata.PosterPath
+                PosterPath = movieMetadata.PosterPath,
+                TotalPeople = totalPeople,
+                SyncedPeople = syncedPeople,
+                FailedPeople = failedPeople
             };
         }
 
@@ -354,13 +386,39 @@ internal sealed class AddToLibraryTaskExecutor
             context.ReportProgress(Math.Min(99, seasonProgress));
         }
 
+        var totalPeople = 0;
+        var syncedPeople = 0;
+        var failedPeople = 0;
+
         await PersonMetadataSynchronizer.SyncAsync(
             _tmdbClient,
             _personMetadataCollection,
             _logger,
             associatedPersonIds,
             refreshExisting: existingTVShow is not null,
-            cancellationToken: cancellationToken
+            cancellationToken: cancellationToken,
+            reportProgress: progress =>
+            {
+                totalPeople++;
+
+                if (progress.Outcome == PersonSyncOutcome.Failed)
+                {
+                    failedPeople++;
+                }
+                else
+                {
+                    syncedPeople++;
+                }
+
+                payload = payload with
+                {
+                    Stage = "Syncing TV show credits",
+                    TotalPeople = totalPeople,
+                    SyncedPeople = syncedPeople,
+                    FailedPeople = failedPeople,
+                };
+                context.SetPayload(payload);
+            }
         );
 
         TVShowMetadata tvShowMetadata;
@@ -389,7 +447,10 @@ internal sealed class AddToLibraryTaskExecutor
                 ProcessedSeasons = processedSeasons,
                 TotalSeasons = totalSeasons,
                 ProcessedEpisodes = processedEpisodes,
-                TotalEpisodes = totalEpisodes
+                TotalEpisodes = totalEpisodes,
+                TotalPeople = totalPeople,
+                SyncedPeople = syncedPeople,
+                FailedPeople = failedPeople
             };
             
             tvShowMetadata = existingTVShow;
@@ -415,7 +476,10 @@ internal sealed class AddToLibraryTaskExecutor
                 ProcessedSeasons = processedSeasons,
                 TotalSeasons = totalSeasons,
                 ProcessedEpisodes = processedEpisodes,
-                TotalEpisodes = totalEpisodes
+                TotalEpisodes = totalEpisodes,
+                TotalPeople = totalPeople,
+                SyncedPeople = syncedPeople,
+                FailedPeople = failedPeople
             };
         }
 

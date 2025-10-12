@@ -1,16 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
-import Image from "next/image";
 import { useBackgroundTasks } from "@/features/background-tasks/hooks/useBackgroundTasks";
 import { BackgroundTaskStatus, backgroundTaskStatusLabel } from "@/types";
 import type { AddToLibraryOperationInfo } from "@/types/metadata";
 import { LibraryType } from "@/types/library";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { getPosterUrl } from "@/lib/tmdb";
 import { Film, Tv, Loader2, Clock } from "lucide-react";
 
 interface AddToLibraryProgressProps {
@@ -86,7 +85,6 @@ export default function AddToLibraryProgress({ libraryType }: AddToLibraryProgre
 
       <div className="space-y-4">
         {activeOperations.map(({ task, payload }) => {
-          const posterUrl = getPosterUrl(payload.posterPath ?? undefined);
           const progressValue = clampProgress(task.progress);
           const progressPercentage = Math.round(progressValue);
           const stageLabel = payload.stage || "Processing";
@@ -106,53 +104,55 @@ export default function AddToLibraryProgress({ libraryType }: AddToLibraryProgre
             infoBadges.push(`Episodes ${payload.processedEpisodes ?? 0}/${payload.totalEpisodes}`);
           }
 
+          const totalPeople = payload.totalPeople ?? 0;
+          if (totalPeople > 0) {
+            const syncedPeople = payload.syncedPeople ?? 0;
+            const failedPeople = payload.failedPeople ?? 0;
+            const label = failedPeople > 0
+              ? `People ${syncedPeople}/${totalPeople} (${failedPeople} failed)`
+              : `People ${syncedPeople}/${totalPeople}`;
+            infoBadges.push(label);
+          }
+
           return (
-            <Card key={task.id} className="border-primary/30 bg-primary/5 shadow-sm">
-              <CardContent className="flex gap-4 p-4">
-                {posterUrl ? (
-                  <div className="relative h-24 w-16 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-                    <Image src={posterUrl} alt={payload.title ?? "Poster"} fill sizes="96px" className="object-cover" />
-                  </div>
-                ) : (
-                  <div className="flex h-24 w-16 flex-shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+            <Card key={task.id} className="border-primary/40 bg-primary/5">
+              <CardHeader className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="flex items-center gap-2 text-primary">
+                    {statusIcon(task.status)}
+                    {payload.title ?? "Processing title"}
+                  </CardTitle>
+                  <Badge variant="outline" className={cn("flex shrink-0 items-center gap-2 text-xs", statusBadgeClass[task.status])}>
                     {mediaTypeIcon(libraryType)}
+                    <span>{statusLabel}</span>
+                  </Badge>
+                </div>
+                {infoBadges.length > 0 && (
+                  <p className="text-sm text-muted-foreground">{infoBadges.join(" • ")}</p>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{progressPercentage}%</span>
+                    <span>{statusLabel}</span>
                   </div>
+                  <Progress value={progressValue} />
+                </div>
+
+                {stageLabel && (
+                  <Alert>
+                    <AlertTitle>Processing</AlertTitle>
+                    <AlertDescription className="truncate">{stageLabel}</AlertDescription>
+                  </Alert>
                 )}
 
-                <div className="flex flex-1 flex-col gap-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-                        {mediaTypeIcon(libraryType)}
-                        <span>{payload.title ?? "Processing title"}</span>
-                      </div>
-                      {infoBadges.length > 0 && (
-                        <div className="flex flex-wrap gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                          {infoBadges.map((badge) => (
-                            <span key={badge} className="rounded-md bg-background/60 px-2 py-1">
-                              {badge}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <Badge variant="outline" className={cn("flex items-center gap-2 text-xs", statusBadgeClass[task.status])}>
-                      {statusIcon(task.status)}
-                      <span>{statusLabel}</span>
-                    </Badge>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{stageLabel}</span>
-                      <span>{progressPercentage}%</span>
-                    </div>
-                    <Progress value={progressValue} className="h-2" />
-                  </div>
-
-                  {statusMessage && statusMessage !== stageLabel && <p className="text-xs text-muted-foreground">{statusMessage}</p>}
-                </div>
+                {statusMessage && statusMessage !== stageLabel && statusMessage !== statusLabel && (
+                  <Alert>
+                    <AlertTitle>Status</AlertTitle>
+                    <AlertDescription className="truncate">{statusMessage}</AlertDescription>
+                  </Alert>
+                )}
               </CardContent>
             </Card>
           );

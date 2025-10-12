@@ -1,10 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using LiteDB;
-using Microsoft.Extensions.Logging;
 using TMDbLib.Client;
 
 namespace Haas.Media.Downloader.Api.Metadata;

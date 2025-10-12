@@ -19,6 +19,10 @@ export interface AddToLibraryOperationInfo {
   processedSeasons?: number | null;
   totalEpisodes?: number | null;
   processedEpisodes?: number | null;
+  lastError?: string | null;
+  totalPeople?: number;
+  syncedPeople?: number;
+  failedPeople?: number;
 }
 
 export interface SearchResult {

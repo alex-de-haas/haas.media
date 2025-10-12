@@ -13,5 +13,9 @@ public record AddToLibraryOperationInfo(
     int? TotalSeasons = null,
     int? ProcessedSeasons = null,
     int? TotalEpisodes = null,
-    int? ProcessedEpisodes = null
+    int? ProcessedEpisodes = null,
+    string? LastError = null,
+    int TotalPeople = 0,
+    int SyncedPeople = 0,
+    int FailedPeople = 0
 );
