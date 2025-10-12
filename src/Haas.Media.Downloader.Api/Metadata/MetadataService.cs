@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 using LiteDB;
 using TMDbLib.Client;
@@ -138,7 +135,7 @@ public class MetadataService : IMetadataApi
                 .Where(f => f.MediaType == LibraryType.Movies)
                 .ToList()
                 .Where(f => f.LibraryId == libraryId)
-                .Select(f => int.Parse(f.MediaId))
+                .Select(f => f.MediaId)
                 .Distinct()
                 .ToList();
             
@@ -187,7 +184,7 @@ public class MetadataService : IMetadataApi
                 .Where(f => f.MediaType == LibraryType.TVShows)
                 .ToList()
                 .Where(f => f.LibraryId == libraryId)
-                .Select(f => int.Parse(f.MediaId))
+                .Select(f => f.MediaId)
                 .Distinct()
                 .ToList();
             
@@ -475,11 +472,11 @@ public class MetadataService : IMetadataApi
     }
 
     // File Metadata operations
-    public Task<IEnumerable<FileMetadata>> GetFileMetadataAsync(string? libraryId = null, string? mediaId = null)
+    public Task<IEnumerable<FileMetadata>> GetFileMetadataAsync(string? libraryId = null, int? mediaId = null)
     {
         IEnumerable<FileMetadata> results;
-        
-        if (!string.IsNullOrEmpty(libraryId) && !string.IsNullOrEmpty(mediaId))
+
+        if (!string.IsNullOrEmpty(libraryId) && mediaId.HasValue)
         {
             // Fetch all and filter in memory to avoid ObjectId/String cast issues
             results = _fileMetadataCollection.FindAll()
@@ -491,9 +488,9 @@ public class MetadataService : IMetadataApi
             results = _fileMetadataCollection.FindAll()
                 .Where(f => f.LibraryId == libraryId);
         }
-        else if (!string.IsNullOrEmpty(mediaId))
+        else if (mediaId.HasValue)
         {
-            results = _fileMetadataCollection.Find(f => f.MediaId == mediaId);
+            results = _fileMetadataCollection.Find(f => f.MediaId == mediaId.Value);
         }
         else
         {
@@ -545,7 +542,7 @@ public class MetadataService : IMetadataApi
         return Task.FromResult(false);
     }
 
-    public Task<IEnumerable<FileMetadata>> GetFilesByMediaIdAsync(string mediaId, LibraryType mediaType)
+    public Task<IEnumerable<FileMetadata>> GetFilesByMediaIdAsync(int mediaId, LibraryType mediaType)
     {
         var results = _fileMetadataCollection.Find(f => f.MediaId == mediaId && f.MediaType == mediaType);
         var fileMetadata = results.ToList();

@@ -646,7 +646,7 @@ internal sealed class MetadataScanTaskExecutor
                     {
                         Id = Guid.CreateVersion7().ToString(),
                         LibraryId = libraryId,
-                        MediaId = tmdbTvShowId.ToString(),
+                        MediaId = tmdbTvShowId,
                         MediaType = LibraryType.TVShows,
                         FilePath = filePath,
                         SeasonNumber = season.SeasonNumber,
@@ -757,11 +757,11 @@ internal sealed class MetadataScanTaskExecutor
             // Delete the file metadata record if file no longer exists
             _fileMetadataCollection.Delete(new BsonValue(fileMetadata.Id!));
 
-            var movieMetadata = _movieMetadataCollection.FindById(new BsonValue(int.Parse(fileMetadata.MediaId)));
+            var movieMetadata = _movieMetadataCollection.FindById(fileMetadata.MediaId);
 
             _logger.LogInformation(
                 "Deleted file metadata for movie '{Title}' because the file is missing: {FilePath}",
-                movieMetadata?.Title ?? fileMetadata.MediaId,
+                movieMetadata?.Title ?? fileMetadata.MediaId.ToString(),
                 fileMetadata.FilePath
             );
         }
@@ -789,11 +789,11 @@ internal sealed class MetadataScanTaskExecutor
             // Delete the file metadata record if file no longer exists
             _fileMetadataCollection.Delete(new BsonValue(fileMetadata.Id!));
 
-            var tvShow = _tvShowMetadataCollection.FindById(new BsonValue(int.Parse(fileMetadata.MediaId)));
+            var tvShow = _tvShowMetadataCollection.FindById(fileMetadata.MediaId);
 
             _logger.LogInformation(
                 "Deleted file metadata for TV episode '{Title}' S{Season:D2}E{Episode:D2} because the file is missing: {FilePath}",
-                tvShow?.Title ?? fileMetadata.MediaId,
+                tvShow?.Title ?? fileMetadata.MediaId.ToString(),
                 fileMetadata.SeasonNumber ?? 0,
                 fileMetadata.EpisodeNumber ?? 0,
                 fileMetadata.FilePath
@@ -908,7 +908,7 @@ internal sealed class MetadataScanTaskExecutor
             MovieMetadata? existingMetadata = null;
             if (existingFileMetadata != null)
             {
-                existingMetadata = _movieMetadataCollection.FindById(new BsonValue(int.Parse(existingFileMetadata.MediaId)));
+                existingMetadata = _movieMetadataCollection.FindById(existingFileMetadata.MediaId);
             }
 
             try
@@ -1007,7 +1007,7 @@ internal sealed class MetadataScanTaskExecutor
                         {
                             Id = Guid.CreateVersion7().ToString(),
                             LibraryId = library.Id!,
-                            MediaId = movieMetadata.Id.ToString(),
+                            MediaId = movieMetadata.Id,
                             MediaType = LibraryType.Movies,
                             FilePath = relativePath,
                             CreatedAt = DateTime.UtcNow,

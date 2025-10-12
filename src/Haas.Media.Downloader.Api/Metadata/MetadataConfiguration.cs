@@ -234,7 +234,7 @@ public static class MetadataConfiguration
                 async (
                     IMetadataApi metadataService,
                     string? libraryId = null,
-                    string? mediaId = null
+                    int? mediaId = null
                 ) =>
                 {
                     var fileMetadata = await metadataService.GetFileMetadataAsync(
@@ -290,7 +290,7 @@ public static class MetadataConfiguration
                 async (IMetadataApi metadataService, int id) =>
                 {
                     var fileMetadata = await metadataService.GetFilesByMediaIdAsync(
-                        id.ToString(),
+                        id,
                         LibraryType.Movies
                     );
                     return Results.Ok(fileMetadata);
@@ -304,7 +304,7 @@ public static class MetadataConfiguration
                 async (IMetadataApi metadataService, int id) =>
                 {
                     var fileMetadata = await metadataService.GetFilesByMediaIdAsync(
-                        id.ToString(),
+                        id,
                         LibraryType.TVShows
                     );
                     return Results.Ok(fileMetadata);

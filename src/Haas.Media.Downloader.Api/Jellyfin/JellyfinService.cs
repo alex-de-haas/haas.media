@@ -16,14 +16,14 @@ public class JellyfinService
     private const string ImageBaseUrl = "https://image.tmdb.org/t/p/";
     
     // Helper method to get first file for a media item
-    private async Task<FileMetadata?> GetFirstFileForMediaAsync(string mediaId, LibraryType mediaType)
+    private async Task<FileMetadata?> GetFirstFileForMediaAsync(int mediaId, LibraryType mediaType)
     {
         var files = await _metadataApi.GetFilesByMediaIdAsync(mediaId, mediaType);
         return files.FirstOrDefault();
     }
     
     // Helper method to get file for a specific episode
-    private async Task<FileMetadata?> GetEpisodeFileAsync(string tvShowId, int seasonNumber, int episodeNumber)
+    private async Task<FileMetadata?> GetEpisodeFileAsync(int tvShowId, int seasonNumber, int episodeNumber)
     {
         var files = await _metadataApi.GetFilesByMediaIdAsync(tvShowId, LibraryType.TVShows);
         return files.FirstOrDefault(f => f.SeasonNumber == seasonNumber && f.EpisodeNumber == episodeNumber);
@@ -269,7 +269,7 @@ public class JellyfinService
                 return null;
             }
 
-            var fileMetadata = await GetFirstFileForMediaAsync(movieId.ToString(), LibraryType.Movies);
+            var fileMetadata = await GetFirstFileForMediaAsync(movieId, LibraryType.Movies);
             if (fileMetadata is null)
             {
                 return null;
@@ -288,7 +288,7 @@ public class JellyfinService
                 return null;
             }
 
-            var fileMetadata = await GetEpisodeFileAsync(seriesId.ToString(), seasonNumber, episodeNumber);
+            var fileMetadata = await GetEpisodeFileAsync(seriesId, seasonNumber, episodeNumber);
             if (fileMetadata is null)
             {
                 return null;
@@ -305,7 +305,7 @@ public class JellyfinService
                 return null;
             }
 
-            var fileMetadata = await GetFirstFileForMediaAsync(showId.ToString(), LibraryType.TVShows);
+            var fileMetadata = await GetFirstFileForMediaAsync(showId, LibraryType.TVShows);
             if (fileMetadata is null)
             {
                 return null;
@@ -524,7 +524,7 @@ public class JellyfinService
     private async Task<JellyfinItem> MapMovieAsync(MovieMetadata metadata)
     {
         // Get first file metadata for this movie
-        var fileMetadata = await GetFirstFileForMediaAsync(metadata.Id.ToString(), LibraryType.Movies);
+        var fileMetadata = await GetFirstFileForMediaAsync(metadata.Id, LibraryType.Movies);
         var parentId = fileMetadata?.LibraryId is null
             ? null
             : JellyfinIdHelper.CreateLibraryId(fileMetadata.LibraryId);
@@ -563,7 +563,7 @@ public class JellyfinService
     private async Task<JellyfinItem> MapSeriesAsync(TVShowMetadata metadata)
     {
         // Get first file metadata for this TV show to determine library
-        var fileMetadata = await GetFirstFileForMediaAsync(metadata.Id.ToString(), LibraryType.TVShows);
+        var fileMetadata = await GetFirstFileForMediaAsync(metadata.Id, LibraryType.TVShows);
         var parentId = fileMetadata?.LibraryId is null
             ? null
             : JellyfinIdHelper.CreateLibraryId(fileMetadata.LibraryId);
@@ -634,7 +634,7 @@ public class JellyfinService
     private async Task<JellyfinItem> MapEpisodeAsync(TVShowMetadata show, TVEpisodeMetadata episode)
     {
         // Get file metadata for this specific episode
-        var fileMetadata = await GetEpisodeFileAsync(show.Id.ToString(), episode.SeasonNumber, episode.EpisodeNumber);
+        var fileMetadata = await GetEpisodeFileAsync(show.Id, episode.SeasonNumber, episode.EpisodeNumber);
         var mediaSource = TryCreateMediaSource(
             JellyfinIdHelper.CreateEpisodeId(show.Id, episode.SeasonNumber, episode.EpisodeNumber),
             fileMetadata?.FilePath

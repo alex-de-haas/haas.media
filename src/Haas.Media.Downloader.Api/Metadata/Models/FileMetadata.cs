@@ -24,7 +24,7 @@ public class FileMetadata
     /// For movies: the MovieMetadata.Id
     /// For TV shows: the TVShowMetadata.Id
     /// </summary>
-    public required string MediaId { get; init; }
+    public required int MediaId { get; init; }
     
     /// <summary>
     /// The media type this file is associated with.

@@ -19,11 +19,11 @@ public interface IMetadataApi
     Task<AddToLibraryResponse> AddToLibraryAsync(AddToLibraryRequest request);
     
     // File Metadata operations
-    Task<IEnumerable<FileMetadata>> GetFileMetadataAsync(string? libraryId = null, string? mediaId = null);
+    Task<IEnumerable<FileMetadata>> GetFileMetadataAsync(string? libraryId = null, int? mediaId = null);
     Task<FileMetadata?> GetFileMetadataByIdAsync(string id);
     Task<FileMetadata> AddFileMetadataAsync(FileMetadata fileMetadata);
     Task<bool> DeleteFileMetadataAsync(string id);
-    Task<IEnumerable<FileMetadata>> GetFilesByMediaIdAsync(string mediaId, LibraryType mediaType);
+    Task<IEnumerable<FileMetadata>> GetFilesByMediaIdAsync(int mediaId, LibraryType mediaType);
     Task<PersonMetadata?> GetPersonMetadataByIdAsync(int id);
     Task<PersonLibraryCredits?> GetPersonCreditsByIdAsync(int id);
 }
