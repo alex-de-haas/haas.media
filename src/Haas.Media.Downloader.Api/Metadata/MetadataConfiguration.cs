@@ -343,6 +343,17 @@ public static class MetadataConfiguration
             .RequireAuthorization();
 
         app.MapGet(
+                "api/metadata/people",
+                async (IMetadataApi metadataService) =>
+                {
+                    var people = await metadataService.GetPeopleMetadataAsync();
+                    return Results.Ok(people);
+                }
+            )
+            .WithName("GetPeopleMetadata")
+            .RequireAuthorization();
+
+        app.MapGet(
                 "api/metadata/people/{id}",
                 async (IMetadataApi metadataService, int id) =>
                 {

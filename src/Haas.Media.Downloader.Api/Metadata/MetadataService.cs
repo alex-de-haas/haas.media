@@ -342,6 +342,17 @@ public class MetadataService : IMetadataApi
         );
     }
 
+    public Task<IEnumerable<PersonMetadata>> GetPeopleMetadataAsync()
+    {
+        var people = _personMetadataCollection
+            .FindAll()
+            .OrderByDescending(p => p.Popularity)
+            .ToList();
+        
+        _logger.LogDebug("Retrieved {Count} people", people.Count);
+        return Task.FromResult<IEnumerable<PersonMetadata>>(people);
+    }
+
     public Task<PersonMetadata?> GetPersonMetadataByIdAsync(int id)
     {
         var personMetadata = _personMetadataCollection.FindById(new BsonValue(id));

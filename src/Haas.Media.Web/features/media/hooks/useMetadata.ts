@@ -328,6 +328,41 @@ export function usePerson(id?: number) {
   return { person, loading, error, refetch: fetchPerson };
 }
 
+export function usePeople() {
+  const [people, setPeople] = useState<PersonMetadata[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchPeople = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/people`);
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        const message = (errorBody as { message?: string } | null)?.message ?? response.statusText;
+        throw new Error(message || "Failed to load people");
+      }
+
+      const peopleData = (await response.json()) as PersonMetadata[];
+      setPeople(peopleData);
+    } catch (err) {
+      setPeople([]);
+      setError(err instanceof Error ? err.message : "Failed to load people");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchPeople();
+  }, [fetchPeople]);
+
+  return { people, loading, error, refetch: fetchPeople };
+}
+
 export function usePersonCredits(id?: number) {
   const [movies, setMovies] = useState<MovieMetadata[]>([]);
   const [tvShows, setTvShows] = useState<TVShowMetadata[]>([]);
