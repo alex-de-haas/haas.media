@@ -15,17 +15,11 @@ internal static class PersonMetadataSynchronizer
         Action<PersonSyncProgress>? reportProgress = null
     )
     {
-        var distinctIds = personIds.Where(id => id > 0).Distinct().ToList();
-        if (distinctIds.Count == 0)
-        {
-            return PersonSyncStatistics.Empty;
-        }
-
-        var totalRequested = distinctIds.Count;
+        var totalRequested = personIds.Count();
         var syncedCount = 0;
         var failedCount = 0;
 
-        foreach (var personId in distinctIds)
+        foreach (var personId in personIds)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
