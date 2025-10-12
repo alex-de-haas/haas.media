@@ -16,8 +16,6 @@ export interface ScanOperationInfo {
   foundMetadata: number;
   startTime: string;
   currentFile?: string;
-  speedFilesPerSecond?: number;
-  estimatedTimeSeconds?: number;
   totalPeople?: number;
   syncedPeople?: number;
   failedPeople?: number;
@@ -52,8 +50,6 @@ export function useMetadataSignalR() {
       foundMetadata: toNumber(raw.foundMetadata),
       startTime,
       currentFile: typeof raw.currentFile === "string" ? raw.currentFile : undefined,
-      speedFilesPerSecond: typeof raw.speedFilesPerSecond === "number" ? raw.speedFilesPerSecond : undefined,
-      estimatedTimeSeconds: typeof raw.estimatedTimeSeconds === "number" ? raw.estimatedTimeSeconds : undefined,
       totalPeople: toNumber(raw.totalPeople),
       syncedPeople: toNumber(raw.syncedPeople),
       failedPeople: toNumber(raw.failedPeople),

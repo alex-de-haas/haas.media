@@ -60,7 +60,6 @@ internal sealed class MetadataScanTaskExecutor
             StartTime: DateTime.UtcNow,
             CurrentFile: "Preparing library scan"
         );
-        var refreshExisting = task.RefreshExisting;
 
         context.SetPayload(currentOperation);
 
@@ -125,7 +124,6 @@ internal sealed class MetadataScanTaskExecutor
                             context,
                             library,
                             fullDirectoryPath,
-                            refreshExisting,
                             processedFiles,
                             totalFiles
                         );
@@ -141,7 +139,6 @@ internal sealed class MetadataScanTaskExecutor
                         context,
                         library,
                         fullDirectoryPath,
-                        refreshExisting,
                         processedFiles,
                         totalFiles
                     );
@@ -173,7 +170,6 @@ internal sealed class MetadataScanTaskExecutor
                 ProcessedFiles = processedFiles,
                 FoundMetadata = foundMetadata,
                 CurrentFile = "Scan completed",
-                EstimatedTimeSeconds = 0,
             };
             context.SetPayload(currentOperation);
             context.ReportProgress(100);
@@ -264,7 +260,6 @@ internal sealed class MetadataScanTaskExecutor
         BackgroundWorkerContext<MetadataScanTask, ScanOperationInfo> context,
         LibraryInfo library,
         string fullDirectoryPath,
-        bool refreshExisting,
         int baseProcessedFiles,
         int totalFiles
     )
@@ -312,21 +307,10 @@ internal sealed class MetadataScanTaskExecutor
             var progress = totalFiles > 0
                 ? (double)totalProcessedSoFar / Math.Max(1, totalFiles) * 100.0
                 : 0.0;
-            var elapsedSeconds = (DateTime.UtcNow - currentOperation.StartTime).TotalSeconds;
-            var speed = elapsedSeconds > 0 ? totalProcessedSoFar / elapsedSeconds : 0;
-            double? eta = null;
-            if (speed > 0)
-            {
-                var remaining = Math.Max(0, totalFiles - totalProcessedSoFar);
-                eta = remaining / speed;
-            }
-
             currentOperation = currentOperation with
             {
                 ProcessedFiles = totalProcessedSoFar,
                 CurrentFile = $"Scanning {showTitle}",
-                SpeedFilesPerSecond = speed,
-                EstimatedTimeSeconds = eta,
             };
             context.SetPayload(currentOperation);
 
@@ -343,75 +327,7 @@ internal sealed class MetadataScanTaskExecutor
                 // Check if TV show already exists by title
                 var existingMetadata = _tvShowMetadataCollection.FindOne(tv => tv.Title == showTitle);
 
-                if (existingMetadata != null)
-                {
-                    if (!refreshExisting)
-                    {
-                        _logger.LogDebug(
-                            "Metadata already exists for TV show: {ShowTitle} (skipping due to refreshExisting=false)",
-                            showTitle
-                        );
-                        skipShow = true;
-                    }
-                    else
-                    {
-                        _logger.LogDebug(
-                            "Updating existing metadata for TV show: {ShowTitle}",
-                            showTitle
-                        );
-
-                        var updatedTmdbResult = await SearchTMDbForTVShow(showTitle, showYear);
-                        if (updatedTmdbResult != null)
-                        {
-                            var (updatedTvShowMetadata, personSyncStats) = await CreateTVShowMetadata(
-                                updatedTmdbResult.Id,
-                                library.Id!,
-                                showDirectory,
-                                refreshExisting,
-                                context.CancellationToken
-                            );
-
-                            updatedTvShowMetadata.Id = existingMetadata.Id;
-                            updatedTvShowMetadata.CreatedAt = existingMetadata.CreatedAt;
-                            updatedTvShowMetadata.UpdatedAt = DateTime.UtcNow;
-
-                            _tvShowMetadataCollection.Update(updatedTvShowMetadata);
-
-                            if (personSyncStats.Requested > 0)
-                            {
-                                totalPeople += personSyncStats.Requested;
-                                syncedPeople += personSyncStats.Synced;
-                                failedPeople += personSyncStats.Failed;
-
-                                currentOperation = currentOperation with
-                                {
-                                    TotalPeople = totalPeople,
-                                    SyncedPeople = syncedPeople,
-                                    FailedPeople = failedPeople,
-                                };
-                                context.SetPayload(currentOperation);
-                            }
-
-                            _logger.LogInformation(
-                                "Updated metadata for TV show: {Title} - Directory: {DirectoryName}",
-                                updatedTvShowMetadata.Title,
-                                Path.GetFileName(showDirectory)
-                            );
-
-                            found++;
-                        }
-                        else
-                        {
-                            _logger.LogDebug(
-                                "No TMDb results found for TV show: {ShowTitle} (existing show)",
-                                showTitle
-                            );
-                        }
-
-                        shouldDelay = true;
-                    }
-                }
-                else
+                if (existingMetadata is null)
                 {
                     _logger.LogDebug("Searching TMDb for TV show: {ShowTitle}", showTitle);
                     var tmdbResult = await SearchTMDbForTVShow(showTitle, showYear);
@@ -422,7 +338,6 @@ internal sealed class MetadataScanTaskExecutor
                             tmdbResult.Id,
                             library.Id!,
                             showDirectory,
-                            refreshExisting,
                             context.CancellationToken
                         );
                         _tvShowMetadataCollection.Insert(tvShowMetadata);
@@ -486,15 +401,6 @@ internal sealed class MetadataScanTaskExecutor
                 var progressAfter = totalFiles > 0
                     ? (double)totalProcessedAfterShow / Math.Max(1, totalFiles) * 100.0
                     : 0.0;
-                var elapsedAfter = (DateTime.UtcNow - currentOperation.StartTime).TotalSeconds;
-                var speedAfter = elapsedAfter > 0 ? totalProcessedAfterShow / elapsedAfter : 0;
-                double? etaAfter = null;
-                if (speedAfter > 0)
-                {
-                    var remaining = Math.Max(0, totalFiles - totalProcessedAfterShow);
-                    etaAfter = remaining / speedAfter;
-                }
-
                 var completionLabel = skipShow
                     ? $"Skipped {showTitle}"
                     : $"Scanned {showTitle}";
@@ -503,8 +409,6 @@ internal sealed class MetadataScanTaskExecutor
                 {
                     ProcessedFiles = totalProcessedAfterShow,
                     CurrentFile = completionLabel,
-                    SpeedFilesPerSecond = speedAfter,
-                    EstimatedTimeSeconds = etaAfter,
                 };
                 context.SetPayload(currentOperation);
                 context.ReportProgress(progressAfter);
@@ -568,7 +472,6 @@ internal sealed class MetadataScanTaskExecutor
         int tmdbTvShowId,
         string libraryId,
         string showDirectory,
-        bool refreshExisting,
         CancellationToken cancellationToken
     )
     {
@@ -675,7 +578,7 @@ internal sealed class MetadataScanTaskExecutor
             _personMetadataCollection,
             _logger,
             associatedPersonIds,
-            refreshExisting,
+            false,
             cancellationToken
         );
 
@@ -830,7 +733,6 @@ internal sealed class MetadataScanTaskExecutor
         BackgroundWorkerContext<MetadataScanTask, ScanOperationInfo> context,
         LibraryInfo library,
         string fullDirectoryPath,
-        bool refreshExisting,
         int baseProcessedFiles,
         int totalFiles
     )
@@ -854,21 +756,10 @@ internal sealed class MetadataScanTaskExecutor
                     ? (double)totalProcessedSoFar / Math.Max(1, totalFiles) * 100.0
                     : 0.0;
 
-            var elapsedSeconds = (DateTime.UtcNow - currentOperation.StartTime).TotalSeconds;
-            var speed = elapsedSeconds > 0 ? totalProcessedSoFar / elapsedSeconds : 0;
-            double? eta = null;
-            if (speed > 0)
-            {
-                var remaining = Math.Max(0, totalFiles - totalProcessedSoFar);
-                eta = remaining / speed;
-            }
-
             currentOperation = currentOperation with
             {
                 ProcessedFiles = totalProcessedSoFar,
                 CurrentFile = fileName,
-                SpeedFilesPerSecond = speed,
-                EstimatedTimeSeconds = eta,
             };
             context.SetPayload(currentOperation);
 
@@ -897,7 +788,7 @@ internal sealed class MetadataScanTaskExecutor
                 .ToList()
                 .FirstOrDefault(f => f.LibraryId == library.Id);
 
-            if (existingFileMetadata != null && !refreshExisting)
+            if (existingFileMetadata is not null)
             {
                 processed++;
                 found++;
@@ -957,7 +848,7 @@ internal sealed class MetadataScanTaskExecutor
                         _personMetadataCollection,
                         _logger,
                         PersonMetadataCollector.FromCredits(movieDetails.Credits),
-                        refreshExisting,
+                        false,
                         context.CancellationToken
                     );
 

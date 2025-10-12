@@ -7,7 +7,7 @@ public interface IMetadataApi
     Task<LibraryInfo> AddLibraryAsync(LibraryInfo library);
     Task<LibraryInfo?> UpdateLibraryAsync(string id, LibraryInfo library);
     Task<bool> DeleteLibraryAsync(string id);
-    Task<string> StartScanLibrariesAsync(bool refreshExisting = true);
+    Task<string> StartScanLibrariesAsync();
     Task<string> StartRefreshMetadataAsync();
     Task<IEnumerable<MovieMetadata>> GetMovieMetadataAsync(string? libraryId = null);
     Task<MovieMetadata?> GetMovieMetadataByIdAsync(int id);

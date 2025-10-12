@@ -121,7 +121,7 @@ public class MetadataService : IMetadataApi
     public Task<IEnumerable<MovieMetadata>> GetMovieMetadataAsync(string? libraryId = null)
     {
         IEnumerable<MovieMetadata> results;
-        
+
         if (string.IsNullOrEmpty(libraryId))
         {
             results = _movieMetadataCollection.FindAll();
@@ -138,7 +138,7 @@ public class MetadataService : IMetadataApi
                 .Select(f => f.MediaId)
                 .Distinct()
                 .ToList();
-            
+
             results = _movieMetadataCollection.Find(m => movieIds.Contains(m.Id));
         }
 
@@ -170,7 +170,7 @@ public class MetadataService : IMetadataApi
     public Task<IEnumerable<TVShowMetadata>> GetTVShowMetadataAsync(string? libraryId = null)
     {
         IEnumerable<TVShowMetadata> results;
-        
+
         if (string.IsNullOrEmpty(libraryId))
         {
             results = _tvShowMetadataCollection.FindAll();
@@ -187,7 +187,7 @@ public class MetadataService : IMetadataApi
                 .Select(f => f.MediaId)
                 .Distinct()
                 .ToList();
-            
+
             results = _tvShowMetadataCollection.Find(tv => tvShowIds.Contains(tv.Id));
         }
 
@@ -361,14 +361,19 @@ public class MetadataService : IMetadataApi
     {
         var associatedMovies = _movieMetadataCollection
             .FindAll()
-            .Where(movie => movie.Cast.Any(member => member.Id == id) || movie.Crew.Any(member => member.Id == id))
+            .Where(movie =>
+                movie.Cast.Any(member => member.Id == id)
+                || movie.Crew.Any(member => member.Id == id)
+            )
             .OrderByDescending(movie => movie.ReleaseDate ?? DateTime.MinValue)
             .ThenBy(movie => movie.Title)
             .ToList();
 
         var associatedTvShows = _tvShowMetadataCollection
             .FindAll()
-            .Where(show => show.Cast.Any(member => member.Id == id) || show.Crew.Any(member => member.Id == id))
+            .Where(show =>
+                show.Cast.Any(member => member.Id == id) || show.Crew.Any(member => member.Id == id)
+            )
             .OrderByDescending(show => show.VoteAverage)
             .ThenBy(show => show.Title)
             .ToList();
@@ -418,9 +423,9 @@ public class MetadataService : IMetadataApi
         );
     }
 
-    public Task<string> StartScanLibrariesAsync(bool refreshExisting = true)
+    public Task<string> StartScanLibrariesAsync()
     {
-        var task = new MetadataScanTask(refreshExisting);
+        var task = new MetadataScanTask();
         var operationId = task.Id.ToString();
         _logger.LogInformation(
             "Starting background scan operation with ID: {OperationId}",
@@ -472,21 +477,24 @@ public class MetadataService : IMetadataApi
     }
 
     // File Metadata operations
-    public Task<IEnumerable<FileMetadata>> GetFileMetadataAsync(string? libraryId = null, int? mediaId = null)
+    public Task<IEnumerable<FileMetadata>> GetFileMetadataAsync(
+        string? libraryId = null,
+        int? mediaId = null
+    )
     {
         IEnumerable<FileMetadata> results;
 
         if (!string.IsNullOrEmpty(libraryId) && mediaId.HasValue)
         {
             // Fetch all and filter in memory to avoid ObjectId/String cast issues
-            results = _fileMetadataCollection.FindAll()
+            results = _fileMetadataCollection
+                .FindAll()
                 .Where(f => f.LibraryId == libraryId && f.MediaId == mediaId);
         }
         else if (!string.IsNullOrEmpty(libraryId))
         {
             // Fetch all and filter in memory to avoid ObjectId/String cast issues
-            results = _fileMetadataCollection.FindAll()
-                .Where(f => f.LibraryId == libraryId);
+            results = _fileMetadataCollection.FindAll().Where(f => f.LibraryId == libraryId);
         }
         else if (mediaId.HasValue)
         {
@@ -542,11 +550,20 @@ public class MetadataService : IMetadataApi
         return Task.FromResult(false);
     }
 
-    public Task<IEnumerable<FileMetadata>> GetFilesByMediaIdAsync(int mediaId, LibraryType mediaType)
+    public Task<IEnumerable<FileMetadata>> GetFilesByMediaIdAsync(
+        int mediaId,
+        LibraryType mediaType
+    )
     {
-        var results = _fileMetadataCollection.Find(f => f.MediaId == mediaId && f.MediaType == mediaType);
+        var results = _fileMetadataCollection.Find(f =>
+            f.MediaId == mediaId && f.MediaType == mediaType
+        );
         var fileMetadata = results.ToList();
-        _logger.LogDebug("Retrieved {Count} files for media ID: {MediaId}", fileMetadata.Count, mediaId);
+        _logger.LogDebug(
+            "Retrieved {Count} files for media ID: {MediaId}",
+            fileMetadata.Count,
+            mediaId
+        );
         return Task.FromResult<IEnumerable<FileMetadata>>(fileMetadata);
     }
 }

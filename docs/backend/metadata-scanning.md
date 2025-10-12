@@ -18,7 +18,7 @@
    - Queries TMDb for the best match and fetches full details when found.
    - Updates or inserts `MovieMetadata` (without file/library associations).
    - Creates `FileMetadata` records linking files to movie metadata via `MediaId`.
-   - Broadcasts progress increments including files processed, matches found, instantaneous speed, and ETA.
+   - Broadcasts progress increments including files processed and matches found.
 5. For TV libraries, `ScanTVShowLibraryAsync` walks multi-level folder structures, fetches TMDb show, season, and episode details:
    - Creates or updates `TVShowMetadata` with nested season/episode structures.
    - Creates `FileMetadata` records for each episode file with `SeasonNumber` and `EpisodeNumber`.
@@ -41,9 +41,7 @@ public record ScanOperationInfo(
     int ProcessedFiles,
     int FoundMetadata,
     DateTime StartTime,
-    string? CurrentFile = null,
-    double? SpeedFilesPerSecond = null,
-    double? EstimatedTimeSeconds = null
+    string? CurrentFile = null
 );
 ```
 

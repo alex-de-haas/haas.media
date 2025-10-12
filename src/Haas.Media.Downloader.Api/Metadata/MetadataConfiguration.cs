@@ -138,11 +138,9 @@ public static class MetadataConfiguration
         // Start background scan operation
         app.MapPost(
                 "api/metadata/scan/start",
-                async (IMetadataApi metadataService, bool refreshExisting = true) =>
+                async (IMetadataApi metadataService) =>
                 {
-                    var operationId = await metadataService.StartScanLibrariesAsync(
-                        refreshExisting
-                    );
+                    var operationId = await metadataService.StartScanLibrariesAsync();
                     return Results.Ok(new { operationId, message = "Background scan started" });
                 }
             )
