@@ -9,6 +9,7 @@ import type {
   AddToLibraryOperationInfo,
   PersonMetadata,
   PersonLibraryCredits,
+  PaginatedResult,
 } from "@/types/metadata";
 import { LibraryType } from "@/types/library";
 import { BackgroundTaskStatus } from "@/types";
@@ -330,15 +331,26 @@ export function usePerson(id?: number) {
 
 export function usePeople() {
   const [people, setPeople] = useState<PersonMetadata[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
 
-  const fetchPeople = useCallback(async () => {
+  const fetchPeople = useCallback(async (skip = 0, take = 100, append = false) => {
     try {
-      setLoading(true);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
 
-      const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/people`);
+      const url = new URL(`${getApiDownloaderUrl()}/api/metadata/people`);
+      url.searchParams.set("skip", skip.toString());
+      url.searchParams.set("take", take.toString());
+
+      const response = await fetchWithAuth(url.toString());
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => null);
@@ -346,21 +358,41 @@ export function usePeople() {
         throw new Error(message || "Failed to load people");
       }
 
-      const peopleData = (await response.json()) as PersonMetadata[];
-      setPeople(peopleData);
+      const result = (await response.json()) as PaginatedResult<PersonMetadata>;
+      
+      if (append) {
+        setPeople((prev) => [...prev, ...result.items]);
+      } else {
+        setPeople(result.items);
+      }
+      
+      setTotalCount(result.totalCount);
+      setHasMore(result.hasMore);
     } catch (err) {
-      setPeople([]);
+      if (!append) {
+        setPeople([]);
+      }
       setError(err instanceof Error ? err.message : "Failed to load people");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, []);
 
-  useEffect(() => {
-    void fetchPeople();
+  const loadMore = useCallback(async () => {
+    if (!hasMore || loadingMore) return;
+    await fetchPeople(people.length, 100, true);
+  }, [fetchPeople, hasMore, loadingMore, people.length]);
+
+  const refetch = useCallback(async () => {
+    await fetchPeople(0, 100, false);
   }, [fetchPeople]);
 
-  return { people, loading, error, refetch: fetchPeople };
+  useEffect(() => {
+    void fetchPeople(0, 100, false);
+  }, [fetchPeople]);
+
+  return { people, totalCount, loading, loadingMore, error, hasMore, loadMore, refetch };
 }
 
 export function usePersonCredits(id?: number) {

@@ -344,9 +344,9 @@ public static class MetadataConfiguration
 
         app.MapGet(
                 "api/metadata/people",
-                async (IMetadataApi metadataService) =>
+                async (IMetadataApi metadataService, int skip = 0, int take = 100) =>
                 {
-                    var people = await metadataService.GetPeopleMetadataAsync();
+                    var people = await metadataService.GetPeopleMetadataAsync(skip, take);
                     return Results.Ok(people);
                 }
             )

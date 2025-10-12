@@ -93,6 +93,14 @@ export interface PersonLibraryCredits {
   tvShows: TVShowMetadata[];
 }
 
+export interface PaginatedResult<T> {
+  items: T[];
+  totalCount: number;
+  skip: number;
+  take: number;
+  hasMore: boolean;
+}
+
 export interface Network {
   id: number;
   name: string;

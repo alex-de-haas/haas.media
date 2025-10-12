@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { usePeople } from "@/features/media/hooks";
 import type { PersonMetadata } from "@/types/metadata";
 import { Spinner } from "@/components/ui";
@@ -13,6 +13,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CircleX, RefreshCw, Search, User } from "lucide-react";
+
+const ITEMS_PER_PAGE = 100;
 
 interface PersonCardProps {
   person: PersonMetadata;
@@ -63,8 +65,9 @@ function PersonCard({ person }: PersonCardProps) {
 }
 
 export default function PeopleList() {
-  const { people, loading, error, refetch } = usePeople();
+  const { people, totalCount, loading, loadingMore, error, hasMore, loadMore, refetch } = usePeople();
   const [searchQuery, setSearchQuery] = useState("");
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const filteredPeople = useMemo(() => {
     if (!searchQuery.trim()) {
@@ -74,6 +77,39 @@ export default function PeopleList() {
     const query = searchQuery.toLowerCase();
     return people.filter((person) => person.name?.toLowerCase().includes(query));
   }, [people, searchQuery]);
+
+  // When searching, show all filtered results (client-side filter)
+  const visiblePeople = filteredPeople;
+  
+  // Has more items when: 
+  // - No search active and server says there's more, OR
+  // - Search active but filtered list is smaller than total people (meaning we might find more matches)
+  const shouldShowLoadMore = searchQuery ? false : hasMore;
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    if (!shouldShowLoadMore || loading || loadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [shouldShowLoadMore, loading, loadingMore, loadMore]);
 
   if (loading) {
     return (
@@ -120,8 +156,18 @@ export default function PeopleList() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold">
-            {filteredPeople.length} {filteredPeople.length === 1 ? "person" : "people"}
+            {searchQuery ? `${filteredPeople.length}` : `${totalCount}`} {(searchQuery ? filteredPeople.length : totalCount) === 1 ? "person" : "people"}
           </h2>
+          {searchQuery && filteredPeople.length !== totalCount && (
+            <span className="text-sm text-muted-foreground">
+              (filtered from {totalCount})
+            </span>
+          )}
+          {!searchQuery && people.length < totalCount && (
+            <span className="text-sm text-muted-foreground">
+              (loaded {people.length})
+            </span>
+          )}
           <Button variant="ghost" size="icon" onClick={refetch} className="h-8 w-8">
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -148,11 +194,28 @@ export default function PeopleList() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-          {filteredPeople.map((person) => (
-            <PersonCard key={person.id} person={person} />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            {visiblePeople.map((person) => (
+              <PersonCard key={person.id} person={person} />
+            ))}
+          </div>
+
+          {/* Load more trigger */}
+          {shouldShowLoadMore && (
+            <div ref={loadMoreRef} className="flex items-center justify-center py-8">
+              <Spinner className="size-8" />
+              <span className="ml-2 text-sm text-muted-foreground">Loading more...</span>
+            </div>
+          )}
+
+          {/* End message */}
+          {!shouldShowLoadMore && visiblePeople.length > 0 && people.length >= ITEMS_PER_PAGE && (
+            <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+              All {searchQuery ? filteredPeople.length : totalCount} people loaded
+            </div>
+          )}
+        </>
       )}
     </div>
   );

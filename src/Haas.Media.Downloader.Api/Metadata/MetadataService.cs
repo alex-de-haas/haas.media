@@ -342,15 +342,38 @@ public class MetadataService : IMetadataApi
         );
     }
 
-    public Task<IEnumerable<PersonMetadata>> GetPeopleMetadataAsync()
+    public Task<PaginatedResult<PersonMetadata>> GetPeopleMetadataAsync(int skip = 0, int take = 100)
     {
+        // Ensure valid pagination parameters
+        skip = Math.Max(0, skip);
+        take = Math.Clamp(take, 1, 1000);
+
+        var totalCount = _personMetadataCollection.Count();
+        
         var people = _personMetadataCollection
-            .FindAll()
+            .Query()
             .OrderByDescending(p => p.Popularity)
+            .Skip(skip)
+            .Limit(take)
             .ToList();
         
-        _logger.LogDebug("Retrieved {Count} people", people.Count);
-        return Task.FromResult<IEnumerable<PersonMetadata>>(people);
+        _logger.LogDebug(
+            "Retrieved {Count} people (skip: {Skip}, take: {Take}, total: {Total})", 
+            people.Count, 
+            skip, 
+            take,
+            totalCount
+        );
+
+        var result = new PaginatedResult<PersonMetadata>
+        {
+            Items = people,
+            TotalCount = totalCount,
+            Skip = skip,
+            Take = take
+        };
+
+        return Task.FromResult(result);
     }
 
     public Task<PersonMetadata?> GetPersonMetadataByIdAsync(int id)
