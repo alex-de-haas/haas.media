@@ -31,13 +31,13 @@ src/Haas.Media.Downloader.Api/Authentication/
 - **Password Hashing**: Uses BCrypt with work factor 12
 - **JWT Tokens**: Self-signed JWT tokens for stateless authentication
 - **User Store**: LiteDB-based user storage
-- **Validation**: Username (min 3 chars), email format, password (min 8 chars)
+- **Validation**: Username (min 3 chars), password (min 8 chars)
 - **Admin Role**: First registered user is automatically marked as admin
 
 ### API Endpoints
 
 - `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login with username/email and password
+- `POST /api/auth/login` - Login with username and password
 - `GET /api/auth/me` - Get current user info (requires auth)
 
 ### Configuration
@@ -102,7 +102,6 @@ const useAuth0 = !!process.env.AUTH0_DOMAIN;
 - ✅ Passwords hashed with BCrypt (work factor 12)
 - ✅ JWT tokens with expiration
 - ✅ HTTPS recommended for production
-- ⚠️ No email verification (add if needed)
 - ⚠️ No password reset (add if needed)
 - ⚠️ No rate limiting (add if needed)
 
@@ -140,7 +139,6 @@ Users are stored in LiteDB at `{DATA_DIRECTORY}/.db/common.db` in the `users` co
 {
   "id": "guid",
   "username": "string",
-  "email": "string",
   "passwordHash": "bcrypt hash",
   "isAdmin": "boolean",
   "createdAt": "datetime",
@@ -152,7 +150,6 @@ Users are stored in LiteDB at `{DATA_DIRECTORY}/.db/common.db` in the `users` co
 
 ## Future Enhancements
 
-- [ ] Email verification
 - [ ] Password reset flow
 - [ ] Rate limiting on auth endpoints
 - [x] User roles and permissions (first user is admin)

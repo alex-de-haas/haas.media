@@ -69,7 +69,7 @@ export default function LoginPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="username">Username or Email</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
                 type="text"

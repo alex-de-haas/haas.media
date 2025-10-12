@@ -16,7 +16,6 @@ export default function RegisterPage() {
   const { register } = useLocalAuth();
   const { isAuthenticated, isLoading: authLoading } = useGuestGuard();
   const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -59,11 +58,11 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const success = await register(username, email, password);
+      const success = await register(username, password);
       if (success) {
         router.push("/");
       } else {
-        setError("Registration failed. Username or email may already be in use.");
+        setError("Registration failed. Username may already be in use.");
       }
     } catch {
       setError("An error occurred. Please try again.");
@@ -98,19 +97,6 @@ export default function RegisterPage() {
                 disabled={isLoading}
                 autoComplete="username"
                 placeholder="At least 3 characters"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
-                autoComplete="email"
               />
             </div>
 

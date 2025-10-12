@@ -22,12 +22,6 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             return null;
         }
 
-        if (string.IsNullOrWhiteSpace(request.Email) || !IsValidEmail(request.Email))
-        {
-            logger.LogWarning("Registration failed: Invalid email");
-            return null;
-        }
-
         if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
         {
             logger.LogWarning("Registration failed: Password too short");
@@ -35,7 +29,7 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
         }
 
         // Check if user already exists
-        var existingUser = _users.FindOne(u => u.Username == request.Username || u.Email == request.Email);
+        var existingUser = _users.FindOne(u => u.Username == request.Username);
         if (existingUser != null)
         {
             logger.LogWarning("Registration failed: User already exists");
@@ -53,7 +47,6 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
         var user = new User
         {
             Username = request.Username,
-            Email = request.Email,
             PasswordHash = passwordHash,
             IsAdmin = isFirstUser,
             CreatedAt = DateTime.UtcNow,
@@ -62,13 +55,12 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
 
         _users.Insert(user);
         _users.EnsureIndex(u => u.Username);
-        _users.EnsureIndex(u => u.Email);
 
         logger.LogInformation("User registered: {Username} (Admin: {IsAdmin})", user.Username, user.IsAdmin);
 
         // Generate token
         var token = GenerateJwtToken(user);
-        return new AuthResponse(token, user.Username, user.Email, user.PreferredMetadataLanguage ?? "en");
+        return new AuthResponse(token, user.Username, user.PreferredMetadataLanguage ?? "en");
     }
 
     public async Task<AuthResponse?> LoginAsync(LoginRequest request)
@@ -79,8 +71,8 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             return null;
         }
 
-        // Find user by username or email
-        var user = _users.FindOne(u => u.Username == request.Username || u.Email == request.Username);
+        // Find user by username
+        var user = _users.FindOne(u => u.Username == request.Username);
         if (user == null)
         {
             logger.LogWarning("Login failed: User not found");
@@ -102,17 +94,12 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
 
         // Generate token
         var token = GenerateJwtToken(user);
-        return new AuthResponse(token, user.Username, user.Email, user.PreferredMetadataLanguage ?? "en");
+        return new AuthResponse(token, user.Username, user.PreferredMetadataLanguage ?? "en");
     }
 
     public async Task<User?> GetUserByUsernameAsync(string username)
     {
         return _users.FindOne(u => u.Username == username);
-    }
-
-    public async Task<User?> GetUserByEmailAsync(string email)
-    {
-        return _users.FindOne(u => u.Email == email);
     }
 
     public Task<IReadOnlyList<User>> GetAllUsersAsync()
@@ -136,28 +123,12 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             return null;
         }
 
-        if (string.IsNullOrWhiteSpace(request.Email) || !IsValidEmail(request.Email))
-        {
-            logger.LogWarning("Profile update failed for {Username}: invalid email", username);
-            return null;
-        }
-
-        var normalizedEmail = request.Email.Trim();
         var preferredLanguage = NormalizeLanguage(request.PreferredMetadataLanguage);
-
-        var emailOwner = _users.FindOne(u => u.Email == normalizedEmail);
-        if (emailOwner != null && emailOwner.Id != user.Id)
-        {
-            logger.LogWarning("Profile update failed for {Username}: email already in use", username);
-            return null;
-        }
-
-        user.Email = normalizedEmail;
         user.PreferredMetadataLanguage = preferredLanguage;
         _users.Update(user);
 
         var token = GenerateJwtToken(user);
-        return new AuthResponse(token, user.Username, user.Email, user.PreferredMetadataLanguage ?? "en");
+        return new AuthResponse(token, user.Username, user.PreferredMetadataLanguage ?? "en");
     }
 
     public async Task<bool> UpdatePasswordAsync(string username, UpdatePasswordRequest request)
@@ -213,7 +184,6 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id),
             new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim("auth_type", "local"),
             new Claim(ClaimTypes.Role, user.IsAdmin ? "Admin" : "User"),
@@ -239,18 +209,5 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
         }
 
         return language.Trim();
-    }
-
-    private static bool IsValidEmail(string email)
-    {
-        try
-        {
-            var addr = new System.Net.Mail.MailAddress(email);
-            return addr.Address == email;
-        }
-        catch
-        {
-            return false;
-        }
     }
 }

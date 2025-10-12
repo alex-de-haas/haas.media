@@ -198,8 +198,8 @@ import { fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 
 interface User {
   id: string;
-  name: string;
-  email: string;
+  username: string;
+  preferredMetadataLanguage: string;
 }
 
 // Type-safe GET request
@@ -209,7 +209,7 @@ const user = await fetchJsonWithAuth<User>("/api/user");
 const newUser = await fetchJsonWithAuth<User>("/api/users", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ name: "John", email: "john@example.com" }),
+  body: JSON.stringify({ username: "john", preferredMetadataLanguage: "en" }),
 });
 ```
 

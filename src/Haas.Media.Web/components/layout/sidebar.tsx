@@ -146,9 +146,8 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
 
   if (isLoading) return null;
 
-  const displayName = localUser?.username || localUser?.email || "Guest";
+  const displayName = localUser?.username ?? "Guest";
   const initials = getInitials(displayName);
-  const email = localUser?.email;
 
   if (!isAuthenticated) {
     if (variant === "sidebar") {
@@ -188,7 +187,6 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
           <DropdownMenuLabel>Signed in as</DropdownMenuLabel>
           <div className="px-2 pb-2 text-sm text-muted-foreground">
             <div className="font-medium text-foreground">{displayName}</div>
-            {email && <div className="truncate text-xs">{email}</div>}
           </div>
           <DropdownMenuSeparator />
           <DropdownMenuItem
@@ -218,7 +216,6 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
           </Avatar>
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="truncate text-sm font-semibold">{displayName}</span>
-            {email && <span className="truncate text-xs text-muted-foreground">{email}</span>}
           </div>
           <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
         </Button>
@@ -227,7 +224,6 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
         <DropdownMenuLabel>Signed in as</DropdownMenuLabel>
         <div className="px-2 pb-2 text-sm text-muted-foreground">
           <div className="font-medium text-foreground">{displayName}</div>
-          {email && <div className="truncate text-xs">{email}</div>}
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem

@@ -25,8 +25,8 @@ Added a complete local authentication system using LiteDB as an alternative to A
 
 #### API Endpoints
 
-- `POST /api/auth/register` - Register new user (username, email, password)
-- `POST /api/auth/login` - Login with username/email and password
+- `POST /api/auth/register` - Register new user (username, password)
+- `POST /api/auth/login` - Login with username and password
 - `GET /api/auth/me` - Get current user info (requires authorization)
 
 ### Frontend (Next.js)
@@ -96,7 +96,7 @@ const useAuth0 = !!auth0Domain;
 
 ### Local Authentication Flow
 
-1. **Registration**: User submits username, email, password → Backend validates → Password hashed with BCrypt → User stored in LiteDB → JWT token generated and returned
+1. **Registration**: User submits username and password → Backend validates → Password hashed with BCrypt → User stored in LiteDB → JWT token generated and returned
 2. **Login**: User submits credentials → Backend verifies against hashed password → JWT token generated and returned
 3. **Token Storage**: Frontend stores JWT in localStorage
 4. **API Requests**: Frontend includes JWT in Authorization header
@@ -106,7 +106,6 @@ const useAuth0 = !!auth0Domain;
 
 - **BCrypt password hashing** (work factor 12)
 - **JWT tokens** with configurable expiration
-- **Email validation**
 - **Password requirements** (min 8 characters)
 - **Username requirements** (min 3 characters)
 - **Query string token support** for WebSocket/SignalR connections
@@ -145,7 +144,6 @@ Each user has:
 
 - `id` (GUID)
 - `username` (unique, min 3 chars)
-- `email` (unique, validated)
 - `passwordHash` (BCrypt)
 - `isAdmin` (boolean, true for first registered user)
 - `createdAt` (UTC timestamp)
@@ -163,7 +161,6 @@ The first user registered in the system is automatically granted admin privilege
 
 Consider adding:
 
-- Email verification flow
 - Password reset functionality
 - Rate limiting on auth endpoints
 - Account lockout after failed attempts

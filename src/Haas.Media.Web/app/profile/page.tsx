@@ -16,7 +16,6 @@ export default function ProfilePage() {
   const { isAuthenticated, isLoading } = useAuthGuard();
   const { user, updateProfile, updatePassword } = useLocalAuth();
   const { notify } = useNotifications();
-  const [email, setEmail] = useState(user?.email ?? "");
   const [preferredLanguage, setPreferredLanguage] = useState(() => {
     const code = user?.preferredMetadataLanguage ?? "en";
     return isSupportedTmdbLanguage(code) ? code : "en";
@@ -31,7 +30,6 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      setEmail(user.email);
       const code = user.preferredMetadataLanguage ?? "en";
       setPreferredLanguage(isSupportedTmdbLanguage(code) ? code : "en");
     }
@@ -52,15 +50,8 @@ export default function ProfilePage() {
   const handleProfileSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const trimmedEmail = email.trim();
-
-    if (!trimmedEmail) {
-      notify({ type: "error", message: "Email is required" });
-      return;
-    }
-
     setProfileLoading(true);
-    const result = await updateProfile(trimmedEmail, preferredLanguage);
+    const result = await updateProfile(preferredLanguage);
     setProfileLoading(false);
 
     if (result.success) {
@@ -102,25 +93,13 @@ export default function ProfilePage() {
       <Card>
         <CardHeader>
           <CardTitle>Profile</CardTitle>
-          <CardDescription>Update the email address and metadata language associated with your account.</CardDescription>
+          <CardDescription>Update the metadata language associated with your account.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-6" onSubmit={handleProfileSubmit}>
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input id="username" type="text" value={user?.username ?? ""} disabled readOnly />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                autoComplete="email"
-                required
-                disabled={profileLoading}
-              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="preferredLanguage">Preferred TMDB language</Label>

@@ -45,7 +45,6 @@ public static class AuthenticationConfiguration
             return Results.Ok(new
             {
                 user.Username,
-                user.Email,
                 user.CreatedAt,
                 user.LastLoginAt,
                 PreferredMetadataLanguage = user.PreferredMetadataLanguage ?? "en"

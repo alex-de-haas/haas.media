@@ -5,7 +5,6 @@ import { AuthResponse } from "@/types/auth";
 
 interface LocalUser {
   username: string;
-  email: string;
   preferredMetadataLanguage: string;
 }
 
@@ -14,8 +13,8 @@ interface LocalAuthContextType {
   token: string | null;
   user: LocalUser | null;
   login: (username: string, password: string) => Promise<boolean>;
-  register: (username: string, email: string, password: string) => Promise<boolean>;
-  updateProfile: (email: string, preferredMetadataLanguage: string) => Promise<{ success: boolean; error?: string }>;
+  register: (username: string, password: string) => Promise<boolean>;
+  updateProfile: (preferredMetadataLanguage: string) => Promise<{ success: boolean; error?: string }>;
   updatePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isLoading: boolean;
@@ -49,7 +48,6 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
           setToken(storedToken);
           setUser({
             username: data.username,
-            email: data.email,
             preferredMetadataLanguage: data.preferredMetadataLanguage ?? "en",
           });
         })
@@ -85,7 +83,6 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
       setToken(data.token);
       setUser({
         username: data.username,
-        email: data.email,
         preferredMetadataLanguage: data.preferredMetadataLanguage ?? "en",
       });
       localStorage.setItem("auth_token", data.token);
@@ -96,14 +93,14 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (username: string, email: string, password: string): Promise<boolean> => {
+  const register = async (username: string, password: string): Promise<boolean> => {
     try {
       const res = await fetch("/api/local-auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({ username, password }),
       });
 
       if (!res.ok) {
@@ -114,7 +111,6 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
       setToken(data.token);
       setUser({
         username: data.username,
-        email: data.email,
         preferredMetadataLanguage: data.preferredMetadataLanguage ?? "en",
       });
       localStorage.setItem("auth_token", data.token);
@@ -125,7 +121,7 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateProfile = async (email: string, preferredMetadataLanguage: string): Promise<{ success: boolean; error?: string }> => {
+  const updateProfile = async (preferredMetadataLanguage: string): Promise<{ success: boolean; error?: string }> => {
     if (!token) {
       return { success: false, error: "Not authenticated" };
     }
@@ -137,7 +133,7 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ email, preferredMetadataLanguage }),
+        body: JSON.stringify({ preferredMetadataLanguage }),
       });
 
       if (!res.ok) {
@@ -149,7 +145,6 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
       setToken(data.token);
       setUser({
         username: data.username,
-        email: data.email,
         preferredMetadataLanguage: data.preferredMetadataLanguage ?? "en",
       });
       localStorage.setItem("auth_token", data.token);

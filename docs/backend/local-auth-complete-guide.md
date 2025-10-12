@@ -178,7 +178,7 @@ src/Haas.Media.Web/
 - ✅ BCrypt password hashing
 - ✅ JWT token-based authentication
 - ✅ Token expiration
-- ✅ Email and password validation
+- ✅ Password validation
 - ✅ HTTPS recommended for production
 
 ### User Experience
@@ -229,7 +229,6 @@ src/Haas.Media.Web/
 
 ## Future Enhancements
 
-- [ ] Email verification
 - [ ] Password reset flow
 - [ ] Rate limiting on auth endpoints
 - [ ] Account lockout after failed attempts

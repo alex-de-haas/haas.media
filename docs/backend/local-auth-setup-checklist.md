@@ -79,7 +79,6 @@ Use this checklist to set up local authentication for Haas.Media.
 
 - [ ] Create a test account:
   - Username: `testuser` (min 3 chars)
-  - Email: `test@example.com`
   - Password: `password123` (min 8 chars)
 
 - [ ] Verify registration success and auto-login
@@ -102,7 +101,6 @@ Use this checklist to set up local authentication for Haas.Media.
 - [ ] User should have:
   - `id` (GUID)
   - `username`
-  - `email`
   - `passwordHash` (BCrypt)
   - `createdAt`
   - `lastLoginAt`
@@ -114,7 +112,7 @@ Use this checklist to set up local authentication for Haas.Media.
   ```bash
   curl -X POST http://localhost:8000/api/auth/register \
     -H "Content-Type: application/json" \
-    -d '{"username":"testuser2","email":"test2@example.com","password":"password123"}'
+    -d '{"username":"testuser2","password":"password123"}'
   ```
 
 - [ ] Test login endpoint:
@@ -165,8 +163,7 @@ If you want to switch back to Auth0:
 
 - Check password is at least 8 characters
 - Check username is at least 3 characters
-- Check email is valid format
-- Check username/email not already taken
+- Check username not already taken
 
 ### "Authentication failed"
 
@@ -193,15 +190,14 @@ If you want to switch back to Auth0:
 - ✅ JWT tokens expire after configured time (default 24 hours)
 - ⚠️ Use HTTPS in production
 - ⚠️ Generate a strong JWT_SECRET (at least 32 characters)
+- ⚠️ Consider adding account lockout for repeated failures
 - ⚠️ Consider adding rate limiting for production
-- ⚠️ Consider adding email verification for production
 
 ## Next Steps
 
 After successful setup, consider:
 
 - [ ] Review [Local Authentication Documentation](./local-authentication.md)
-- [ ] Set up email verification (future enhancement)
 - [ ] Implement password reset flow (future enhancement)
 - [ ] Add rate limiting (future enhancement)
 - [ ] Configure user roles and permissions (future enhancement)
