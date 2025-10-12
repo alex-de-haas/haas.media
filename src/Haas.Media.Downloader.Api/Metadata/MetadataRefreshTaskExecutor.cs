@@ -97,7 +97,7 @@ internal sealed class MetadataRefreshTaskExecutor
 
                 string? lastError = null;
                 var personSyncStats = PersonSyncStatistics.Empty;
-                var reportedRequested = 0;
+                var reportedTotalPeople = 0;
                 var reportedSynced = 0;
                 var reportedFailed = 0;
 
@@ -108,9 +108,6 @@ internal sealed class MetadataRefreshTaskExecutor
                         cancellationToken,
                         progress =>
                         {
-                            reportedRequested++;
-                            totalPeople++;
-
                             if (progress.Outcome == PersonSyncOutcome.Failed)
                             {
                                 reportedFailed++;
@@ -121,6 +118,24 @@ internal sealed class MetadataRefreshTaskExecutor
                                 reportedSynced++;
                                 syncedPeople++;
                             }
+
+                            payload = payload with
+                            {
+                                TotalPeople = totalPeople,
+                                SyncedPeople = syncedPeople,
+                                FailedPeople = failedPeople,
+                            };
+                            context.SetPayload(payload);
+                        },
+                        personCount =>
+                        {
+                            if (personCount <= 0)
+                            {
+                                return;
+                            }
+
+                            reportedTotalPeople += personCount;
+                            totalPeople += personCount;
 
                             payload = payload with
                             {
@@ -149,11 +164,11 @@ internal sealed class MetadataRefreshTaskExecutor
 
                 var hasUnreportedTotals = false;
 
-                if (personSyncStats.Requested > reportedRequested)
+                if (personSyncStats.Requested > reportedTotalPeople)
                 {
-                    var deltaRequested = personSyncStats.Requested - reportedRequested;
+                    var deltaRequested = personSyncStats.Requested - reportedTotalPeople;
                     totalPeople += deltaRequested;
-                    reportedRequested += deltaRequested;
+                    reportedTotalPeople += deltaRequested;
                     hasUnreportedTotals = true;
                 }
 
@@ -232,7 +247,7 @@ internal sealed class MetadataRefreshTaskExecutor
 
                 string? lastError = null;
                 var personSyncStats = PersonSyncStatistics.Empty;
-                var reportedRequested = 0;
+                var reportedTotalPeople = 0;
                 var reportedSynced = 0;
                 var reportedFailed = 0;
 
@@ -243,9 +258,6 @@ internal sealed class MetadataRefreshTaskExecutor
                         cancellationToken,
                         progress =>
                         {
-                            reportedRequested++;
-                            totalPeople++;
-
                             if (progress.Outcome == PersonSyncOutcome.Failed)
                             {
                                 reportedFailed++;
@@ -256,6 +268,24 @@ internal sealed class MetadataRefreshTaskExecutor
                                 reportedSynced++;
                                 syncedPeople++;
                             }
+
+                            payload = payload with
+                            {
+                                TotalPeople = totalPeople,
+                                SyncedPeople = syncedPeople,
+                                FailedPeople = failedPeople,
+                            };
+                            context.SetPayload(payload);
+                        },
+                        personCount =>
+                        {
+                            if (personCount <= 0)
+                            {
+                                return;
+                            }
+
+                            reportedTotalPeople += personCount;
+                            totalPeople += personCount;
 
                             payload = payload with
                             {
@@ -284,11 +314,11 @@ internal sealed class MetadataRefreshTaskExecutor
 
                 var hasUnreportedTotals = false;
 
-                if (personSyncStats.Requested > reportedRequested)
+                if (personSyncStats.Requested > reportedTotalPeople)
                 {
-                    var deltaRequested = personSyncStats.Requested - reportedRequested;
+                    var deltaRequested = personSyncStats.Requested - reportedTotalPeople;
                     totalPeople += deltaRequested;
-                    reportedRequested += deltaRequested;
+                    reportedTotalPeople += deltaRequested;
                     hasUnreportedTotals = true;
                 }
 
@@ -399,7 +429,8 @@ internal sealed class MetadataRefreshTaskExecutor
     private async Task<PersonSyncStatistics> RefreshMovieAsync(
         MovieMetadata movie,
         CancellationToken cancellationToken,
-        Action<PersonSyncProgress>? reportProgress = null
+        Action<PersonSyncProgress>? reportProgress = null,
+        Action<int>? reportPersonCount = null
     )
     {
         var tmdbId = movie.Id;
@@ -416,11 +447,21 @@ internal sealed class MetadataRefreshTaskExecutor
             );
         }
 
+        var associatedPersonIds = PersonMetadataCollector
+            .FromCredits(movieDetails.Credits)
+            .Distinct()
+            .ToArray();
+
+        if (associatedPersonIds.Length > 0)
+        {
+            reportPersonCount?.Invoke(associatedPersonIds.Length);
+        }
+
         var personSyncStats = await PersonMetadataSynchronizer.SyncAsync(
             _tmdbClient,
             _personMetadataCollection,
             _logger,
-            PersonMetadataCollector.FromCredits(movieDetails.Credits),
+            associatedPersonIds,
             refreshExisting: true,
             cancellationToken: cancellationToken,
             reportProgress: reportProgress
@@ -436,7 +477,8 @@ internal sealed class MetadataRefreshTaskExecutor
     private async Task<PersonSyncStatistics> RefreshTvShowAsync(
         TVShowMetadata tvShow,
         CancellationToken cancellationToken,
-        Action<PersonSyncProgress>? reportProgress = null
+        Action<PersonSyncProgress>? reportProgress = null,
+        Action<int>? reportPersonCount = null
     )
     {
         var tmdbId = tvShow.Id;
@@ -514,6 +556,11 @@ internal sealed class MetadataRefreshTaskExecutor
         tvShowDetails.Update(tvShow);
 
         tvShow.Seasons = seasons.ToArray();
+
+        if (associatedPersonIds.Count > 0)
+        {
+            reportPersonCount?.Invoke(associatedPersonIds.Count);
+        }
 
         var personSyncStats = await PersonMetadataSynchronizer.SyncAsync(
             _tmdbClient,
