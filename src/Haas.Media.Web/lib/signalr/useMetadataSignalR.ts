@@ -5,21 +5,7 @@ import * as signalR from "@microsoft/signalr";
 import { getValidToken } from "@/lib/auth/token";
 import { fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 import { downloaderApi } from "@/lib/api";
-import type { BackgroundTaskInfo } from "@/types";
-
-export interface ScanOperationInfo {
-  id: string;
-  libraryPath: string;
-  libraryTitle: string;
-  totalFiles: number;
-  processedFiles: number;
-  foundMetadata: number;
-  startTime: string;
-  currentFile?: string;
-  totalPeople?: number;
-  syncedPeople?: number;
-  failedPeople?: number;
-}
+import type { BackgroundTaskInfo, ScanOperationInfo } from "@/types";
 
 export function useMetadataSignalR() {
   const connectionRef = useRef<signalR.HubConnection | null>(null);

@@ -25,6 +25,20 @@ export interface AddToLibraryOperationInfo {
   failedPeople?: number;
 }
 
+export interface ScanOperationInfo {
+  id: string;
+  libraryPath: string;
+  libraryTitle: string;
+  totalFiles: number;
+  processedFiles: number;
+  foundMetadata: number;
+  startTime: string;
+  currentFile?: string | null;
+  totalPeople?: number;
+  syncedPeople?: number;
+  failedPeople?: number;
+}
+
 export interface SearchResult {
   id: number;
   title: string;
