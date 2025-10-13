@@ -342,35 +342,47 @@ public class MetadataService : IMetadataApi
         );
     }
 
-    public Task<PaginatedResult<PersonMetadata>> GetPeopleMetadataAsync(int skip = 0, int take = 100)
+    public Task<PaginatedResult<PersonMetadata>> GetPeopleMetadataAsync(
+        int skip = 0,
+        int take = 100,
+        string? query = null
+    )
     {
-        // Ensure valid pagination parameters
-        skip = Math.Max(0, skip);
-        take = Math.Clamp(take, 1, 1000);
+        var normalizedSkip = Math.Max(0, skip);
+        var normalizedTake = Math.Clamp(take, 1, 1000);
 
-        var totalCount = _personMetadataCollection.Count();
-        
-        var people = _personMetadataCollection
-            .Query()
+        var peopleQuery = _personMetadataCollection.Query();
+        string? trimmedQuery = null;
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            trimmedQuery = query.Trim();
+            peopleQuery = peopleQuery.Where(p => p.Name.Contains(trimmedQuery));
+        }
+
+        var totalCount = peopleQuery.Count();
+
+        var people = peopleQuery
             .OrderByDescending(p => p.Popularity)
-            .Skip(skip)
-            .Limit(take)
+            .Skip(normalizedSkip)
+            .Limit(normalizedTake)
             .ToList();
-        
+
         _logger.LogDebug(
-            "Retrieved {Count} people (skip: {Skip}, take: {Take}, total: {Total})", 
-            people.Count, 
-            skip, 
-            take,
-            totalCount
+            "Retrieved {Count} people (skip: {Skip}, take: {Take}, total: {Total}, query: {Query})",
+            people.Count,
+            normalizedSkip,
+            normalizedTake,
+            totalCount,
+            trimmedQuery ?? "<none>"
         );
 
         var result = new PaginatedResult<PersonMetadata>
         {
             Items = people,
             TotalCount = totalCount,
-            Skip = skip,
-            Take = take
+            Skip = normalizedSkip,
+            Take = normalizedTake
         };
 
         return Task.FromResult(result);

@@ -16,7 +16,7 @@ public class PersonMetadata
 
     public PersonGender Gender { get; set; }
 
-    public string? Name { get; set; }
+    public required string Name { get; set; }
 
     public string? PlaceOfBirth { get; set; }
 

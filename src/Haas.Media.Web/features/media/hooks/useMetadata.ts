@@ -329,26 +329,34 @@ export function usePerson(id?: number) {
   return { person, loading, error, refetch: fetchPerson };
 }
 
-export function usePeople() {
+export function usePeople(searchQuery?: string) {
   const [people, setPeople] = useState<PersonMetadata[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const currentQueryRef = useRef("");
+  const requestTokenRef = useRef(0);
 
-  const fetchPeople = useCallback(async (skip = 0, take = 100, append = false) => {
+  const fetchPeople = useCallback(async (skip = 0, take = 100, append = false, query?: string) => {
+    const normalizedQuery = query?.trim() ?? "";
+    const requestToken = ++requestTokenRef.current;
     try {
       if (append) {
         setLoadingMore(true);
       } else {
         setLoading(true);
+        setHasMore(true);
       }
       setError(null);
 
       const url = new URL(`${getApiDownloaderUrl()}/api/metadata/people`);
       url.searchParams.set("skip", skip.toString());
       url.searchParams.set("take", take.toString());
+      if (normalizedQuery) {
+        url.searchParams.set("query", normalizedQuery);
+      }
 
       const response = await fetchWithAuth(url.toString());
 
@@ -359,38 +367,50 @@ export function usePeople() {
       }
 
       const result = (await response.json()) as PaginatedResult<PersonMetadata>;
-      
+
+      if (requestTokenRef.current !== requestToken) {
+        return;
+      }
+
       if (append) {
         setPeople((prev) => [...prev, ...result.items]);
       } else {
         setPeople(result.items);
       }
-      
+
       setTotalCount(result.totalCount);
       setHasMore(result.hasMore);
     } catch (err) {
+      if (requestTokenRef.current !== requestToken) {
+        return;
+      }
+
       if (!append) {
         setPeople([]);
       }
       setError(err instanceof Error ? err.message : "Failed to load people");
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (requestTokenRef.current === requestToken) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   }, []);
 
   const loadMore = useCallback(async () => {
     if (!hasMore || loadingMore) return;
-    await fetchPeople(people.length, 100, true);
+    await fetchPeople(people.length, 100, true, currentQueryRef.current);
   }, [fetchPeople, hasMore, loadingMore, people.length]);
 
   const refetch = useCallback(async () => {
-    await fetchPeople(0, 100, false);
+    await fetchPeople(0, 100, false, currentQueryRef.current);
   }, [fetchPeople]);
 
   useEffect(() => {
-    void fetchPeople(0, 100, false);
-  }, [fetchPeople]);
+    const normalized = searchQuery?.trim() ?? "";
+    currentQueryRef.current = normalized;
+    void fetchPeople(0, 100, false, normalized);
+  }, [fetchPeople, searchQuery]);
 
   return { people, totalCount, loading, loadingMore, error, hasMore, loadMore, refetch };
 }

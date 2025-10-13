@@ -24,7 +24,11 @@ public interface IMetadataApi
     Task<FileMetadata> AddFileMetadataAsync(FileMetadata fileMetadata);
     Task<bool> DeleteFileMetadataAsync(string id);
     Task<IEnumerable<FileMetadata>> GetFilesByMediaIdAsync(int mediaId, LibraryType mediaType);
-    Task<PaginatedResult<PersonMetadata>> GetPeopleMetadataAsync(int skip = 0, int take = 100);
+    Task<PaginatedResult<PersonMetadata>> GetPeopleMetadataAsync(
+        int skip = 0,
+        int take = 100,
+        string? query = null
+    );
     Task<PersonMetadata?> GetPersonMetadataByIdAsync(int id);
     Task<PersonLibraryCredits?> GetPersonCreditsByIdAsync(int id);
 }

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { usePeople } from "@/features/media/hooks";
 import type { PersonMetadata } from "@/types/metadata";
 import { Spinner } from "@/components/ui";
@@ -13,8 +13,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CircleX, RefreshCw, Search, User } from "lucide-react";
-
-const ITEMS_PER_PAGE = 100;
 
 interface PersonCardProps {
   person: PersonMetadata;
@@ -65,26 +63,20 @@ function PersonCard({ person }: PersonCardProps) {
 }
 
 export default function PeopleList() {
-  const { people, totalCount, loading, loadingMore, error, hasMore, loadMore, refetch } = usePeople();
   const [searchQuery, setSearchQuery] = useState("");
+  const {
+    people,
+    totalCount,
+    loading,
+    loadingMore,
+    error,
+    hasMore,
+    loadMore,
+    refetch,
+  } = usePeople(searchQuery);
+  const hasActiveSearch = Boolean(searchQuery.trim());
   const loadMoreRef = useRef<HTMLDivElement>(null);
-
-  const filteredPeople = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return people;
-    }
-
-    const query = searchQuery.toLowerCase();
-    return people.filter((person) => person.name?.toLowerCase().includes(query));
-  }, [people, searchQuery]);
-
-  // When searching, show all filtered results (client-side filter)
-  const visiblePeople = filteredPeople;
-  
-  // Has more items when: 
-  // - No search active and server says there's more, OR
-  // - Search active but filtered list is smaller than total people (meaning we might find more matches)
-  const shouldShowLoadMore = searchQuery ? false : hasMore;
+  const shouldShowLoadMore = hasMore;
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -111,7 +103,7 @@ export default function PeopleList() {
     };
   }, [shouldShowLoadMore, loading, loadingMore, loadMore]);
 
-  if (loading) {
+  if (loading && people.length === 0) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
@@ -137,7 +129,7 @@ export default function PeopleList() {
     );
   }
 
-  if (people.length === 0) {
+  if (!hasActiveSearch && people.length === 0) {
     return (
       <Card className="border-dashed">
         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -156,14 +148,11 @@ export default function PeopleList() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold">
-            {searchQuery ? `${filteredPeople.length}` : `${totalCount}`} {(searchQuery ? filteredPeople.length : totalCount) === 1 ? "person" : "people"}
+            {hasActiveSearch
+              ? `${totalCount} ${totalCount === 1 ? "matching person" : "matching people"}`
+              : `${totalCount} ${totalCount === 1 ? "person" : "people"}`}
           </h2>
-          {searchQuery && filteredPeople.length !== totalCount && (
-            <span className="text-sm text-muted-foreground">
-              (filtered from {totalCount})
-            </span>
-          )}
-          {!searchQuery && people.length < totalCount && (
+          {people.length < totalCount && totalCount > 0 && (
             <span className="text-sm text-muted-foreground">
               (loaded {people.length})
             </span>
@@ -171,6 +160,9 @@ export default function PeopleList() {
           <Button variant="ghost" size="icon" onClick={refetch} className="h-8 w-8">
             <RefreshCw className="h-4 w-4" />
           </Button>
+          {loading && people.length > 0 && (
+            <Spinner className="ml-2 size-4 text-muted-foreground" />
+          )}
         </div>
 
         <div className="relative w-full sm:w-80">
@@ -185,7 +177,7 @@ export default function PeopleList() {
         </div>
       </div>
 
-      {filteredPeople.length === 0 && searchQuery ? (
+      {hasActiveSearch && people.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <Search className="mb-4 h-12 w-12 text-muted-foreground" />
@@ -196,7 +188,7 @@ export default function PeopleList() {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-            {visiblePeople.map((person) => (
+            {people.map((person) => (
               <PersonCard key={person.id} person={person} />
             ))}
           </div>
@@ -210,9 +202,9 @@ export default function PeopleList() {
           )}
 
           {/* End message */}
-          {!shouldShowLoadMore && visiblePeople.length > 0 && people.length >= ITEMS_PER_PAGE && (
+          {!shouldShowLoadMore && totalCount > 0 && (
             <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
-              All {searchQuery ? filteredPeople.length : totalCount} people loaded
+              All {totalCount} people loaded
             </div>
           )}
         </>
