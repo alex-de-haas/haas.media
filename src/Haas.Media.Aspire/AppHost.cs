@@ -24,7 +24,7 @@ var configuredInternalApiBaseUrl = GetEnvOrEmpty("INTERNAL_API_BASE_URL");
 var internalApiBaseUrl = builder.AddParameter(
     "internal-api-base-url",
     string.IsNullOrWhiteSpace(configuredInternalApiBaseUrl)
-        ? (builder.ExecutionContext.IsPublishMode ? "http://downloader-api:8080" : "http://localhost:8000")
+        ? (builder.ExecutionContext.IsPublishMode ? "http://localhost:8000" : "http://localhost:8000")
         : configuredInternalApiBaseUrl
 );
 
