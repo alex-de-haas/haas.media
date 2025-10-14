@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { AuthResponse } from "@/types/auth";
+import { getApiUrl } from "@/lib/api";
 
 interface LocalUser {
   username: string;
@@ -33,7 +34,8 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
     const storedToken = localStorage.getItem("auth_token");
     if (storedToken) {
       // Verify token by fetching user info BEFORE setting token state
-      fetch("/api/auth/me", {
+      const apiUrl = getApiUrl();
+      fetch(`${apiUrl}/api/auth/me`, {
         headers: {
           Authorization: `Bearer ${storedToken}`,
         },
@@ -69,7 +71,8 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const res = await fetch("/api/auth/login", {
+      const apiUrl = getApiUrl();
+      const res = await fetch(`${apiUrl}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -98,7 +101,8 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (username: string, password: string): Promise<boolean> => {
     try {
-      const res = await fetch("/api/auth/register", {
+      const apiUrl = getApiUrl();
+      const res = await fetch(`${apiUrl}/api/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -136,7 +140,8 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
     const normalizedCountryCode = countryCode.trim().toUpperCase();
 
     try {
-      const res = await fetch("/api/auth/me", {
+      const apiUrl = getApiUrl();
+      const res = await fetch(`${apiUrl}/api/auth/me`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -171,7 +176,8 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const res = await fetch("/api/auth/password", {
+      const apiUrl = getApiUrl();
+      const res = await fetch(`${apiUrl}/api/auth/password`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

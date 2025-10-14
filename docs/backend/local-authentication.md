@@ -58,16 +58,16 @@ JWT_EXPIRATION_MINUTES=1440  # 24 hours
 
 ### Components
 
-- **LocalAuthProvider** (`features/auth/local-auth-context.tsx`) - Client-side auth context
+- **LocalAuthProvider** (`features/auth/local-auth-context.tsx`) - Client-side auth context with direct API calls
 - **Login Page** (`app/login/page.tsx`) - Supports both Auth0 and local auth
 - **Register Page** (`app/register/page.tsx`) - Local user registration
-- **API Routes** (`app/api/auth/*`) - Proxy to backend auth endpoints
 
 ### Features
 
 - **Token Storage**: JWT stored in localStorage
 - **Auto-login**: Checks stored token on mount
 - **Unified UI**: UserMenu component works with both auth modes
+- **Direct API Communication**: Frontend calls backend API directly (no Next.js proxy)
 - **Logout**: Clears token and redirects to login
 
 ### Middleware

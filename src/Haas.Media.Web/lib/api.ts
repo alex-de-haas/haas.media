@@ -1,4 +1,4 @@
-import { getApiUrl as resolveApiUrl, getServerApiUrl } from "./env";
+import { getApiUrl as resolveApiUrl } from "./env";
 
 /**
  * Resolve the effective API base URL for the current runtime context.
@@ -6,11 +6,6 @@ import { getApiUrl as resolveApiUrl, getServerApiUrl } from "./env";
 export function getApiUrl(): string {
   return resolveApiUrl();
 }
-
-/**
- * Resolve the API base URL as seen from the backend services.
- */
-export { getServerApiUrl };
 
 /**
  * Cached API base URL for convenience in modules that do not need

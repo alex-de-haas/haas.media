@@ -55,9 +55,26 @@ function normalizeServerBaseUrl(url: string): string {
   return url;
 }
 
-export function getServerApiUrl(): string {
+/**
+ * Get the API URL from runtime environment variables.
+ * Automatically handles both client-side and server-side contexts.
+ */
+export function getApiUrl(): string {
   const excluded = buildExclusionSet();
 
+  // Client-side: use public API URL
+  if (typeof window !== "undefined") {
+    const publicApiUrl = pickFirstUrl(
+      [
+        resolveCandidateUrl(env("NEXT_PUBLIC_API_BASE_URL")),
+        resolveCandidateUrl(process.env.NEXT_PUBLIC_API_BASE_URL),
+      ],
+      excluded,
+    );
+    return publicApiUrl ?? "http://localhost:8000";
+  }
+
+  // Server-side: prefer internal API URL, then public API URL
   const preferred = pickFirstUrl(
     [
       resolveCandidateUrl(env("INTERNAL_API_BASE_URL")),
@@ -81,24 +98,4 @@ export function getServerApiUrl(): string {
   );
 
   return normalizeServerBaseUrl(fallback ?? "http://localhost:8000");
-}
-
-/**
- * Get the API URL from runtime environment variables
- */
-export function getApiUrl(): string {
-  const excluded = buildExclusionSet();
-  const publicApiUrl = pickFirstUrl(
-    [
-      resolveCandidateUrl(env("NEXT_PUBLIC_API_BASE_URL")),
-      resolveCandidateUrl(process.env.NEXT_PUBLIC_API_BASE_URL),
-    ],
-    excluded,
-  );
-
-  if (typeof window !== "undefined") {
-    return publicApiUrl ?? "http://localhost:8000";
-  }
-
-  return getServerApiUrl();
 }
