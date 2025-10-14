@@ -40,6 +40,24 @@ function pickFirstUrl(candidates: Array<string | undefined>, excluded: Set<strin
   return undefined;
 }
 
+function normalizeServerBaseUrl(url: string): string {
+  if (typeof window !== "undefined") {
+    return url;
+  }
+
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === "localhost") {
+      parsed.hostname = "127.0.0.1";
+      return trimTrailingSlash(parsed.toString());
+    }
+  } catch {
+    // Fall back to original URL if parsing fails.
+  }
+
+  return url;
+}
+
 export function getServerApiUrl(): string {
   const excluded = buildExclusionSet();
 
@@ -54,7 +72,7 @@ export function getServerApiUrl(): string {
   );
 
   if (preferred) {
-    return preferred;
+    return normalizeServerBaseUrl(preferred);
   }
 
   const fallback = pickFirstUrl(
@@ -65,7 +83,7 @@ export function getServerApiUrl(): string {
     excluded,
   );
 
-  return fallback ?? "http://localhost:8000";
+  return normalizeServerBaseUrl(fallback ?? "http://localhost:8000");
 }
 
 /**
