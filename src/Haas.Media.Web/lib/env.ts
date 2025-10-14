@@ -47,10 +47,7 @@ function normalizeServerBaseUrl(url: string): string {
 
   try {
     const parsed = new URL(url);
-    if (parsed.hostname === "localhost") {
-      parsed.hostname = "127.0.0.1";
-      return trimTrailingSlash(parsed.toString());
-    }
+    return parsed.toString();
   } catch {
     // Fall back to original URL if parsing fails.
   }
