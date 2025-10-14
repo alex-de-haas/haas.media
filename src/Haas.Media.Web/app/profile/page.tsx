@@ -8,9 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNotifications } from "@/lib/notifications";
-import { TMDB_LANGUAGE_OPTIONS, isSupportedTmdbLanguage } from "@/lib/tmdb-languages";
+import { isSupportedTmdbLanguage } from "@/lib/tmdb-languages";
+import { CountrySelect } from "@/components/country-select";
+import { LanguageSelect } from "@/components/language-select";
 
 export default function ProfilePage() {
   const { isAuthenticated, isLoading } = useAuthGuard();
@@ -111,34 +112,22 @@ export default function ProfilePage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="preferredLanguage">Preferred TMDB language</Label>
-              <Select
+              <LanguageSelect
+                id="preferredLanguage"
                 value={preferredLanguage}
-                onValueChange={setPreferredLanguage}
+                onChange={setPreferredLanguage}
                 disabled={profileLoading}
-              >
-                <SelectTrigger id="preferredLanguage" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TMDB_LANGUAGE_OPTIONS.map((option) => (
-                    <SelectItem key={option.code} value={option.code}>
-                      {option.label} ({option.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Select a language"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="preferredCountry">Preferred release country (ISO 3166-1 alpha-2)</Label>
-              <Input
+              <CountrySelect
                 id="preferredCountry"
-                type="text"
                 value={preferredCountry}
-                onChange={(event) => setPreferredCountry(event.target.value.toUpperCase())}
-                maxLength={2}
+                onChange={setPreferredCountry}
                 disabled={profileLoading}
-                placeholder="US"
-                autoCapitalize="characters"
+                placeholder="Select a country"
               />
             </div>
             <div className="flex justify-end">

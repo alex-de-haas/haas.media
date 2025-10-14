@@ -32,3 +32,12 @@ export const TMDB_LANGUAGE_OPTIONS: TmdbLanguageOption[] = [
 export function isSupportedTmdbLanguage(code: string): boolean {
   return TMDB_LANGUAGE_OPTIONS.some((option) => option.code === code);
 }
+
+export function findTmdbLanguageLabel(code: string | undefined | null): string | undefined {
+  if (!code) {
+    return undefined;
+  }
+
+  const normalized = code.trim();
+  return TMDB_LANGUAGE_OPTIONS.find((option) => option.code === normalized)?.label;
+}
