@@ -1,5 +1,5 @@
+import { getApiUrl } from "@/lib/env";
 import { NextRequest, NextResponse } from "next/server";
-import { env } from "next-runtime-env";
 
 export async function PUT(request: NextRequest) {
   try {
@@ -9,9 +9,9 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const apiBaseUrl = env("NEXT_PUBLIC_API_BASE_URL") || "http://localhost:8000";
+    const passwordEndpoint = new URL("/api/auth/me/password", getApiUrl()).toString();
 
-    const response = await fetch(`${apiBaseUrl}/api/auth/me/password`, {
+    const response = await fetch(passwordEndpoint, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

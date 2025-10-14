@@ -20,6 +20,13 @@ var tmdbApiKey = builder.AddParameter("tmdb-api-key", value: GetEnvOrEmpty("TMDB
 // URLs
 var webBaseUrl = builder.AddParameter("web-base-url", "http://localhost:3000");
 var apiBaseUrl = builder.AddParameter("api-base-url", "http://localhost:8000");
+var configuredInternalApiBaseUrl = GetEnvOrEmpty("INTERNAL_API_BASE_URL");
+var internalApiBaseUrl = builder.AddParameter(
+    "internal-api-base-url",
+    string.IsNullOrWhiteSpace(configuredInternalApiBaseUrl)
+        ? (builder.ExecutionContext.IsPublishMode ? "http://downloader-api:8080" : "http://localhost:8000")
+        : configuredInternalApiBaseUrl
+);
 
 var downloaderApi = builder
     .AddProject<Projects.Haas_Media_Downloader_Api>("downloader-api")
@@ -48,8 +55,9 @@ var web = builder
         scriptName: builder.ExecutionContext.IsPublishMode ? "start" : "dev"
     )
     .WithHttpEndpoint(port: 3000, targetPort: 3000, isProxied: false)
-    .WithEnvironment("NEXT_PUBLIC_API_DOWNLOADER_URL", apiBaseUrl)
+    .WithEnvironment("API_BASE_URL", apiBaseUrl)
     .WithEnvironment("NEXT_PUBLIC_API_BASE_URL", apiBaseUrl)
+    .WithEnvironment("INTERNAL_API_BASE_URL", internalApiBaseUrl)
     .WithExternalHttpEndpoints()
     .PublishAsDockerFile();
 

@@ -50,7 +50,12 @@ Use this checklist to set up local authentication for Haas.Media.
   npm install
   ```
 
-- [ ] Verify NEXT_PUBLIC_API_BASE_URL is set (optional):
+- [ ] Verify API_BASE_URL is set (optional):
+  ```env
+  API_BASE_URL=http://localhost:8000
+  ```
+
+- [ ] Ensure the browser-facing API URL is set:
   ```env
   NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
   ```

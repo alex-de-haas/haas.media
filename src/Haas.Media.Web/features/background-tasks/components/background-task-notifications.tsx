@@ -10,6 +10,7 @@ import type {
   ScanOperationInfo,
 } from "@/types/metadata";
 import { LibraryType } from "@/types/library";
+import { useLocalAuth } from "@/features/auth/local-auth-context";
 
 const toNumber = (value: unknown): number => {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -299,7 +300,9 @@ const handleTaskCompletion = (
 };
 
 export default function BackgroundTaskNotifications() {
-  const { tasks } = useBackgroundTasks({ enabled: true });
+  const { isAuthenticated, isLoading } = useLocalAuth();
+  const isEnabled = isAuthenticated && !isLoading;
+  const { tasks } = useBackgroundTasks({ enabled: isEnabled });
   const { notify } = useNotifications();
   const statusMapRef = useRef(new Map<string, BackgroundTaskStatus>());
 

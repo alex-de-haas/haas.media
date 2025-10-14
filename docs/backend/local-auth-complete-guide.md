@@ -157,8 +157,7 @@ src/Haas.Media.Web/
 │   ├── login/page.tsx
 │   ├── register/page.tsx
 │   └── api/
-│       ├── auth/[auth0]/route.ts (fixed)
-│       └── local-auth/
+│       └── auth/
 │           ├── login/route.ts
 │           ├── register/route.ts
 │           └── me/route.ts

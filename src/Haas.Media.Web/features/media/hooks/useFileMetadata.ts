@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchWithAuth } from "@/lib/auth/fetch-with-auth";
-import { getApiDownloaderUrl } from "@/lib/env";
+import { getApiUrl } from "@/lib/env";
 import type { FileMetadata } from "@/types/metadata";
 import { LibraryType } from "@/types/library";
 
@@ -17,7 +17,7 @@ export function useFileMetadata(libraryId?: string, mediaId?: string) {
       setLoading(true);
       setError(null);
 
-      const url = new URL(`${getApiDownloaderUrl()}/api/metadata/files`);
+      const url = new URL(`${getApiUrl()}/api/metadata/files`);
       if (libraryId) {
         url.searchParams.set("libraryId", libraryId);
       }
@@ -61,7 +61,7 @@ export function useFileMetadataById(id: string | null) {
       setLoading(true);
       setError(null);
 
-      const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/files/${id}`);
+      const response = await fetchWithAuth(`${getApiUrl()}/api/metadata/files/${id}`);
       const fileData = await response.json();
       setFile(fileData);
     } catch (err) {
@@ -103,7 +103,7 @@ export function useFilesByMediaId(mediaId: string | number | null, mediaType: Li
 
       const endpoint = mediaType === LibraryType.Movies ? "movies" : "tvshows";
       const response = await fetchWithAuth(
-        `${getApiDownloaderUrl()}/api/metadata/${endpoint}/${mediaId}/files`
+        `${getApiUrl()}/api/metadata/${endpoint}/${mediaId}/files`
       );
       const filesData = await response.json();
       setFiles(filesData);
@@ -133,7 +133,7 @@ export function useFileMetadataOperations() {
       setLoading(true);
       setError(null);
 
-      const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/files`, {
+      const response = await fetchWithAuth(`${getApiUrl()}/api/metadata/files`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(fileMetadata),
@@ -155,7 +155,7 @@ export function useFileMetadataOperations() {
       setLoading(true);
       setError(null);
 
-      await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/files/${fileId}`, {
+      await fetchWithAuth(`${getApiUrl()}/api/metadata/files/${fileId}`, {
         method: "DELETE",
       });
 

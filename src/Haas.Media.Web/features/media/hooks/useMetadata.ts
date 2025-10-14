@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchWithAuth } from "@/lib/auth/fetch-with-auth";
-import { getApiDownloaderUrl } from "@/lib/env";
+import { getApiUrl } from "@/lib/env";
 import type {
   MovieMetadata,
   TVShowMetadata,
@@ -30,7 +30,7 @@ export function useAddToLibrary() {
       setLoading(true);
       setError(null);
 
-      const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/add-to-library`, {
+      const response = await fetchWithAuth(`${getApiUrl()}/api/metadata/add-to-library`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(request),
@@ -62,7 +62,7 @@ export function useMovies(libraryId?: string) {
       setLoading(true);
       setError(null);
 
-      const url = new URL(`${getApiDownloaderUrl()}/api/metadata/movies`);
+      const url = new URL(`${getApiUrl()}/api/metadata/movies`);
       if (libraryId) {
         url.searchParams.set("libraryId", libraryId);
       }
@@ -130,7 +130,7 @@ export function useMovie(id: number) {
       setLoading(true);
       setError(null);
 
-      const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/movies/${id}`);
+      const response = await fetchWithAuth(`${getApiUrl()}/api/metadata/movies/${id}`);
       const movieData = await response.json();
       setMovie(movieData);
     } catch (err) {
@@ -162,7 +162,7 @@ export function useDeleteMovieMetadata() {
       setLoading(true);
       setError(null);
 
-      await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/movies/${id}`, {
+      await fetchWithAuth(`${getApiUrl()}/api/metadata/movies/${id}`, {
         method: "DELETE",
       });
 
@@ -191,7 +191,7 @@ export function useTVShows(libraryId?: string) {
       setLoading(true);
       setError(null);
 
-      const url = new URL(`${getApiDownloaderUrl()}/api/metadata/tvshows`);
+      const url = new URL(`${getApiUrl()}/api/metadata/tvshows`);
       if (libraryId) {
         url.searchParams.set("libraryId", libraryId);
       }
@@ -259,7 +259,7 @@ export function useTVShow(id: number) {
       setLoading(true);
       setError(null);
 
-      const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/tvshows/${id}`);
+      const response = await fetchWithAuth(`${getApiUrl()}/api/metadata/tvshows/${id}`);
       const tvShowData = await response.json();
       setTVShow(tvShowData);
     } catch (err) {
@@ -299,7 +299,7 @@ export function usePerson(id?: number) {
       setLoading(true);
       setError(null);
 
-      const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/people/${id}`);
+      const response = await fetchWithAuth(`${getApiUrl()}/api/metadata/people/${id}`);
 
       if (response.status === 404) {
         setPerson(null);
@@ -351,7 +351,7 @@ export function usePeople(searchQuery?: string) {
       }
       setError(null);
 
-      const url = new URL(`${getApiDownloaderUrl()}/api/metadata/people`);
+      const url = new URL(`${getApiUrl()}/api/metadata/people`);
       url.searchParams.set("skip", skip.toString());
       url.searchParams.set("take", take.toString());
       if (normalizedQuery) {
@@ -434,7 +434,7 @@ export function usePersonCredits(id?: number) {
       setLoading(true);
       setError(null);
 
-      const response = await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/people/${id}/credits`);
+      const response = await fetchWithAuth(`${getApiUrl()}/api/metadata/people/${id}/credits`);
 
       if (response.status === 404) {
         setMovies([]);
@@ -477,7 +477,7 @@ export function useDeleteTVShowMetadata() {
       setLoading(true);
       setError(null);
 
-      await fetchWithAuth(`${getApiDownloaderUrl()}/api/metadata/tvshows/${id}`, {
+      await fetchWithAuth(`${getApiUrl()}/api/metadata/tvshows/${id}`, {
         method: "DELETE",
       });
 
@@ -503,7 +503,7 @@ export function useSearch() {
       setLoading(true);
       setError(null);
 
-      const url = new URL(`${getApiDownloaderUrl()}/api/metadata/search`);
+      const url = new URL(`${getApiUrl()}/api/metadata/search`);
       url.searchParams.set("query", query);
       if (libraryType !== undefined) {
         url.searchParams.set("libraryType", libraryType.toString());

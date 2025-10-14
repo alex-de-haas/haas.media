@@ -160,4 +160,4 @@ If you still see 403 after following these steps:
 
 3. **Verify Environment Variables**: Check that both frontend and backend received the updated `AUTH0_AUDIENCE`
 
-4. **Check Port**: Your backend is running on port 5000 instead of 8000. Make sure the frontend's `NEXT_PUBLIC_DOWNLOADER_API` or `NEXT_PUBLIC_API_DOWNLOADER_URL` points to the correct port.
+4. **Check Port**: Your backend is running on port 5000 instead of 8000. Make sure the frontend's `API_BASE_URL` points to the correct port.

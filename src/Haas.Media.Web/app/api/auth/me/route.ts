@@ -1,5 +1,5 @@
+import { getApiUrl } from "@/lib/api";
 import { NextRequest, NextResponse } from "next/server";
-import { env } from "next-runtime-env";
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,9 +8,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "No authorization header" }, { status: 401 });
     }
 
-    const apiBaseUrl = env("NEXT_PUBLIC_API_BASE_URL") || "http://localhost:8000";
+    const currentUserEndpoint = new URL("/api/auth/me", getApiUrl()).toString();
 
-    const response = await fetch(`${apiBaseUrl}/api/auth/me`, {
+    const response = await fetch(currentUserEndpoint, {
       headers: {
         Authorization: authHeader,
       },
@@ -36,9 +36,9 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const apiBaseUrl = env("NEXT_PUBLIC_API_BASE_URL") || "http://localhost:8000";
+    const currentUserEndpoint = new URL("/api/auth/me", downloaderApi).toString();
 
-    const response = await fetch(`${apiBaseUrl}/api/auth/me`, {
+    const response = await fetch(currentUserEndpoint, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

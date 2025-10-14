@@ -114,6 +114,8 @@ var app = builder.Build();
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation(Environment.CurrentDirectory);
 logger.LogInformation(GlobalFFOptions.Current.BinaryFolder);
+logger.LogInformation("Data Directory: {DataDirectory}", dataDirectory);
+logger.LogInformation("Database Path: {DatabasePath}", databasePath);
 
 // Log Authentication configuration
 if (!string.IsNullOrWhiteSpace(jwtSecret))

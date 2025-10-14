@@ -61,7 +61,7 @@ JWT_EXPIRATION_MINUTES=1440  # 24 hours
 - **LocalAuthProvider** (`features/auth/local-auth-context.tsx`) - Client-side auth context
 - **Login Page** (`app/login/page.tsx`) - Supports both Auth0 and local auth
 - **Register Page** (`app/register/page.tsx`) - Local user registration
-- **API Routes** (`app/api/local-auth/*`) - Proxy to backend auth endpoints
+- **API Routes** (`app/api/auth/*`) - Proxy to backend auth endpoints
 
 ### Features
 
