@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using TMDbLib.Objects.Movies;
 
 namespace Haas.Media.Downloader.Api.Metadata;
@@ -6,7 +9,7 @@ internal static class MovieReleaseDateHelper
 {
     private const string DefaultCountryCode = "US";
 
-    public static ReleaseDate[] GetReleaseDates(Movie movie, string? countryCode = null)
+    public static ReleaseDate[] GetReleaseDates(Movie movie, string? preferredCountryCode = null)
     {
         ArgumentNullException.ThrowIfNull(movie);
 
@@ -16,60 +19,73 @@ internal static class MovieReleaseDateHelper
             return [];
         }
 
-        var preferredCountryCode = string.IsNullOrWhiteSpace(countryCode)
-            ? DefaultCountryCode
-            : countryCode;
+        var normalizedPreferred = NormalizeCountryCode(preferredCountryCode, DefaultCountryCode);
 
         var releaseDates = new List<ReleaseDate>();
 
-        // Get releases for preferred country
-        var countryRelease = releases
-            .FirstOrDefault(r => string.Equals(r.Iso_3166_1, preferredCountryCode, StringComparison.OrdinalIgnoreCase));
-
-        if (countryRelease?.ReleaseDates != null)
+        foreach (var countryRelease in releases)
         {
+            if (countryRelease.ReleaseDates == null)
+            {
+                continue;
+            }
+
+            var countryCode = NormalizeCountryCode(countryRelease.Iso_3166_1, DefaultCountryCode);
+
             foreach (var release in countryRelease.ReleaseDates)
             {
-                if (release.ReleaseDate != default)
+                if (release.ReleaseDate == default)
                 {
-                    releaseDates.Add(new ReleaseDate
-                    {
-                        Type = MapReleaseType(release.Type),
-                        Date = release.ReleaseDate.Date,
-                        CountryCode = countryRelease.Iso_3166_1
-                    });
+                    continue;
                 }
-            }
-        }
 
-        // If no country-specific releases found, get all releases
-        if (releaseDates.Count == 0)
-        {
-            foreach (var countryReleaseItem in releases)
-            {
-                if (countryReleaseItem.ReleaseDates != null)
+                releaseDates.Add(new ReleaseDate
                 {
-                    foreach (var release in countryReleaseItem.ReleaseDates)
-                    {
-                        if (release.ReleaseDate != default)
-                        {
-                            releaseDates.Add(new ReleaseDate
-                            {
-                                Type = MapReleaseType(release.Type),
-                                Date = release.ReleaseDate.Date,
-                                CountryCode = countryReleaseItem.Iso_3166_1
-                            });
-                        }
-                    }
-                }
+                    Type = MapReleaseType(release.Type),
+                    Date = release.ReleaseDate.Date,
+                    CountryCode = countryCode
+                });
             }
         }
 
         // Sort by date and remove duplicates
         return releaseDates
-            .OrderBy(r => r.Date)
-            .GroupBy(r => new { r.Type, r.Date })
+            .GroupBy(r => new { r.Type, r.Date, CountryCode = r.CountryCode ?? DefaultCountryCode })
             .Select(g => g.First())
+            .OrderBy(r => string.Equals(r.CountryCode, normalizedPreferred, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(r => r.Date)
+            .ThenBy(r => r.Type)
+            .ToArray();
+    }
+
+    public static ReleaseDate[] FilterReleaseDates(IEnumerable<ReleaseDate> releaseDates, string? countryCode)
+    {
+        if (releaseDates == null)
+        {
+            return [];
+        }
+
+        var normalizedCountry = NormalizeCountryCode(countryCode, DefaultCountryCode);
+        var releases = releaseDates.ToList();
+        if (releases.Count == 0)
+        {
+            return [];
+        }
+
+        var preferred = releases
+            .Where(r => string.Equals(r.CountryCode, normalizedCountry, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(r => r.Date)
+            .ThenBy(r => r.Type)
+            .ToArray();
+
+        if (preferred.Length > 0)
+        {
+            return preferred;
+        }
+
+        return releases
+            .OrderBy(r => r.Date)
+            .ThenBy(r => r.Type)
             .ToArray();
     }
 
@@ -85,5 +101,21 @@ internal static class MovieReleaseDateHelper
             TMDbLib.Objects.Movies.ReleaseDateType.TV => ReleaseDateType.Tv,
             _ => ReleaseDateType.Theatrical
         };
+    }
+
+    private static string NormalizeCountryCode(string? countryCode, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(countryCode))
+        {
+            return fallback;
+        }
+
+        var normalized = countryCode.Trim().ToUpperInvariant();
+        if (normalized.Length != 2 || normalized.Any(ch => ch is < 'A' or > 'Z'))
+        {
+            return fallback;
+        }
+
+        return normalized;
     }
 }

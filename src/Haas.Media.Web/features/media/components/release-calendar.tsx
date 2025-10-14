@@ -25,6 +25,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui";
+import { useLocalAuth } from "@/features/auth/local-auth-context";
 import { useMovies } from "@/features/media/hooks";
 import type { MovieMetadata } from "@/types/metadata";
 import { ReleaseDateType } from "@/types/metadata";
@@ -84,6 +85,16 @@ function getDateKey(date: Date) {
 
 function getReleaseTypeConfig(type: ReleaseDateType) {
   return RELEASE_TYPE_CONFIG[type];
+}
+
+function filterReleaseDatesByCountry(releaseDates: MovieMetadata["releaseDates"], countryCode: string) {
+  if (!releaseDates || releaseDates.length === 0) {
+    return [];
+  }
+
+  const normalized = countryCode.toUpperCase();
+  const preferred = releaseDates.filter((release) => release.countryCode?.toUpperCase() === normalized);
+  return preferred.length > 0 ? preferred : releaseDates;
 }
 
 /**
@@ -146,7 +157,17 @@ function CalendarSync({ selectedDate, onSelectDate }: { selectedDate: Date | und
 }
 
 export default function ReleaseCalendar() {
-  const { movies, loading, error } = useMovies();
+  const { user } = useLocalAuth();
+  const { movies, loading, error, refetch } = useMovies();
+
+  const preferredCountry = useMemo(() => (user?.countryCode ?? "US").toUpperCase(), [user?.countryCode]);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+    void refetch();
+  }, [preferredCountry, refetch, user?.username]);
 
   const today = useMemo(() => startOfDay(new Date()), []);
 
@@ -173,7 +194,9 @@ export default function ReleaseCalendar() {
     for (const movie of movies) {
       // Add all release dates from releaseDates array
       if (movie.releaseDates && movie.releaseDates.length > 0) {
-        for (const release of movie.releaseDates) {
+        const releases = filterReleaseDatesByCountry(movie.releaseDates, preferredCountry);
+
+        for (const release of releases) {
           // Filter by selected release types
           if (!selectedReleaseTypes.has(release.type)) {
             continue;

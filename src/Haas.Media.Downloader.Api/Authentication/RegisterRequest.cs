@@ -3,5 +3,6 @@ namespace Haas.Media.Downloader.Api.Authentication;
 public record RegisterRequest(
 	string Username,
 	string Password,
-	string? PreferredMetadataLanguage = null
+	string? PreferredMetadataLanguage = null,
+	string? CountryCode = null
 );

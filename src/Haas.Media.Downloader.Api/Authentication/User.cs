@@ -10,6 +10,7 @@ public class User
     public required string PasswordHash { get; set; }
     public bool IsAdmin { get; set; }
     public string PreferredMetadataLanguage { get; set; } = "en";
+    public string CountryCode { get; set; } = "US";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastLoginAt { get; set; }
 }

@@ -6,6 +6,7 @@ import { AuthResponse } from "@/types/auth";
 interface LocalUser {
   username: string;
   preferredMetadataLanguage: string;
+  countryCode: string;
 }
 
 interface LocalAuthContextType {
@@ -14,7 +15,7 @@ interface LocalAuthContextType {
   user: LocalUser | null;
   login: (username: string, password: string) => Promise<boolean>;
   register: (username: string, password: string) => Promise<boolean>;
-  updateProfile: (preferredMetadataLanguage: string) => Promise<{ success: boolean; error?: string }>;
+  updateProfile: (preferredMetadataLanguage: string, countryCode: string) => Promise<{ success: boolean; error?: string }>;
   updatePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isLoading: boolean;
@@ -49,6 +50,7 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
           setUser({
             username: data.username,
             preferredMetadataLanguage: data.preferredMetadataLanguage ?? "en",
+            countryCode: (data.countryCode ?? "US").toUpperCase(),
           });
         })
         .catch(() => {
@@ -84,6 +86,7 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
       setUser({
         username: data.username,
         preferredMetadataLanguage: data.preferredMetadataLanguage ?? "en",
+        countryCode: (data.countryCode ?? "US").toUpperCase(),
       });
       localStorage.setItem("auth_token", data.token);
       return true;
@@ -112,6 +115,7 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
       setUser({
         username: data.username,
         preferredMetadataLanguage: data.preferredMetadataLanguage ?? "en",
+        countryCode: (data.countryCode ?? "US").toUpperCase(),
       });
       localStorage.setItem("auth_token", data.token);
       return true;
@@ -121,10 +125,15 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateProfile = async (preferredMetadataLanguage: string): Promise<{ success: boolean; error?: string }> => {
+  const updateProfile = async (
+    preferredMetadataLanguage: string,
+    countryCode: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     if (!token) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const normalizedCountryCode = countryCode.trim().toUpperCase();
 
     try {
       const res = await fetch("/api/local-auth/me", {
@@ -133,7 +142,7 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ preferredMetadataLanguage }),
+        body: JSON.stringify({ preferredMetadataLanguage, countryCode: normalizedCountryCode }),
       });
 
       if (!res.ok) {
@@ -146,6 +155,7 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
       setUser({
         username: data.username,
         preferredMetadataLanguage: data.preferredMetadataLanguage ?? "en",
+        countryCode: (data.countryCode ?? "US").toUpperCase(),
       });
       localStorage.setItem("auth_token", data.token);
       return { success: true };

@@ -1,3 +1,5 @@
+using System.Linq;
+using System.Security.Claims;
 using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 
 namespace Haas.Media.Downloader.Api.Metadata;
@@ -162,9 +164,19 @@ public static class MetadataConfiguration
 
         app.MapGet(
                 "api/metadata/movies",
-                async (IMetadataApi metadataService, string? libraryId = null) =>
+                async (HttpContext context, IMetadataApi metadataService, string? libraryId = null) =>
                 {
-                    var movieMetadata = await metadataService.GetMovieMetadataAsync(libraryId);
+                    var movieMetadata = (await metadataService.GetMovieMetadataAsync(libraryId)).ToList();
+                    var preferredCountry = ResolvePreferredCountryCode(context.User);
+
+                    foreach (var metadata in movieMetadata)
+                    {
+                        metadata.ReleaseDates = MovieReleaseDateHelper.FilterReleaseDates(
+                            metadata.ReleaseDates,
+                            preferredCountry
+                        );
+                    }
+
                     return Results.Ok(movieMetadata);
                 }
             )
@@ -173,10 +185,21 @@ public static class MetadataConfiguration
 
         app.MapGet(
                 "api/metadata/movies/{id}",
-                async (IMetadataApi metadataService, int id) =>
+                async (HttpContext context, IMetadataApi metadataService, int id) =>
                 {
                     var movieMetadata = await metadataService.GetMovieMetadataByIdAsync(id);
-                    return movieMetadata != null ? Results.Ok(movieMetadata) : Results.NotFound();
+                    if (movieMetadata == null)
+                    {
+                        return Results.NotFound();
+                    }
+
+                    var preferredCountry = ResolvePreferredCountryCode(context.User);
+                    movieMetadata.ReleaseDates = MovieReleaseDateHelper.FilterReleaseDates(
+                        movieMetadata.ReleaseDates,
+                        preferredCountry
+                    );
+
+                    return Results.Ok(movieMetadata);
                 }
             )
             .WithName("GetMovieMetadataById")
@@ -381,5 +404,11 @@ public static class MetadataConfiguration
             .RequireAuthorization();
 
         return app;
+    }
+
+    private static string? ResolvePreferredCountryCode(ClaimsPrincipal? user)
+    {
+        var value = user?.FindFirstValue("country_code");
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 }

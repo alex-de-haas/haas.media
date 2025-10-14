@@ -12,6 +12,7 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
 {
     private readonly ILiteCollection<User> _users = db.GetCollection<User>("users");
     private const int WorkFactor = 12; // BCrypt work factor
+    private const string DefaultCountryCode = "US";
 
     public async Task<AuthResponse?> RegisterAsync(RegisterRequest request)
     {
@@ -42,6 +43,7 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
         // Check if this is the first user
         var isFirstUser = _users.Count() == 0;
         var preferredLanguage = NormalizeLanguage(request.PreferredMetadataLanguage);
+        var countryCode = NormalizeCountryCode(request.CountryCode, DefaultCountryCode);
 
         // Create user
         var user = new User
@@ -50,7 +52,8 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             PasswordHash = passwordHash,
             IsAdmin = isFirstUser,
             CreatedAt = DateTime.UtcNow,
-            PreferredMetadataLanguage = preferredLanguage
+            PreferredMetadataLanguage = preferredLanguage,
+            CountryCode = countryCode
         };
 
         _users.Insert(user);
@@ -60,7 +63,14 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
 
         // Generate token
         var token = GenerateJwtToken(user);
-        return new AuthResponse(token, user.Username, user.PreferredMetadataLanguage ?? "en");
+        user.CountryCode ??= DefaultCountryCode;
+
+        return new AuthResponse(
+            token,
+            user.Username,
+            user.PreferredMetadataLanguage ?? "en",
+            user.CountryCode
+        );
     }
 
     public async Task<AuthResponse?> LoginAsync(LoginRequest request)
@@ -86,15 +96,22 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             return null;
         }
 
-        // Update last login
+        // Update last login and ensure country code is set
         user.LastLoginAt = DateTime.UtcNow;
+        user.CountryCode ??= DefaultCountryCode;
         _users.Update(user);
 
         logger.LogInformation("User logged in: {Username}", user.Username);
 
         // Generate token
         var token = GenerateJwtToken(user);
-        return new AuthResponse(token, user.Username, user.PreferredMetadataLanguage ?? "en");
+
+        return new AuthResponse(
+            token,
+            user.Username,
+            user.PreferredMetadataLanguage ?? "en",
+            user.CountryCode
+        );
     }
 
     public async Task<User?> GetUserByUsernameAsync(string username)
@@ -125,10 +142,27 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
 
         var preferredLanguage = NormalizeLanguage(request.PreferredMetadataLanguage);
         user.PreferredMetadataLanguage = preferredLanguage;
+
+        if (request.CountryCode is not null)
+        {
+            user.CountryCode = NormalizeCountryCode(
+                request.CountryCode,
+                user.CountryCode ?? DefaultCountryCode
+            );
+        }
+        else if (string.IsNullOrWhiteSpace(user.CountryCode))
+        {
+            user.CountryCode = DefaultCountryCode;
+        }
         _users.Update(user);
 
         var token = GenerateJwtToken(user);
-        return new AuthResponse(token, user.Username, user.PreferredMetadataLanguage ?? "en");
+        return new AuthResponse(
+            token,
+            user.Username,
+            user.PreferredMetadataLanguage ?? "en",
+            user.CountryCode
+        );
     }
 
     public async Task<bool> UpdatePasswordAsync(string username, UpdatePasswordRequest request)
@@ -187,7 +221,8 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim("auth_type", "local"),
             new Claim(ClaimTypes.Role, user.IsAdmin ? "Admin" : "User"),
-            new Claim("preferred_language", user.PreferredMetadataLanguage ?? "en")
+            new Claim("preferred_language", user.PreferredMetadataLanguage ?? "en"),
+            new Claim("country_code", user.CountryCode ?? DefaultCountryCode)
         };
 
         var token = new JwtSecurityToken(
@@ -209,5 +244,21 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
         }
 
         return language.Trim();
+    }
+
+    private static string NormalizeCountryCode(string? countryCode, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(countryCode))
+        {
+            return fallback;
+        }
+
+        var normalized = countryCode.Trim().ToUpperInvariant();
+        if (normalized.Length != 2 || normalized.Any(ch => ch is < 'A' or > 'Z'))
+        {
+            return fallback;
+        }
+
+        return normalized;
     }
 }

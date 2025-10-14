@@ -40,7 +40,7 @@ static class PersonMetadataMapper
             Birthday = source.Birthday,
             Deathday = source.Deathday,
             Gender = source.Gender,
-            Name = NormalizeWhitespace(source.Name),
+            Name = NormalizeWhitespace(source.Name)!,
             PlaceOfBirth = NormalizeWhitespace(source.PlaceOfBirth),
             Popularity = source.Popularity,
             ProfilePath = source.ProfilePath,
@@ -55,7 +55,7 @@ static class PersonMetadataMapper
         target.Birthday = source.Birthday;
         target.Deathday = source.Deathday;
         target.Gender = source.Gender;
-        target.Name = NormalizeWhitespace(source.Name);
+        target.Name = NormalizeWhitespace(source.Name)!;
         target.PlaceOfBirth = NormalizeWhitespace(source.PlaceOfBirth);
         target.Popularity = source.Popularity;
         target.ProfilePath = source.ProfilePath;
@@ -64,11 +64,6 @@ static class PersonMetadataMapper
 
     private static string? NormalizeWhitespace(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-
-        return value.Trim();
+        return value?.Trim();
     }
 }

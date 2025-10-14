@@ -20,6 +20,7 @@ export default function ProfilePage() {
     const code = user?.preferredMetadataLanguage ?? "en";
     return isSupportedTmdbLanguage(code) ? code : "en";
   });
+  const [preferredCountry, setPreferredCountry] = useState(() => (user?.countryCode ?? "US").toUpperCase());
   const [profileLoading, setProfileLoading] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -32,6 +33,7 @@ export default function ProfilePage() {
     if (user) {
       const code = user.preferredMetadataLanguage ?? "en";
       setPreferredLanguage(isSupportedTmdbLanguage(code) ? code : "en");
+      setPreferredCountry((user.countryCode ?? "US").toUpperCase());
     }
   }, [user]);
 
@@ -50,8 +52,14 @@ export default function ProfilePage() {
   const handleProfileSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    const normalizedCountry = preferredCountry.trim().toUpperCase();
+    if (normalizedCountry.length !== 2 || /[^A-Z]/.test(normalizedCountry)) {
+      notify({ type: "error", message: "Country code must be a two-letter ISO code (e.g. US, GB)." });
+      return;
+    }
+
     setProfileLoading(true);
-    const result = await updateProfile(preferredLanguage);
+    const result = await updateProfile(preferredLanguage, normalizedCountry);
     setProfileLoading(false);
 
     if (result.success) {
@@ -93,7 +101,7 @@ export default function ProfilePage() {
       <Card>
         <CardHeader>
           <CardTitle>Profile</CardTitle>
-          <CardDescription>Update the metadata language associated with your account.</CardDescription>
+          <CardDescription>Update the metadata language and preferred release country associated with your account.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-6" onSubmit={handleProfileSubmit}>
@@ -119,6 +127,19 @@ export default function ProfilePage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="preferredCountry">Preferred release country (ISO 3166-1 alpha-2)</Label>
+              <Input
+                id="preferredCountry"
+                type="text"
+                value={preferredCountry}
+                onChange={(event) => setPreferredCountry(event.target.value.toUpperCase())}
+                maxLength={2}
+                disabled={profileLoading}
+                placeholder="US"
+                autoCapitalize="characters"
+              />
             </div>
             <div className="flex justify-end">
               <Button type="submit" disabled={profileLoading}>

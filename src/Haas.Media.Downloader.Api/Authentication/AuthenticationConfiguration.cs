@@ -47,7 +47,8 @@ public static class AuthenticationConfiguration
                 user.Username,
                 user.CreatedAt,
                 user.LastLoginAt,
-                PreferredMetadataLanguage = user.PreferredMetadataLanguage ?? "en"
+                PreferredMetadataLanguage = user.PreferredMetadataLanguage ?? "en",
+                CountryCode = user.CountryCode ?? "US"
             });
         })
         .RequireAuthorization()
