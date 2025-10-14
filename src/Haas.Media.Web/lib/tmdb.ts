@@ -54,3 +54,14 @@ export function getProfileUrl(profilePath?: string | null, size: string = "h632"
   if (!profilePath) return null;
   return `https://image.tmdb.org/t/p/${size}${profilePath}`;
 }
+
+/**
+ * Gets the full URL for a TMDB still image (for TV episode stills)
+ * @param stillPath The relative still path from TMDB
+ * @param size The image size (e.g., 'w185', 'w300', 'original')
+ * @returns Full image URL or null if path is null/empty
+ */
+export function getStillUrl(stillPath?: string | null, size: string = "w300"): string | null {
+  if (!stillPath) return null;
+  return `https://image.tmdb.org/t/p/${size}${stillPath}`;
+}

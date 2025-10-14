@@ -39,41 +39,47 @@ interface TVShowDetailsProps {
 }
 
 interface EpisodeCardProps {
+  tvShowId: number;
   episode: TVEpisodeMetadata;
   episodeFiles: FileMetadata[];
 }
 
-function EpisodeCard({ episode, episodeFiles }: EpisodeCardProps) {
+function EpisodeCard({ tvShowId, episode, episodeFiles }: EpisodeCardProps) {
   return (
-    <Card>
-      <CardContent className="space-y-2 p-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold">
-              Episode {episode.episodeNumber}: {episode.name}
-            </p>
-          </div>
-          {episode.voteAverage > 0 && (
-            <Badge variant="secondary" className="flex items-center gap-1 px-2 py-1">
-              <Star className="h-3 w-3 text-yellow-500" />
-              {episode.voteAverage.toFixed(1)}
-            </Badge>
-          )}
-        </div>
-        {episode.overview && <p className="text-sm text-muted-foreground line-clamp-2">{episode.overview}</p>}
-        {episodeFiles.length > 0 ? (
-          <div className="space-y-1">
-            {episodeFiles.map((file) => (
-              <p key={file.id} className="font-mono text-xs text-muted-foreground break-all">
-                {file.filePath}
+    <Link 
+      href={`/tvshows/${tvShowId}/episodes/${episode.seasonNumber}/${episode.episodeNumber}`}
+      className="block transition hover:scale-[1.02]"
+    >
+      <Card className="cursor-pointer transition hover:border-primary/60 hover:shadow-md">
+        <CardContent className="space-y-2 p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold">
+                Episode {episode.episodeNumber}: {episode.name}
               </p>
-            ))}
+            </div>
+            {episode.voteAverage > 0 && (
+              <Badge variant="secondary" className="flex items-center gap-1 px-2 py-1">
+                <Star className="h-3 w-3 text-yellow-500" />
+                {episode.voteAverage.toFixed(1)}
+              </Badge>
+            )}
           </div>
-        ) : (
-          <p className="font-mono text-xs text-muted-foreground italic">No local file linked</p>
-        )}
-      </CardContent>
-    </Card>
+          {episode.overview && <p className="text-sm text-muted-foreground line-clamp-2">{episode.overview}</p>}
+          {episodeFiles.length > 0 ? (
+            <div className="space-y-1">
+              {episodeFiles.map((file) => (
+                <p key={file.id} className="font-mono text-xs text-muted-foreground break-all">
+                  {file.filePath}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <p className="font-mono text-xs text-muted-foreground italic">No local file linked</p>
+          )}
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 
@@ -489,7 +495,8 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                               <div className="space-y-3">
                                 {season.episodes.map((episode) => (
                                   <EpisodeCard 
-                                    key={`${episode.seasonNumber}-${episode.episodeNumber}`} 
+                                    key={`${episode.seasonNumber}-${episode.episodeNumber}`}
+                                    tvShowId={tvShowId}
                                     episode={episode}
                                     episodeFiles={getEpisodeFiles(episode.seasonNumber, episode.episodeNumber)}
                                   />

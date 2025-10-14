@@ -192,6 +192,12 @@ export interface TVEpisodeMetadata {
   name: string;
   overview: string;
   voteAverage: number;
+  voteCount: number;
+  airDate?: string | null;
+  runtime?: number | null;
+  stillPath?: string | null;
+  cast: CastMember[];
+  crew: CrewMember[];
   filePath?: string | null;
 }
 
