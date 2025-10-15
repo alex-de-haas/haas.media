@@ -25,6 +25,7 @@ public class TVShowMetadata
     public CastMember[] Cast { get; set; } = [];
     public Network[] Networks { get; set; } = [];
     public TVSeasonMetadata[] Seasons { get; set; } = [];
+    public string? OfficialRating { get; set; }
 
     public required DateTime CreatedAt { get; set; }
 
@@ -50,6 +51,7 @@ static class TVShowMetadataMapper
             Crew = MapCrew(tvShow),
             Cast = MapCast(tvShow),
             Networks = MapNetworks(tvShow),
+            OfficialRating = GetOfficialRating(tvShow),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -69,6 +71,7 @@ static class TVShowMetadataMapper
         target.Crew = MapCrew(source);
         target.Cast = MapCast(source);
         target.Networks = MapNetworks(source);
+        target.OfficialRating = GetOfficialRating(source);
         target.UpdatedAt = DateTime.UtcNow;
     }
 
@@ -90,5 +93,31 @@ static class TVShowMetadataMapper
     private static Network[] MapNetworks(TvShow source)
     {
         return source.Networks?.Select(n => n.Map()).ToArray() ?? [];
+    }
+
+    private static string? GetOfficialRating(TvShow source)
+    {
+        // TMDb provides content ratings for TV shows
+        // Prefer US rating, fallback to first available
+        var contentRatings = source.ContentRatings?.Results;
+        if (contentRatings == null || contentRatings.Count == 0)
+        {
+            return null;
+        }
+
+        // Try to find US rating first
+        var usRating = contentRatings.FirstOrDefault(r => 
+            string.Equals(r.Iso_3166_1, "US", StringComparison.OrdinalIgnoreCase));
+        
+        if (usRating != null && !string.IsNullOrWhiteSpace(usRating.Rating))
+        {
+            return usRating.Rating;
+        }
+
+        // Fallback to any available rating
+        var anyRating = contentRatings.FirstOrDefault(r => 
+            !string.IsNullOrWhiteSpace(r.Rating));
+        
+        return anyRating?.Rating;
     }
 }

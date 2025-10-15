@@ -27,6 +27,7 @@ public class MovieMetadata
     public string[] Genres { get; set; } = [];
     public CrewMember[] Crew { get; set; } = [];
     public CastMember[] Cast { get; set; } = [];
+    public string? OfficialRating { get; set; }
     
     public required DateTime CreatedAt { get; set; }
 
@@ -55,6 +56,7 @@ static class MovieMetadataMapper
             Crew = MapCrew(source.Credits),
             Cast = MapCast(source.Credits),
             ReleaseDates = MovieReleaseDateHelper.GetReleaseDates(source),
+            OfficialRating = GetOfficialRating(source),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
         };
@@ -78,6 +80,7 @@ static class MovieMetadataMapper
         target.Crew = MapCrew(source.Credits);
         target.Cast = MapCast(source.Credits);
         target.ReleaseDates = MovieReleaseDateHelper.GetReleaseDates(source);
+        target.OfficialRating = GetOfficialRating(source);
         target.UpdatedAt = DateTime.UtcNow;
     }
 
@@ -94,5 +97,54 @@ static class MovieMetadataMapper
     private static string[] MapGenres(Movie source)
     {
         return source.Genres?.Select(g => g.Name).ToArray() ?? [];
+    }
+
+    private static string? GetOfficialRating(Movie source)
+    {
+        // TMDb provides certifications through ReleaseDates
+        // Prefer US certification, fallback to first available
+        var releases = source.ReleaseDates?.Results;
+        if (releases == null || releases.Count == 0)
+        {
+            return null;
+        }
+
+        // Try to find US certification first
+        var usRelease = releases.FirstOrDefault(r => 
+            string.Equals(r.Iso_3166_1, "US", StringComparison.OrdinalIgnoreCase));
+        
+        if (usRelease?.ReleaseDates != null)
+        {
+            var certification = usRelease.ReleaseDates
+                .Where(rd => !string.IsNullOrWhiteSpace(rd.Certification))
+                .Select(rd => rd.Certification)
+                .FirstOrDefault();
+            
+            if (!string.IsNullOrWhiteSpace(certification))
+            {
+                return certification;
+            }
+        }
+
+        // Fallback to any available certification
+        foreach (var countryRelease in releases)
+        {
+            if (countryRelease.ReleaseDates == null)
+            {
+                continue;
+            }
+
+            var certification = countryRelease.ReleaseDates
+                .Where(rd => !string.IsNullOrWhiteSpace(rd.Certification))
+                .Select(rd => rd.Certification)
+                .FirstOrDefault();
+
+            if (!string.IsNullOrWhiteSpace(certification))
+            {
+                return certification;
+            }
+        }
+
+        return null;
     }
 }

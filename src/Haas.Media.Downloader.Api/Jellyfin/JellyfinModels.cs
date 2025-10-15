@@ -178,6 +178,7 @@ public sealed record JellyfinItem
     public IReadOnlyList<string>? Genres { get; init; }
     public IReadOnlyDictionary<string, string>? ProviderIds { get; init; }
     public IReadOnlyList<JellyfinPerson>? People { get; init; }
+    public string? OfficialRating { get; init; }
     public int? LocalTrailerCount { get; init; }
     public int? RemoteTrailerCount { get; init; }
     public bool? CanDelete { get; init; }

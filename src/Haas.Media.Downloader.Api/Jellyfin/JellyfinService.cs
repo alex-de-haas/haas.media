@@ -587,6 +587,7 @@ public class JellyfinService
             UserData = new JellyfinUserData { Played = false },
             Genres = metadata.Genres,
             People = people,
+            OfficialRating = metadata.OfficialRating,
         };
     }
 
@@ -628,6 +629,7 @@ public class JellyfinService
             UserData = new JellyfinUserData { Played = false },
             Genres = metadata.Genres,
             People = people,
+            OfficialRating = metadata.OfficialRating,
         };
     }
 

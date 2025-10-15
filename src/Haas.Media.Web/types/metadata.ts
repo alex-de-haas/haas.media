@@ -155,6 +155,7 @@ export interface MovieMetadata {
   posterPath?: string;
   backdropPath?: string;
   filePath?: string | null;
+  officialRating?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -174,6 +175,7 @@ export interface TVShowMetadata {
   seasons: TVSeasonMetadata[];
   posterPath?: string;
   backdropPath?: string;
+  officialRating?: string | null;
   createdAt: string;
   updatedAt: string;
 }

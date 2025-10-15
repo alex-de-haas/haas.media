@@ -243,6 +243,11 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                       <CardDescription className="text-base">{tvShow.originalTitle}</CardDescription>
                     )}
                     <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                      {tvShow.officialRating && (
+                        <Badge variant="outline" className="font-semibold">
+                          {tvShow.officialRating}
+                        </Badge>
+                      )}
                       {tvShow.originalLanguage && <span className="uppercase">{tvShow.originalLanguage}</span>}
                       {seasonCount > 0 && (
                         <span>

@@ -205,6 +205,11 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                     )}
                     <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                       {releaseYear && <span>{releaseYear}</span>}
+                      {movie.officialRating && (
+                        <Badge variant="outline" className="font-semibold">
+                          {movie.officialRating}
+                        </Badge>
+                      )}
                       {movie.originalLanguage && <span className="uppercase">{movie.originalLanguage}</span>}
                     </div>
                   </div>
