@@ -148,6 +148,7 @@ public sealed record JellyfinItem
     public bool? CanDelete { get; init; }
     public bool? CanDownload { get; init; }
     public IReadOnlyList<string>? LockedFields { get; init; }
+    public string? LocationType { get; init; }
 }
 
 public sealed record JellyfinMediaSource
@@ -218,10 +219,10 @@ public sealed record JellyfinMediaStream
 public sealed record JellyfinUserData
 {
     public bool Played { get; init; }
-    public double? PlaybackPositionTicks { get; init; }
+    public long PlaybackPositionTicks { get; init; } = 0;
     public double? PlayedPercentage { get; init; }
-    public bool? IsFavorite { get; init; }
-    public int? PlayCount { get; init; }
+    public bool IsFavorite { get; init; } = false;
+    public int PlayCount { get; init; } = 0;
 }
 
 public sealed record JellyfinMediaPath
