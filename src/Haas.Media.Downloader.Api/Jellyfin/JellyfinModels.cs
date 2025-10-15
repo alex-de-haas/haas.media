@@ -161,6 +161,7 @@ public sealed record JellyfinItem
     public DateTimeOffset? PremiereDate { get; init; }
     public int? ProductionYear { get; init; }
     public long? RunTimeTicks { get; init; }
+    public double? CommunityRating { get; init; }
     public IReadOnlyDictionary<string, string>? ImageTags { get; init; }
     public IReadOnlyList<string>? BackdropImageTags { get; init; }
     public IReadOnlyList<JellyfinMediaSource>? MediaSources { get; init; }
