@@ -375,6 +375,14 @@ public class JellyfinService
             var season = show?.Seasons.FirstOrDefault(s => s.SeasonNumber == seasonNumber);
             relativePath = season?.PosterPath;
         }
+        else if (JellyfinIdHelper.TryParsePersonId(itemId, out var personId))
+        {
+            var person = await _metadataApi.GetPersonMetadataByIdAsync(personId);
+            if (person is not null)
+            {
+                relativePath = person.ProfilePath;
+            }
+        }
 
         if (string.IsNullOrWhiteSpace(relativePath))
         {
@@ -550,6 +558,7 @@ public class JellyfinService
         var mediaSource = TryCreateMediaSource(JellyfinIdHelper.CreateMovieId(metadata.Id), fileMetadata?.FilePath);
         var imageTags = BuildPrimaryImageTag(metadata.PosterPath);
         var backdropTags = BuildBackdropImageTag(metadata.BackdropPath);
+        var people = MapPeople(metadata.Cast, metadata.Crew);
 
         return new JellyfinItem
         {
@@ -577,6 +586,7 @@ public class JellyfinService
             MediaSources = mediaSource is null ? [] : new[] { mediaSource },
             UserData = new JellyfinUserData { Played = false },
             Genres = metadata.Genres,
+            People = people,
         };
     }
 
@@ -590,6 +600,7 @@ public class JellyfinService
 
         var posterTags = BuildPrimaryImageTag(metadata.PosterPath);
         var backdropTags = BuildBackdropImageTag(metadata.BackdropPath);
+        var people = MapPeople(metadata.Cast, metadata.Crew);
 
         return new JellyfinItem
         {
@@ -616,6 +627,7 @@ public class JellyfinService
             LocationType = "FileSystem",
             UserData = new JellyfinUserData { Played = false },
             Genres = metadata.Genres,
+            People = people,
         };
     }
 
@@ -803,6 +815,43 @@ public class JellyfinService
         var bytes = Encoding.UTF8.GetBytes(path);
         var hash = SHA256.HashData(bytes);
         return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    private static IReadOnlyList<JellyfinPerson> MapPeople(CastMember[] cast, CrewMember[] crew)
+    {
+        var people = new List<JellyfinPerson>();
+
+        // Map cast members
+        foreach (var castMember in cast)
+        {
+            people.Add(new JellyfinPerson
+            {
+                Id = JellyfinIdHelper.CreatePersonId(castMember.Id),
+                Name = castMember.Name,
+                Role = castMember.Character,
+                Type = "Actor",
+                PrimaryImageTag = castMember.ProfilePath is not null 
+                    ? GenerateImageTag(castMember.ProfilePath) 
+                    : null,
+            });
+        }
+
+        // Map crew members (directors, writers, producers, etc.)
+        foreach (var crewMember in crew)
+        {
+            people.Add(new JellyfinPerson
+            {
+                Id = JellyfinIdHelper.CreatePersonId(crewMember.Id),
+                Name = crewMember.Name,
+                Role = crewMember.Job,
+                Type = crewMember.Department,
+                PrimaryImageTag = crewMember.ProfilePath is not null 
+                    ? GenerateImageTag(crewMember.ProfilePath) 
+                    : null,
+            });
+        }
+
+        return people;
     }
 
     private static IReadOnlyList<T> FilterByName<T>(

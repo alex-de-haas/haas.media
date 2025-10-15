@@ -12,6 +12,7 @@ public static class JellyfinIdHelper
     private const string SeriesPrefix = "series-";
     private const string SeasonPrefix = "season-";
     private const string EpisodePrefix = "episode-";
+    private const string PersonPrefix = "person_";
 
     public static string CreateLibraryId(string libraryId) => $"{LibraryPrefix}{libraryId}";
     public static string CreateMovieId(int movieId) => $"{MoviePrefix}{movieId}";
@@ -19,6 +20,7 @@ public static class JellyfinIdHelper
     public static string CreateSeasonId(int seriesId, int seasonNumber) => $"{SeasonPrefix}{seriesId}-{seasonNumber}";
     public static string CreateEpisodeId(int seriesId, int seasonNumber, int episodeNumber) =>
         $"{EpisodePrefix}{seriesId}-{seasonNumber}-{episodeNumber}";
+    public static string CreatePersonId(int personId) => $"{PersonPrefix}{personId}";
 
     public static bool TryParseLibraryId(string value, out string libraryId)
     {
@@ -97,5 +99,17 @@ public static class JellyfinIdHelper
         return int.TryParse(parts[0], out seriesId)
             && int.TryParse(parts[1], out seasonNumber)
             && int.TryParse(parts[2], out episodeNumber);
+    }
+
+    public static bool TryParsePersonId(string value, out int personId)
+    {
+        personId = default;
+        if (!value.StartsWith(PersonPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var numeric = value[PersonPrefix.Length..];
+        return int.TryParse(numeric, out personId);
     }
 }
