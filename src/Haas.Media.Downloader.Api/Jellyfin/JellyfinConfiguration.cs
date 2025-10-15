@@ -133,6 +133,91 @@ public static class JellyfinConfiguration
             .WithName("JellyfinMediaFolders");
 
         group.MapGet(
+                "/Library/VirtualFolders",
+                async (
+                    HttpContext context,
+                    JellyfinAuthService authService,
+                    JellyfinService jellyfinService,
+                    ILogger<JellyfinService> logger
+                ) =>
+                    await RequireAuthenticatedAsync(
+                        context,
+                        authService,
+                        async _ =>
+                        {
+                            var virtualFolders = await jellyfinService.GetVirtualFoldersAsync();
+                            LogResponse(logger, "Library/VirtualFolders", virtualFolders);
+                            return JellyfinJson(virtualFolders);
+                        }
+                    )
+            )
+            .WithName("JellyfinVirtualFolders");
+
+        group.MapGet(
+                "/DisplayPreferences/{displayPreferencesId}",
+                async (
+                    HttpContext context,
+                    string displayPreferencesId,
+                    string? userId,
+                    string client,
+                    JellyfinAuthService authService,
+                    ILogger<JellyfinService> logger
+                ) =>
+                    await RequireAuthenticatedAsync(
+                        context,
+                        authService,
+                        user =>
+                        {
+                            // Return default display preferences
+                            var preferences = new JellyfinDisplayPreferencesDto
+                            {
+                                Id = displayPreferencesId,
+                                ViewType = null,
+                                SortBy = "SortName",
+                                IndexBy = null,
+                                RememberIndexing = false,
+                                PrimaryImageHeight = 250,
+                                PrimaryImageWidth = 250,
+                                CustomPrefs = new Dictionary<string, string>(),
+                                ScrollDirection = "Vertical",
+                                ShowBackdrop = true,
+                                RememberSorting = false,
+                                SortOrder = "Ascending",
+                                ShowSidebar = false,
+                                Client = client
+                            };
+                            LogResponse(logger, $"DisplayPreferences/{displayPreferencesId}", preferences);
+                            return Task.FromResult<IResult>(JellyfinJson(preferences));
+                        }
+                    )
+            )
+            .WithName("JellyfinGetDisplayPreferences");
+
+        group.MapPost(
+                "/DisplayPreferences/{displayPreferencesId}",
+                async (
+                    HttpContext context,
+                    string displayPreferencesId,
+                    string? userId,
+                    string client,
+                    JellyfinDisplayPreferencesDto preferences,
+                    JellyfinAuthService authService,
+                    ILogger<JellyfinService> logger
+                ) =>
+                    await RequireAuthenticatedAsync(
+                        context,
+                        authService,
+                        user =>
+                        {
+                            // Accept preferences but don't persist (placeholder)
+                            LogResponse(logger, $"DisplayPreferences/{displayPreferencesId} (POST)", preferences);
+                            return Task.FromResult<IResult>(Results.NoContent());
+                        }
+                    )
+            )
+            .WithName("JellyfinUpdateDisplayPreferences");
+
+        group.MapGet(
                 "/Users",
                 async (
                     HttpContext context,
@@ -225,6 +310,33 @@ public static class JellyfinConfiguration
                     )
             )
             .WithName("JellyfinUserViews");
+
+        group.MapGet(
+                "/Users/{userId}/GroupingOptions",
+                async (
+                    HttpContext context,
+                    string userId,
+                    JellyfinAuthService authService,
+                    ILogger<JellyfinService> logger
+                ) =>
+                    await RequireAuthenticatedAsync(
+                        context,
+                        authService,
+                        user =>
+                        {
+                            if (!string.Equals(user.Id, userId, StringComparison.OrdinalIgnoreCase))
+                            {
+                                return Task.FromResult<IResult>(Results.Forbid());
+                            }
+
+                            // Return empty array - grouping options not implemented yet
+                            var groupingOptions = Array.Empty<object>();
+                            LogResponse(logger, $"Users/{userId}/GroupingOptions", groupingOptions);
+                            return Task.FromResult<IResult>(JellyfinJson(groupingOptions));
+                        }
+                    )
+            )
+            .WithName("JellyfinGroupingOptions");
 
         group.MapGet(
                 "/Sessions",

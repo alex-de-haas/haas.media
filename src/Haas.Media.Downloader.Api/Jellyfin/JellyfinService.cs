@@ -108,6 +108,23 @@ public class JellyfinService
         };
     }
 
+    public async Task<JellyfinVirtualFolderInfo[]> GetVirtualFoldersAsync(CancellationToken cancellationToken = default)
+    {
+        var libraries = await _metadataApi.GetLibrariesAsync();
+        return libraries
+            .Select(library => new JellyfinVirtualFolderInfo
+            {
+                Name = library.Title,
+                Locations = new[] { library.DirectoryPath },
+                CollectionType = library.Type == LibraryType.Movies ? "movies" : "tvshows",
+                ItemId = JellyfinIdHelper.CreateLibraryId(library.Id ?? string.Empty),
+                PrimaryImageItemId = null,
+                RefreshProgress = null,
+                RefreshStatus = null
+            })
+            .ToArray();
+    }
+
     public async Task<JellyfinItemsEnvelope> GetItemsAsync(
         JellyfinItemsQuery query,
         CancellationToken cancellationToken = default

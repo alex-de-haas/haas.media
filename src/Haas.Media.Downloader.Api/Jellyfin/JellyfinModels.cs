@@ -111,6 +111,35 @@ public sealed record JellyfinLibraryEnvelope
     public int StartIndex { get; init; } = 0;
 }
 
+public sealed record JellyfinVirtualFolderInfo
+{
+    public string? Name { get; init; }
+    public string[]? Locations { get; init; }
+    public string? CollectionType { get; init; }
+    public string? ItemId { get; init; }
+    public string? PrimaryImageItemId { get; init; }
+    public double? RefreshProgress { get; init; }
+    public string? RefreshStatus { get; init; }
+}
+
+public sealed record JellyfinDisplayPreferencesDto
+{
+    public string? Id { get; init; }
+    public string? ViewType { get; init; }
+    public string? SortBy { get; init; }
+    public string? IndexBy { get; init; }
+    public bool RememberIndexing { get; init; }
+    public int PrimaryImageHeight { get; init; }
+    public int PrimaryImageWidth { get; init; }
+    public Dictionary<string, string>? CustomPrefs { get; init; }
+    public string? ScrollDirection { get; init; }
+    public bool ShowBackdrop { get; init; }
+    public bool RememberSorting { get; init; }
+    public string? SortOrder { get; init; }
+    public bool ShowSidebar { get; init; }
+    public string? Client { get; init; }
+}
+
 public sealed record JellyfinItem
 {
     public required string Id { get; init; }

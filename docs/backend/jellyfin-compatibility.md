@@ -17,10 +17,16 @@ The downloader API ships with a lightweight Jellyfin-compatible surface so sidec
 - `GET /jellyfin/Users/Me` — returns current authenticated user information.
 - `GET /jellyfin/Users/{id}` — retrieve specific user by ID.
 - `GET /jellyfin/Users/{id}/Views` — returns available libraries for the authenticated user (mirrors `MediaFolders`).
+- `GET /jellyfin/Users/{id}/GroupingOptions` — returns view grouping options (currently returns empty array).
 - `GET /jellyfin/Sessions` — advertises the current session for clients that validate presence after login.
+
+### Display Preferences
+- `GET /jellyfin/DisplayPreferences/{displayPreferencesId}` — returns display preferences for UI customization (currently returns defaults).
+- `POST /jellyfin/DisplayPreferences/{displayPreferencesId}` — accepts display preference updates (not persisted yet).
 
 ### Library & Collections
 - `GET /jellyfin/Library/MediaFolders` — lists configured libraries, mapped to Jellyfin collection ids.
+- `GET /jellyfin/Library/VirtualFolders` — returns virtual folder configuration (mirrors library structure with locations).
 
 ### Items & Content
 - `GET /jellyfin/Users/{userId}/Items` — browse collections, series, seasons, and episodes with Jellyfin-style ids. Supports `IncludeItemTypes`, `ParentId`, `Recursive`, and `SearchTerm` filters.
