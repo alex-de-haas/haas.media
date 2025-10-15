@@ -771,9 +771,12 @@ public class JellyfinService
             return null;
         }
 
+        var trimmedPath = path.Trim();
+        var fullUrl = $"{ImageBaseUrl}original{trimmedPath}";
+        
         return new Dictionary<string, string>
         {
-            ["Primary"] = path.Trim(),
+            ["Primary"] = fullUrl,
         };
     }
 
@@ -784,7 +787,10 @@ public class JellyfinService
             return null;
         }
 
-        return new[] { path.Trim() };
+        var trimmedPath = path.Trim();
+        var fullUrl = $"{ImageBaseUrl}original{trimmedPath}";
+        
+        return new[] { fullUrl };
     }
 
     private static IReadOnlyList<T> FilterByName<T>(
