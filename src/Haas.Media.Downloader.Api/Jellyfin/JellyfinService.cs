@@ -777,17 +777,14 @@ public class JellyfinService
         };
     }
 
-    private static IReadOnlyDictionary<string, string>? BuildBackdropImageTag(string? path)
+    private static IReadOnlyList<string>? BuildBackdropImageTag(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
             return null;
         }
 
-        return new Dictionary<string, string>
-        {
-            ["Backdrop"] = path.Trim(),
-        };
+        return new[] { path.Trim() };
     }
 
     private static IReadOnlyList<T> FilterByName<T>(

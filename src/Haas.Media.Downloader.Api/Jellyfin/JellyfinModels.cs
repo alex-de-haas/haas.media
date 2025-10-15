@@ -156,13 +156,16 @@ public sealed record JellyfinItem
     public string? Tagline { get; init; }
     public string? Path { get; init; }
     public string? ServerId { get; init; }
+    public string? Etag { get; init; }
+    public DateTimeOffset? DateCreated { get; init; }
     public DateTimeOffset? PremiereDate { get; init; }
     public int? ProductionYear { get; init; }
     public long? RunTimeTicks { get; init; }
     public IReadOnlyDictionary<string, string>? ImageTags { get; init; }
-    public IReadOnlyDictionary<string, string>? BackdropImageTags { get; init; }
+    public IReadOnlyList<string>? BackdropImageTags { get; init; }
     public IReadOnlyList<JellyfinMediaSource>? MediaSources { get; init; }
     public JellyfinUserData? UserData { get; init; }
+    public int? RecursiveItemCount { get; init; }
     public int? ChildCount { get; init; }
     public string? ParentIndexNumberName { get; init; }
     public int? IndexNumber { get; init; }
@@ -172,6 +175,8 @@ public sealed record JellyfinItem
     public string? SeasonId { get; init; }
     public string? SeasonName { get; init; }
     public IReadOnlyList<string>? Genres { get; init; }
+    public IReadOnlyDictionary<string, string>? ProviderIds { get; init; }
+    public IReadOnlyList<JellyfinPerson>? People { get; init; }
     public int? LocalTrailerCount { get; init; }
     public int? RemoteTrailerCount { get; init; }
     public bool? CanDelete { get; init; }
@@ -243,6 +248,15 @@ public sealed record JellyfinMediaStream
     public string? Path { get; init; }
     public string? PixelFormat { get; init; }
     public int? Level { get; init; }
+}
+
+public sealed record JellyfinPerson
+{
+    public string? Name { get; init; }
+    public string? Id { get; init; }
+    public string? Role { get; init; }
+    public string? Type { get; init; }
+    public string? PrimaryImageTag { get; init; }
 }
 
 public sealed record JellyfinUserData
