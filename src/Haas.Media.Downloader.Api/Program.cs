@@ -29,6 +29,7 @@ builder.AddServiceDefaults();
 
 builder.Services.AddBackgroundTasks();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
 
 var databaseDirectory = Path.Combine(dataDirectory, ".db");
 Directory.CreateDirectory(databaseDirectory);

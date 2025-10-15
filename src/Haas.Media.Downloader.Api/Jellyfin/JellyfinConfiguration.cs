@@ -560,6 +560,45 @@ public static class JellyfinConfiguration
             )
             .WithName("JellyfinUserItemById");
 
+        // Seasons endpoint for TV series (used by Infuse)
+        group.MapGet(
+                "/Shows/{seriesId}/Seasons",
+                async (
+                    HttpContext context,
+                    string seriesId,
+                    JellyfinAuthService authService,
+                    JellyfinService jellyfinService,
+                    ILogger<JellyfinService> logger
+                ) =>
+                    await RequireAuthenticatedAsync(
+                        context,
+                        authService,
+                        async user =>
+                        {
+                            // Verify userId if provided
+                            var userId = context.Request.Query["userId"].FirstOrDefault();
+                            if (!string.IsNullOrWhiteSpace(userId) && 
+                                !string.Equals(user.Id, userId, StringComparison.OrdinalIgnoreCase))
+                            {
+                                return Results.Forbid();
+                            }
+
+                            // Build query to get seasons for the series
+                            var query = BuildItemsQuery(context.Request);
+                            // Override parentId with seriesId
+                            query = query with { ParentId = seriesId };
+                            // Ensure we only get Season items
+                            var includeTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Season" };
+                            query = query with { IncludeItemTypes = includeTypes };
+
+                            var items = await jellyfinService.GetItemsAsync(query);
+                            LogResponse(logger, $"Shows/{seriesId}/Seasons", items);
+                            return JellyfinJson(items);
+                        }
+                    )
+            )
+            .WithName("JellyfinShowSeasons");
+
         group.MapGet(
                 "/Items/{itemId}/Images/{type}",
                 async (
@@ -567,7 +606,9 @@ public static class JellyfinConfiguration
                     string itemId,
                     string type,
                     JellyfinAuthService authService,
-                    JellyfinService jellyfinService
+                    JellyfinService jellyfinService,
+                    IHttpClientFactory httpClientFactory,
+                    ILogger<JellyfinService> logger
                 ) =>
                     await RequireAuthenticatedAsync(
                         context,
@@ -589,7 +630,31 @@ public static class JellyfinConfiguration
                                 return Results.NotFound();
                             }
 
-                            return Results.Redirect(url);
+                            try
+                            {
+                                var httpClient = httpClientFactory.CreateClient();
+                                var response = await httpClient.GetAsync(url);
+                                
+                                if (!response.IsSuccessStatusCode)
+                                {
+                                    logger.LogWarning(
+                                        "Failed to fetch image from TMDB: {Url}, Status: {StatusCode}",
+                                        url,
+                                        response.StatusCode
+                                    );
+                                    return Results.NotFound();
+                                }
+
+                                var imageBytes = await response.Content.ReadAsByteArrayAsync();
+                                var contentType = response.Content.Headers.ContentType?.ToString() ?? "image/jpeg";
+                                
+                                return Results.File(imageBytes, contentType);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "Error fetching image from TMDB: {Url}", url);
+                                return Results.Problem("Failed to fetch image");
+                            }
                         }
                     )
             )

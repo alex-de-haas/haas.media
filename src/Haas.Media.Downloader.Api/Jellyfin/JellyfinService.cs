@@ -772,11 +772,11 @@ public class JellyfinService
         }
 
         var trimmedPath = path.Trim();
-        var fullUrl = $"{ImageBaseUrl}original{trimmedPath}";
+        var imageTag = GenerateImageTag(trimmedPath);
         
         return new Dictionary<string, string>
         {
-            ["Primary"] = fullUrl,
+            ["Primary"] = imageTag,
         };
     }
 
@@ -788,9 +788,18 @@ public class JellyfinService
         }
 
         var trimmedPath = path.Trim();
-        var fullUrl = $"{ImageBaseUrl}original{trimmedPath}";
+        var imageTag = GenerateImageTag(trimmedPath);
         
-        return new[] { fullUrl };
+        return [imageTag];
+    }
+    
+    private static string GenerateImageTag(string path)
+    {
+        // Generate a consistent hash from the image path
+        // This is what Jellyfin clients use to identify images and construct URLs
+        var bytes = Encoding.UTF8.GetBytes(path);
+        var hash = SHA256.HashData(bytes);
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
     private static IReadOnlyList<T> FilterByName<T>(
