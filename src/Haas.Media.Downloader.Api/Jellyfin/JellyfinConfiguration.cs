@@ -528,6 +528,38 @@ public static class JellyfinConfiguration
             )
             .WithName("JellyfinItemById");
 
+        // Alias route with user prefix (some clients use this variation)
+        group.MapGet(
+                "/Users/{userId}/Items/{itemId}",
+                async (
+                    HttpContext context,
+                    string userId,
+                    string itemId,
+                    JellyfinAuthService authService,
+                    JellyfinService jellyfinService,
+                    ILogger<JellyfinService> logger
+                ) =>
+                    await RequireAuthenticatedAsync(
+                        context,
+                        authService,
+                        async user =>
+                        {
+                            if (!string.Equals(user.Id, userId, StringComparison.OrdinalIgnoreCase))
+                            {
+                                return Results.Forbid();
+                            }
+
+                            var item = await jellyfinService.GetItemByIdAsync(itemId);
+                            if (item is not null)
+                            {
+                                LogResponse(logger, $"Users/{userId}/Items/{itemId}", item);
+                            }
+                            return item is null ? Results.NotFound() : JellyfinJson(item);
+                        }
+                    )
+            )
+            .WithName("JellyfinUserItemById");
+
         group.MapGet(
                 "/Items/{itemId}/Images/{type}",
                 async (

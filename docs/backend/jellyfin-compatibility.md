@@ -32,6 +32,7 @@ The downloader API ships with a lightweight Jellyfin-compatible surface so sidec
 - `GET /jellyfin/Users/{userId}/Items` — browse collections, series, seasons, and episodes with Jellyfin-style ids. Supports `IncludeItemTypes`, `ParentId`, `Recursive`, and `SearchTerm` filters.
 - `GET /jellyfin/Items` — browse all items with filtering support.
 - `GET /jellyfin/Items/{id}` — retrieve a single item including generated `MediaSources` for playback.
+- `GET /jellyfin/Users/{userId}/Items/{id}` — user-specific alias for getting a single item (same as `/Items/{id}`).
 - `GET /jellyfin/Users/{userId}/Items/Latest` — returns latest items (up to 16 by default), sorted by premiere date.
 - `GET /jellyfin/Users/{userId}/Items/Resume` — returns in-progress items (currently returns empty array until playback tracking is implemented).
 
