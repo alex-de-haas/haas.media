@@ -20,13 +20,15 @@ internal sealed class MetadataScanTaskExecutor
     private readonly TMDbClient _tmdbClient;
     private readonly ILogger<MetadataScanTaskExecutor> _logger;
     private readonly ITmdbLanguageProvider _languageProvider;
+    private readonly ITmdbCountryProvider _countryProvider;
 
     public MetadataScanTaskExecutor(
         LiteDatabase database,
         TMDbClient tmdbClient,
         IConfiguration configuration,
         ILogger<MetadataScanTaskExecutor> logger,
-        ITmdbLanguageProvider languageProvider
+        ITmdbLanguageProvider languageProvider,
+        ITmdbCountryProvider countryProvider
     )
     {
         _dataPath =
@@ -40,6 +42,7 @@ internal sealed class MetadataScanTaskExecutor
         _tmdbClient = tmdbClient;
         _logger = logger;
         _languageProvider = languageProvider;
+        _countryProvider = countryProvider;
     }
 
     public async Task ExecuteAsync(
@@ -488,7 +491,8 @@ internal sealed class MetadataScanTaskExecutor
             );
         }
 
-        var tvShowMetadata = tvShowDetails.Create();
+        var preferredCountry = _countryProvider.GetPreferredCountryCode();
+        var tvShowMetadata = tvShowDetails.Create(preferredCountry);
         var associatedPersonIds = new HashSet<int>();
         associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(tvShowDetails.Credits));
         associatedPersonIds.UnionWith(PersonMetadataCollector.FromCreators(tvShowDetails.CreatedBy));
@@ -872,17 +876,18 @@ internal sealed class MetadataScanTaskExecutor
                     // Check if movie metadata exists (either from file association or by TMDb ID)
                     var movieMetadataInDb = existingMetadata ?? _movieMetadataCollection.FindById(new BsonValue(movieResult.Id));
                     
+                    var preferredCountry = _countryProvider.GetPreferredCountryCode();
                     if (movieMetadataInDb != null)
                     {
                         // Update existing metadata
-                        movieDetails.Update(movieMetadataInDb);
+                        movieDetails.Update(movieMetadataInDb, preferredCountry);
                         _movieMetadataCollection.Update(movieMetadataInDb);
                         movieMetadata = movieMetadataInDb;
                     }
                     else
                     {
                         // Create new metadata
-                        movieMetadata = movieDetails.Create();
+                        movieMetadata = movieDetails.Create(preferredCountry);
                         _movieMetadataCollection.Insert(movieMetadata);
                     }
 

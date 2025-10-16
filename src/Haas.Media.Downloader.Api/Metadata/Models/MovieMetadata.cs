@@ -36,7 +36,7 @@ public class MovieMetadata
 
 static class MovieMetadataMapper
 {
-    public static MovieMetadata Create(this Movie source)
+    public static MovieMetadata Create(this Movie source, string? preferredCountryCode = null)
     {
         return new MovieMetadata
         {
@@ -55,14 +55,14 @@ static class MovieMetadataMapper
             Genres = MapGenres(source),
             Crew = MapCrew(source.Credits),
             Cast = MapCast(source.Credits),
-            ReleaseDates = MovieReleaseDateHelper.GetReleaseDates(source),
-            OfficialRating = GetOfficialRating(source),
+            ReleaseDates = MovieReleaseDateHelper.GetReleaseDates(source, preferredCountryCode),
+            OfficialRating = GetOfficialRating(source, preferredCountryCode),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
         };
     }
 
-    public static void Update(this Movie source, MovieMetadata target)
+    public static void Update(this Movie source, MovieMetadata target, string? preferredCountryCode = null)
     {
         target.OriginalTitle = source.OriginalTitle;
         target.OriginalLanguage = source.OriginalLanguage;
@@ -79,8 +79,8 @@ static class MovieMetadataMapper
         target.Genres = MapGenres(source);
         target.Crew = MapCrew(source.Credits);
         target.Cast = MapCast(source.Credits);
-        target.ReleaseDates = MovieReleaseDateHelper.GetReleaseDates(source);
-        target.OfficialRating = GetOfficialRating(source);
+        target.ReleaseDates = MovieReleaseDateHelper.GetReleaseDates(source, preferredCountryCode);
+        target.OfficialRating = GetOfficialRating(source, preferredCountryCode);
         target.UpdatedAt = DateTime.UtcNow;
     }
 
@@ -99,23 +99,25 @@ static class MovieMetadataMapper
         return source.Genres?.Select(g => g.Name).ToArray() ?? [];
     }
 
-    private static string? GetOfficialRating(Movie source)
+    private static string? GetOfficialRating(Movie source, string? preferredCountryCode = null)
     {
         // TMDb provides certifications through ReleaseDates
-        // Prefer US certification, fallback to first available
+        // Prefer user's preferred country certification, fallback to first available
         var releases = source.ReleaseDates?.Results;
         if (releases == null || releases.Count == 0)
         {
             return null;
         }
 
-        // Try to find US certification first
-        var usRelease = releases.FirstOrDefault(r => 
-            string.Equals(r.Iso_3166_1, "US", StringComparison.OrdinalIgnoreCase));
+        var normalizedPreferred = NormalizeCountryCode(preferredCountryCode) ?? "US";
+
+        // Try to find preferred country certification first
+        var preferredRelease = releases.FirstOrDefault(r => 
+            string.Equals(r.Iso_3166_1, normalizedPreferred, StringComparison.OrdinalIgnoreCase));
         
-        if (usRelease?.ReleaseDates != null)
+        if (preferredRelease?.ReleaseDates != null)
         {
-            var certification = usRelease.ReleaseDates
+            var certification = preferredRelease.ReleaseDates
                 .Where(rd => !string.IsNullOrWhiteSpace(rd.Certification))
                 .Select(rd => rd.Certification)
                 .FirstOrDefault();
@@ -146,5 +148,21 @@ static class MovieMetadataMapper
         }
 
         return null;
+    }
+
+    private static string? NormalizeCountryCode(string? countryCode)
+    {
+        if (string.IsNullOrWhiteSpace(countryCode))
+        {
+            return null;
+        }
+
+        var normalized = countryCode.Trim().ToUpperInvariant();
+        if (normalized.Length != 2 || normalized.Any(ch => ch is < 'A' or > 'Z'))
+        {
+            return null;
+        }
+
+        return normalized;
     }
 }

@@ -16,6 +16,7 @@ public static class MetadataConfiguration
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddSingleton<Tmdb.TmdbHttpClientAccessor>();
         builder.Services.AddSingleton<ITmdbLanguageProvider, TmdbLanguageProvider>();
+        builder.Services.AddSingleton<ITmdbCountryProvider, Tmdb.TmdbCountryProvider>();
 
         builder.Services.AddSingleton(sp =>
         {

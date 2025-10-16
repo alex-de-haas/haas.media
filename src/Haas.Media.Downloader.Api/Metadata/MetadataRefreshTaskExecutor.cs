@@ -20,12 +20,14 @@ internal sealed class MetadataRefreshTaskExecutor
     private readonly TMDbClient _tmdbClient;
     private readonly ILogger<MetadataRefreshTaskExecutor> _logger;
     private readonly ITmdbLanguageProvider _languageProvider;
+    private readonly ITmdbCountryProvider _countryProvider;
 
     public MetadataRefreshTaskExecutor(
         LiteDatabase database,
         TMDbClient tmdbClient,
         ILogger<MetadataRefreshTaskExecutor> logger,
-        ITmdbLanguageProvider languageProvider
+        ITmdbLanguageProvider languageProvider,
+        ITmdbCountryProvider countryProvider
     )
     {
         _movieMetadataCollection = database.GetCollection<MovieMetadata>("movieMetadata");
@@ -34,6 +36,7 @@ internal sealed class MetadataRefreshTaskExecutor
         _tmdbClient = tmdbClient;
         _logger = logger;
         _languageProvider = languageProvider;
+        _countryProvider = countryProvider;
     }
 
     public async Task ExecuteAsync(
@@ -467,7 +470,8 @@ internal sealed class MetadataRefreshTaskExecutor
             reportProgress: reportProgress
         );
 
-        movieDetails.Update(movie);
+        var preferredCountry = _countryProvider.GetPreferredCountryCode();
+        movieDetails.Update(movie, preferredCountry);
 
         _movieMetadataCollection.Update(movie);
 
@@ -553,7 +557,8 @@ internal sealed class MetadataRefreshTaskExecutor
             await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
         }
 
-        tvShowDetails.Update(tvShow);
+        var preferredCountry = _countryProvider.GetPreferredCountryCode();
+        tvShowDetails.Update(tvShow, preferredCountry);
 
         tvShow.Seasons = seasons.ToArray();
 

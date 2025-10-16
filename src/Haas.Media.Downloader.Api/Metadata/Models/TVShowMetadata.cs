@@ -34,7 +34,7 @@ public class TVShowMetadata
 
 static class TVShowMetadataMapper
 {
-    public static TVShowMetadata Create(this TvShow tvShow)
+    public static TVShowMetadata Create(this TvShow tvShow, string? preferredCountryCode = null)
     {
         return new TVShowMetadata
         {
@@ -51,13 +51,13 @@ static class TVShowMetadataMapper
             Crew = MapCrew(tvShow),
             Cast = MapCast(tvShow),
             Networks = MapNetworks(tvShow),
-            OfficialRating = GetOfficialRating(tvShow),
+            OfficialRating = GetOfficialRating(tvShow, preferredCountryCode),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
     }
 
-    public static void Update(this TvShow source, TVShowMetadata target)
+    public static void Update(this TvShow source, TVShowMetadata target, string? preferredCountryCode = null)
     {
         target.OriginalTitle = source.OriginalName;
         target.OriginalLanguage = source.OriginalLanguage;
@@ -71,7 +71,7 @@ static class TVShowMetadataMapper
         target.Crew = MapCrew(source);
         target.Cast = MapCast(source);
         target.Networks = MapNetworks(source);
-        target.OfficialRating = GetOfficialRating(source);
+        target.OfficialRating = GetOfficialRating(source, preferredCountryCode);
         target.UpdatedAt = DateTime.UtcNow;
     }
 
@@ -95,23 +95,25 @@ static class TVShowMetadataMapper
         return source.Networks?.Select(n => n.Map()).ToArray() ?? [];
     }
 
-    private static string? GetOfficialRating(TvShow source)
+    private static string? GetOfficialRating(TvShow source, string? preferredCountryCode = null)
     {
         // TMDb provides content ratings for TV shows
-        // Prefer US rating, fallback to first available
+        // Prefer user's preferred country rating, fallback to first available
         var contentRatings = source.ContentRatings?.Results;
         if (contentRatings == null || contentRatings.Count == 0)
         {
             return null;
         }
 
-        // Try to find US rating first
-        var usRating = contentRatings.FirstOrDefault(r => 
-            string.Equals(r.Iso_3166_1, "US", StringComparison.OrdinalIgnoreCase));
+        var normalizedPreferred = NormalizeCountryCode(preferredCountryCode) ?? "US";
+
+        // Try to find preferred country rating first
+        var preferredRating = contentRatings.FirstOrDefault(r => 
+            string.Equals(r.Iso_3166_1, normalizedPreferred, StringComparison.OrdinalIgnoreCase));
         
-        if (usRating != null && !string.IsNullOrWhiteSpace(usRating.Rating))
+        if (preferredRating != null && !string.IsNullOrWhiteSpace(preferredRating.Rating))
         {
-            return usRating.Rating;
+            return preferredRating.Rating;
         }
 
         // Fallback to any available rating
@@ -119,5 +121,21 @@ static class TVShowMetadataMapper
             !string.IsNullOrWhiteSpace(r.Rating));
         
         return anyRating?.Rating;
+    }
+
+    private static string? NormalizeCountryCode(string? countryCode)
+    {
+        if (string.IsNullOrWhiteSpace(countryCode))
+        {
+            return null;
+        }
+
+        var normalized = countryCode.Trim().ToUpperInvariant();
+        if (normalized.Length != 2 || normalized.Any(ch => ch is < 'A' or > 'Z'))
+        {
+            return null;
+        }
+
+        return normalized;
     }
 }
