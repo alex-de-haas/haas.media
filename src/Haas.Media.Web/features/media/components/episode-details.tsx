@@ -9,7 +9,7 @@ import { useTVShow } from "@/features/media/hooks";
 import { useFilesByMediaId } from "@/features/media/hooks/useFileMetadata";
 import { LibraryType } from "@/types/library";
 import { Spinner } from "@/components/ui";
-import { getStillUrl, getBackdropUrl } from "@/lib/tmdb";
+import { getBackdropUrl, getStillUrl } from "@/lib/tmdb";
 import type { TVEpisodeMetadata, FileMetadata } from "@/types/metadata";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -77,8 +77,8 @@ export default function EpisodeDetails({ tvShowId, seasonNumber, episodeNumber }
     );
   }
 
-  const stillUrl = getStillUrl(episode.stillPath);
   const backdropUrl = getBackdropUrl(tvShow.backdropPath);
+  const stillUrl = getStillUrl(episode.stillPath);
   const CREDIT_DISPLAY_LIMIT = 20;
   const hasCast = Boolean(episode.cast && episode.cast.length > 0);
   const hasCrew = Boolean(episode.crew && episode.crew.length > 0);
@@ -87,11 +87,11 @@ export default function EpisodeDetails({ tvShowId, seasonNumber, episodeNumber }
     <div>
       {/* Hero Section */}
       <div className="relative h-96 bg-gradient-to-b from-background/80 to-background md:h-[500px]">
-        {(stillUrl || backdropUrl) ? (
+        {backdropUrl ? (
           <div className="relative h-full w-full">
             <Image
-              src={stillUrl || backdropUrl || ""}
-              alt={`${episode.name} still`}
+              src={backdropUrl}
+              alt={`${tvShow.title} backdrop`}
               fill
               className="object-cover"
               priority
@@ -118,64 +118,83 @@ export default function EpisodeDetails({ tvShowId, seasonNumber, episodeNumber }
       <div className="relative z-10 -mt-32 px-4 py-8">
         <div className="mx-auto w-full max-w-screen-xl">
           <Card className="shadow-lg">
-            <CardHeader className="space-y-4">
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">
-                  {tvShow.title} • Season {seasonNumber} • Episode {episodeNumber}
-                </div>
-                <CardTitle className="text-3xl md:text-4xl">{episode.name}</CardTitle>
-              </div>
-
-              {/* Meta Information */}
-              <div className="flex flex-wrap items-center gap-4 text-sm">
-                {episode.voteAverage > 0 && (
-                  <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1">
-                    <Star className="h-4 w-4 text-yellow-500" />
-                    <span className="font-semibold text-foreground">{episode.voteAverage.toFixed(1)}</span>
-                    <span>/10</span>
-                  </Badge>
-                )}
-                {episode.voteCount > 0 && <span className="text-muted-foreground">{episode.voteCount.toLocaleString()} votes</span>}
-                {formattedAirDate && (
-                  <Badge variant="outline" className="flex items-center gap-2 px-3 py-1">
-                    <Calendar className="h-4 w-4" />
-                    {formattedAirDate}
-                  </Badge>
-                )}
-                {episode.runtime && (
-                  <Badge variant="outline" className="flex items-center gap-2 px-3 py-1">
-                    <Clock className="h-4 w-4" />
-                    {episode.runtime} min
-                  </Badge>
-                )}
-              </div>
-            </CardHeader>
-
-            <CardContent className="space-y-6">
-              {/* Overview */}
-              {episode.overview && (
-                <div className="space-y-2">
-                  <h2 className="text-lg font-semibold">Overview</h2>
-                  <p className="text-muted-foreground leading-relaxed">{episode.overview}</p>
-                </div>
-              )}
-
-              {/* Files */}
-              {episodeFiles.length > 0 && (
-                <>
-                  <Separator />
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-semibold">Local Files</h3>
-                    <div className="space-y-1">
-                      {episodeFiles.map((file) => (
-                        <p key={file.id} className="break-all font-mono text-xs text-muted-foreground">
-                          {file.filePath}
-                        </p>
-                      ))}
+            <CardContent className="p-6">
+              <div className="flex flex-col gap-6 lg:flex-row">
+                {/* Episode Still Preview - Left Side */}
+                {stillUrl && (
+                  <div className="flex-shrink-0">
+                    <div className="relative aspect-video w-full overflow-hidden rounded-lg lg:w-80">
+                      <Image
+                        src={stillUrl}
+                        alt={`${episode.name} preview`}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 1024px) 100vw, 320px"
+                      />
                     </div>
                   </div>
-                </>
-              )}
+                )}
+
+                {/* Main Details - Right Side */}
+                <div className="flex-1 space-y-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="text-sm text-muted-foreground">
+                        {tvShow.title} • Season {seasonNumber} • Episode {episodeNumber}
+                      </div>
+                      <CardTitle className="text-3xl md:text-4xl">{episode.name}</CardTitle>
+                    </div>
+
+                    {/* Meta Information */}
+                    <div className="flex flex-wrap items-center gap-4 text-sm">
+                      {episode.voteAverage > 0 && (
+                        <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1">
+                          <Star className="h-4 w-4 text-yellow-500" />
+                          <span className="font-semibold text-foreground">{episode.voteAverage.toFixed(1)}</span>
+                        </Badge>
+                      )}
+                      {episode.voteCount > 0 && <span className="text-muted-foreground">{episode.voteCount.toLocaleString()} votes</span>}
+                      {formattedAirDate && (
+                        <Badge variant="outline" className="flex items-center gap-2 px-3 py-1">
+                          <Calendar className="h-4 w-4" />
+                          {formattedAirDate}
+                        </Badge>
+                      )}
+                      {episode.runtime && (
+                        <Badge variant="outline" className="flex items-center gap-2 px-3 py-1">
+                          <Clock className="h-4 w-4" />
+                          {episode.runtime} min
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Overview */}
+                  {episode.overview && (
+                    <div className="space-y-2">
+                      <h2 className="text-lg font-semibold">Overview</h2>
+                      <p className="text-muted-foreground leading-relaxed">{episode.overview}</p>
+                    </div>
+                  )}
+
+                  {/* Files */}
+                  {episodeFiles.length > 0 && (
+                    <>
+                      <Separator />
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-semibold">Local Files</h3>
+                        <div className="space-y-1">
+                          {episodeFiles.map((file) => (
+                            <p key={file.id} className="break-all font-mono text-xs text-muted-foreground">
+                              {file.filePath}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
 

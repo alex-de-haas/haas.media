@@ -257,7 +257,6 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                     <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1">
                       <Star className="h-4 w-4 text-yellow-500" />
                       <span className="font-semibold text-foreground">{movie.voteAverage.toFixed(1)}</span>
-                      <span>/10</span>
                     </Badge>
                     {movie.voteCount > 0 && <span className="text-muted-foreground">{movie.voteCount.toLocaleString()} votes</span>}
                   </div>

@@ -597,6 +597,10 @@ public class JellyfinService
             People = people,
             ProviderIds = providerIds,
             OfficialRating = metadata.OfficialRating,
+            CanDelete = true,
+            CanDownload = false,
+            LocalTrailerCount = 0,
+            RemoteTrailerCount = 0,
         };
     }
 
@@ -654,6 +658,10 @@ public class JellyfinService
             OfficialRating = metadata.OfficialRating,
             ChildCount = seasonCount,
             RecursiveItemCount = episodeCount,
+            CanDelete = true,
+            CanDownload = false,
+            LocalTrailerCount = 0,
+            RemoteTrailerCount = 0,
         };
     }
 
@@ -707,6 +715,10 @@ public class JellyfinService
             People = people,
             ChildCount = episodeCount,
             RecursiveItemCount = episodeCount,
+            CanDelete = true,
+            CanDownload = false,
+            LocalTrailerCount = 0,
+            RemoteTrailerCount = 0,
         };
     }
 

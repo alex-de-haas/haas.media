@@ -306,7 +306,6 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                     <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1">
                       <Star className="h-4 w-4 text-yellow-500" />
                       <span className="font-semibold text-foreground">{tvShow.voteAverage.toFixed(1)}</span>
-                      <span>/10</span>
                     </Badge>
                     {tvShow.voteCount > 0 && <span className="text-muted-foreground">{tvShow.voteCount.toLocaleString()} votes</span>}
                   </div>
