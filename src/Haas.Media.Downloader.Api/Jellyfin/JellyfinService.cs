@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using Haas.Media.Downloader.Api.Metadata;
@@ -549,13 +546,31 @@ public class JellyfinService
 
     private async Task<JellyfinItem> MapMovieAsync(MovieMetadata metadata)
     {
-        // Get first file metadata for this movie
-        var fileMetadata = await GetFirstFileForMediaAsync(metadata.Id, LibraryType.Movies);
-        var parentId = fileMetadata?.LibraryId is null
+        // Get all files linked to this movie
+        var allFiles = await _metadataApi.GetFilesByMediaIdAsync(metadata.Id, LibraryType.Movies);
+        var filesList = allFiles.ToList();
+        
+        // Use first file to determine parent library
+        var firstFile = filesList.FirstOrDefault();
+        var parentId = firstFile?.LibraryId is null
             ? null
-            : JellyfinIdHelper.CreateLibraryId(fileMetadata.LibraryId);
+            : JellyfinIdHelper.CreateLibraryId(firstFile.LibraryId);
 
-        var mediaSource = TryCreateMediaSource(JellyfinIdHelper.CreateMovieId(metadata.Id), fileMetadata?.FilePath);
+        // Create media sources for all files
+        var mediaSources = new List<JellyfinMediaSource>();
+        var movieIdString = JellyfinIdHelper.CreateMovieId(metadata.Id);
+        
+        for (int i = 0; i < filesList.Count; i++)
+        {
+            var file = filesList[i];
+            var sourceId = i == 0 ? movieIdString : $"{movieIdString}-{i}";
+            var mediaSource = TryCreateMediaSource(sourceId, file.FilePath);
+            if (mediaSource is not null)
+            {
+                mediaSources.Add(mediaSource);
+            }
+        }
+
         var imageTags = BuildPrimaryImageTag(metadata.PosterPath);
         var backdropTags = BuildBackdropImageTag(metadata.BackdropPath);
         var people = MapPeople(metadata.Cast, metadata.Crew);
@@ -568,19 +583,19 @@ public class JellyfinService
 
         return new JellyfinItem
         {
-            Id = JellyfinIdHelper.CreateMovieId(metadata.Id),
+            Id = movieIdString,
             Name = metadata.Title,
             OriginalTitle = metadata.OriginalTitle,
             SortName = metadata.Title,
             Type = "Movie",
-            DisplayPreferencesId = JellyfinIdHelper.CreateMovieId(metadata.Id),
+            DisplayPreferencesId = movieIdString,
             CollectionType = "movies",
             MediaType = "Video",
             ParentId = parentId,
             IsFolder = false,
             Overview = metadata.Overview,
             Tagline = null,
-            Path = mediaSource?.Path,
+            Path = mediaSources.FirstOrDefault()?.Path,
             ServerId = _serverId,
             DateCreated = metadata.CreatedAt,
             Etag = $"{metadata.Id}-{metadata.UpdatedAt.Ticks}",
@@ -591,7 +606,7 @@ public class JellyfinService
             ImageTags = imageTags,
             BackdropImageTags = backdropTags,
             LocationType = "FileSystem",
-            MediaSources = mediaSource is null ? [] : new[] { mediaSource },
+            MediaSources = mediaSources.Count > 0 ? mediaSources : [],
             UserData = new JellyfinUserData { Played = false },
             Genres = metadata.Genres,
             People = people,
