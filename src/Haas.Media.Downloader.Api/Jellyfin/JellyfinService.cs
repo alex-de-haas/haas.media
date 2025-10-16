@@ -559,6 +559,12 @@ public class JellyfinService
         var imageTags = BuildPrimaryImageTag(metadata.PosterPath);
         var backdropTags = BuildBackdropImageTag(metadata.BackdropPath);
         var people = MapPeople(metadata.Cast, metadata.Crew);
+        
+        // Build provider IDs
+        var providerIds = new Dictionary<string, string>
+        {
+            ["Tmdb"] = metadata.Id.ToString(),
+        };
 
         return new JellyfinItem
         {
@@ -576,6 +582,8 @@ public class JellyfinService
             Tagline = null,
             Path = mediaSource?.Path,
             ServerId = _serverId,
+            DateCreated = metadata.CreatedAt,
+            Etag = $"{metadata.Id}-{metadata.UpdatedAt.Ticks}",
             PremiereDate = metadata.ReleaseDate is null ? null : DateTime.SpecifyKind(metadata.ReleaseDate.Value, DateTimeKind.Utc),
             ProductionYear = metadata.ReleaseDate?.Year,
             RunTimeTicks = null,
@@ -587,6 +595,7 @@ public class JellyfinService
             UserData = new JellyfinUserData { Played = false },
             Genres = metadata.Genres,
             People = people,
+            ProviderIds = providerIds,
             OfficialRating = metadata.OfficialRating,
         };
     }
@@ -602,6 +611,16 @@ public class JellyfinService
         var posterTags = BuildPrimaryImageTag(metadata.PosterPath);
         var backdropTags = BuildBackdropImageTag(metadata.BackdropPath);
         var people = MapPeople(metadata.Cast, metadata.Crew);
+        
+        // Calculate total season and episode counts
+        var seasonCount = metadata.Seasons.Length;
+        var episodeCount = metadata.Seasons.Sum(s => s.Episodes.Length);
+        
+        // Build provider IDs
+        var providerIds = new Dictionary<string, string>
+        {
+            ["Tmdb"] = metadata.Id.ToString(),
+        };
 
         return new JellyfinItem
         {
@@ -619,6 +638,8 @@ public class JellyfinService
             Tagline = null,
             Path = null,
             ServerId = _serverId,
+            DateCreated = metadata.CreatedAt,
+            Etag = $"{metadata.Id}-{metadata.UpdatedAt.Ticks}",
             PremiereDate = null,
             ProductionYear = null,
             RunTimeTicks = null,
@@ -629,7 +650,10 @@ public class JellyfinService
             UserData = new JellyfinUserData { Played = false },
             Genres = metadata.Genres,
             People = people,
+            ProviderIds = providerIds,
             OfficialRating = metadata.OfficialRating,
+            ChildCount = seasonCount,
+            RecursiveItemCount = episodeCount,
         };
     }
 
@@ -638,6 +662,18 @@ public class JellyfinService
         var season = metadata.Seasons.FirstOrDefault(s => s.SeasonNumber == seasonNumber);
         var seasonName = season is null ? $"Season {seasonNumber}" : $"Season {season.SeasonNumber}";
         var imageTags = BuildPrimaryImageTag(season?.PosterPath);
+        
+        // Calculate episode count for this season
+        var episodeCount = season?.Episodes.Length ?? 0;
+        
+        // Build provider IDs
+        var providerIds = new Dictionary<string, string>
+        {
+            ["Tmdb"] = metadata.Id.ToString(),
+        };
+        
+        // Map cast and crew from the show
+        var people = MapPeople(metadata.Cast, metadata.Crew);
 
         return new JellyfinItem
         {
@@ -655,6 +691,8 @@ public class JellyfinService
             Tagline = null,
             Path = null,
             ServerId = _serverId,
+            DateCreated = metadata.CreatedAt,
+            Etag = $"{metadata.Id}-{seasonNumber}-{metadata.UpdatedAt.Ticks}",
             PremiereDate = null,
             ProductionYear = null,
             RunTimeTicks = null,
@@ -664,7 +702,11 @@ public class JellyfinService
             UserData = new JellyfinUserData { Played = false },
             ParentIndexNumberName = metadata.Title,
             IndexNumber = season?.SeasonNumber ?? seasonNumber,
-            Genres = null,
+            Genres = metadata.Genres.Length > 0 ? metadata.Genres : null,
+            ProviderIds = providerIds,
+            People = people,
+            ChildCount = episodeCount,
+            RecursiveItemCount = episodeCount,
         };
     }
 
