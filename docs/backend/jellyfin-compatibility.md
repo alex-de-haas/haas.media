@@ -123,6 +123,15 @@ The API now returns more detailed `MediaSource` and `MediaStream` information al
 - Subtitles: `IsForced`, `IsExternal`, `Path`, `SupportsExternalStream`
 - Common: `Title`, `DisplayTitle`, `Language`, `IsDefault`, `CodecTag`, `TimeBase`
 
+## Cast & Crew Information
+
+To optimize payload size and client performance, the API returns a curated subset of cast and crew:
+
+- **Top 10 cast members** — ordered by billing (TMDb `Order` field, where lower = more prominent)
+- **Top 10 crew members** — as returned by TMDb (pre-sorted by importance)
+
+This ensures the most relevant people (lead actors, directors, writers, key crew) are available while preventing large payloads with hundreds of uncredited extras or minor crew roles.
+
 ## Infuse-Specific Endpoints
 
 The following endpoints were added specifically for Infuse compatibility:

@@ -956,8 +956,8 @@ public class JellyfinService
     {
         var people = new List<JellyfinPerson>();
 
-        // Map cast members
-        foreach (var castMember in cast)
+        // Map top 10 cast members by order (TMDb order field represents billing/importance)
+        foreach (var castMember in cast.OrderBy(c => c.Order).Take(10))
         {
             people.Add(new JellyfinPerson
             {
@@ -971,8 +971,8 @@ public class JellyfinService
             });
         }
 
-        // Map crew members (directors, writers, producers, etc.)
-        foreach (var crewMember in crew)
+        // Map top 10 crew members (TMDb returns crew pre-sorted by importance)
+        foreach (var crewMember in crew.Take(10))
         {
             people.Add(new JellyfinPerson
             {
