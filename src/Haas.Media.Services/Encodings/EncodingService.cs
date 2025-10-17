@@ -116,7 +116,7 @@ public class EncodingService : IEncodingApi
                 })
                 .ToArray();
 
-            var outputFileName = Path.GetFileNameWithoutExtension(videoFile) + ".mp4";
+            var outputFileName = Path.GetFileNameWithoutExtension(videoFile) + ".mkv";
             var outputFullPath = Path.Combine(_encodingsPath, outputFileName);
 
             var encodingTask = new EncodingTask(
