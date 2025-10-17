@@ -118,6 +118,9 @@ internal sealed class MetadataScanTaskExecutor
                 {
                     await ScanTVShowLibraryWithProgressAsync(context, library, fullDirectoryPath);
                 }
+
+                // Get the updated payload after library scan
+                currentOperation = context.State.Payload!;
             }
 
             currentOperation = currentOperation with { CurrentFile = "Scan completed", };
@@ -363,6 +366,18 @@ internal sealed class MetadataScanTaskExecutor
                 UpdateProgress();
             }
         }
+
+        // Update final state with processed files count
+        var finalProcessedFiles = baseProcessedFiles + processedEpisodeFiles;
+        currentOperation = currentOperation with
+        {
+            ProcessedFiles = finalProcessedFiles,
+            TotalPeople = totalPeople,
+            SyncedPeople = syncedPeople,
+            FailedPeople = failedPeople,
+        };
+        context.SetPayload(currentOperation);
+        UpdateProgress();
 
         if (library.Id is { } libraryId)
         {
@@ -903,6 +918,16 @@ internal sealed class MetadataScanTaskExecutor
             processedFiles++;
         }
 
+        // Update final state with processed files count
+        currentState = currentState with
+        {
+            ProcessedFiles = processedFiles,
+            FoundMetadata = foundMetadata,
+            TotalPeople = totalPeople,
+            SyncedPeople = syncedPeople,
+            FailedPeople = failedPeople,
+        };
+        context.SetPayload(currentState);
         UpdateProgress();
 
         if (library.Id is { } libraryId)
