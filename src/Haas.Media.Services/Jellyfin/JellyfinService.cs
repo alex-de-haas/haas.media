@@ -659,8 +659,10 @@ public class JellyfinService
             ServerId = _serverId,
             DateCreated = metadata.CreatedAt,
             Etag = $"{metadata.Id}-{metadata.UpdatedAt.Ticks}",
-            PremiereDate = null,
-            ProductionYear = null,
+            PremiereDate = metadata.FirstAirDate.HasValue 
+                ? DateTime.SpecifyKind(metadata.FirstAirDate.Value, DateTimeKind.Utc)
+                : null,
+            ProductionYear = metadata.FirstAirDate?.Year,
             RunTimeTicks = null,
             CommunityRating = metadata.VoteAverage > 0 ? metadata.VoteAverage : null,
             ImageTags = posterTags,
@@ -716,8 +718,10 @@ public class JellyfinService
             ServerId = _serverId,
             DateCreated = metadata.CreatedAt,
             Etag = $"{metadata.Id}-{seasonNumber}-{metadata.UpdatedAt.Ticks}",
-            PremiereDate = null,
-            ProductionYear = null,
+            PremiereDate = metadata.FirstAirDate.HasValue 
+                ? DateTime.SpecifyKind(metadata.FirstAirDate.Value, DateTimeKind.Utc)
+                : null,
+            ProductionYear = metadata.FirstAirDate?.Year,
             RunTimeTicks = null,
             ImageTags = imageTags,
             BackdropImageTags = null,
