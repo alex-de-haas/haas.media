@@ -599,6 +599,57 @@ public static class JellyfinConfiguration
             )
             .WithName("JellyfinShowSeasons");
 
+        // Episodes endpoint for TV series (used by Infuse)
+        group.MapGet(
+                "/Shows/{seriesId}/Episodes",
+                async (
+                    HttpContext context,
+                    string seriesId,
+                    JellyfinAuthService authService,
+                    JellyfinService jellyfinService,
+                    ILogger<JellyfinService> logger
+                ) =>
+                    await RequireAuthenticatedAsync(
+                        context,
+                        authService,
+                        async user =>
+                        {
+                            // Verify userId if provided
+                            var userId = context.Request.Query["userId"].FirstOrDefault();
+                            if (!string.IsNullOrWhiteSpace(userId) && 
+                                !string.Equals(user.Id, userId, StringComparison.OrdinalIgnoreCase))
+                            {
+                                return Results.Forbid();
+                            }
+
+                            // Build query to get episodes
+                            var query = BuildItemsQuery(context.Request);
+                            
+                            // Check if a specific seasonId is requested
+                            var seasonId = context.Request.Query["seasonId"].FirstOrDefault();
+                            if (!string.IsNullOrWhiteSpace(seasonId))
+                            {
+                                // Get episodes for specific season
+                                query = query with { ParentId = seasonId };
+                            }
+                            else
+                            {
+                                // Get all episodes for the series
+                                query = query with { ParentId = seriesId };
+                            }
+                            
+                            // Ensure we only get Episode items
+                            var includeTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Episode" };
+                            query = query with { IncludeItemTypes = includeTypes };
+
+                            var items = await jellyfinService.GetItemsAsync(query);
+                            LogResponse(logger, $"Shows/{seriesId}/Episodes", items);
+                            return JellyfinJson(items);
+                        }
+                    )
+            )
+            .WithName("JellyfinShowEpisodes");
+
         group.MapGet(
                 "/Items/{itemId}/Images/{type}",
                 async (

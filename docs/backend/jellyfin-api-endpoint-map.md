@@ -53,6 +53,22 @@ Visual reference of all Jellyfin endpoints implemented in Haas.Media.
 └─────────────────────────────────────────────────────────────┘
 ```
 
+## TV Shows
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 📺 TV SHOW ENDPOINTS                                         │
+├─────────────────────────────────────────────────────────────┤
+│ GET    /jellyfin/Shows/{seriesId}/Seasons                   │
+│        Query: ?userId={userId}                              │
+│        Returns: Seasons with files (filtered)               │
+├─────────────────────────────────────────────────────────────┤
+│ GET    /jellyfin/Shows/{seriesId}/Episodes           ⭐ NEW │
+│        Query: ?userId={userId}&seasonId={seasonId}          │
+│        Returns: All episodes or season-specific episodes    │
+│        Note: Filters out episodes without files             │
+└─────────────────────────────────────────────────────────────┘
+```
+
 ## Images
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -154,6 +170,14 @@ Client                                  Server
 | `SearchTerm` | String | Search query |
 | `Limit` | Number | Max results |
 
+### TV Shows Endpoints
+| Parameter | Values | Description |
+|-----------|--------|-------------|
+| `userId` | User ID | User context for playback info |
+| `seasonId` | Season ID | Filter episodes by season (e.g., season-95480-1) |
+| `excludeLocationTypes` | Virtual | Exclude virtual/placeholder items |
+| `fields` | Comma-separated | Additional fields (e.g., PrimaryImageAspectRatio) |
+
 ### Streaming Endpoints
 | Parameter | Values | Description |
 |-----------|--------|-------------|
@@ -216,12 +240,13 @@ Client                                  Server
 🔒 - Authentication required  
 📚 - Library operations  
 🎬 - Content operations  
-🖼️ - Image operations  
+� - TV show operations  
+�🖼️ - Image operations  
 ▶️ - Playback operations
 
 ---
 
-**Total Endpoints:** 23  
-**New in This Update:** 5  
+**Total Endpoints:** 25  
+**New in This Update:** 6  
 **Enhanced:** 3  
 **Jellyfin Spec Version:** 10.11.0
