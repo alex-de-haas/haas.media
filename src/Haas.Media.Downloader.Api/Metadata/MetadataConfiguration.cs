@@ -59,6 +59,12 @@ public static class MetadataConfiguration
             MetadataRefreshTaskExecutor
         >();
 
+        builder.Services.AddBackgroundTask<
+            PersonCleanupTask,
+            PersonCleanupOperationInfo,
+            PersonCleanupTaskExecutor
+        >();
+
         return builder;
     }
 

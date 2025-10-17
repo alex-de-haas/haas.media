@@ -220,3 +220,14 @@ export interface MetadataRefreshOperationInfo {
   syncedPeople?: number;
   failedPeople?: number;
 }
+
+export interface PersonCleanupOperationInfo {
+  id: string;
+  totalPeople: number;
+  checkedPeople: number;
+  deletedPeople: number;
+  stage: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  lastError?: string | null;
+}

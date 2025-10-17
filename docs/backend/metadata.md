@@ -184,7 +184,7 @@ See [API.md](../API.md) for endpoint shapes. Service-level behavior includes:
 - Validating IDs loaded from LiteDB and logging misses.
 - Maintaining `CreatedAt`/`UpdatedAt` timestamps whenever documents change.
 - Enforcing unique TMDb ids across collections (`EnsureIndex`). Duplicate inserts surface as `InvalidOperationException` and return `409 Conflict` to clients.
-- `DeleteMovieMetadataAsync` and `DeleteTVShowMetadataAsync` remove documents by LiteDB id without touching on-disk media.
+- `DeleteMovieMetadataAsync` and `DeleteTVShowMetadataAsync` remove documents by LiteDB id without touching on-disk media. **These methods automatically queue a background task to clean up orphaned person metadata** by checking if cast/crew members are still referenced by any other movies or TV shows. The cleanup runs asynchronously without blocking the delete operation. See [person-metadata-cleanup.md](person-metadata-cleanup.md) for details.
 - `StartRefreshMetadataAsync` enqueues a background task that re-fetches movie and TV metadata from TMDb. The API endpoint `POST /api/metadata/refresh/start` returns the operation id; progress streams through the background task hub with payloads of type `MetadataRefreshOperationInfo`.
 
 ## Add-to-Library Workflow

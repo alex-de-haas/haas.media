@@ -156,14 +156,47 @@ public class MetadataService : IMetadataApi
 
     public Task<bool> DeleteMovieMetadataAsync(int id)
     {
+        // First, get the movie to collect person IDs
+        var movie = _movieMetadataCollection.FindById(new BsonValue(id));
+        if (movie == null)
+        {
+            _logger.LogWarning("Movie metadata not found with ID: {Id}", id);
+            return Task.FromResult(false);
+        }
+
+        // Collect all person IDs from cast and crew
+        var personIds = new HashSet<int>();
+        foreach (var castMember in movie.Cast)
+        {
+            personIds.Add(castMember.Id);
+        }
+        foreach (var crewMember in movie.Crew)
+        {
+            personIds.Add(crewMember.Id);
+        }
+
+        // Delete the movie
         var deleted = _movieMetadataCollection.Delete(new BsonValue(id));
         if (deleted)
         {
             _logger.LogInformation("Deleted movie metadata with ID: {Id}", id);
+
+            // Queue person cleanup as a background task
+            if (personIds.Count > 0)
+            {
+                var task = new PersonCleanupTask { PersonIds = personIds.ToArray() };
+                _backgroundTaskManager.RunTask<PersonCleanupTask, PersonCleanupOperationInfo>(task);
+                _logger.LogDebug(
+                    "Queued person cleanup task for {Count} people from deleted movie {Id}",
+                    personIds.Count,
+                    id
+                );
+            }
+
             return Task.FromResult(true);
         }
 
-        _logger.LogWarning("Movie metadata not found with ID: {Id}", id);
+        _logger.LogWarning("Failed to delete movie metadata with ID: {Id}", id);
         return Task.FromResult(false);
     }
 
@@ -205,14 +238,63 @@ public class MetadataService : IMetadataApi
 
     public Task<bool> DeleteTVShowMetadataAsync(int id)
     {
+        // First, get the TV show to collect person IDs
+        var tvShow = _tvShowMetadataCollection.FindById(new BsonValue(id));
+        if (tvShow == null)
+        {
+            _logger.LogWarning("TV show metadata not found with ID: {Id}", id);
+            return Task.FromResult(false);
+        }
+
+        // Collect all person IDs from cast, crew, and all episodes
+        var personIds = new HashSet<int>();
+        foreach (var castMember in tvShow.Cast)
+        {
+            personIds.Add(castMember.Id);
+        }
+        foreach (var crewMember in tvShow.Crew)
+        {
+            personIds.Add(crewMember.Id);
+        }
+
+        // Also collect person IDs from all episodes
+        foreach (var season in tvShow.Seasons)
+        {
+            foreach (var episode in season.Episodes)
+            {
+                foreach (var castMember in episode.Cast)
+                {
+                    personIds.Add(castMember.Id);
+                }
+                foreach (var crewMember in episode.Crew)
+                {
+                    personIds.Add(crewMember.Id);
+                }
+            }
+        }
+
+        // Delete the TV show
         var deleted = _tvShowMetadataCollection.Delete(new BsonValue(id));
         if (deleted)
         {
             _logger.LogInformation("Deleted TV show metadata with ID: {Id}", id);
+
+            // Queue person cleanup as a background task
+            if (personIds.Count > 0)
+            {
+                var task = new PersonCleanupTask { PersonIds = personIds.ToArray() };
+                _backgroundTaskManager.RunTask<PersonCleanupTask, PersonCleanupOperationInfo>(task);
+                _logger.LogDebug(
+                    "Queued person cleanup task for {Count} people from deleted TV show {Id}",
+                    personIds.Count,
+                    id
+                );
+            }
+
             return Task.FromResult(true);
         }
 
-        _logger.LogWarning("TV show metadata not found with ID: {Id}", id);
+        _logger.LogWarning("Failed to delete TV show metadata with ID: {Id}", id);
         return Task.FromResult(false);
     }
 

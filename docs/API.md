@@ -58,11 +58,11 @@ Metadata is stored in LiteDB collections inside `common.db`. Responses include L
 - `GET /api/metadata/movies?libraryId=<optional>` — list movie metadata. Includes cast and crew arrays. Note: Files are accessed via separate FileMetadata endpoints.
 - `GET /api/metadata/movies/{id}` — fetch a single movie record.
 - `GET /api/metadata/movies/{id}/files` — fetch all file associations for a specific movie.
-- `DELETE /api/metadata/movies/{id}` — delete a movie metadata record.
+- `DELETE /api/metadata/movies/{id}` — delete a movie metadata record. **Automatically queues a background task to clean up orphaned person metadata** (cast/crew members no longer referenced by any other movies or TV shows). The delete operation returns immediately; cleanup happens asynchronously.
 - `GET /api/metadata/tvshows?libraryId=<optional>` — list TV show metadata with nested season/episode information.
 - `GET /api/metadata/tvshows/{id}` — fetch a single TV show record.
 - `GET /api/metadata/tvshows/{id}/files` — fetch all file associations for a specific TV show (includes episode files with season/episode numbers).
-- `DELETE /api/metadata/tvshows/{id}` — delete a TV show metadata record.
+- `DELETE /api/metadata/tvshows/{id}` — delete a TV show metadata record. **Automatically queues a background task to clean up orphaned person metadata** (cast/crew members no longer referenced by any other movies or TV shows). The delete operation returns immediately; cleanup happens asynchronously.
 
 ### File Metadata (Many-to-Many Associations)
 
