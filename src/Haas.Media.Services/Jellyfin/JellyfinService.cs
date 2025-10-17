@@ -25,6 +25,13 @@ public class JellyfinService
         var files = await _metadataApi.GetFilesByMediaIdAsync(tvShowId, LibraryType.TVShows);
         return files.FirstOrDefault(f => f.SeasonNumber == seasonNumber && f.EpisodeNumber == episodeNumber);
     }
+    
+    // Helper method to check if a season has any episode files
+    private async Task<bool> SeasonHasFilesAsync(int tvShowId, int seasonNumber)
+    {
+        var files = await _metadataApi.GetFilesByMediaIdAsync(tvShowId, LibraryType.TVShows);
+        return files.Any(f => f.SeasonNumber == seasonNumber);
+    }
 
     public JellyfinService(
         IMetadataApi metadataApi,
@@ -441,6 +448,13 @@ public class JellyfinService
         var items = new List<JellyfinItem>();
         foreach (var season in show.Seasons.OrderBy(s => s.SeasonNumber))
         {
+            // Only include seasons that have at least one episode file
+            var hasFiles = await SeasonHasFilesAsync(show.Id, season.SeasonNumber);
+            if (!hasFiles)
+            {
+                continue; // Skip this season entirely
+            }
+
             var seasonItem = MapSeason(show, season.SeasonNumber);
             if (MatchesType(seasonItem, query))
             {
@@ -451,6 +465,13 @@ public class JellyfinService
             {
                 foreach (var episode in season.Episodes.OrderBy(e => e.EpisodeNumber))
                 {
+                    // Only include episodes that have files
+                    var episodeHasFile = await GetEpisodeFileAsync(show.Id, episode.SeasonNumber, episode.EpisodeNumber);
+                    if (episodeHasFile is null)
+                    {
+                        continue; // Skip episodes without files
+                    }
+
                     var mappedEpisode = await MapEpisodeAsync(show, episode);
                     if (MatchesType(mappedEpisode, query))
                     {
@@ -482,6 +503,13 @@ public class JellyfinService
         var episodeList = new List<JellyfinItem>();
         foreach (var episode in season.Episodes.OrderBy(e => e.EpisodeNumber))
         {
+            // Only include episodes that have files
+            var episodeFile = await GetEpisodeFileAsync(show.Id, episode.SeasonNumber, episode.EpisodeNumber);
+            if (episodeFile is null)
+            {
+                continue; // Skip episodes without files
+            }
+
             var mappedEpisode = await MapEpisodeAsync(show, episode);
             if (MatchesType(mappedEpisode, query))
             {
@@ -502,6 +530,13 @@ public class JellyfinService
         
         foreach (var season in show.Seasons)
         {
+            // Only include seasons that have at least one episode file
+            var hasFiles = await SeasonHasFilesAsync(show.Id, season.SeasonNumber);
+            if (!hasFiles)
+            {
+                continue; // Skip seasons without files
+            }
+
             if (MatchesType("Season", query.IncludeItemTypes))
             {
                 items.Add(MapSeason(show, season.SeasonNumber));
@@ -509,6 +544,13 @@ public class JellyfinService
 
             foreach (var episode in season.Episodes)
             {
+                // Only include episodes that have files
+                var episodeFile = await GetEpisodeFileAsync(show.Id, episode.SeasonNumber, episode.EpisodeNumber);
+                if (episodeFile is null)
+                {
+                    continue; // Skip episodes without files
+                }
+
                 var mapped = await MapEpisodeAsync(show, episode);
                 if (MatchesType(mapped, query))
                 {
@@ -631,9 +673,12 @@ public class JellyfinService
         var backdropTags = BuildBackdropImageTag(metadata.BackdropPath);
         var people = MapPeople(metadata.Cast, metadata.Crew);
         
-        // Calculate total season and episode counts
-        var seasonCount = metadata.Seasons.Length;
-        var episodeCount = metadata.Seasons.Sum(s => s.Episodes.Length);
+        // Get all files for this show to calculate accurate counts
+        var allFiles = (await _metadataApi.GetFilesByMediaIdAsync(metadata.Id, LibraryType.TVShows)).ToList();
+        
+        // Calculate counts based only on seasons/episodes that have files
+        var seasonsWithFiles = allFiles.Select(f => f.SeasonNumber).Where(s => s.HasValue).Distinct().Count();
+        var episodesWithFiles = allFiles.Count;
         
         // Build provider IDs
         var providerIds = new Dictionary<string, string>
@@ -673,12 +718,13 @@ public class JellyfinService
             People = people,
             ProviderIds = providerIds,
             OfficialRating = metadata.OfficialRating,
-            ChildCount = seasonCount,
-            RecursiveItemCount = episodeCount,
+            ChildCount = seasonsWithFiles,
+            RecursiveItemCount = episodesWithFiles,
             CanDelete = true,
             CanDownload = false,
             LocalTrailerCount = 0,
             RemoteTrailerCount = 0,
+            Status = metadata.Status,
         };
     }
 
@@ -688,7 +734,9 @@ public class JellyfinService
         var seasonName = season is null ? $"Season {seasonNumber}" : $"Season {season.SeasonNumber}";
         var imageTags = BuildPrimaryImageTag(season?.PosterPath);
         
-        // Calculate episode count for this season
+        // Calculate episode count based on episodes that have files
+        // Note: This is synchronous mapping, so we can't check files here
+        // The count might be inaccurate until we refactor to async
         var episodeCount = season?.Episodes.Length ?? 0;
         
         // Build provider IDs
@@ -699,6 +747,10 @@ public class JellyfinService
         
         // Map cast and crew from the show
         var people = MapPeople(metadata.Cast, metadata.Crew);
+        
+        // Get series image tags for parent references
+        var seriesPosterTag = BuildPrimaryImageTag(metadata.PosterPath);
+        var seriesId = JellyfinIdHelper.CreateSeriesId(metadata.Id);
 
         return new JellyfinItem
         {
@@ -709,8 +761,8 @@ public class JellyfinService
             Type = "Season",
             DisplayPreferencesId = JellyfinIdHelper.CreateSeasonId(metadata.Id, seasonNumber),
             CollectionType = "tvshows",
-            MediaType = "Video",
-            ParentId = JellyfinIdHelper.CreateSeriesId(metadata.Id),
+            MediaType = null,  // Seasons don't have a media type in Jellyfin
+            ParentId = seriesId,
             IsFolder = true,
             Overview = season?.Overview,
             Tagline = null,
@@ -726,9 +778,17 @@ public class JellyfinService
             ImageTags = imageTags,
             BackdropImageTags = null,
             LocationType = "FileSystem",
-            UserData = new JellyfinUserData { Played = false },
+            UserData = new JellyfinUserData 
+            { 
+                Played = false,
+                UnplayedItemCount = episodeCount  // All episodes unplayed by default
+            },
             ParentIndexNumberName = metadata.Title,
             IndexNumber = season?.SeasonNumber ?? seasonNumber,
+            SeriesName = metadata.Title,
+            SeriesId = seriesId,
+            SeriesPrimaryImageTag = seriesPosterTag?.Values.FirstOrDefault(),
+            PrimaryImageAspectRatio = imageTags != null ? 0.6666666666666666 : null, // Standard poster ratio
             Genres = metadata.Genres.Length > 0 ? metadata.Genres : null,
             ProviderIds = providerIds,
             People = people,

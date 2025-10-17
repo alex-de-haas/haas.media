@@ -185,6 +185,15 @@ public sealed record JellyfinItem
     public bool? CanDownload { get; init; }
     public IReadOnlyList<string>? LockedFields { get; init; }
     public string? LocationType { get; init; }
+    public string? Status { get; init; }
+    public string? SeriesPrimaryImageTag { get; init; }
+    public double? PrimaryImageAspectRatio { get; init; }
+    public string? ParentLogoItemId { get; init; }
+    public string? ParentLogoImageTag { get; init; }
+    public string? ParentThumbItemId { get; init; }
+    public string? ParentThumbImageTag { get; init; }
+    public string? ParentPrimaryImageTag { get; init; }
+    public string? ParentPrimaryImageItemId { get; init; }
 }
 
 public sealed record JellyfinMediaSource
@@ -268,6 +277,7 @@ public sealed record JellyfinUserData
     public double? PlayedPercentage { get; init; }
     public bool IsFavorite { get; init; } = false;
     public int PlayCount { get; init; } = 0;
+    public int? UnplayedItemCount { get; init; }
 }
 
 public sealed record JellyfinMediaPath

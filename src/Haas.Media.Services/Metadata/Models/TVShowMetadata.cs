@@ -27,6 +27,7 @@ public class TVShowMetadata
     public TVSeasonMetadata[] Seasons { get; set; } = [];
     public string? OfficialRating { get; set; }
     public DateTime? FirstAirDate { get; set; }
+    public string? Status { get; set; }
 
     public required DateTime CreatedAt { get; set; }
 
@@ -54,6 +55,7 @@ static class TVShowMetadataMapper
             Networks = MapNetworks(tvShow),
             OfficialRating = GetOfficialRating(tvShow, preferredCountryCode),
             FirstAirDate = tvShow.FirstAirDate,
+            Status = tvShow.Status,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -75,6 +77,7 @@ static class TVShowMetadataMapper
         target.Networks = MapNetworks(source);
         target.OfficialRating = GetOfficialRating(source, preferredCountryCode);
         target.FirstAirDate = source.FirstAirDate;
+        target.Status = source.Status;
         target.UpdatedAt = DateTime.UtcNow;
     }
 

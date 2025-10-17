@@ -177,6 +177,7 @@ export interface TVShowMetadata {
   backdropPath?: string;
   officialRating?: string | null;
   firstAirDate?: string | null;
+  status?: string | null;
   createdAt: string;
   updatedAt: string;
 }

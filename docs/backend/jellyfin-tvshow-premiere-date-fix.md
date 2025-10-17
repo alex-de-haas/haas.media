@@ -5,7 +5,11 @@
 
 ## Problem
 
-Infuse client was displaying empty details for TV shows when browsing through the Jellyfin API compatibility layer. While the JSON responses contained most metadata (overview, people, genres, etc.), they were missing **premiere date and production year** information for both Series and Season items.
+Infuse client was displaying empty details for TV shows when browsing through the Jellyfin API compatibility layer. The root causes were:
+
+1. **Missing premiere date and production year** - Responses were missing these fields for Series and Season items
+2. **Missing Status field** - TV show status (e.g., "Returning Series", "Ended") was not included
+3. **Seasons without files** - The API was returning ALL seasons from TMDb metadata, including seasons that had no actual video files, which confused Infuse's rendering logic
 
 ### Missing Fields
 
@@ -30,9 +34,9 @@ ProductionYear = null,
 
 ## Solution
 
-### 1. Added FirstAirDate to TVShowMetadata Model
+### 1. Added FirstAirDate and Status to TVShowMetadata Model
 
-Updated `TVShowMetadata.cs` to capture the first air date from TMDb:
+Updated `TVShowMetadata.cs` to capture critical fields from TMDb:
 
 ```csharp
 public class TVShowMetadata
@@ -40,20 +44,23 @@ public class TVShowMetadata
     // ... existing fields ...
     public string? OfficialRating { get; set; }
     public DateTime? FirstAirDate { get; set; }  // NEW
+    public string? Status { get; set; }          // NEW (e.g., "Returning Series", "Ended")
     // ... rest of fields ...
 }
 ```
 
 ### 2. Updated Metadata Mapper
 
-Modified both the `Create` and `Update` methods in `TVShowMetadataMapper` to populate the field:
+Modified both the `Create` and `Update` methods in `TVShowMetadataMapper` to populate the fields:
 
 ```csharp
 // In Create method
 FirstAirDate = tvShow.FirstAirDate,
+Status = tvShow.Status,
 
 // In Update method
 target.FirstAirDate = source.FirstAirDate;
+target.Status = source.Status;
 ```
 
 ### 3. Updated Jellyfin Series Mapping
@@ -80,7 +87,76 @@ ProductionYear = metadata.FirstAirDate?.Year,
 
 **Note:** Seasons inherit the show's premiere date since TMDb doesn't provide individual season premiere dates in the main show object. For more accurate season-specific dates, the season detail endpoint would need to be called during metadata scanning.
 
-### 5. Updated Frontend Types
+### 5. Added Critical Jellyfin Compatibility Fields
+
+Added multiple fields to match real Jellyfin responses (discovered by comparing with actual Jellyfin server output):
+
+**Status field:**
+```csharp
+public string? Status { get; init; }  // "Returning Series", "Ended", etc.
+```
+
+**Series reference fields for seasons:**
+```csharp
+public string? SeriesPrimaryImageTag { get; init; }
+public double? PrimaryImageAspectRatio { get; init; }  // Standard poster ratio: 0.6666...
+public string? ParentLogoItemId { get; init; }
+public string? ParentLogoImageTag { get; init; }
+public string? ParentThumbItemId { get; init; }
+public string? ParentThumbImageTag { get; init; }
+```
+
+**UserData enhancements:**
+```csharp
+public int? UnplayedItemCount { get; init; }  // Important for Infuse to show episode counts
+```
+
+**Season mapping updates:**
+- Set `MediaType = null` for seasons (matches Jellyfin behavior)
+- Populate `SeriesName` and `SeriesId` fields
+- Add `SeriesPrimaryImageTag` from parent series
+- Set `PrimaryImageAspectRatio` for proper image display
+- Include `UnplayedItemCount` in UserData
+
+These fields are critical for Infuse to properly render season detail screens.
+
+### 6. Filter Seasons and Episodes Without Files
+
+**Critical fix:** Updated all methods that return seasons or episodes to only include items that have associated video files:
+
+```csharp
+// Added helper method
+private async Task<bool> SeasonHasFilesAsync(int tvShowId, int seasonNumber)
+{
+    var files = await _metadataApi.GetFilesByMediaIdAsync(tvShowId, LibraryType.TVShows);
+    return files.Any(f => f.SeasonNumber == seasonNumber);
+}
+
+// Updated BuildSeriesChildrenAsync
+foreach (var season in show.Seasons.OrderBy(s => s.SeasonNumber))
+{
+    // Only include seasons that have at least one episode file
+    var hasFiles = await SeasonHasFilesAsync(show.Id, season.SeasonNumber);
+    if (!hasFiles)
+    {
+        continue; // Skip this season entirely
+    }
+    // ... rest of logic
+}
+```
+
+**Why this matters:** TMDb provides metadata for ALL seasons of a show, but users may only have downloaded some seasons. Returning seasons without files causes:
+- Infuse to show empty placeholders
+- Confusion about which content is actually available
+- Potential rendering issues in clients expecting playable content
+
+**Methods updated:**
+- `BuildSeriesChildrenAsync` - Filters out seasons without files
+- `BuildSeasonEpisodesAsync` - Only returns episodes with files
+- `MapAllEpisodesAsync` - Filters both seasons and episodes
+- `MapSeriesAsync` - Counts only reflect seasons/episodes with files
+
+### 7. Updated Frontend Types
 
 Updated `TVShowMetadata` interface in `types/metadata.ts` to match the backend model:
 
@@ -89,6 +165,7 @@ export interface TVShowMetadata {
   // ... existing fields ...
   officialRating?: string | null;
   firstAirDate?: string | null;  // NEW
+  status?: string | null;         // NEW
   createdAt: string;
   updatedAt: string;
 }
@@ -106,6 +183,7 @@ After this fix and re-scanning metadata, Jellyfin API responses will include:
   "Type": "Series",
   "PremiereDate": "2022-04-01T00:00:00Z",
   "ProductionYear": 2022,
+  "Status": "Returning Series",
   ...
 }
 ```
@@ -121,6 +199,8 @@ After this fix and re-scanning metadata, Jellyfin API responses will include:
   ...
 }
 ```
+
+**Key behavioral change:** The API now only returns seasons that contain at least one episode file. If you have metadata for all 5 seasons of a show but only downloaded Season 1, only Season 1 will appear in Jellyfin/Infuse.
 
 This should resolve the empty detail screens in Infuse and other Jellyfin clients.
 
@@ -173,9 +253,14 @@ Verify the response includes `PremiereDate` and `ProductionYear` fields.
 
 ## Files Modified
 
-- `src/Haas.Media.Services/Metadata/Models/TVShowMetadata.cs`
-- `src/Haas.Media.Services/Jellyfin/JellyfinService.cs`
-- `src/Haas.Media.Web/types/metadata.ts`
+- `src/Haas.Media.Services/Metadata/Models/TVShowMetadata.cs` - Added `FirstAirDate` and `Status` fields
+- `src/Haas.Media.Services/Jellyfin/JellyfinService.cs` - Major changes:
+  - Added `SeasonHasFilesAsync` helper method
+  - Updated all season/episode listing methods to filter by file existence
+  - Updated `MapSeriesAsync` to count only seasons/episodes with files
+  - Populated premiere dates and status in mappings
+- `src/Haas.Media.Services/Jellyfin/JellyfinModels.cs` - Added `Status` field to `JellyfinItem`
+- `src/Haas.Media.Web/types/metadata.ts` - Updated TypeScript interfaces
 
 ## Future Enhancements
 
