@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Haas.Media.Downloader.Api/Haas.Media.Downloader.Api.csproj" />
+    <ProjectReference Include="../Haas.Media.Services/Haas.Media.Services.csproj" />
   </ItemGroup>
 
 </Project>

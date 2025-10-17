@@ -1,0 +1,13 @@
+using System.Collections.Generic;
+
+namespace Haas.Media.Services.Authentication;
+
+public interface IAuthenticationApi
+{
+    Task<AuthResponse?> RegisterAsync(RegisterRequest request);
+    Task<AuthResponse?> LoginAsync(LoginRequest request);
+    Task<User?> GetUserByUsernameAsync(string username);
+    Task<IReadOnlyList<User>> GetAllUsersAsync();
+    Task<AuthResponse?> UpdateProfileAsync(string username, UpdateProfileRequest request);
+    Task<bool> UpdatePasswordAsync(string username, UpdatePasswordRequest request);
+}

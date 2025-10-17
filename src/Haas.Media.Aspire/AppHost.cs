@@ -29,7 +29,7 @@ var internalApiBaseUrl = builder.AddParameter(
 );
 
 var downloaderApi = builder
-    .AddProject<Projects.Haas_Media_Downloader_Api>("downloader-api")
+    .AddProject<Projects.Haas_Media_Services>("services")
     .WithHttpEndpoint(port: 8000)
     .WithEnvironment("JWT_SECRET", jwtSecret)
     .WithEnvironment("JWT_ISSUER", jwtIssuer)
@@ -43,7 +43,7 @@ var downloaderApi = builder
     .WithOtlpExporter()
     .PublishAsDockerFile(config =>
     {
-        config.WithDockerfile("..", dockerfilePath: "Haas.Media.Downloader.Api/Dockerfile");
+        config.WithDockerfile("..", dockerfilePath: "Haas.Media.Services/Dockerfile");
         config.WithBindMount(GetEnvOrEmpty("DATA_DIRECTORY"), "/data", isReadOnly: false);
         config.WithBindMount(GetEnvOrEmpty("FFMPEG_BINARY"), "/ffmpeg", isReadOnly: true);
     });

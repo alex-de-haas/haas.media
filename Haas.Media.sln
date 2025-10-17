@@ -5,7 +5,7 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{CC5C5343-5B6D-48C1-8851-0E3214999DFC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Haas.Media.Downloader.Api", "src\Haas.Media.Downloader.Api\Haas.Media.Downloader.Api.csproj", "{9496C00F-D03E-49F4-9057-0955CFD71893}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Haas.Media.Services", "src\Haas.Media.Services\Haas.Media.Services.csproj", "{9496C00F-D03E-49F4-9057-0955CFD71893}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Haas.Media.Aspire", "src\Haas.Media.Aspire\Haas.Media.Aspire.csproj", "{E8238266-C3F1-453D-8AF9-DAC0CFF58A86}"
 EndProject
