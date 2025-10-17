@@ -3,14 +3,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Haas.Media.Core;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
-namespace Haas.Media.ServiceDefaults;
+namespace Haas.Media.Downloader.Api.Infrastructure;
 
-public static class Configurations
+public static class ServiceConfiguration
 {
     private static readonly string HealthEndpointPath = "/health";
     private static readonly string AlivenessEndpointPath = "/alive";
@@ -84,7 +83,7 @@ public static class Configurations
             {
                 tracing
                     .AddSource(builder.Environment.ApplicationName)
-                    .AddSource(CommonConstants.ActivitySources.BackgroundTasks)
+                    .AddSource("Haas.Media.BackgroundTasks") // Hardcoded since we're removing Core dependency
                     .AddAspNetCoreInstrumentation(tracing =>
                         // Exclude health check requests from tracing
                         tracing.Filter = context =>

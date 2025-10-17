@@ -8,7 +8,6 @@ using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 using Haas.Media.Downloader.Api.Metadata;
 using Haas.Media.Downloader.Api.Torrents;
 using Haas.Media.Downloader.Api.Jellyfin;
-using Haas.Media.ServiceDefaults;
 using LiteDB;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
