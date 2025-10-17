@@ -57,4 +57,10 @@ public static class CommonConstants
         ".stl", // EBU STL
         ".scc", // Scenarist Closed Captions
     };
+
+    // OpenTelemetry activity sources
+    public static class ActivitySources
+    {
+        public const string BackgroundTasks = "Haas.Media.BackgroundTasks";
+    }
 }

@@ -1,13 +1,16 @@
 using System.Collections.Concurrent;
-using System.Linq;
-using System.Threading.Channels;
+using System.Diagnostics;
+using Haas.Media.Core;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 
 public class BackgroundTaskManager : IBackgroundTaskManager, IHostedService
 {
+    private static readonly ActivitySource ActivitySource = new(
+        CommonConstants.ActivitySources.BackgroundTasks
+    );
+
     private readonly ConcurrentDictionary<Guid, BackgroundTaskState> _taskStates = new();
     private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _cancellationTokens =
         new();
@@ -69,14 +72,31 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IHostedService
 
         _ = Task.Run(async () =>
         {
+            using var activity = ActivitySource.StartActivity(
+                $"BackgroundTask.{task.Type}",
+                ActivityKind.Internal
+            );
+
+            activity?.SetTag("task.id", task.Id.ToString());
+            activity?.SetTag("task.type", task.Type);
+            activity?.SetTag("task.name", task.Name);
+
             try
             {
+                taskState.Status = BackgroundTaskStatus.Running;
+                BroadcastTaskUpdate(taskState);
+
+                activity?.AddEvent(new ActivityEvent("task.started"));
+
                 await worker.ExecuteAsync(context);
 
                 taskState.Status = BackgroundTaskStatus.Completed;
                 taskState.Progress = 100;
                 taskState.CompletedAt = DateTimeOffset.UtcNow;
                 BroadcastTaskUpdate(taskState);
+
+                activity?.SetStatus(ActivityStatusCode.Ok);
+                activity?.AddEvent(new ActivityEvent("task.completed"));
             }
             catch (OperationCanceledException)
                 when (cancellationTokenSource.IsCancellationRequested)
@@ -84,6 +104,9 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IHostedService
                 taskState.Status = BackgroundTaskStatus.Cancelled;
                 taskState.CompletedAt = DateTimeOffset.UtcNow;
                 BroadcastTaskUpdate(taskState);
+
+                activity?.SetStatus(ActivityStatusCode.Error, "Task was cancelled");
+                activity?.AddEvent(new ActivityEvent("task.cancelled"));
             }
             catch (Exception ex)
             {
@@ -98,10 +121,23 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IHostedService
                 taskState.ErrorMessage = ex.Message;
                 taskState.CompletedAt = DateTimeOffset.UtcNow;
                 BroadcastTaskUpdate(taskState);
+
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                activity?.SetTag("exception.type", ex.GetType().FullName);
+                activity?.SetTag("exception.message", ex.Message);
+                activity?.SetTag("exception.stacktrace", ex.StackTrace);
+                activity?.AddEvent(new ActivityEvent("task.failed"));
             }
             finally
             {
                 _cancellationTokens.TryRemove(task.Id, out _);
+
+                var duration = taskState.CompletedAt.HasValue
+                    ? taskState.CompletedAt.Value - taskState.CreatedAt
+                    : TimeSpan.Zero;
+
+                activity?.SetTag("task.duration_ms", duration.TotalMilliseconds);
+                activity?.SetTag("task.status", taskState.Status.ToString());
             }
         });
 

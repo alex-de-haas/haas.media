@@ -150,3 +150,15 @@ builder.Services.AddBackgroundTask<
 ```
 
 `AddBackgroundTasks` registers the `BackgroundTaskManager` as both the singleton implementation of `IBackgroundTaskManager` and an `IHostedService`. Each call to `AddBackgroundTask` registers the corresponding worker as a singleton `IBackgroundTaskExecutor<TTask, TPayload>`; design workers to be thread-safe if multiple tasks of the same type might run concurrently. Complete the setup by invoking `app.UseBackgroundTasks()` so the hub and HTTP endpoints are available to clients.
+
+## Observability
+
+Background tasks are instrumented with OpenTelemetry distributed tracing. Each task execution creates a span with detailed metadata about lifecycle, status, and performance. See [background-tasks-telemetry.md](background-tasks-telemetry.md) for complete details on:
+
+- Activity source configuration
+- Span tags and events
+- Integration with Aspire Dashboard
+- Querying and analyzing task traces
+- Performance impact
+
+The instrumentation is automatic and requires no additional configuration beyond standard OpenTelemetry setup in `ServiceDefaults`.
