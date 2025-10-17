@@ -293,26 +293,22 @@ internal sealed class MetadataScanTaskExecutor
                             },
                             onPersonSyncProgress: x =>
                             {
-                                if (x.Outcome == PersonSyncOutcome.Synced)
-                                {
-                                    syncedPeople++;
-                                    currentOperation = currentOperation with
-                                    {
-                                        SyncedPeople = syncedPeople,
-                                    };
-                                    context.SetPayload(currentOperation);
-                                    UpdateProgress();
-                                }
-                                else if (x.Outcome == PersonSyncOutcome.Failed)
+                                if (x.Outcome == PersonSyncOutcome.Failed)
                                 {
                                     failedPeople++;
-                                    currentOperation = currentOperation with
-                                    {
-                                        FailedPeople = failedPeople,
-                                    };
-                                    context.SetPayload(currentOperation);
-                                    UpdateProgress();
                                 }
+                                else
+                                {
+                                    syncedPeople++;
+                                }
+
+                                currentOperation = currentOperation with
+                                {
+                                    SyncedPeople = syncedPeople,
+                                    FailedPeople = failedPeople
+                                };
+                                context.SetPayload(currentOperation);
+                                UpdateProgress();
                             }
                         );
                         _tvShowMetadataCollection.Insert(tvShowMetadata);
