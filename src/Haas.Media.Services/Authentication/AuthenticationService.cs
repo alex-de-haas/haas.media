@@ -1,9 +1,8 @@
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using LiteDB;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Haas.Media.Services.Authentication;
@@ -11,7 +10,7 @@ namespace Haas.Media.Services.Authentication;
 public class AuthenticationService(LiteDatabase db, IConfiguration configuration, ILogger<AuthenticationService> logger) : IAuthenticationApi
 {
     private readonly ILiteCollection<User> _users = db.GetCollection<User>("users");
-    private const int WorkFactor = 12; // BCrypt work factor
+    private readonly PasswordHasher<User> _passwordHasher = new();
     private const string DefaultCountryCode = "US";
 
     public async Task<AuthResponse?> RegisterAsync(RegisterRequest request)
@@ -37,24 +36,24 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             return null;
         }
 
-        // Hash password
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, WorkFactor);
-
         // Check if this is the first user
         var isFirstUser = _users.Count() == 0;
         var preferredLanguage = NormalizeLanguage(request.PreferredMetadataLanguage);
         var countryCode = NormalizeCountryCode(request.CountryCode, DefaultCountryCode);
 
-        // Create user
+        // Create user with placeholder password hash (will be set immediately after)
         var user = new User
         {
             Username = request.Username,
-            PasswordHash = passwordHash,
+            PasswordHash = string.Empty, // Temporary, will be replaced below
             IsAdmin = isFirstUser,
             CreatedAt = DateTime.UtcNow,
             PreferredMetadataLanguage = preferredLanguage,
             CountryCode = countryCode
         };
+
+        // Hash password using ASP.NET Core Identity's PasswordHasher
+        user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
 
         _users.Insert(user);
         _users.EnsureIndex(u => u.Username);
@@ -89,8 +88,9 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             return null;
         }
 
-        // Verify password
-        if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        // Verify password using ASP.NET Core Identity's PasswordHasher
+        var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
+        if (result == PasswordVerificationResult.Failed)
         {
             logger.LogWarning("Login failed: Invalid password for user {Username}", user.Username);
             return null;
@@ -186,13 +186,22 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(request.CurrentPassword) || !BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+        // Verify current password using ASP.NET Core Identity's PasswordHasher
+        if (string.IsNullOrWhiteSpace(request.CurrentPassword))
+        {
+            logger.LogWarning("Password update failed for {Username}: current password missing", username);
+            return false;
+        }
+
+        var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.CurrentPassword);
+        if (result == PasswordVerificationResult.Failed)
         {
             logger.LogWarning("Password update failed for {Username}: current password invalid", username);
             return false;
         }
 
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, WorkFactor);
+        // Hash new password
+        user.PasswordHash = _passwordHasher.HashPassword(user, request.NewPassword);
         _users.Update(user);
 
         logger.LogInformation("Password updated for user {Username}", username);
