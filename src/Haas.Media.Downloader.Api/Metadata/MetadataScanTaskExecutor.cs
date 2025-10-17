@@ -386,20 +386,14 @@ internal sealed class MetadataScanTaskExecutor
 
         void UpdateProgress()
         {
-            var totalPeopleCount = currentOperation.TotalPeople;
-
-            // Calculate progress based on files and people
-            // Files contribute 70% of progress, people contribute 30%
-            var fileProgress =
-                totalFiles > 0
-                    ? (double)(baseProcessedFiles + processedEpisodeFiles) / totalFiles * 70.0
-                    : 70.0;
-
-            var peopleProgress =
-                totalPeopleCount > 0 ? (double)syncedPeople / totalPeopleCount * 30.0 : 0.0;
-
-            var progress = fileProgress + peopleProgress;
-            context.ReportProgress(Math.Min(progress, 100.0));
+            var totalProcessed = baseProcessedFiles + processedEpisodeFiles;
+            var progress = MetadataProgressCalculator.Calculate(
+                totalProcessed,
+                totalFiles,
+                syncedPeople,
+                currentOperation.TotalPeople
+            );
+            context.ReportProgress(progress);
         }
     }
 
@@ -938,17 +932,13 @@ internal sealed class MetadataScanTaskExecutor
         void UpdateProgress()
         {
             var totalFiles = currentState.TotalFiles;
-            var totalPeopleCount = currentState.TotalPeople;
-
-            // Calculate progress based on files and people
-            // Files contribute 70% of progress, people contribute 30%
-            var fileProgress = totalFiles > 0 ? (double)processedFiles / totalFiles * 70.0 : 70.0;
-
-            var peopleProgress =
-                totalPeopleCount > 0 ? (double)syncedPeople / totalPeopleCount * 30.0 : 0.0;
-
-            var progress = fileProgress + peopleProgress;
-            context.ReportProgress(Math.Min(progress, 100.0));
+            var progress = MetadataProgressCalculator.Calculate(
+                processedFiles,
+                totalFiles,
+                syncedPeople,
+                currentState.TotalPeople
+            );
+            context.ReportProgress(progress);
         }
     }
 }

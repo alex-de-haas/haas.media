@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 using LiteDB;
-using Microsoft.Extensions.Logging;
 using TMDbLib.Client;
 using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.Search;
@@ -97,6 +93,7 @@ internal sealed class MetadataRefreshTaskExecutor
                     LastError = null,
                 };
                 context.SetPayload(payload);
+                UpdateProgress();
 
                 string? lastError = null;
                 var personSyncStats = PersonSyncStatistics.Empty;
@@ -129,6 +126,7 @@ internal sealed class MetadataRefreshTaskExecutor
                                 FailedPeople = failedPeople,
                             };
                             context.SetPayload(payload);
+                            UpdateProgress();
                         },
                         personCount =>
                         {
@@ -147,6 +145,7 @@ internal sealed class MetadataRefreshTaskExecutor
                                 FailedPeople = failedPeople,
                             };
                             context.SetPayload(payload);
+                            UpdateProgress();
                         }
                     );
                 }
@@ -205,11 +204,6 @@ internal sealed class MetadataRefreshTaskExecutor
                 processedMovies++;
                 processedItems++;
 
-                var progress =
-                    totalItems > 0
-                        ? (double)processedItems / Math.Max(1, totalItems) * 100.0
-                        : 100.0;
-
                 payload = payload with
                 {
                     ProcessedItems = processedItems,
@@ -222,7 +216,7 @@ internal sealed class MetadataRefreshTaskExecutor
                 };
 
                 context.SetPayload(payload);
-                context.ReportProgress(Math.Min(progress, 99.0));
+                UpdateProgress();
             }
 
             foreach (var tvShow in tvShows)
@@ -245,6 +239,7 @@ internal sealed class MetadataRefreshTaskExecutor
                     LastError = null,
                 };
                 context.SetPayload(payload);
+                UpdateProgress();
 
                 string? lastError = null;
                 var personSyncStats = PersonSyncStatistics.Empty;
@@ -277,6 +272,7 @@ internal sealed class MetadataRefreshTaskExecutor
                                 FailedPeople = failedPeople,
                             };
                             context.SetPayload(payload);
+                            UpdateProgress();
                         },
                         personCount =>
                         {
@@ -295,6 +291,7 @@ internal sealed class MetadataRefreshTaskExecutor
                                 FailedPeople = failedPeople,
                             };
                             context.SetPayload(payload);
+                            UpdateProgress();
                         }
                     );
                 }
@@ -353,11 +350,6 @@ internal sealed class MetadataRefreshTaskExecutor
                 processedTvShows++;
                 processedItems++;
 
-                var progress =
-                    totalItems > 0
-                        ? (double)processedItems / Math.Max(1, totalItems) * 100.0
-                        : 100.0;
-
                 payload = payload with
                 {
                     ProcessedItems = processedItems,
@@ -370,7 +362,7 @@ internal sealed class MetadataRefreshTaskExecutor
                 };
 
                 context.SetPayload(payload);
-                context.ReportProgress(Math.Min(progress, 99.5));
+                UpdateProgress();
             }
 
             payload = payload with
@@ -413,6 +405,17 @@ internal sealed class MetadataRefreshTaskExecutor
             _logger.LogError(ex, "Metadata refresh task failed unexpectedly");
 
             throw;
+        }
+
+        void UpdateProgress()
+        {
+            var progress = MetadataProgressCalculator.Calculate(
+                processedItems,
+                totalItems,
+                syncedPeople,
+                totalPeople
+            );
+            context.ReportProgress(progress);
         }
     }
 
