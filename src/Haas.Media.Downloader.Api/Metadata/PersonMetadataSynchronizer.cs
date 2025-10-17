@@ -11,8 +11,8 @@ internal static class PersonMetadataSynchronizer
         ILogger logger,
         IEnumerable<int> personIds,
         bool refreshExisting,
-        CancellationToken cancellationToken,
-        Action<PersonSyncProgress>? reportProgress = null
+        Action<PersonSyncProgress>? reportProgress = null,
+        CancellationToken cancellationToken = default
     )
     {
         var totalRequested = personIds.Count();
@@ -59,7 +59,9 @@ internal static class PersonMetadataSynchronizer
                         personId
                     );
                     failedCount++;
-                    reportProgress?.Invoke(new PersonSyncProgress(personId, PersonSyncOutcome.Failed));
+                    reportProgress?.Invoke(
+                        new PersonSyncProgress(personId, PersonSyncOutcome.Failed)
+                    );
                     continue;
                 }
 
@@ -91,8 +93,6 @@ internal static class PersonMetadataSynchronizer
                 failedCount++;
                 reportProgress?.Invoke(new PersonSyncProgress(personId, PersonSyncOutcome.Failed));
             }
-
-            await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
         }
 
         return new PersonSyncStatistics(totalRequested, syncedCount, failedCount);

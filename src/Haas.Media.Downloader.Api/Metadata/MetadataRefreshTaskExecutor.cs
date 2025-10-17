@@ -223,8 +223,6 @@ internal sealed class MetadataRefreshTaskExecutor
 
                 context.SetPayload(payload);
                 context.ReportProgress(Math.Min(progress, 99.0));
-
-                await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
             }
 
             foreach (var tvShow in tvShows)
@@ -373,8 +371,6 @@ internal sealed class MetadataRefreshTaskExecutor
 
                 context.SetPayload(payload);
                 context.ReportProgress(Math.Min(progress, 99.5));
-
-                await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
             }
 
             payload = payload with
@@ -547,14 +543,10 @@ internal sealed class MetadataRefreshTaskExecutor
                 associatedPersonIds.UnionWith(PersonMetadataCollector.FromCrew(episodeDetails.Crew));
                 associatedPersonIds.UnionWith(PersonMetadataCollector.FromCast(episodeDetails.GuestStars));
                 episodes.Add(episodeMetadata);
-
-                await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
             }
 
             seasonMetadata.Episodes = episodes.ToArray();
             seasons.Add(seasonMetadata);
-
-            await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
         }
 
         var preferredCountry = _countryProvider.GetPreferredCountryCode();

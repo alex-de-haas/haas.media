@@ -57,13 +57,10 @@ internal sealed class MetadataScanTaskExecutor
             operationId,
             LibraryPath: "All Libraries",
             LibraryTitle: "Scanning all libraries",
-            TotalFiles: 0,
-            ProcessedFiles: 0,
-            FoundMetadata: 0,
-            StartTime: DateTime.UtcNow,
-            CurrentFile: "Preparing library scan"
+            StartTime: DateTime.UtcNow
         );
 
+        context.ReportStatus(BackgroundTaskStatus.Running);
         context.SetPayload(currentOperation);
 
         try
@@ -99,9 +96,6 @@ internal sealed class MetadataScanTaskExecutor
             currentOperation = currentOperation with { TotalFiles = totalFiles };
             context.SetPayload(currentOperation);
 
-            var processedFiles = 0;
-            var foundMetadata = 0;
-
             foreach (var (library, files) in allFiles)
             {
                 context.ThrowIfCancellationRequested();
@@ -116,74 +110,27 @@ internal sealed class MetadataScanTaskExecutor
                 };
                 context.SetPayload(currentOperation);
 
-                int libraryProcessed;
-                int libraryFound;
-
                 if (library.Type == LibraryType.Movies)
                 {
-                    (libraryProcessed, libraryFound, currentOperation) =
-                        await ScanMovieLibraryWithProgressAsync(
-                            currentOperation,
-                            context,
-                            library,
-                            fullDirectoryPath,
-                            processedFiles,
-                            totalFiles
-                        );
+                    await ScanMovieLibraryWithProgressAsync(context, library, fullDirectoryPath);
                 }
                 else if (library.Type == LibraryType.TVShows)
                 {
-                    (
-                        libraryProcessed,
-                        libraryFound,
-                        currentOperation
-                    ) = await ScanTVShowLibraryWithProgressAsync(
-                        currentOperation,
-                        context,
-                        library,
-                        fullDirectoryPath,
-                        processedFiles,
-                        totalFiles
-                    );
+                    await ScanTVShowLibraryWithProgressAsync(context, library, fullDirectoryPath);
                 }
-                else
-                {
-                    libraryProcessed = 0;
-                    libraryFound = 0;
-                }
-
-                processedFiles += libraryProcessed;
-                foundMetadata += libraryFound;
-
-                var cumulativeProgress =
-                    totalFiles > 0 ? (double)processedFiles / Math.Max(1, totalFiles) * 100.0 : 0.0;
-
-                currentOperation = currentOperation with
-                {
-                    ProcessedFiles = processedFiles,
-                    FoundMetadata = foundMetadata,
-                    CurrentFile = $"Scanned {library.Title}",
-                };
-                context.SetPayload(currentOperation);
-                context.ReportProgress(cumulativeProgress);
             }
 
-            currentOperation = currentOperation with
-            {
-                ProcessedFiles = processedFiles,
-                FoundMetadata = foundMetadata,
-                CurrentFile = "Scan completed",
-            };
+            currentOperation = currentOperation with { CurrentFile = "Scan completed", };
             context.SetPayload(currentOperation);
             context.ReportProgress(100);
+            context.ReportStatus(BackgroundTaskStatus.Completed);
 
             _logger.LogInformation(
                 "Background scan completed: {OperationId}. Processed: {Processed}, Found metadata: {Found}",
                 operationId,
-                processedFiles,
-                foundMetadata
+                context.State.Payload!.ProcessedFiles,
+                context.State.Payload!.FoundMetadata
             );
-
         }
         catch (OperationCanceledException)
         {
@@ -254,17 +201,10 @@ internal sealed class MetadataScanTaskExecutor
         return mediaFiles;
     }
 
-    private async Task<(
-        int processed,
-        int found,
-        ScanOperationInfo operation
-    )> ScanTVShowLibraryWithProgressAsync(
-        ScanOperationInfo operation,
+    private async Task ScanTVShowLibraryWithProgressAsync(
         BackgroundWorkerContext<MetadataScanTask, ScanOperationInfo> context,
         LibraryInfo library,
-        string fullDirectoryPath,
-        int baseProcessedFiles,
-        int totalFiles
+        string fullDirectoryPath
     )
     {
         var showDirectories = Directory.GetDirectories(
@@ -280,19 +220,20 @@ internal sealed class MetadataScanTaskExecutor
 
         var processedEpisodeFiles = 0;
         var found = 0;
-        var currentOperation = operation;
+        var currentOperation = context.State.Payload!;
         var totalPeople = currentOperation.TotalPeople;
         var syncedPeople = currentOperation.SyncedPeople;
         var failedPeople = currentOperation.FailedPeople;
+
+        var totalFiles = currentOperation.TotalFiles;
+        var baseProcessedFiles = currentOperation.ProcessedFiles;
 
         foreach (var showDirectory in showDirectories)
         {
             context.ThrowIfCancellationRequested();
 
             var directoryInfo = new DirectoryInfo(showDirectory);
-            var showTitle = MetadataHelper.ExtractTVShowTitleFromDirectoryName(
-                directoryInfo.Name
-            );
+            var showTitle = MetadataHelper.ExtractTVShowTitleFromDirectoryName(directoryInfo.Name);
             var showYear = MetadataHelper.ExtractYearFromString(directoryInfo.Name);
             if (string.IsNullOrEmpty(showTitle))
             {
@@ -307,28 +248,26 @@ internal sealed class MetadataScanTaskExecutor
             var episodeCount = episodeFiles.Count;
 
             var totalProcessedSoFar = baseProcessedFiles + processedEpisodeFiles;
-            var progress = totalFiles > 0
-                ? (double)totalProcessedSoFar / Math.Max(1, totalFiles) * 100.0
-                : 0.0;
             currentOperation = currentOperation with
             {
                 ProcessedFiles = totalProcessedSoFar,
                 CurrentFile = $"Scanning {showTitle}",
+                TotalPeople = totalPeople,
+                SyncedPeople = syncedPeople,
+                FailedPeople = failedPeople,
             };
             context.SetPayload(currentOperation);
-
-            if (processedEpisodeFiles == 0 || processedEpisodeFiles % 10 == 0)
-            {
-                context.ReportProgress(progress);
-            }
+            UpdateProgress();
 
             var skipShow = false;
-            var shouldDelay = false;
+            var foundThisShow = 0;
 
             try
             {
                 // Check if TV show already exists by title
-                var existingMetadata = _tvShowMetadataCollection.FindOne(tv => tv.Title == showTitle);
+                var existingMetadata = _tvShowMetadataCollection.FindOne(tv =>
+                    tv.Title == showTitle
+                );
 
                 if (existingMetadata is null)
                 {
@@ -341,24 +280,42 @@ internal sealed class MetadataScanTaskExecutor
                             tmdbResult.Id,
                             library.Id!,
                             showDirectory,
-                            context.CancellationToken
+                            context.CancellationToken,
+                            onTotalPeopleCountAvailable: count =>
+                            {
+                                totalPeople += count;
+                                currentOperation = currentOperation with
+                                {
+                                    TotalPeople = totalPeople,
+                                };
+                                context.SetPayload(currentOperation);
+                                UpdateProgress();
+                            },
+                            onPersonSyncProgress: x =>
+                            {
+                                if (x.Outcome == PersonSyncOutcome.Synced)
+                                {
+                                    syncedPeople++;
+                                    currentOperation = currentOperation with
+                                    {
+                                        SyncedPeople = syncedPeople,
+                                    };
+                                    context.SetPayload(currentOperation);
+                                    UpdateProgress();
+                                }
+                                else if (x.Outcome == PersonSyncOutcome.Failed)
+                                {
+                                    failedPeople++;
+                                    currentOperation = currentOperation with
+                                    {
+                                        FailedPeople = failedPeople,
+                                    };
+                                    context.SetPayload(currentOperation);
+                                    UpdateProgress();
+                                }
+                            }
                         );
                         _tvShowMetadataCollection.Insert(tvShowMetadata);
-
-                        if (personSyncStats.Requested > 0)
-                        {
-                            totalPeople += personSyncStats.Requested;
-                            syncedPeople += personSyncStats.Synced;
-                            failedPeople += personSyncStats.Failed;
-
-                            currentOperation = currentOperation with
-                            {
-                                TotalPeople = totalPeople,
-                                SyncedPeople = syncedPeople,
-                                FailedPeople = failedPeople,
-                            };
-                            context.SetPayload(currentOperation);
-                        }
 
                         _logger.LogInformation(
                             "Added metadata for TV show: {Title} - Directory: {DirectoryName}",
@@ -366,6 +323,7 @@ internal sealed class MetadataScanTaskExecutor
                             Path.GetFileName(showDirectory)
                         );
 
+                        foundThisShow = 1;
                         found++;
                     }
                     else
@@ -375,13 +333,6 @@ internal sealed class MetadataScanTaskExecutor
                             showTitle
                         );
                     }
-
-                    shouldDelay = true;
-                }
-
-                if (shouldDelay)
-                {
-                    await Task.Delay(250, context.CancellationToken);
                 }
             }
             catch (OperationCanceledException)
@@ -401,20 +352,19 @@ internal sealed class MetadataScanTaskExecutor
                 processedEpisodeFiles += episodeCount;
 
                 var totalProcessedAfterShow = baseProcessedFiles + processedEpisodeFiles;
-                var progressAfter = totalFiles > 0
-                    ? (double)totalProcessedAfterShow / Math.Max(1, totalFiles) * 100.0
-                    : 0.0;
-                var completionLabel = skipShow
-                    ? $"Skipped {showTitle}"
-                    : $"Scanned {showTitle}";
+                var completionLabel = skipShow ? $"Skipped {showTitle}" : $"Scanned {showTitle}";
 
                 currentOperation = currentOperation with
                 {
                     ProcessedFiles = totalProcessedAfterShow,
+                    FoundMetadata = currentOperation.FoundMetadata + foundThisShow,
                     CurrentFile = completionLabel,
+                    TotalPeople = totalPeople,
+                    SyncedPeople = syncedPeople,
+                    FailedPeople = failedPeople,
                 };
                 context.SetPayload(currentOperation);
-                context.ReportProgress(progressAfter);
+                UpdateProgress();
             }
         }
 
@@ -423,7 +373,23 @@ internal sealed class MetadataScanTaskExecutor
             ClearMissingTvShowFiles(libraryId);
         }
 
-        return (processedEpisodeFiles, found, currentOperation);
+        void UpdateProgress()
+        {
+            var totalPeopleCount = currentOperation.TotalPeople;
+
+            // Calculate progress based on files and people
+            // Files contribute 70% of progress, people contribute 30%
+            var fileProgress =
+                totalFiles > 0
+                    ? (double)(baseProcessedFiles + processedEpisodeFiles) / totalFiles * 70.0
+                    : 70.0;
+
+            var peopleProgress =
+                totalPeopleCount > 0 ? (double)syncedPeople / totalPeopleCount * 30.0 : 0.0;
+
+            var progress = fileProgress + peopleProgress;
+            context.ReportProgress(Math.Min(progress, 100.0));
+        }
     }
 
     private async Task<SearchTv?> SearchTMDbForTVShow(string tvShowTitle, int? firstAirDateYear)
@@ -471,11 +437,16 @@ internal sealed class MetadataScanTaskExecutor
         }
     }
 
-    private async Task<(TVShowMetadata Metadata, PersonSyncStatistics PersonSync)> CreateTVShowMetadata(
+    private async Task<(
+        TVShowMetadata Metadata,
+        PersonSyncStatistics PersonSync
+    )> CreateTVShowMetadata(
         int tmdbTvShowId,
         string libraryId,
         string showDirectory,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        Action<int>? onTotalPeopleCountAvailable = null,
+        Action<PersonSyncProgress>? onPersonSyncProgress = null
     )
     {
         var tvShowDetails = await _tmdbClient.GetTvShowAsync(
@@ -495,7 +466,9 @@ internal sealed class MetadataScanTaskExecutor
         var tvShowMetadata = tvShowDetails.Create(preferredCountry);
         var associatedPersonIds = new HashSet<int>();
         associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(tvShowDetails.Credits));
-        associatedPersonIds.UnionWith(PersonMetadataCollector.FromCreators(tvShowDetails.CreatedBy));
+        associatedPersonIds.UnionWith(
+            PersonMetadataCollector.FromCreators(tvShowDetails.CreatedBy)
+        );
 
         var seasons = new List<TVSeasonMetadata>();
 
@@ -514,7 +487,9 @@ internal sealed class MetadataScanTaskExecutor
                 continue;
             }
 
-            associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(seasonDetails.Credits));
+            associatedPersonIds.UnionWith(
+                PersonMetadataCollector.FromCredits(seasonDetails.Credits)
+            );
 
             var seasonMetadata = seasonDetails.Create();
             var episodes = new List<TVEpisodeMetadata>();
@@ -543,9 +518,15 @@ internal sealed class MetadataScanTaskExecutor
 
                 var episodeMetadata = episodeDetails.Create();
 
-                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(episodeDetails.Credits));
-                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCrew(episodeDetails.Crew));
-                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCast(episodeDetails.GuestStars));
+                associatedPersonIds.UnionWith(
+                    PersonMetadataCollector.FromCredits(episodeDetails.Credits)
+                );
+                associatedPersonIds.UnionWith(
+                    PersonMetadataCollector.FromCrew(episodeDetails.Crew)
+                );
+                associatedPersonIds.UnionWith(
+                    PersonMetadataCollector.FromCast(episodeDetails.GuestStars)
+                );
 
                 if (filePath != null)
                 {
@@ -565,17 +546,16 @@ internal sealed class MetadataScanTaskExecutor
                 }
 
                 episodes.Add(episodeMetadata);
-
-                await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
             }
 
             seasonMetadata.Episodes = episodes.ToArray();
             seasons.Add(seasonMetadata);
-
-            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
         }
 
         tvShowMetadata.Seasons = seasons.ToArray();
+
+        // Report total people count before syncing
+        onTotalPeopleCountAvailable?.Invoke(associatedPersonIds.Count);
 
         var personSyncStats = await PersonMetadataSynchronizer.SyncAsync(
             _tmdbClient,
@@ -583,7 +563,8 @@ internal sealed class MetadataScanTaskExecutor
             _logger,
             associatedPersonIds,
             false,
-            cancellationToken
+            reportProgress: onPersonSyncProgress,
+            cancellationToken: cancellationToken
         );
 
         return (tvShowMetadata, personSyncStats);
@@ -728,49 +709,39 @@ internal sealed class MetadataScanTaskExecutor
         }
     }
 
-    private async Task<(
-        int processed,
-        int found,
-        ScanOperationInfo operation
-    )> ScanMovieLibraryWithProgressAsync(
-        ScanOperationInfo operation,
+    private async Task ScanMovieLibraryWithProgressAsync(
         BackgroundWorkerContext<MetadataScanTask, ScanOperationInfo> context,
         LibraryInfo library,
-        string fullDirectoryPath,
-        int baseProcessedFiles,
-        int totalFiles
+        string fullDirectoryPath
     )
     {
         var mediaFiles = ScanDirectoryForMediaFiles(fullDirectoryPath);
-        var processed = 0;
-        var found = 0;
-        var currentOperation = operation;
-        var totalPeople = currentOperation.TotalPeople;
-        var syncedPeople = currentOperation.SyncedPeople;
-        var failedPeople = currentOperation.FailedPeople;
+
+        var currentState = context.State.Payload!;
+        var processedFiles = currentState.ProcessedFiles;
+        var foundMetadata = currentState.FoundMetadata;
+        var totalPeople = currentState.TotalPeople;
+        var syncedPeople = currentState.SyncedPeople;
+        var failedPeople = currentState.FailedPeople;
 
         foreach (var filePath in mediaFiles)
         {
             context.ThrowIfCancellationRequested();
 
             var fileName = Path.GetFileName(filePath);
-            var totalProcessedSoFar = baseProcessedFiles + processed;
-            var progress =
-                totalFiles > 0
-                    ? (double)totalProcessedSoFar / Math.Max(1, totalFiles) * 100.0
-                    : 0.0;
 
-            currentOperation = currentOperation with
+            currentState = currentState with
             {
-                ProcessedFiles = totalProcessedSoFar,
+                FoundMetadata = foundMetadata,
+                ProcessedFiles = processedFiles,
                 CurrentFile = fileName,
+                TotalPeople = totalPeople,
+                SyncedPeople = syncedPeople,
+                FailedPeople = failedPeople,
             };
-            context.SetPayload(currentOperation);
+            context.SetPayload(currentState);
 
-            if (processed % 10 == 0 || processed == 1)
-            {
-                context.ReportProgress(progress);
-            }
+            UpdateProgress();
 
             var movieTitle = MetadataHelper.ExtractMovieTitleFromFileName(fileName);
             var releaseYear = MetadataHelper.ExtractYearFromString(
@@ -778,33 +749,12 @@ internal sealed class MetadataScanTaskExecutor
             );
             if (string.IsNullOrWhiteSpace(movieTitle))
             {
-                processed++;
+                // Skip files that don't yield a valid title
+                processedFiles++;
                 continue;
             }
 
             var relativePath = Path.GetRelativePath(_dataPath, filePath);
-            
-            // Check if this file already has metadata
-            // Note: Query by FilePath first to avoid ObjectId/String cast issues with LibraryId
-            var existingFileMetadata = _fileMetadataCollection
-                .Query()
-                .Where(f => f.FilePath == relativePath && f.MediaType == LibraryType.Movies)
-                .ToList()
-                .FirstOrDefault(f => f.LibraryId == library.Id);
-
-            if (existingFileMetadata is not null)
-            {
-                processed++;
-                found++;
-                continue;
-            }
-            
-            // Get existing movie metadata if file is already associated
-            MovieMetadata? existingMetadata = null;
-            if (existingFileMetadata != null)
-            {
-                existingMetadata = _movieMetadataCollection.FindById(existingFileMetadata.MediaId);
-            }
 
             try
             {
@@ -847,42 +797,65 @@ internal sealed class MetadataScanTaskExecutor
                         cancellationToken: context.CancellationToken
                     );
 
+                    var peopleCountInMedia = movieDetails.Credits?.Cast?.Count ?? 0;
+                    peopleCountInMedia += movieDetails.Credits?.Crew?.Count ?? 0;
+
+                    foundMetadata++;
+
+                    if (peopleCountInMedia > 0)
+                    {
+                        totalPeople += peopleCountInMedia;
+
+                        currentState = currentState with
+                        {
+                            TotalPeople = totalPeople,
+                            FoundMetadata = foundMetadata
+                        };
+                        context.SetPayload(currentState);
+                        UpdateProgress();
+                    }
+
                     var personSyncStats = await PersonMetadataSynchronizer.SyncAsync(
                         _tmdbClient,
                         _personMetadataCollection,
                         _logger,
                         PersonMetadataCollector.FromCredits(movieDetails.Credits),
                         false,
-                        context.CancellationToken
+                        reportProgress: x =>
+                        {
+                            if (x.Outcome == PersonSyncOutcome.Failed)
+                            {
+                                failedPeople++;
+                            }
+                            else
+                            {
+                                syncedPeople++;
+                            }
+
+                            currentState = currentState with
+                            {
+                                SyncedPeople = syncedPeople,
+                                FailedPeople = failedPeople
+                            };
+                            context.SetPayload(currentState);
+                            UpdateProgress();
+                        },
+                        cancellationToken: context.CancellationToken
                     );
 
-                    if (personSyncStats.Requested > 0)
-                    {
-                        totalPeople += personSyncStats.Requested;
-                        syncedPeople += personSyncStats.Synced;
-                        failedPeople += personSyncStats.Failed;
-
-                        currentOperation = currentOperation with
-                        {
-                            TotalPeople = totalPeople,
-                            SyncedPeople = syncedPeople,
-                            FailedPeople = failedPeople,
-                        };
-                        context.SetPayload(currentOperation);
-                    }
-
                     MovieMetadata movieMetadata;
-                    
-                    // Check if movie metadata exists (either from file association or by TMDb ID)
-                    var movieMetadataInDb = existingMetadata ?? _movieMetadataCollection.FindById(new BsonValue(movieResult.Id));
-                    
+
+                    var existsMovieMetadata = _movieMetadataCollection.FindById(
+                        new BsonValue(movieResult.Id)
+                    );
+
                     var preferredCountry = _countryProvider.GetPreferredCountryCode();
-                    if (movieMetadataInDb != null)
+                    if (existsMovieMetadata != null)
                     {
                         // Update existing metadata
-                        movieDetails.Update(movieMetadataInDb, preferredCountry);
-                        _movieMetadataCollection.Update(movieMetadataInDb);
-                        movieMetadata = movieMetadataInDb;
+                        movieDetails.Update(existsMovieMetadata, preferredCountry);
+                        _movieMetadataCollection.Update(existsMovieMetadata);
+                        movieMetadata = existsMovieMetadata;
                     }
                     else
                     {
@@ -890,6 +863,14 @@ internal sealed class MetadataScanTaskExecutor
                         movieMetadata = movieDetails.Create(preferredCountry);
                         _movieMetadataCollection.Insert(movieMetadata);
                     }
+
+                    // Check if this file already has metadata
+                    // Note: Query by FilePath first to avoid ObjectId/String cast issues with LibraryId
+                    var existingFileMetadata = _fileMetadataCollection
+                        .Query()
+                        .Where(f => f.FilePath == relativePath && f.MediaType == LibraryType.Movies)
+                        .ToList()
+                        .FirstOrDefault(f => f.LibraryId == library.Id);
 
                     // Create or update FileMetadata
                     if (existingFileMetadata != null)
@@ -911,8 +892,6 @@ internal sealed class MetadataScanTaskExecutor
                         };
                         _fileMetadataCollection.Insert(fileMetadata);
                     }
-
-                    found++;
                 }
             }
             catch (Exception ex)
@@ -925,17 +904,30 @@ internal sealed class MetadataScanTaskExecutor
                 );
             }
 
-            processed++;
-
-            await Task.Delay(250, context.CancellationToken);
+            processedFiles++;
         }
+
+        UpdateProgress();
 
         if (library.Id is { } libraryId)
         {
             ClearMissingMovieFiles(libraryId);
         }
 
-        return (processed, found, currentOperation);
-    }
+        void UpdateProgress()
+        {
+            var totalFiles = currentState.TotalFiles;
+            var totalPeopleCount = currentState.TotalPeople;
 
+            // Calculate progress based on files and people
+            // Files contribute 70% of progress, people contribute 30%
+            var fileProgress = totalFiles > 0 ? (double)processedFiles / totalFiles * 70.0 : 70.0;
+
+            var peopleProgress =
+                totalPeopleCount > 0 ? (double)syncedPeople / totalPeopleCount * 30.0 : 0.0;
+
+            var progress = fileProgress + peopleProgress;
+            context.ReportProgress(Math.Min(progress, 100.0));
+        }
+    }
 }

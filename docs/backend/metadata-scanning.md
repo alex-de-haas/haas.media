@@ -47,11 +47,6 @@ public record ScanOperationInfo(
 
 Progress, status, and error details are sourced from the associated `BackgroundTaskInfo` messages exposed through `/hub/background-tasks?type=MetadataScanTask`.
 
-## Rate Limiting & TMDb Usage
-
-- Every TMDb request path goes through the throttled HTTP client (token bucket + retries).
-- The executor still applies `Task.Delay(250ms)` between lookups to minimize burst load and support deployments without aggressive throttling configuration.
-
 ## Error Handling
 
 - File system issues (missing directories, access denied) log warnings and continue with remaining libraries.
