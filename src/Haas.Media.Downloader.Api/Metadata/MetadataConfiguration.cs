@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Security.Claims;
+using Haas.Media.Core.BackgroundTasks;
 using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 
 namespace Haas.Media.Downloader.Api.Metadata;

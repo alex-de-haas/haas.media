@@ -1,4 +1,4 @@
-using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
+using Haas.Media.Core.BackgroundTasks;
 using LiteDB;
 
 namespace Haas.Media.Downloader.Api.Metadata;

@@ -1,3 +1,4 @@
+using Haas.Media.Core.BackgroundTasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 

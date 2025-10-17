@@ -1,4 +1,4 @@
-namespace Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
+namespace Haas.Media.Core.BackgroundTasks;
 
 public sealed class BackgroundWorkerContext<TTask, TPayload>
     where TTask : BackgroundTaskBase
@@ -6,7 +6,7 @@ public sealed class BackgroundWorkerContext<TTask, TPayload>
     private readonly Action<BackgroundTaskState<TPayload>> _onUpdate;
     private readonly CancellationToken _cancellationToken;
 
-    internal BackgroundWorkerContext(
+    public BackgroundWorkerContext(
         TTask task,
         BackgroundTaskState<TPayload> state,
         Action<BackgroundTaskState<TPayload>> onUpdate,

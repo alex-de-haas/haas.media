@@ -1,3 +1,4 @@
+using Haas.Media.Core.BackgroundTasks;
 using Haas.Media.Core.FFMpeg;
 using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
 

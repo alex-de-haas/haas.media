@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
+using Haas.Media.Core.BackgroundTasks;
 using LiteDB;
 using TMDbLib.Client;
 using TMDbLib.Objects.Movies;

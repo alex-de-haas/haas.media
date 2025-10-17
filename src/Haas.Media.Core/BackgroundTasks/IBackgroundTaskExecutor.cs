@@ -1,4 +1,4 @@
-namespace Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
+namespace Haas.Media.Core.BackgroundTasks;
 
 public interface IBackgroundTaskExecutor<TTask, TPayload>
     where TTask : BackgroundTaskBase

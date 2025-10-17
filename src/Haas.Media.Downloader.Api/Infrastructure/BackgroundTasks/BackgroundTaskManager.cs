@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Haas.Media.Core;
+using Haas.Media.Core.BackgroundTasks;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;

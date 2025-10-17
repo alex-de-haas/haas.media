@@ -1,3 +1,4 @@
+using Haas.Media.Core.BackgroundTasks;
 using Microsoft.AspNetCore.Builder;
 
 namespace Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;

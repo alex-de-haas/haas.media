@@ -1,4 +1,4 @@
-using Haas.Media.Downloader.Api.Infrastructure.BackgroundTasks;
+using Haas.Media.Core.BackgroundTasks;
 using LiteDB;
 using TMDbLib.Client;
 
