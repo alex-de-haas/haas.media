@@ -14,8 +14,7 @@ public static class EncodingConfiguration
                 ?? throw new InvalidOperationException("FFMPEG_BINARY configuration is required")
         );
 
-        builder.Services.AddSingleton<EncodingService>();
-        builder.Services.AddSingleton<IEncodingApi>(sp => sp.GetRequiredService<EncodingService>());
+        builder.Services.AddSingleton<IEncodingApi, EncodingService>();
         builder.Services.AddBackgroundTask<
             EncodingTask,
             EncodingProcessInfo,
@@ -51,11 +50,7 @@ public static class EncodingConfiguration
 
         app.MapPost(
                 "api/encodings",
-                async (
-                    EncodeRequest request,
-                    IEncodingApi convertApi,
-                    CancellationToken ct
-                ) =>
+                async (EncodeRequest request, IEncodingApi convertApi, CancellationToken ct) =>
                 {
                     await convertApi.StartEncodingAsync(request, ct);
                     return Results.Ok();

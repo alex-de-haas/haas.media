@@ -1,4 +1,3 @@
-using Haas.Media.Core.BackgroundTasks;
 using Haas.Media.Services.Infrastructure.BackgroundTasks;
 
 namespace Haas.Media.Services.Files;
