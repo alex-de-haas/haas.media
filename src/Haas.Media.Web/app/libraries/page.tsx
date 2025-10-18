@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useLibraries, LibraryForm, LibraryList } from "@/features/libraries";
+import { RefreshMetadataDialog, type RefreshOptions } from "@/features/libraries/components/refresh-metadata-dialog";
 import { useBackgroundTasks } from "@/features/background-tasks/hooks/useBackgroundTasks";
 import { useNotifications } from "@/lib/notifications";
 import { useMetadataSignalR } from "@/lib/signalr/useMetadataSignalR";
@@ -34,6 +35,7 @@ export default function LibrariesPage() {
   const [libraryToDelete, setLibraryToDelete] = useState<Library | null>(null);
   const [isCancellingScan, setIsCancellingScan] = useState(false);
   const [isCancellingRefresh, setIsCancellingRefresh] = useState(false);
+  const [isRefreshDialogOpen, setIsRefreshDialogOpen] = useState(false);
 
   const { libraries, loading, createLibrary, updateLibrary, deleteLibrary, startBackgroundScan, startMetadataRefresh } = useLibraries();
 
@@ -154,7 +156,7 @@ export default function LibrariesPage() {
     });
   };
 
-  const handleRefreshMetadata = async () => {
+  const handleRefreshMetadata = () => {
     if (activeRefresh?.task && isActiveBackgroundTask(activeRefresh.task)) {
       notify({
         title: "Refresh In Progress",
@@ -164,7 +166,11 @@ export default function LibrariesPage() {
       return;
     }
 
-    const result = await startMetadataRefresh();
+    setIsRefreshDialogOpen(true);
+  };
+
+  const handleRefreshConfirm = async (options: RefreshOptions) => {
+    const result = await startMetadataRefresh(options);
     notify({
       title: result.success ? "Refresh Started" : "Refresh Failed",
       message: result.message,
@@ -499,6 +505,12 @@ export default function LibrariesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <RefreshMetadataDialog
+        open={isRefreshDialogOpen}
+        onOpenChange={setIsRefreshDialogOpen}
+        onConfirm={handleRefreshConfirm}
+      />
     </main>
   );
 }

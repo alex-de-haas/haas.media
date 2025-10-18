@@ -159,9 +159,14 @@ public static class MetadataConfiguration
 
         app.MapPost(
                 "api/metadata/refresh/start",
-                async (IMetadataApi metadataService) =>
+                async (IMetadataApi metadataService, RefreshMetadataRequest? request) =>
                 {
-                    var operationId = await metadataService.StartRefreshMetadataAsync();
+                    var options = request ?? new RefreshMetadataRequest(true, true, true);
+                    var operationId = await metadataService.StartRefreshMetadataAsync(
+                        options.RefreshMovies,
+                        options.RefreshTvShows,
+                        options.RefreshPeople
+                    );
                     return Results.Ok(
                         new { operationId, message = "Metadata refresh task started" }
                     );
@@ -420,3 +425,9 @@ public static class MetadataConfiguration
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 }
+
+public record RefreshMetadataRequest(
+    bool RefreshMovies = true,
+    bool RefreshTvShows = true,
+    bool RefreshPeople = true
+);

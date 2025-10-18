@@ -577,14 +577,22 @@ public class MetadataService : IMetadataApi
         return Task.FromResult(operationId);
     }
 
-    public Task<string> StartRefreshMetadataAsync()
+    public Task<string> StartRefreshMetadataAsync(bool refreshMovies = true, bool refreshTvShows = true, bool refreshPeople = true)
     {
-        var task = new MetadataRefreshTask();
+        var task = new MetadataRefreshTask
+        {
+            RefreshMovies = refreshMovies,
+            RefreshTvShows = refreshTvShows,
+            RefreshPeople = refreshPeople
+        };
         var operationId = task.Id.ToString();
 
         _logger.LogInformation(
-            "Starting metadata refresh operation with ID: {OperationId}",
-            operationId
+            "Starting metadata refresh operation with ID: {OperationId} (Movies: {RefreshMovies}, TV Shows: {RefreshTvShows}, People: {RefreshPeople})",
+            operationId,
+            refreshMovies,
+            refreshTvShows,
+            refreshPeople
         );
 
         try

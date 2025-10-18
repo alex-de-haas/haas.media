@@ -118,11 +118,12 @@ export function useLibraries() {
     }
   }, []);
 
-  const startMetadataRefresh = useCallback(async (): Promise<{ success: boolean; message: string; operationId?: string }> => {
+  const startMetadataRefresh = useCallback(async (options?: { refreshMovies?: boolean; refreshTvShows?: boolean; refreshPeople?: boolean }): Promise<{ success: boolean; message: string; operationId?: string }> => {
     try {
       const response = await fetchWithAuth(`${downloaderApi}/api/metadata/refresh/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(options ?? { refreshMovies: true, refreshTvShows: true, refreshPeople: true }),
       });
 
       if (response.ok) {

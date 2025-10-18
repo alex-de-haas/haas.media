@@ -104,6 +104,7 @@ internal sealed class MetadataRefreshTaskExecutor
                 try
                 {
                     personSyncStats = await RefreshMovieAsync(
+                        context,
                         movie,
                         cancellationToken,
                         progress =>
@@ -250,6 +251,7 @@ internal sealed class MetadataRefreshTaskExecutor
                 try
                 {
                     personSyncStats = await RefreshTvShowAsync(
+                        context,
                         tvShow,
                         cancellationToken,
                         progress =>
@@ -429,152 +431,177 @@ internal sealed class MetadataRefreshTaskExecutor
     }
 
     private async Task<PersonSyncStatistics> RefreshMovieAsync(
+        BackgroundWorkerContext<MetadataRefreshTask, MetadataRefreshOperationInfo> context,
         MovieMetadata movie,
         CancellationToken cancellationToken,
         Action<PersonSyncProgress>? reportProgress = null,
         Action<int>? reportPersonCount = null
     )
     {
-        var tmdbId = movie.Id;
-        var movieDetails = await _tmdbClient.GetMovieAsync(
-            tmdbId,
-            extraMethods: MovieMethods.ReleaseDates | MovieMethods.Credits | MovieMethods.Images,
-            cancellationToken: cancellationToken
-        );
-
-        if (movieDetails is null)
+        if (context.Task.RefreshMovies)
         {
-            throw new InvalidOperationException(
-                $"Movie with TMDb ID {tmdbId} was not found."
+            var tmdbId = movie.Id;
+            var movieDetails = await _tmdbClient.GetMovieAsync(
+                tmdbId,
+                extraMethods: MovieMethods.ReleaseDates
+                    | MovieMethods.Credits
+                    | MovieMethods.Images,
+                cancellationToken: cancellationToken
+            );
+
+            if (movieDetails is null)
+            {
+                throw new InvalidOperationException($"Movie with TMDb ID {tmdbId} was not found.");
+            }
+
+            var preferredCountry = _countryProvider.GetPreferredCountryCode();
+            var preferredLanguage = _languageProvider.GetPreferredLanguage();
+            movieDetails.Update(movie, preferredCountry, preferredLanguage);
+
+            _movieMetadataCollection.Update(movie);
+        }
+
+        var personSyncStats = PersonSyncStatistics.Empty;
+        if (context.Task.RefreshPeople)
+        {
+            var associatedPersonIds = movie
+                .Cast.Select(c => c.Id)
+                .Concat(movie.Crew.Select(c => c.Id))
+                .Distinct()
+                .ToArray();
+
+            if (associatedPersonIds.Length > 0)
+            {
+                reportPersonCount?.Invoke(associatedPersonIds.Length);
+            }
+
+            personSyncStats = await PersonMetadataSynchronizer.SyncAsync(
+                _tmdbClient,
+                _personMetadataCollection,
+                _logger,
+                associatedPersonIds,
+                refreshExisting: true,
+                cancellationToken: cancellationToken,
+                reportProgress: reportProgress
             );
         }
-
-        var associatedPersonIds = PersonMetadataCollector
-            .FromCredits(movieDetails.Credits)
-            .Distinct()
-            .ToArray();
-
-        if (associatedPersonIds.Length > 0)
-        {
-            reportPersonCount?.Invoke(associatedPersonIds.Length);
-        }
-
-        var personSyncStats = await PersonMetadataSynchronizer.SyncAsync(
-            _tmdbClient,
-            _personMetadataCollection,
-            _logger,
-            associatedPersonIds,
-            refreshExisting: true,
-            cancellationToken: cancellationToken,
-            reportProgress: reportProgress
-        );
-
-        var preferredCountry = _countryProvider.GetPreferredCountryCode();
-        var preferredLanguage = _languageProvider.GetPreferredLanguage();
-        movieDetails.Update(movie, preferredCountry, preferredLanguage);
-
-        _movieMetadataCollection.Update(movie);
 
         return personSyncStats;
     }
 
     private async Task<PersonSyncStatistics> RefreshTvShowAsync(
+        BackgroundWorkerContext<MetadataRefreshTask, MetadataRefreshOperationInfo> context,
         TVShowMetadata tvShow,
         CancellationToken cancellationToken,
         Action<PersonSyncProgress>? reportProgress = null,
         Action<int>? reportPersonCount = null
     )
     {
-        var tmdbId = tvShow.Id;
-        var tvShowDetails = await _tmdbClient.GetTvShowAsync(
-            tmdbId,
-            extraMethods: TvShowMethods.Credits | TvShowMethods.Images,
-            cancellationToken: cancellationToken
-        );
-
-        if (tvShowDetails is null)
+        if (context.Task.RefreshTvShows)
         {
-            throw new InvalidOperationException(
-                $"TV show with TMDb ID {tmdbId} was not found."
-            );
-        }
-
-        var associatedPersonIds = new HashSet<int>();
-        associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(tvShowDetails.Credits));
-        associatedPersonIds.UnionWith(PersonMetadataCollector.FromCreators(tvShowDetails.CreatedBy));
-
-        var orderedSeasons =
-            tvShowDetails
-                .Seasons?.Where(season => season.SeasonNumber > 0)
-                .OrderBy(season => season.SeasonNumber)
-                .ToArray() ?? Array.Empty<SearchTvSeason>();
-
-        var seasons = new List<TVSeasonMetadata>();
-
-        foreach (var season in orderedSeasons)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var seasonDetails = await _tmdbClient.GetTvSeasonAsync(
+            var tmdbId = tvShow.Id;
+            var tvShowDetails = await _tmdbClient.GetTvShowAsync(
                 tmdbId,
-                season.SeasonNumber,
+                extraMethods: TvShowMethods.Credits | TvShowMethods.Images,
                 cancellationToken: cancellationToken
             );
 
-            associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(seasonDetails.Credits));
+            if (tvShowDetails is null)
+            {
+                throw new InvalidOperationException(
+                    $"TV show with TMDb ID {tmdbId} was not found."
+                );
+            }
 
-            var seasonMetadata = seasonDetails.Create();
-            var episodes = new List<TVEpisodeMetadata>();
+            var orderedSeasons =
+                tvShowDetails
+                    .Seasons?.Where(season => season.SeasonNumber > 0)
+                    .OrderBy(season => season.SeasonNumber)
+                    .ToArray() ?? Array.Empty<SearchTvSeason>();
 
-            foreach (var episode in seasonDetails.Episodes)
+            var seasons = new List<TVSeasonMetadata>();
+
+            foreach (var season in orderedSeasons)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var episodeDetails = await _tmdbClient.GetTvEpisodeAsync(
+                var seasonDetails = await _tmdbClient.GetTvSeasonAsync(
                     tmdbId,
                     season.SeasonNumber,
-                    episode.EpisodeNumber,
                     cancellationToken: cancellationToken
                 );
 
-                if (episodeDetails is null)
+                var seasonMetadata = seasonDetails.Create();
+                var episodes = new List<TVEpisodeMetadata>();
+
+                foreach (var episode in seasonDetails.Episodes)
                 {
-                    continue;
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var episodeDetails = await _tmdbClient.GetTvEpisodeAsync(
+                        tmdbId,
+                        season.SeasonNumber,
+                        episode.EpisodeNumber,
+                        cancellationToken: cancellationToken
+                    );
+
+                    if (episodeDetails is null)
+                    {
+                        continue;
+                    }
+
+                    var episodeMetadata = episodeDetails.Create();
+                    episodes.Add(episodeMetadata);
                 }
 
-                var episodeMetadata = episodeDetails.Create();
-                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(episodeDetails.Credits));
-                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCrew(episodeDetails.Crew));
-                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCast(episodeDetails.GuestStars));
-                episodes.Add(episodeMetadata);
+                seasonMetadata.Episodes = episodes.ToArray();
+                seasons.Add(seasonMetadata);
             }
 
-            seasonMetadata.Episodes = episodes.ToArray();
-            seasons.Add(seasonMetadata);
+            var preferredCountry = _countryProvider.GetPreferredCountryCode();
+            var preferredLanguage = _languageProvider.GetPreferredLanguage();
+            tvShowDetails.Update(tvShow, preferredCountry, preferredLanguage);
+
+            tvShow.Seasons = seasons.ToArray();
+
+            _tvShowMetadataCollection.Update(tvShow);
         }
 
-        var preferredCountry = _countryProvider.GetPreferredCountryCode();
-        var preferredLanguage = _languageProvider.GetPreferredLanguage();
-        tvShowDetails.Update(tvShow, preferredCountry, preferredLanguage);
-
-        tvShow.Seasons = seasons.ToArray();
-
-        if (associatedPersonIds.Count > 0)
+        var personSyncStats = PersonSyncStatistics.Empty;
+        if (context.Task.RefreshPeople)
         {
-            reportPersonCount?.Invoke(associatedPersonIds.Count);
+            var associatedPersonIds = tvShow
+                .Cast.Select(c => c.Id)
+                .Concat(tvShow.Crew.Select(c => c.Id))
+                .Concat(
+                    tvShow
+                        .Seasons.SelectMany(s => s.Episodes)
+                        .SelectMany(e => e.Cast)
+                        .Select(c => c.Id)
+                )
+                .Concat(
+                    tvShow
+                        .Seasons.SelectMany(s => s.Episodes)
+                        .SelectMany(e => e.Crew)
+                        .Select(c => c.Id)
+                )
+                .Distinct()
+                .ToArray();
+            if (associatedPersonIds.Length > 0)
+            {
+                reportPersonCount?.Invoke(associatedPersonIds.Length);
+            }
+
+            personSyncStats = await PersonMetadataSynchronizer.SyncAsync(
+                _tmdbClient,
+                _personMetadataCollection,
+                _logger,
+                associatedPersonIds,
+                refreshExisting: true,
+                cancellationToken: cancellationToken,
+                reportProgress: reportProgress
+            );
         }
-
-        var personSyncStats = await PersonMetadataSynchronizer.SyncAsync(
-            _tmdbClient,
-            _personMetadataCollection,
-            _logger,
-            associatedPersonIds,
-            refreshExisting: true,
-            cancellationToken: cancellationToken,
-            reportProgress: reportProgress
-        );
-
-        _tvShowMetadataCollection.Update(tvShow);
 
         return personSyncStats;
     }
