@@ -438,7 +438,7 @@ internal sealed class MetadataRefreshTaskExecutor
         var tmdbId = movie.Id;
         var movieDetails = await _tmdbClient.GetMovieAsync(
             tmdbId,
-            extraMethods: MovieMethods.ReleaseDates | MovieMethods.Credits,
+            extraMethods: MovieMethods.ReleaseDates | MovieMethods.Credits | MovieMethods.Images,
             cancellationToken: cancellationToken
         );
 
@@ -470,7 +470,8 @@ internal sealed class MetadataRefreshTaskExecutor
         );
 
         var preferredCountry = _countryProvider.GetPreferredCountryCode();
-        movieDetails.Update(movie, preferredCountry);
+        var preferredLanguage = _languageProvider.GetPreferredLanguage();
+        movieDetails.Update(movie, preferredCountry, preferredLanguage);
 
         _movieMetadataCollection.Update(movie);
 
@@ -487,7 +488,7 @@ internal sealed class MetadataRefreshTaskExecutor
         var tmdbId = tvShow.Id;
         var tvShowDetails = await _tmdbClient.GetTvShowAsync(
             tmdbId,
-            extraMethods: TvShowMethods.Credits,
+            extraMethods: TvShowMethods.Credits | TvShowMethods.Images,
             cancellationToken: cancellationToken
         );
 
@@ -553,7 +554,8 @@ internal sealed class MetadataRefreshTaskExecutor
         }
 
         var preferredCountry = _countryProvider.GetPreferredCountryCode();
-        tvShowDetails.Update(tvShow, preferredCountry);
+        var preferredLanguage = _languageProvider.GetPreferredLanguage();
+        tvShowDetails.Update(tvShow, preferredCountry, preferredLanguage);
 
         tvShow.Seasons = seasons.ToArray();
 

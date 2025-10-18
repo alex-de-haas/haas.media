@@ -49,6 +49,7 @@ export interface SearchResult {
   type: LibraryType;
   posterPath?: string;
   backdropPath?: string;
+  logoPath?: string;
   releaseDate?: Date | null;
   originalLanguage: string;
 }
@@ -154,6 +155,7 @@ export interface MovieMetadata {
   cast: CastMember[];
   posterPath?: string;
   backdropPath?: string;
+  logoPath?: string;
   filePath?: string | null;
   officialRating?: string | null;
   createdAt: string;
@@ -175,6 +177,7 @@ export interface TVShowMetadata {
   seasons: TVSeasonMetadata[];
   posterPath?: string;
   backdropPath?: string;
+  logoPath?: string;
   officialRating?: string | null;
   firstAirDate?: string | null;
   status?: string | null;

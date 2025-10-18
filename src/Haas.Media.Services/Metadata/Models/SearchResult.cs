@@ -15,5 +15,6 @@ public class SearchResult
     // TMDB image paths (relative paths)
     public string? PosterPath { get; set; }
     public string? BackdropPath { get; set; }
+    public string? LogoPath { get; set; }
 }
 

@@ -18,6 +18,7 @@ public class TVShowMetadata
     // TMDB image paths
     public string? PosterPath { get; set; }
     public string? BackdropPath { get; set; }
+    public string? LogoPath { get; set; }
 
     // Related metadata
     public string[] Genres { get; set; } = [];
@@ -36,7 +37,7 @@ public class TVShowMetadata
 
 static class TVShowMetadataMapper
 {
-    public static TVShowMetadata Create(this TvShow tvShow, string? preferredCountryCode = null)
+    public static TVShowMetadata Create(this TvShow tvShow, string? preferredCountryCode = null, string? preferredLanguage = null)
     {
         return new TVShowMetadata
         {
@@ -49,6 +50,7 @@ static class TVShowMetadataMapper
             VoteCount = tvShow.VoteCount,
             PosterPath = tvShow.PosterPath,
             BackdropPath = tvShow.BackdropPath,
+            LogoPath = GetBestLogo(tvShow.Images, preferredLanguage),
             Genres = MapGenres(tvShow),
             Crew = MapCrew(tvShow),
             Cast = MapCast(tvShow),
@@ -61,7 +63,7 @@ static class TVShowMetadataMapper
         };
     }
 
-    public static void Update(this TvShow source, TVShowMetadata target, string? preferredCountryCode = null)
+    public static void Update(this TvShow source, TVShowMetadata target, string? preferredCountryCode = null, string? preferredLanguage = null)
     {
         target.OriginalTitle = source.OriginalName;
         target.OriginalLanguage = source.OriginalLanguage;
@@ -71,6 +73,7 @@ static class TVShowMetadataMapper
         target.VoteCount = source.VoteCount;
         target.PosterPath = source.PosterPath;
         target.BackdropPath = source.BackdropPath;
+        target.LogoPath = GetBestLogo(source.Images, preferredLanguage);
         target.Genres = MapGenres(source);
         target.Crew = MapCrew(source);
         target.Cast = MapCast(source);
@@ -99,6 +102,50 @@ static class TVShowMetadataMapper
     private static Network[] MapNetworks(TvShow source)
     {
         return source.Networks?.Select(n => n.Map()).ToArray() ?? [];
+    }
+
+    private static string? GetBestLogo(TMDbLib.Objects.General.Images? images, string? preferredLanguage)
+    {
+        if (images?.Logos == null || images.Logos.Count == 0)
+        {
+            return null;
+        }
+
+        var normalizedPreferred = NormalizeLanguageCode(preferredLanguage) ?? "en";
+
+        // Prefer user's preferred language, then English, then null language (universal), then highest voted
+        var logo = images.Logos
+            .OrderByDescending(l => string.Equals(l.Iso_639_1, normalizedPreferred, StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(l => l.Iso_639_1 == "en")
+            .ThenByDescending(l => l.Iso_639_1 == null)
+            .ThenByDescending(l => l.VoteAverage)
+            .ThenByDescending(l => l.VoteCount)
+            .FirstOrDefault();
+
+        return logo?.FilePath;
+    }
+
+    private static string? NormalizeLanguageCode(string? languageCode)
+    {
+        if (string.IsNullOrWhiteSpace(languageCode))
+        {
+            return null;
+        }
+
+        // Language codes can be in format "en-US" or "en", we want just "en"
+        var normalized = languageCode.Trim();
+        if (normalized.Contains('-'))
+        {
+            normalized = normalized.Split('-')[0];
+        }
+
+        normalized = normalized.ToLowerInvariant();
+        if (normalized.Length != 2 || normalized.Any(ch => ch is < 'a' or > 'z'))
+        {
+            return null;
+        }
+
+        return normalized;
     }
 
     private static string? GetOfficialRating(TvShow source, string? preferredCountryCode = null)

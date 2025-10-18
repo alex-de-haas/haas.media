@@ -456,7 +456,7 @@ internal sealed class MetadataScanTaskExecutor
     {
         var tvShowDetails = await _tmdbClient.GetTvShowAsync(
             tmdbTvShowId,
-            extraMethods: TvShowMethods.Credits,
+            extraMethods: TvShowMethods.Credits | TvShowMethods.Images,
             cancellationToken: cancellationToken
         );
 
@@ -468,7 +468,8 @@ internal sealed class MetadataScanTaskExecutor
         }
 
         var preferredCountry = _countryProvider.GetPreferredCountryCode();
-        var tvShowMetadata = tvShowDetails.Create(preferredCountry);
+        var preferredLanguage = _languageProvider.GetPreferredLanguage();
+        var tvShowMetadata = tvShowDetails.Create(preferredCountry, preferredLanguage);
         var associatedPersonIds = new HashSet<int>();
         associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(tvShowDetails.Credits));
         associatedPersonIds.UnionWith(
@@ -798,7 +799,7 @@ internal sealed class MetadataScanTaskExecutor
                     var movieResult = searchResults.Results[0];
                     var movieDetails = await _tmdbClient.GetMovieAsync(
                         movieResult.Id,
-                        extraMethods: MovieMethods.ReleaseDates | MovieMethods.Credits,
+                        extraMethods: MovieMethods.ReleaseDates | MovieMethods.Credits | MovieMethods.Images,
                         cancellationToken: context.CancellationToken
                     );
 
@@ -855,17 +856,18 @@ internal sealed class MetadataScanTaskExecutor
                     );
 
                     var preferredCountry = _countryProvider.GetPreferredCountryCode();
+                    var preferredLanguage = _languageProvider.GetPreferredLanguage();
                     if (existsMovieMetadata != null)
                     {
                         // Update existing metadata
-                        movieDetails.Update(existsMovieMetadata, preferredCountry);
+                        movieDetails.Update(existsMovieMetadata, preferredCountry, preferredLanguage);
                         _movieMetadataCollection.Update(existsMovieMetadata);
                         movieMetadata = existsMovieMetadata;
                     }
                     else
                     {
                         // Create new metadata
-                        movieMetadata = movieDetails.Create(preferredCountry);
+                        movieMetadata = movieDetails.Create(preferredCountry, preferredLanguage);
                         _movieMetadataCollection.Insert(movieMetadata);
                     }
 

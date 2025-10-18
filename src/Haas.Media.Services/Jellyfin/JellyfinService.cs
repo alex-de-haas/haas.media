@@ -355,9 +355,12 @@ public class JellyfinService
                 return null;
             }
 
-            relativePath = string.Equals(imageType, "Primary", StringComparison.OrdinalIgnoreCase)
-                ? movie.PosterPath
-                : movie.BackdropPath;
+            relativePath = imageType switch
+            {
+                var type when string.Equals(type, "Primary", StringComparison.OrdinalIgnoreCase) => movie.PosterPath,
+                var type when string.Equals(type, "Logo", StringComparison.OrdinalIgnoreCase) => movie.LogoPath,
+                _ => movie.BackdropPath
+            };
         }
         else if (JellyfinIdHelper.TryParseSeriesId(itemId, out var seriesId))
         {
@@ -367,9 +370,12 @@ public class JellyfinService
                 return null;
             }
 
-            relativePath = string.Equals(imageType, "Backdrop", StringComparison.OrdinalIgnoreCase)
-                ? show.BackdropPath
-                : show.PosterPath;
+            relativePath = imageType switch
+            {
+                var type when string.Equals(type, "Backdrop", StringComparison.OrdinalIgnoreCase) => show.BackdropPath,
+                var type when string.Equals(type, "Logo", StringComparison.OrdinalIgnoreCase) => show.LogoPath,
+                _ => show.PosterPath
+            };
         }
         else if (
             JellyfinIdHelper.TryParseSeasonId(itemId, out var seriesIdForSeason, out var seasonNumber)
@@ -613,7 +619,7 @@ public class JellyfinService
             }
         }
 
-        var imageTags = BuildPrimaryImageTag(metadata.PosterPath);
+        var imageTags = BuildImageTags(metadata.PosterPath, metadata.LogoPath);
         var backdropTags = BuildBackdropImageTag(metadata.BackdropPath);
         var people = MapPeople(metadata.Cast, metadata.Crew);
         
@@ -669,7 +675,7 @@ public class JellyfinService
             ? null
             : JellyfinIdHelper.CreateLibraryId(fileMetadata.LibraryId);
 
-        var posterTags = BuildPrimaryImageTag(metadata.PosterPath);
+        var posterTags = BuildImageTags(metadata.PosterPath, metadata.LogoPath);
         var backdropTags = BuildBackdropImageTag(metadata.BackdropPath);
         var people = MapPeople(metadata.Cast, metadata.Crew);
         
@@ -914,6 +920,25 @@ public class JellyfinService
         };
     }
 
+    private static IReadOnlyDictionary<string, string>? BuildImageTags(string? posterPath, string? logoPath)
+    {
+        var tags = new Dictionary<string, string>();
+
+        if (!string.IsNullOrWhiteSpace(posterPath))
+        {
+            var trimmedPath = posterPath.Trim();
+            tags["Primary"] = GenerateImageTag(trimmedPath);
+        }
+
+        if (!string.IsNullOrWhiteSpace(logoPath))
+        {
+            var trimmedPath = logoPath.Trim();
+            tags["Logo"] = GenerateImageTag(trimmedPath);
+        }
+
+        return tags.Count > 0 ? tags : null;
+    }
+
     private static IReadOnlyDictionary<string, string>? BuildPrimaryImageTag(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -941,6 +966,22 @@ public class JellyfinService
         var imageTag = GenerateImageTag(trimmedPath);
         
         return [imageTag];
+    }
+
+    private static IReadOnlyDictionary<string, string>? BuildLogoImageTag(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        var trimmedPath = path.Trim();
+        var imageTag = GenerateImageTag(trimmedPath);
+        
+        return new Dictionary<string, string>
+        {
+            ["Logo"] = imageTag,
+        };
     }
     
     private static string GenerateImageTag(string path)

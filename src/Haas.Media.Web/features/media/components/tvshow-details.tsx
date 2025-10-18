@@ -10,7 +10,7 @@ import { useTVShow, useDeleteTVShowMetadata } from "@/features/media/hooks";
 import { useFilesByMediaId } from "@/features/media/hooks/useFileMetadata";
 import { LibraryType } from "@/types/library";
 import { Spinner } from "@/components/ui";
-import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
+import { getPosterUrl, getBackdropUrl, getLogoUrl } from "@/lib/tmdb";
 import type { TVEpisodeMetadata, FileMetadata } from "@/types/metadata";
 import { useNotifications } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
@@ -176,6 +176,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
 
   const posterUrl = getPosterUrl(tvShow.posterPath);
   const backdropUrl = getBackdropUrl(tvShow.backdropPath);
+  const logoUrl = getLogoUrl(tvShow.logoPath, "w500");
   const seasonCount = tvShow.seasons?.length ?? 0;
   const CREDIT_DISPLAY_LIMIT = 20;
   const hasCast = Boolean(tvShow.cast && tvShow.cast.length > 0);
@@ -238,7 +239,20 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
               <CardHeader className="space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2">
-                    <CardTitle className="text-3xl md:text-4xl">{tvShow.title}</CardTitle>
+                    {logoUrl ? (
+                      <div className="mb-2">
+                        <Image
+                          src={logoUrl}
+                          alt={`${tvShow.title} logo`}
+                          width={300}
+                          height={100}
+                          className="max-w-[300px] h-auto object-contain"
+                          priority
+                        />
+                      </div>
+                    ) : (
+                      <CardTitle className="text-3xl md:text-4xl">{tvShow.title}</CardTitle>
+                    )}
                     {tvShow.originalTitle && tvShow.originalTitle !== tvShow.title && (
                       <CardDescription className="text-base">{tvShow.originalTitle}</CardDescription>
                     )}

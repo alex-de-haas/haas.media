@@ -65,3 +65,14 @@ export function getStillUrl(stillPath?: string | null, size: string = "w300"): s
   if (!stillPath) return null;
   return `https://image.tmdb.org/t/p/${size}${stillPath}`;
 }
+
+/**
+ * Gets the full URL for a TMDB logo image
+ * @param logoPath The relative logo path from TMDB
+ * @param size The image size (e.g., 'w92', 'w154', 'w185', 'w300', 'w500', 'original')
+ * @returns Full image URL or null if path is null/empty
+ */
+export function getLogoUrl(logoPath?: string | null, size: string = "w300"): string | null {
+  if (!logoPath) return null;
+  return `https://image.tmdb.org/t/p/${size}${logoPath}`;
+}

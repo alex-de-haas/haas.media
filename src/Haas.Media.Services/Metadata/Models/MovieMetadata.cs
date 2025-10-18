@@ -22,6 +22,7 @@ public class MovieMetadata
     // TMDB image paths
     public string? PosterPath { get; set; }
     public string? BackdropPath { get; set; }
+    public string? LogoPath { get; set; }
 
     // Related metadata
     public string[] Genres { get; set; } = [];
@@ -36,7 +37,7 @@ public class MovieMetadata
 
 static class MovieMetadataMapper
 {
-    public static MovieMetadata Create(this Movie source, string? preferredCountryCode = null)
+    public static MovieMetadata Create(this Movie source, string? preferredCountryCode = null, string? preferredLanguage = null)
     {
         return new MovieMetadata
         {
@@ -52,6 +53,7 @@ static class MovieMetadataMapper
             Revenue = source.Revenue,
             PosterPath = source.PosterPath,
             BackdropPath = source.BackdropPath,
+            LogoPath = GetBestLogo(source.Images, preferredLanguage),
             Genres = MapGenres(source),
             Crew = MapCrew(source.Credits),
             Cast = MapCast(source.Credits),
@@ -62,7 +64,7 @@ static class MovieMetadataMapper
         };
     }
 
-    public static void Update(this Movie source, MovieMetadata target, string? preferredCountryCode = null)
+    public static void Update(this Movie source, MovieMetadata target, string? preferredCountryCode = null, string? preferredLanguage = null)
     {
         target.OriginalTitle = source.OriginalTitle;
         target.OriginalLanguage = source.OriginalLanguage;
@@ -75,6 +77,7 @@ static class MovieMetadataMapper
         target.Revenue = source.Revenue;
         target.PosterPath = source.PosterPath;
         target.BackdropPath = source.BackdropPath;
+        target.LogoPath = GetBestLogo(source.Images, preferredLanguage);
         target.UpdatedAt = DateTime.UtcNow;
         target.Genres = MapGenres(source);
         target.Crew = MapCrew(source.Credits);
@@ -97,6 +100,50 @@ static class MovieMetadataMapper
     private static string[] MapGenres(Movie source)
     {
         return source.Genres?.Select(g => g.Name).ToArray() ?? [];
+    }
+
+    private static string? GetBestLogo(TMDbLib.Objects.General.Images? images, string? preferredLanguage)
+    {
+        if (images?.Logos == null || images.Logos.Count == 0)
+        {
+            return null;
+        }
+
+        var normalizedPreferred = NormalizeLanguageCode(preferredLanguage) ?? "en";
+
+        // Prefer user's preferred language, then English, then null language (universal), then highest voted
+        var logo = images.Logos
+            .OrderByDescending(l => string.Equals(l.Iso_639_1, normalizedPreferred, StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(l => l.Iso_639_1 == "en")
+            .ThenByDescending(l => l.Iso_639_1 == null)
+            .ThenByDescending(l => l.VoteAverage)
+            .ThenByDescending(l => l.VoteCount)
+            .FirstOrDefault();
+
+        return logo?.FilePath;
+    }
+
+    private static string? NormalizeLanguageCode(string? languageCode)
+    {
+        if (string.IsNullOrWhiteSpace(languageCode))
+        {
+            return null;
+        }
+
+        // Language codes can be in format "en-US" or "en", we want just "en"
+        var normalized = languageCode.Trim();
+        if (normalized.Contains('-'))
+        {
+            normalized = normalized.Split('-')[0];
+        }
+
+        normalized = normalized.ToLowerInvariant();
+        if (normalized.Length != 2 || normalized.Any(ch => ch is < 'a' or > 'z'))
+        {
+            return null;
+        }
+
+        return normalized;
     }
 
     private static string? GetOfficialRating(Movie source, string? preferredCountryCode = null)

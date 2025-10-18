@@ -159,7 +159,7 @@ internal sealed class AddToLibraryTaskExecutor
 
         var movieDetails = await _tmdbClient.GetMovieAsync(
             tmdbId,
-            extraMethods: MovieMethods.ReleaseDates | MovieMethods.Credits,
+            extraMethods: MovieMethods.ReleaseDates | MovieMethods.Credits | MovieMethods.Images,
             cancellationToken: cancellationToken
         );
 
@@ -210,10 +210,11 @@ internal sealed class AddToLibraryTaskExecutor
         );
 
         var preferredCountry = _countryProvider.GetPreferredCountryCode();
+        var preferredLanguage = _languageProvider.GetPreferredLanguage();
         MovieMetadata movieMetadata;
         if (existingMovie is not null)
         {
-            movieDetails.Update(existingMovie, preferredCountry);
+            movieDetails.Update(existingMovie, preferredCountry, preferredLanguage);
 
             if (!_movieMetadataCollection.Update(existingMovie))
             {
@@ -241,7 +242,7 @@ internal sealed class AddToLibraryTaskExecutor
         }
         else
         {
-            movieMetadata = movieDetails.Create(preferredCountry);
+            movieMetadata = movieDetails.Create(preferredCountry, preferredLanguage);
             _movieMetadataCollection.Insert(movieMetadata);
 
             _logger.LogInformation(
@@ -283,7 +284,7 @@ internal sealed class AddToLibraryTaskExecutor
 
         var tvShowDetails = await _tmdbClient.GetTvShowAsync(
             tmdbId,
-            extraMethods: TvShowMethods.Credits,
+            extraMethods: TvShowMethods.Credits | TvShowMethods.Images,
             cancellationToken: cancellationToken
         );
 
@@ -426,10 +427,11 @@ internal sealed class AddToLibraryTaskExecutor
         );
 
         var preferredCountry = _countryProvider.GetPreferredCountryCode();
+        var preferredLanguage = _languageProvider.GetPreferredLanguage();
         TVShowMetadata tvShowMetadata;
         if (existingTVShow is not null)
         {
-            tvShowDetails.Update(existingTVShow, preferredCountry);
+            tvShowDetails.Update(existingTVShow, preferredCountry, preferredLanguage);
             existingTVShow.Seasons = seasons.ToArray();
 
             if (!_tvShowMetadataCollection.Update(existingTVShow))
@@ -462,7 +464,7 @@ internal sealed class AddToLibraryTaskExecutor
         }
         else
         {
-            tvShowMetadata = tvShowDetails.Create(preferredCountry);
+            tvShowMetadata = tvShowDetails.Create(preferredCountry, preferredLanguage);
             tvShowMetadata.Seasons = seasons.ToArray();
             _tvShowMetadataCollection.Insert(tvShowMetadata);
 

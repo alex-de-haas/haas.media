@@ -10,7 +10,7 @@ import { useMovie, useDeleteMovieMetadata } from "@/features/media/hooks";
 import { useFilesByMediaId } from "@/features/media/hooks/useFileMetadata";
 import { LibraryType } from "@/types/library";
 import { Spinner } from "@/components/ui";
-import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
+import { getPosterUrl, getBackdropUrl, getLogoUrl } from "@/lib/tmdb";
 import { formatCurrency } from "@/lib/utils";
 import { useNotifications } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
@@ -139,6 +139,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
 
   const posterUrl = getPosterUrl(movie.posterPath);
   const backdropUrl = getBackdropUrl(movie.backdropPath);
+  const logoUrl = getLogoUrl(movie.logoPath, "w500");
   const hasCast = Boolean(movie.cast && movie.cast.length > 0);
   const hasCrew = Boolean(movie.crew && movie.crew.length > 0);
 
@@ -199,7 +200,20 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
               <CardHeader className="space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2">
-                    <CardTitle className="text-3xl md:text-4xl">{movie.title}</CardTitle>
+                    {logoUrl ? (
+                      <div className="mb-2">
+                        <Image
+                          src={logoUrl}
+                          alt={`${movie.title} logo`}
+                          width={300}
+                          height={100}
+                          className="max-w-[300px] h-auto object-contain"
+                          priority
+                        />
+                      </div>
+                    ) : (
+                      <CardTitle className="text-3xl md:text-4xl">{movie.title}</CardTitle>
+                    )}
                     {movie.originalTitle && movie.originalTitle !== movie.title && (
                       <CardDescription className="text-base">{movie.originalTitle}</CardDescription>
                     )}
