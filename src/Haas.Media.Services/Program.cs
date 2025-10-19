@@ -3,6 +3,7 @@ using Haas.Media.Core.FFMpeg;
 using Haas.Media.Services.Authentication;
 using Haas.Media.Services.Encodings;
 using Haas.Media.Services.Files;
+using Haas.Media.Services.GlobalSettings;
 using Haas.Media.Services.Infrastructure;
 using Haas.Media.Services.Infrastructure.BackgroundTasks;
 using Haas.Media.Services.Metadata;
@@ -37,6 +38,7 @@ builder.Services.AddSingleton(_ => new LiteDatabase($"Filename={databasePath};Co
 
 builder.AddEncoding();
 builder.AddFiles();
+builder.AddGlobalSettings();
 builder.AddMetadata();
 builder.AddTorrent();
 builder.AddLocalAuthentication();
@@ -157,6 +159,7 @@ app.UseLocalAuthentication();
 app.UseEncoding();
 app.UseBackgroundTasks();
 app.UseFiles();
+app.UseGlobalSettings();
 app.UseMetadata();
 app.UseTorrent();
 

@@ -108,11 +108,8 @@ internal sealed class MetadataScanTaskExecutor
                 };
                 context.SetPayload(currentOperation);
 
-                // Apply library's preferred language for TMDb API calls
-                if (!string.IsNullOrWhiteSpace(library.Id))
-                {
-                    ApplyPreferredLanguage(library.Id);
-                }
+                // Apply preferred language for TMDb API calls
+                ApplyPreferredLanguage();
 
                 if (library.Type == LibraryType.Movies)
                 {
@@ -462,8 +459,8 @@ internal sealed class MetadataScanTaskExecutor
             );
         }
 
-        var preferredCountry = _countryProvider.GetPreferredCountryCode(libraryId);
-        var preferredLanguage = _languageProvider.GetPreferredLanguage(libraryId);
+        var preferredCountry = _countryProvider.GetPreferredCountryCode();
+        var preferredLanguage = _languageProvider.GetPreferredLanguage();
         var tvShowMetadata = tvShowDetails.Create(libraryId, preferredCountry, preferredLanguage);
         var associatedPersonIds = new HashSet<int>();
         associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(tvShowDetails.Credits));
@@ -861,8 +858,8 @@ internal sealed class MetadataScanTaskExecutor
                         new BsonValue(movieResult.Id)
                     );
 
-                    var preferredCountry = _countryProvider.GetPreferredCountryCode(library.Id);
-                    var preferredLanguage = _languageProvider.GetPreferredLanguage(library.Id!);
+                    var preferredCountry = _countryProvider.GetPreferredCountryCode();
+                    var preferredLanguage = _languageProvider.GetPreferredLanguage();
                     if (existsMovieMetadata != null)
                     {
                         // Update existing metadata
@@ -948,9 +945,9 @@ internal sealed class MetadataScanTaskExecutor
         }
     }
 
-    private void ApplyPreferredLanguage(string libraryId)
+    private void ApplyPreferredLanguage()
     {
-        var language = _languageProvider.GetPreferredLanguage(libraryId);
+        var language = _languageProvider.GetPreferredLanguage();
         if (!string.IsNullOrWhiteSpace(language))
         {
             _tmdbClient.DefaultLanguage = language;

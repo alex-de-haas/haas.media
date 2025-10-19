@@ -6,6 +6,7 @@ import { Fragment, type MouseEventHandler } from "react";
 import {
   LayoutDashboard,
   CloudDownload,
+  Settings,
   Settings2,
   Folder,
   Library,
@@ -88,6 +89,11 @@ const navigationItems = [
     name: "Releases Calendar",
     href: "/releases",
     icon: CalendarDays,
+  },
+  {
+    name: "Settings",
+    href: "/settings",
+    icon: Settings,
   },
 ];
 

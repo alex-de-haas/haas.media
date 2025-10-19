@@ -96,8 +96,6 @@ public static class MetadataConfiguration
                         DirectoryPath = request.DirectoryPath,
                         Title = request.Title,
                         Description = request.Description,
-                        PreferredMetadataLanguage = request.PreferredMetadataLanguage,
-                        CountryCode = request.CountryCode,
                     };
 
                     var createdLibrary = await metadataService.AddLibraryAsync(library);
@@ -120,8 +118,6 @@ public static class MetadataConfiguration
                         DirectoryPath = request.DirectoryPath,
                         Title = request.Title,
                         Description = request.Description,
-                        PreferredMetadataLanguage = request.PreferredMetadataLanguage,
-                        CountryCode = request.CountryCode,
                     };
 
                     var updatedLibrary = await metadataService.UpdateLibraryAsync(id, library);

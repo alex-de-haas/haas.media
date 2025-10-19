@@ -1,46 +1,39 @@
+using Haas.Media.Services.GlobalSettings;
 using LiteDB;
 
 namespace Haas.Media.Services.Metadata;
 
 internal sealed class TmdbLanguageProvider : ITmdbLanguageProvider
 {
-    private readonly ILiteCollection<LibraryInfo> _libraries;
+    private readonly ILiteCollection<GlobalSettings.GlobalSettings> _globalSettings;
     private readonly ILogger<TmdbLanguageProvider> _logger;
 
     public TmdbLanguageProvider(LiteDatabase database, ILogger<TmdbLanguageProvider> logger)
     {
-        _libraries = database.GetCollection<LibraryInfo>("libraries");
+        _globalSettings = database.GetCollection<GlobalSettings.GlobalSettings>("globalSettings");
         _logger = logger;
     }
 
-    public string GetPreferredLanguage(string libraryId)
+    public string GetPreferredLanguage()
     {
-        // Check library settings (required parameter for operations that need it)
+        // Get from global settings
         try
         {
-            var library = _libraries.FindById(libraryId);
-            var libraryLanguage = NormalizeLanguage(library?.PreferredMetadataLanguage);
-            if (libraryLanguage is not null)
+            var globalSettings = _globalSettings.FindById(1);
+            var globalLanguage = NormalizeLanguage(globalSettings?.PreferredMetadataLanguage);
+            if (globalLanguage is not null)
             {
-                _logger.LogDebug(
-                    "Using library-specific language: {Language} for library {LibraryId}",
-                    libraryLanguage,
-                    libraryId
-                );
-                return libraryLanguage;
+                _logger.LogDebug("Using global preferred language: {Language}", globalLanguage);
+                return globalLanguage;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(
-                ex,
-                "Failed to resolve preferred language from library {LibraryId}",
-                libraryId
-            );
+            _logger.LogDebug(ex, "Failed to resolve preferred language from global settings");
         }
 
-        // Default to English for operations without library context (e.g., global search)
-        _logger.LogDebug("No library context provided, defaulting to English");
+        // Default to English
+        _logger.LogDebug("No language preference configured, defaulting to English");
         return "en";
     }
 

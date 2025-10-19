@@ -9,8 +9,6 @@ export interface Library {
   directoryPath: string;
   title: string;
   description?: string;
-  preferredMetadataLanguage: string;
-  countryCode: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -20,8 +18,6 @@ export interface CreateLibraryRequest {
   directoryPath: string;
   title: string;
   description?: string;
-  preferredMetadataLanguage: string;
-  countryCode: string;
 }
 
 export interface UpdateLibraryRequest {
@@ -29,6 +25,4 @@ export interface UpdateLibraryRequest {
   directoryPath: string;
   title: string;
   description?: string;
-  preferredMetadataLanguage: string;
-  countryCode: string;
 }

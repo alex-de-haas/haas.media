@@ -207,8 +207,8 @@ internal sealed class AddToLibraryTaskExecutor
             }
         );
 
-        var preferredCountry = _countryProvider.GetPreferredCountryCode(library.Id!);
-        var preferredLanguage = _languageProvider.GetPreferredLanguage(library.Id!);
+        var preferredCountry = _countryProvider.GetPreferredCountryCode();
+        var preferredLanguage = _languageProvider.GetPreferredLanguage();
         MovieMetadata movieMetadata;
         if (existingMovie is not null)
         {
@@ -424,8 +424,8 @@ internal sealed class AddToLibraryTaskExecutor
             }
         );
 
-        var preferredCountry = _countryProvider.GetPreferredCountryCode(library.Id!);
-        var preferredLanguage = _languageProvider.GetPreferredLanguage(library.Id!);
+        var preferredCountry = _countryProvider.GetPreferredCountryCode();
+        var preferredLanguage = _languageProvider.GetPreferredLanguage();
         TVShowMetadata tvShowMetadata;
         if (existingTVShow is not null)
         {

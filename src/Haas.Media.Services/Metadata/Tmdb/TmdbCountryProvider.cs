@@ -1,10 +1,11 @@
+using Haas.Media.Services.GlobalSettings;
 using LiteDB;
 
 namespace Haas.Media.Services.Metadata.Tmdb;
 
 internal sealed class TmdbCountryProvider : ITmdbCountryProvider
 {
-    private readonly ILiteCollection<LibraryInfo> _libraries;
+    private readonly ILiteCollection<GlobalSettings.GlobalSettings> _globalSettings;
     private readonly ILogger<TmdbCountryProvider> _logger;
 
     public TmdbCountryProvider(
@@ -12,33 +13,30 @@ internal sealed class TmdbCountryProvider : ITmdbCountryProvider
         ILogger<TmdbCountryProvider> logger
     )
     {
-        _libraries = database.GetCollection<LibraryInfo>("libraries");
+        _globalSettings = database.GetCollection<GlobalSettings.GlobalSettings>("globalSettings");
         _logger = logger;
     }
 
-    public string GetPreferredCountryCode(string? libraryId = null)
+    public string GetPreferredCountryCode()
     {
-        // Check library settings (required parameter for operations that need it)
-        if (!string.IsNullOrWhiteSpace(libraryId))
+        // Get from global settings
+        try
         {
-            try
+            var globalSettings = _globalSettings.FindById(1);
+            var globalCountryCode = NormalizeCountryCode(globalSettings?.CountryCode);
+            if (globalCountryCode is not null)
             {
-                var library = _libraries.FindById(libraryId);
-                var libraryCountryCode = NormalizeCountryCode(library?.CountryCode);
-                if (libraryCountryCode is not null)
-                {
-                    _logger.LogDebug("Using library-specific country code: {CountryCode} for library {LibraryId}", libraryCountryCode, libraryId);
-                    return libraryCountryCode;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "Failed to resolve preferred country code from library {LibraryId}", libraryId);
+                _logger.LogDebug("Using global preferred country code: {CountryCode}", globalCountryCode);
+                return globalCountryCode;
             }
         }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to resolve preferred country code from global settings");
+        }
 
-        // Default to US for operations without library context (e.g., global search)
-        _logger.LogDebug("No library context provided, defaulting to US");
+        // Default to US
+        _logger.LogDebug("No country preference configured, defaulting to US");
         return "US";
     }
 

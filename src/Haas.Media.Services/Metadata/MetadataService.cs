@@ -499,9 +499,9 @@ public class MetadataService : IMetadataApi
         return Task.FromResult<PersonLibraryCredits?>(result);
     }
 
-    private void ApplyPreferredLanguage(string libraryId)
+    private void ApplyPreferredLanguage()
     {
-        var language = _languageProvider.GetPreferredLanguage(libraryId);
+        var language = _languageProvider.GetPreferredLanguage();
         if (!string.IsNullOrWhiteSpace(language))
         {
             _tmdbClient.DefaultLanguage = language;
