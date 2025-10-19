@@ -1,6 +1,5 @@
 namespace Haas.Media.Services.Authentication;
 
-public record UpdateProfileRequest(
-    string? PreferredMetadataLanguage,
-    string? CountryCode
-);
+// Profile update request - currently only supports password changes
+// Other profile properties can be added here in the future
+public record UpdateProfileRequest();

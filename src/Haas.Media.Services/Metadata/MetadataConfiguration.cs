@@ -26,14 +26,7 @@ public static class MetadataConfiguration
                 configuration["TMDB_API_KEY"]
                 ?? throw new ArgumentException("TMDB_API_KEY configuration is required.");
 
-            var languageProvider = sp.GetRequiredService<ITmdbLanguageProvider>();
-            var preferredLanguage = languageProvider.GetPreferredLanguage();
-
-            var client = new TMDbLib.Client.TMDbClient(tmdbApiKey)
-            {
-                DefaultLanguage = preferredLanguage
-            };
-
+            var client = new TMDbLib.Client.TMDbClient(tmdbApiKey);
             var httpClient = sp.GetRequiredService<Tmdb.TmdbHttpClientAccessor>().HttpClient;
             Tmdb.TmdbClientConfigurator.UseHttpClient(client, httpClient);
 
@@ -103,6 +96,8 @@ public static class MetadataConfiguration
                         DirectoryPath = request.DirectoryPath,
                         Title = request.Title,
                         Description = request.Description,
+                        PreferredMetadataLanguage = request.PreferredMetadataLanguage,
+                        CountryCode = request.CountryCode,
                     };
 
                     var createdLibrary = await metadataService.AddLibraryAsync(library);
@@ -125,6 +120,8 @@ public static class MetadataConfiguration
                         DirectoryPath = request.DirectoryPath,
                         Title = request.Title,
                         Description = request.Description,
+                        PreferredMetadataLanguage = request.PreferredMetadataLanguage,
+                        CountryCode = request.CountryCode,
                     };
 
                     var updatedLibrary = await metadataService.UpdateLibraryAsync(id, library);

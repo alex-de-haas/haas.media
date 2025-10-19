@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useAuthGuard } from "@/features/auth/use-auth-guard";
 import { useLocalAuth } from "@/features/auth/local-auth-context";
 import { usePageTitle } from "@/components/layout/layout-provider";
@@ -9,34 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/lib/notifications";
-import { isSupportedTmdbLanguage } from "@/lib/tmdb-languages";
-import { CountrySelect } from "@/components/country-select";
-import { LanguageSelect } from "@/components/language-select";
 
 export default function ProfilePage() {
   const { isAuthenticated, isLoading } = useAuthGuard();
-  const { user, updateProfile, updatePassword } = useLocalAuth();
+  const { user, updatePassword } = useLocalAuth();
   const { notify } = useNotifications();
-  const [preferredLanguage, setPreferredLanguage] = useState(() => {
-    const code = user?.preferredMetadataLanguage ?? "en";
-    return isSupportedTmdbLanguage(code) ? code : "en";
-  });
-  const [preferredCountry, setPreferredCountry] = useState(() => (user?.countryCode ?? "US").toUpperCase());
-  const [profileLoading, setProfileLoading] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
 
   usePageTitle("Profile");
-
-  useEffect(() => {
-    if (user) {
-      const code = user.preferredMetadataLanguage ?? "en";
-      setPreferredLanguage(isSupportedTmdbLanguage(code) ? code : "en");
-      setPreferredCountry((user.countryCode ?? "US").toUpperCase());
-    }
-  }, [user]);
 
   if (isLoading) {
     return (
@@ -49,26 +32,6 @@ export default function ProfilePage() {
   if (!isAuthenticated) {
     return null;
   }
-
-  const handleProfileSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const normalizedCountry = preferredCountry.trim().toUpperCase();
-    if (normalizedCountry.length !== 2 || /[^A-Z]/.test(normalizedCountry)) {
-      notify({ type: "error", message: "Country code must be a two-letter ISO code (e.g. US, GB)." });
-      return;
-    }
-
-    setProfileLoading(true);
-    const result = await updateProfile(preferredLanguage, normalizedCountry);
-    setProfileLoading(false);
-
-    if (result.success) {
-      notify({ type: "success", message: "Profile updated" });
-    } else {
-      notify({ type: "error", message: result.error ?? "Unable to update profile" });
-    }
-  };
 
   const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -102,40 +65,18 @@ export default function ProfilePage() {
       <Card>
         <CardHeader>
           <CardTitle>Profile</CardTitle>
-          <CardDescription>Update the metadata language and preferred release country associated with your account.</CardDescription>
+          <CardDescription>View your account information. Configure metadata preferences per library in the Libraries page.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-6" onSubmit={handleProfileSubmit}>
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input id="username" type="text" value={user?.username ?? ""} disabled readOnly />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="preferredLanguage">Preferred TMDB language</Label>
-              <LanguageSelect
-                id="preferredLanguage"
-                value={preferredLanguage}
-                onChange={setPreferredLanguage}
-                disabled={profileLoading}
-                placeholder="Select a language"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="preferredCountry">Preferred release country (ISO 3166-1 alpha-2)</Label>
-              <CountrySelect
-                id="preferredCountry"
-                value={preferredCountry}
-                onChange={setPreferredCountry}
-                disabled={profileLoading}
-                placeholder="Select a country"
-              />
-            </div>
-            <div className="flex justify-end">
-              <Button type="submit" disabled={profileLoading}>
-                {profileLoading ? "Saving..." : "Save changes"}
-              </Button>
-            </div>
-          </form>
+            <p className="text-sm text-muted-foreground">
+              To change metadata language and country preferences, configure them individually for each library in the Libraries page.
+            </p>
+          </div>
         </CardContent>
       </Card>
 

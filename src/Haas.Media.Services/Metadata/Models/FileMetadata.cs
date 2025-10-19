@@ -15,11 +15,6 @@ public class FileMetadata
     public required string Id { get; set; }
     
     /// <summary>
-    /// The library this file belongs to.
-    /// </summary>
-    public required string LibraryId { get; init; }
-    
-    /// <summary>
     /// The TMDb ID of the associated media (Movie ID or TV Show ID).
     /// For movies: the MovieMetadata.Id
     /// For TV shows: the TVShowMetadata.Id

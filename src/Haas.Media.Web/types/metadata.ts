@@ -56,7 +56,6 @@ export interface SearchResult {
 
 export interface FileMetadata {
   id?: string;
-  libraryId: string;
   mediaId: string;
   mediaType: LibraryType;
   filePath: string;
@@ -140,6 +139,7 @@ export interface ReleaseDate {
 
 export interface MovieMetadata {
   id: number;
+  libraryId: string;
   originalTitle: string;
   originalLanguage: string;
   title: string;
@@ -164,6 +164,7 @@ export interface MovieMetadata {
 
 export interface TVShowMetadata {
   id: number;
+  libraryId: string;
   originalTitle: string;
   originalLanguage: string;
   title: string;

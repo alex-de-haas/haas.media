@@ -1,60 +1,44 @@
-using System;
-using Haas.Media.Services.Authentication;
 using LiteDB;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 
 namespace Haas.Media.Services.Metadata.Tmdb;
 
 internal sealed class TmdbCountryProvider : ITmdbCountryProvider
 {
-    private readonly ILiteCollection<User> _users;
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ILiteCollection<LibraryInfo> _libraries;
     private readonly ILogger<TmdbCountryProvider> _logger;
 
     public TmdbCountryProvider(
         LiteDatabase database,
-        IHttpContextAccessor httpContextAccessor,
         ILogger<TmdbCountryProvider> logger
     )
     {
-        _users = database.GetCollection<User>("users");
-        _httpContextAccessor = httpContextAccessor;
+        _libraries = database.GetCollection<LibraryInfo>("libraries");
         _logger = logger;
     }
 
-    public string GetPreferredCountryCode()
+    public string GetPreferredCountryCode(string? libraryId = null)
     {
-        var username = _httpContextAccessor.HttpContext?.User?.Identity?.Name;
-
-        if (!string.IsNullOrWhiteSpace(username))
+        // Check library settings (required parameter for operations that need it)
+        if (!string.IsNullOrWhiteSpace(libraryId))
         {
-            var user = _users.FindOne(u => u.Username == username);
-            var countryCode = NormalizeCountryCode(user?.CountryCode);
-            if (countryCode is not null)
+            try
             {
-                return countryCode;
+                var library = _libraries.FindById(libraryId);
+                var libraryCountryCode = NormalizeCountryCode(library?.CountryCode);
+                if (libraryCountryCode is not null)
+                {
+                    _logger.LogDebug("Using library-specific country code: {CountryCode} for library {LibraryId}", libraryCountryCode, libraryId);
+                    return libraryCountryCode;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to resolve preferred country code from library {LibraryId}", libraryId);
             }
         }
 
-        try
-        {
-            var fallbackUser = _users
-                .Query()
-                .Where(u => !string.IsNullOrWhiteSpace(u.CountryCode))
-                .FirstOrDefault();
-
-            var fallbackCountry = NormalizeCountryCode(fallbackUser?.CountryCode);
-            if (fallbackCountry is not null)
-            {
-                return fallbackCountry;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Failed to resolve preferred country code from user profiles");
-        }
-
+        // Default to US for operations without library context (e.g., global search)
+        _logger.LogDebug("No library context provided, defaulting to US");
         return "US";
     }
 

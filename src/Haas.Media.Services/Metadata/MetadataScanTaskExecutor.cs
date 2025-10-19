@@ -49,8 +49,6 @@ internal sealed class MetadataScanTaskExecutor
         BackgroundWorkerContext<MetadataScanTask, ScanOperationInfo> context
     )
     {
-        ApplyPreferredLanguage();
-
         var task = context.Task;
         var operationId = task.Id.ToString();
         var currentOperation = new ScanOperationInfo(
@@ -110,6 +108,12 @@ internal sealed class MetadataScanTaskExecutor
                 };
                 context.SetPayload(currentOperation);
 
+                // Apply library's preferred language for TMDb API calls
+                if (!string.IsNullOrWhiteSpace(library.Id))
+                {
+                    ApplyPreferredLanguage(library.Id);
+                }
+
                 if (library.Type == LibraryType.Movies)
                 {
                     await ScanMovieLibraryWithProgressAsync(context, library, fullDirectoryPath);
@@ -154,15 +158,6 @@ internal sealed class MetadataScanTaskExecutor
             context.ReportStatus(BackgroundTaskStatus.Failed);
 
             throw;
-        }
-    }
-
-    private void ApplyPreferredLanguage()
-    {
-        var language = _languageProvider.GetPreferredLanguage();
-        if (!string.IsNullOrWhiteSpace(language))
-        {
-            _tmdbClient.DefaultLanguage = language;
         }
     }
 
@@ -467,9 +462,9 @@ internal sealed class MetadataScanTaskExecutor
             );
         }
 
-        var preferredCountry = _countryProvider.GetPreferredCountryCode();
-        var preferredLanguage = _languageProvider.GetPreferredLanguage();
-        var tvShowMetadata = tvShowDetails.Create(preferredCountry, preferredLanguage);
+        var preferredCountry = _countryProvider.GetPreferredCountryCode(libraryId);
+        var preferredLanguage = _languageProvider.GetPreferredLanguage(libraryId);
+        var tvShowMetadata = tvShowDetails.Create(libraryId, preferredCountry, preferredLanguage);
         var associatedPersonIds = new HashSet<int>();
         associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(tvShowDetails.Credits));
         associatedPersonIds.UnionWith(
@@ -539,7 +534,6 @@ internal sealed class MetadataScanTaskExecutor
                     var fileMetadata = new FileMetadata
                     {
                         Id = Guid.CreateVersion7().ToString(),
-                        LibraryId = libraryId,
                         MediaId = tmdbTvShowId,
                         MediaType = LibraryType.TVShows,
                         FilePath = filePath,
@@ -631,12 +625,18 @@ internal sealed class MetadataScanTaskExecutor
 
     private void ClearMissingMovieFiles(string libraryId)
     {
-        // Query by MediaType first to avoid ObjectId/String cast issues with LibraryId
+        // Get all movie IDs in this library
+        var movieIdsInLibrary = _movieMetadataCollection
+            .Find(m => m.LibraryId == libraryId)
+            .Select(m => m.Id)
+            .ToHashSet();
+
+        // Get all file metadata entries for movies in this library
         var fileMetadataEntries = _fileMetadataCollection
             .Query()
             .Where(f => f.MediaType == LibraryType.Movies)
             .ToList()
-            .Where(f => f.LibraryId == libraryId)
+            .Where(f => movieIdsInLibrary.Contains(f.MediaId))
             .ToList();
 
         foreach (var fileMetadata in fileMetadataEntries)
@@ -663,12 +663,18 @@ internal sealed class MetadataScanTaskExecutor
 
     private void ClearMissingTvShowFiles(string libraryId)
     {
-        // Query by MediaType first to avoid ObjectId/String cast issues with LibraryId
+        // Get all TV show IDs in this library
+        var tvShowIdsInLibrary = _tvShowMetadataCollection
+            .Find(tv => tv.LibraryId == libraryId)
+            .Select(tv => tv.Id)
+            .ToHashSet();
+
+        // Get all file metadata entries for TV shows in this library
         var fileMetadataEntries = _fileMetadataCollection
             .Query()
             .Where(f => f.MediaType == LibraryType.TVShows)
             .ToList()
-            .Where(f => f.LibraryId == libraryId)
+            .Where(f => tvShowIdsInLibrary.Contains(f.MediaId))
             .ToList();
 
         foreach (var fileMetadata in fileMetadataEntries)
@@ -855,8 +861,8 @@ internal sealed class MetadataScanTaskExecutor
                         new BsonValue(movieResult.Id)
                     );
 
-                    var preferredCountry = _countryProvider.GetPreferredCountryCode();
-                    var preferredLanguage = _languageProvider.GetPreferredLanguage();
+                    var preferredCountry = _countryProvider.GetPreferredCountryCode(library.Id);
+                    var preferredLanguage = _languageProvider.GetPreferredLanguage(library.Id!);
                     if (existsMovieMetadata != null)
                     {
                         // Update existing metadata
@@ -867,7 +873,7 @@ internal sealed class MetadataScanTaskExecutor
                     else
                     {
                         // Create new metadata
-                        movieMetadata = movieDetails.Create(preferredCountry, preferredLanguage);
+                        movieMetadata = movieDetails.Create(library.Id!, preferredCountry, preferredLanguage);
                         _movieMetadataCollection.Insert(movieMetadata);
                     }
 
@@ -875,9 +881,8 @@ internal sealed class MetadataScanTaskExecutor
                     // Note: Query by FilePath first to avoid ObjectId/String cast issues with LibraryId
                     var existingFileMetadata = _fileMetadataCollection
                         .Query()
-                        .Where(f => f.FilePath == relativePath && f.MediaType == LibraryType.Movies)
-                        .ToList()
-                        .FirstOrDefault(f => f.LibraryId == library.Id);
+                        .Where(f => f.FilePath == relativePath && f.MediaType == LibraryType.Movies && f.MediaId == movieMetadata.Id)
+                        .FirstOrDefault();
 
                     // Create or update FileMetadata
                     if (existingFileMetadata != null)
@@ -890,7 +895,6 @@ internal sealed class MetadataScanTaskExecutor
                         var fileMetadata = new FileMetadata
                         {
                             Id = Guid.CreateVersion7().ToString(),
-                            LibraryId = library.Id!,
                             MediaId = movieMetadata.Id,
                             MediaType = LibraryType.Movies,
                             FilePath = relativePath,
@@ -941,6 +945,15 @@ internal sealed class MetadataScanTaskExecutor
                 currentState.TotalPeople
             );
             context.ReportProgress(progress);
+        }
+    }
+
+    private void ApplyPreferredLanguage(string libraryId)
+    {
+        var language = _languageProvider.GetPreferredLanguage(libraryId);
+        if (!string.IsNullOrWhiteSpace(language))
+        {
+            _tmdbClient.DefaultLanguage = language;
         }
     }
 }

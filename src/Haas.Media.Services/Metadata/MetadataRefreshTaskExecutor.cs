@@ -39,8 +39,6 @@ internal sealed class MetadataRefreshTaskExecutor
         BackgroundWorkerContext<MetadataRefreshTask, MetadataRefreshOperationInfo> context
     )
     {
-        ApplyPreferredLanguage();
-
         var cancellationToken = context.CancellationToken;
         context.State.StartedAt ??= DateTimeOffset.UtcNow;
 
@@ -76,6 +74,9 @@ internal sealed class MetadataRefreshTaskExecutor
             foreach (var movie in movies)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+
+                // Apply library's preferred language for TMDb API calls
+                ApplyPreferredLanguage(movie.LibraryId);
 
                 var displayTitle = string.IsNullOrWhiteSpace(movie.Title)
                     ? $"TMDb #{movie.Id}"
@@ -223,6 +224,9 @@ internal sealed class MetadataRefreshTaskExecutor
             foreach (var tvShow in tvShows)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+
+                // Apply library's preferred language for TMDb API calls
+                ApplyPreferredLanguage(tvShow.LibraryId);
 
                 var displayTitle = string.IsNullOrWhiteSpace(tvShow.Title)
                     ? $"TMDb #{tvShow.Id}"
@@ -421,9 +425,9 @@ internal sealed class MetadataRefreshTaskExecutor
         }
     }
 
-    private void ApplyPreferredLanguage()
+    private void ApplyPreferredLanguage(string libraryId)
     {
-        var language = _languageProvider.GetPreferredLanguage();
+        var language = _languageProvider.GetPreferredLanguage(libraryId);
         if (!string.IsNullOrWhiteSpace(language))
         {
             _tmdbClient.DefaultLanguage = language;
@@ -455,7 +459,7 @@ internal sealed class MetadataRefreshTaskExecutor
             }
 
             var preferredCountry = _countryProvider.GetPreferredCountryCode();
-            var preferredLanguage = _languageProvider.GetPreferredLanguage();
+            var preferredLanguage = _languageProvider.GetPreferredLanguage(movie.LibraryId);
             movieDetails.Update(movie, preferredCountry, preferredLanguage);
 
             _movieMetadataCollection.Update(movie);
@@ -559,7 +563,7 @@ internal sealed class MetadataRefreshTaskExecutor
             }
 
             var preferredCountry = _countryProvider.GetPreferredCountryCode();
-            var preferredLanguage = _languageProvider.GetPreferredLanguage();
+            var preferredLanguage = _languageProvider.GetPreferredLanguage(tvShow.LibraryId);
             tvShowDetails.Update(tvShow, preferredCountry, preferredLanguage);
 
             tvShow.Seasons = seasons.ToArray();

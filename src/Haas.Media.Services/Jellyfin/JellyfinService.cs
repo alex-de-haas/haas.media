@@ -598,11 +598,8 @@ public class JellyfinService
         var allFiles = await _metadataApi.GetFilesByMediaIdAsync(metadata.Id, LibraryType.Movies);
         var filesList = allFiles.ToList();
         
-        // Use first file to determine parent library
-        var firstFile = filesList.FirstOrDefault();
-        var parentId = firstFile?.LibraryId is null
-            ? null
-            : JellyfinIdHelper.CreateLibraryId(firstFile.LibraryId);
+        // Get parent library ID from movie metadata
+        var parentId = JellyfinIdHelper.CreateLibraryId(metadata.LibraryId);
 
         // Create media sources for all files
         var mediaSources = new List<JellyfinMediaSource>();
@@ -669,11 +666,8 @@ public class JellyfinService
 
     private async Task<JellyfinItem> MapSeriesAsync(TVShowMetadata metadata)
     {
-        // Get first file metadata for this TV show to determine library
-        var fileMetadata = await GetFirstFileForMediaAsync(metadata.Id, LibraryType.TVShows);
-        var parentId = fileMetadata?.LibraryId is null
-            ? null
-            : JellyfinIdHelper.CreateLibraryId(fileMetadata.LibraryId);
+        // Get parent library ID from TV show metadata
+        var parentId = JellyfinIdHelper.CreateLibraryId(metadata.LibraryId);
 
         var posterTags = BuildImageTags(metadata.PosterPath, metadata.LogoPath);
         var backdropTags = BuildBackdropImageTag(metadata.BackdropPath);

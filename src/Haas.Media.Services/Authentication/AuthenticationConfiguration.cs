@@ -46,28 +46,14 @@ public static class AuthenticationConfiguration
             {
                 user.Username,
                 user.CreatedAt,
-                user.LastLoginAt,
-                PreferredMetadataLanguage = user.PreferredMetadataLanguage ?? "en",
-                CountryCode = user.CountryCode ?? "US"
+                user.LastLoginAt
             });
         })
         .RequireAuthorization()
         .WithName("GetCurrentUser");
 
-        group.MapPut("/me", async (HttpContext context, UpdateProfileRequest request, IAuthenticationApi authService) =>
-        {
-            var username = context.User.Identity?.Name;
-            if (string.IsNullOrEmpty(username))
-            {
-                return Results.Unauthorized();
-            }
-
-            var response = await authService.UpdateProfileAsync(username, request);
-            return response != null ? Results.Ok(response) : Results.BadRequest(new { error = "Profile update failed" });
-        })
-        .RequireAuthorization()
-        .WithName("UpdateCurrentUser");
-
+        // Profile update endpoint removed - language/country now configured per library
+        
         group.MapPut("/me/password", async (HttpContext context, UpdatePasswordRequest request, IAuthenticationApi authService) =>
         {
             var username = context.User.Identity?.Name;

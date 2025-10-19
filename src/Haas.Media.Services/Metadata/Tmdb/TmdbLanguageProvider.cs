@@ -1,60 +1,46 @@
-using System;
-using Haas.Media.Services.Authentication;
 using LiteDB;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 
 namespace Haas.Media.Services.Metadata;
 
 internal sealed class TmdbLanguageProvider : ITmdbLanguageProvider
 {
-    private readonly ILiteCollection<User> _users;
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ILiteCollection<LibraryInfo> _libraries;
     private readonly ILogger<TmdbLanguageProvider> _logger;
 
-    public TmdbLanguageProvider(
-        LiteDatabase database,
-        IHttpContextAccessor httpContextAccessor,
-        ILogger<TmdbLanguageProvider> logger
-    )
+    public TmdbLanguageProvider(LiteDatabase database, ILogger<TmdbLanguageProvider> logger)
     {
-        _users = database.GetCollection<User>("users");
-        _httpContextAccessor = httpContextAccessor;
+        _libraries = database.GetCollection<LibraryInfo>("libraries");
         _logger = logger;
     }
 
-    public string GetPreferredLanguage()
+    public string GetPreferredLanguage(string libraryId)
     {
-        var username = _httpContextAccessor.HttpContext?.User?.Identity?.Name;
-
-        if (!string.IsNullOrWhiteSpace(username))
-        {
-            var user = _users.FindOne(u => u.Username == username);
-            var language = NormalizeLanguage(user?.PreferredMetadataLanguage);
-            if (language is not null)
-            {
-                return language;
-            }
-        }
-
+        // Check library settings (required parameter for operations that need it)
         try
         {
-            var fallbackUser = _users
-                .Query()
-                .Where(u => !string.IsNullOrWhiteSpace(u.PreferredMetadataLanguage))
-                .FirstOrDefault();
-
-            var fallbackLanguage = NormalizeLanguage(fallbackUser?.PreferredMetadataLanguage);
-            if (fallbackLanguage is not null)
+            var library = _libraries.FindById(libraryId);
+            var libraryLanguage = NormalizeLanguage(library?.PreferredMetadataLanguage);
+            if (libraryLanguage is not null)
             {
-                return fallbackLanguage;
+                _logger.LogDebug(
+                    "Using library-specific language: {Language} for library {LibraryId}",
+                    libraryLanguage,
+                    libraryId
+                );
+                return libraryLanguage;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Failed to resolve preferred TMDb language from user profiles");
+            _logger.LogDebug(
+                ex,
+                "Failed to resolve preferred language from library {LibraryId}",
+                libraryId
+            );
         }
 
+        // Default to English for operations without library context (e.g., global search)
+        _logger.LogDebug("No library context provided, defaulting to English");
         return "en";
     }
 

@@ -128,18 +128,7 @@ public class MetadataService : IMetadataApi
         }
         else
         {
-            // Get all movie IDs associated with this library via FileMetadata
-            // Query by MediaType first to avoid ObjectId/String cast issues with LibraryId
-            var movieIds = _fileMetadataCollection
-                .Query()
-                .Where(f => f.MediaType == LibraryType.Movies)
-                .ToList()
-                .Where(f => f.LibraryId == libraryId)
-                .Select(f => f.MediaId)
-                .Distinct()
-                .ToList();
-
-            results = _movieMetadataCollection.Find(m => movieIds.Contains(m.Id));
+            results = _movieMetadataCollection.Find(m => m.LibraryId == libraryId);
         }
 
         var movieMetadata = results.ToList();
@@ -210,18 +199,7 @@ public class MetadataService : IMetadataApi
         }
         else
         {
-            // Get all TV show IDs associated with this library via FileMetadata
-            // Query by MediaType first to avoid ObjectId/String cast issues with LibraryId
-            var tvShowIds = _fileMetadataCollection
-                .Query()
-                .Where(f => f.MediaType == LibraryType.TVShows)
-                .ToList()
-                .Where(f => f.LibraryId == libraryId)
-                .Select(f => f.MediaId)
-                .Distinct()
-                .ToList();
-
-            results = _tvShowMetadataCollection.Find(tv => tvShowIds.Contains(tv.Id));
+            results = _tvShowMetadataCollection.Find(tv => tv.LibraryId == libraryId);
         }
 
         var tvShowMetadata = results.ToList();
@@ -303,8 +281,7 @@ public class MetadataService : IMetadataApi
         LibraryType? libraryType = null
     )
     {
-        ApplyPreferredLanguage();
-
+        // Search is library-agnostic, so we don't apply a library-specific language preference
         _logger.LogDebug(
             "Searching TMDB for query: {Query}, libraryType: {LibraryType}",
             query,
@@ -522,9 +499,9 @@ public class MetadataService : IMetadataApi
         return Task.FromResult<PersonLibraryCredits?>(result);
     }
 
-    private void ApplyPreferredLanguage()
+    private void ApplyPreferredLanguage(string libraryId)
     {
-        var language = _languageProvider.GetPreferredLanguage();
+        var language = _languageProvider.GetPreferredLanguage(libraryId);
         if (!string.IsNullOrWhiteSpace(language))
         {
             _tmdbClient.DefaultLanguage = language;
@@ -537,10 +514,11 @@ public class MetadataService : IMetadataApi
         _librariesCollection.EnsureIndex(x => x.Title);
 
         _movieMetadataCollection.EnsureIndex(x => x.Title);
+        _movieMetadataCollection.EnsureIndex(x => x.LibraryId);
 
         _tvShowMetadataCollection.EnsureIndex(x => x.Title);
+        _tvShowMetadataCollection.EnsureIndex(x => x.LibraryId);
 
-        _fileMetadataCollection.EnsureIndex(x => x.LibraryId);
         _fileMetadataCollection.EnsureIndex(x => x.MediaId);
         _fileMetadataCollection.EnsureIndex(x => x.FilePath);
         _fileMetadataCollection.EnsureIndex(x => x.MediaType);
@@ -622,15 +600,27 @@ public class MetadataService : IMetadataApi
 
         if (!string.IsNullOrEmpty(libraryId) && mediaId.HasValue)
         {
-            // Fetch all and filter in memory to avoid ObjectId/String cast issues
-            results = _fileMetadataCollection
-                .FindAll()
-                .Where(f => f.LibraryId == libraryId && f.MediaId == mediaId);
+            // Verify that the media item belongs to the specified library
+            var movieInLibrary = _movieMetadataCollection.FindOne(m => m.Id == mediaId.Value && m.LibraryId == libraryId);
+            var tvShowInLibrary = _tvShowMetadataCollection.FindOne(tv => tv.Id == mediaId.Value && tv.LibraryId == libraryId);
+            
+            if (movieInLibrary != null || tvShowInLibrary != null)
+            {
+                results = _fileMetadataCollection.Find(f => f.MediaId == mediaId.Value);
+            }
+            else
+            {
+                results = Enumerable.Empty<FileMetadata>();
+            }
         }
         else if (!string.IsNullOrEmpty(libraryId))
         {
-            // Fetch all and filter in memory to avoid ObjectId/String cast issues
-            results = _fileMetadataCollection.FindAll().Where(f => f.LibraryId == libraryId);
+            // Get all media IDs in this library
+            var movieIds = _movieMetadataCollection.Find(m => m.LibraryId == libraryId).Select(m => m.Id).ToList();
+            var tvShowIds = _tvShowMetadataCollection.Find(tv => tv.LibraryId == libraryId).Select(tv => tv.Id).ToList();
+            var allMediaIds = movieIds.Concat(tvShowIds).ToHashSet();
+            
+            results = _fileMetadataCollection.FindAll().Where(f => allMediaIds.Contains(f.MediaId));
         }
         else if (mediaId.HasValue)
         {

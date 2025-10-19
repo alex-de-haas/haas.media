@@ -15,6 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { FolderOpen, FolderPlus, Loader2 } from "lucide-react";
+import { LanguageSelect } from "@/components/language-select";
+import { CountrySelect } from "@/components/country-select";
+import { isSupportedTmdbLanguage } from "@/lib/tmdb-languages";
 
 interface LibraryFormProps {
   library?: Library;
@@ -28,6 +31,11 @@ export default function LibraryForm({ library, onSubmit, onCancel, isLoading }: 
   const [description, setDescription] = useState(library?.description ?? "");
   const [selectedPath, setSelectedPath] = useState(library?.directoryPath ?? "");
   const [libraryType, setLibraryType] = useState<LibraryType>(library?.type ?? LibraryType.Movies);
+  const [preferredLanguage, setPreferredLanguage] = useState(() => {
+    const code = library?.preferredMetadataLanguage ?? "en";
+    return code && isSupportedTmdbLanguage(code) ? code : "en";
+  });
+  const [countryCode, setCountryCode] = useState(() => (library?.countryCode ?? "US").toUpperCase());
   const [showDirectoryPicker, setShowDirectoryPicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -40,11 +48,15 @@ export default function LibraryForm({ library, onSubmit, onCancel, isLoading }: 
     setDescription(library.description ?? "");
     setSelectedPath(library.directoryPath);
     setLibraryType(library.type);
+    
+    const code = library.preferredMetadataLanguage ?? "en";
+    setPreferredLanguage(code && isSupportedTmdbLanguage(code) ? code : "en");
+    setCountryCode((library.countryCode ?? "US").toUpperCase());
   }, [library]);
 
   const isSubmitDisabled = useMemo(() => {
-    return !title.trim() || !selectedPath.trim() || isSubmitting || Boolean(isLoading);
-  }, [isLoading, isSubmitting, selectedPath, title]);
+    return !title.trim() || !selectedPath.trim() || !preferredLanguage || !countryCode || isSubmitting || Boolean(isLoading);
+  }, [isLoading, isSubmitting, selectedPath, title, preferredLanguage, countryCode]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -57,6 +69,8 @@ export default function LibraryForm({ library, onSubmit, onCancel, isLoading }: 
         title: title.trim(),
         directoryPath: selectedPath.trim(),
         ...(description.trim() ? { description: description.trim() } : {}),
+        preferredMetadataLanguage: preferredLanguage,
+        countryCode: countryCode.toUpperCase(),
       };
 
       await onSubmit(payload);
@@ -123,6 +137,39 @@ export default function LibraryForm({ library, onSubmit, onCancel, isLoading }: 
                 <SelectItem value={LibraryType.TVShows.toString()}>TV Shows</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <h4 className="text-sm font-medium">Metadata Preferences</h4>
+              <p className="text-xs text-muted-foreground">
+                Configure language and country for metadata fetching in this library.
+              </p>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="preferredLanguage">Preferred TMDB language</Label>
+              <LanguageSelect
+                id="preferredLanguage"
+                value={preferredLanguage}
+                onChange={setPreferredLanguage}
+                disabled={isSubmitting}
+                placeholder="Select language"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="countryCode">Preferred release country (ISO 3166-1 alpha-2)</Label>
+              <CountrySelect
+                id="countryCode"
+                value={countryCode}
+                onChange={setCountryCode}
+                disabled={isSubmitting}
+                placeholder="Select country"
+              />
+            </div>
           </div>
         </div>
 

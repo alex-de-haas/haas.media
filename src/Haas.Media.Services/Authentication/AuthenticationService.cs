@@ -11,7 +11,6 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
 {
     private readonly ILiteCollection<User> _users = db.GetCollection<User>("users");
     private readonly PasswordHasher<User> _passwordHasher = new();
-    private const string DefaultCountryCode = "US";
 
     public async Task<AuthResponse?> RegisterAsync(RegisterRequest request)
     {
@@ -38,8 +37,6 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
 
         // Check if this is the first user
         var isFirstUser = _users.Count() == 0;
-        var preferredLanguage = NormalizeLanguage(request.PreferredMetadataLanguage);
-        var countryCode = NormalizeCountryCode(request.CountryCode, DefaultCountryCode);
 
         // Create user with placeholder password hash (will be set immediately after)
         var user = new User
@@ -47,9 +44,7 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             Username = request.Username,
             PasswordHash = string.Empty, // Temporary, will be replaced below
             IsAdmin = isFirstUser,
-            CreatedAt = DateTime.UtcNow,
-            PreferredMetadataLanguage = preferredLanguage,
-            CountryCode = countryCode
+            CreatedAt = DateTime.UtcNow
         };
 
         // Hash password using ASP.NET Core Identity's PasswordHasher
@@ -62,13 +57,10 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
 
         // Generate token
         var token = GenerateJwtToken(user);
-        user.CountryCode ??= DefaultCountryCode;
 
         return new AuthResponse(
             token,
-            user.Username,
-            user.PreferredMetadataLanguage ?? "en",
-            user.CountryCode
+            user.Username
         );
     }
 
@@ -96,9 +88,8 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             return null;
         }
 
-        // Update last login and ensure country code is set
+        // Update last login
         user.LastLoginAt = DateTime.UtcNow;
-        user.CountryCode ??= DefaultCountryCode;
         _users.Update(user);
 
         logger.LogInformation("User logged in: {Username}", user.Username);
@@ -108,9 +99,7 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
 
         return new AuthResponse(
             token,
-            user.Username,
-            user.PreferredMetadataLanguage ?? "en",
-            user.CountryCode
+            user.Username
         );
     }
 
@@ -127,42 +116,10 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
 
     public async Task<AuthResponse?> UpdateProfileAsync(string username, UpdateProfileRequest request)
     {
-        if (string.IsNullOrWhiteSpace(username))
-        {
-            logger.LogWarning("Profile update failed: username missing");
-            return null;
-        }
-
-        var user = _users.FindOne(u => u.Username == username);
-        if (user == null)
-        {
-            logger.LogWarning("Profile update failed: user {Username} not found", username);
-            return null;
-        }
-
-        var preferredLanguage = NormalizeLanguage(request.PreferredMetadataLanguage);
-        user.PreferredMetadataLanguage = preferredLanguage;
-
-        if (request.CountryCode is not null)
-        {
-            user.CountryCode = NormalizeCountryCode(
-                request.CountryCode,
-                user.CountryCode ?? DefaultCountryCode
-            );
-        }
-        else if (string.IsNullOrWhiteSpace(user.CountryCode))
-        {
-            user.CountryCode = DefaultCountryCode;
-        }
-        _users.Update(user);
-
-        var token = GenerateJwtToken(user);
-        return new AuthResponse(
-            token,
-            user.Username,
-            user.PreferredMetadataLanguage ?? "en",
-            user.CountryCode
-        );
+        // Profile updates are currently not supported
+        // This method is kept for API compatibility but returns null
+        logger.LogWarning("Profile update attempted but not supported: {Username}", username);
+        return null;
     }
 
     public async Task<bool> UpdatePasswordAsync(string username, UpdatePasswordRequest request)
@@ -229,9 +186,7 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
             new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim("auth_type", "local"),
-            new Claim(ClaimTypes.Role, user.IsAdmin ? "Admin" : "User"),
-            new Claim("preferred_language", user.PreferredMetadataLanguage ?? "en"),
-            new Claim("country_code", user.CountryCode ?? DefaultCountryCode)
+            new Claim(ClaimTypes.Role, user.IsAdmin ? "Admin" : "User")
         };
 
         var token = new JwtSecurityToken(
@@ -243,31 +198,5 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-
-    private static string NormalizeLanguage(string? language)
-    {
-        if (string.IsNullOrWhiteSpace(language))
-        {
-            return "en";
-        }
-
-        return language.Trim();
-    }
-
-    private static string NormalizeCountryCode(string? countryCode, string fallback)
-    {
-        if (string.IsNullOrWhiteSpace(countryCode))
-        {
-            return fallback;
-        }
-
-        var normalized = countryCode.Trim().ToUpperInvariant();
-        if (normalized.Length != 2 || normalized.Any(ch => ch is < 'A' or > 'Z'))
-        {
-            return fallback;
-        }
-
-        return normalized;
     }
 }

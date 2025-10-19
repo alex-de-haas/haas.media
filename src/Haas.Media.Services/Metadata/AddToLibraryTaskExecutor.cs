@@ -46,8 +46,6 @@ internal sealed class AddToLibraryTaskExecutor
         BackgroundWorkerContext<AddToLibraryTask, AddToLibraryOperationInfo> context
     )
     {
-        ApplyPreferredLanguage();
-
         var task = context.Task;
         context.State.StartedAt ??= DateTimeOffset.UtcNow;
 
@@ -209,8 +207,8 @@ internal sealed class AddToLibraryTaskExecutor
             }
         );
 
-        var preferredCountry = _countryProvider.GetPreferredCountryCode();
-        var preferredLanguage = _languageProvider.GetPreferredLanguage();
+        var preferredCountry = _countryProvider.GetPreferredCountryCode(library.Id!);
+        var preferredLanguage = _languageProvider.GetPreferredLanguage(library.Id!);
         MovieMetadata movieMetadata;
         if (existingMovie is not null)
         {
@@ -242,7 +240,7 @@ internal sealed class AddToLibraryTaskExecutor
         }
         else
         {
-            movieMetadata = movieDetails.Create(preferredCountry, preferredLanguage);
+            movieMetadata = movieDetails.Create(library.Id!, preferredCountry, preferredLanguage);
             _movieMetadataCollection.Insert(movieMetadata);
 
             _logger.LogInformation(
@@ -426,8 +424,8 @@ internal sealed class AddToLibraryTaskExecutor
             }
         );
 
-        var preferredCountry = _countryProvider.GetPreferredCountryCode();
-        var preferredLanguage = _languageProvider.GetPreferredLanguage();
+        var preferredCountry = _countryProvider.GetPreferredCountryCode(library.Id!);
+        var preferredLanguage = _languageProvider.GetPreferredLanguage(library.Id!);
         TVShowMetadata tvShowMetadata;
         if (existingTVShow is not null)
         {
@@ -464,7 +462,7 @@ internal sealed class AddToLibraryTaskExecutor
         }
         else
         {
-            tvShowMetadata = tvShowDetails.Create(preferredCountry, preferredLanguage);
+            tvShowMetadata = tvShowDetails.Create(library.Id!, preferredCountry, preferredLanguage);
             tvShowMetadata.Seasons = seasons.ToArray();
             _tvShowMetadataCollection.Insert(tvShowMetadata);
 
@@ -494,14 +492,5 @@ internal sealed class AddToLibraryTaskExecutor
         context.ReportProgress(95);
 
         return payload;
-    }
-
-    private void ApplyPreferredLanguage()
-    {
-        var language = _languageProvider.GetPreferredLanguage();
-        if (!string.IsNullOrWhiteSpace(language))
-        {
-            _tmdbClient.DefaultLanguage = language;
-        }
     }
 }
