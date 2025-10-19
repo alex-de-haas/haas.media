@@ -75,9 +75,6 @@ internal sealed class MetadataRefreshTaskExecutor
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                // Apply library's preferred language for TMDb API calls
-                ApplyPreferredLanguage(movie.LibraryId);
-
                 var displayTitle = string.IsNullOrWhiteSpace(movie.Title)
                     ? $"TMDb #{movie.Id}"
                     : movie.Title;
@@ -224,9 +221,6 @@ internal sealed class MetadataRefreshTaskExecutor
             foreach (var tvShow in tvShows)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-
-                // Apply library's preferred language for TMDb API calls
-                ApplyPreferredLanguage(tvShow.LibraryId);
 
                 var displayTitle = string.IsNullOrWhiteSpace(tvShow.Title)
                     ? $"TMDb #{tvShow.Id}"
@@ -444,6 +438,9 @@ internal sealed class MetadataRefreshTaskExecutor
     {
         if (context.Task.RefreshMovies)
         {
+            // Apply library's preferred language before making TMDb API calls
+            ApplyPreferredLanguage(movie.LibraryId);
+
             var tmdbId = movie.Id;
             var movieDetails = await _tmdbClient.GetMovieAsync(
                 tmdbId,
@@ -458,7 +455,7 @@ internal sealed class MetadataRefreshTaskExecutor
                 throw new InvalidOperationException($"Movie with TMDb ID {tmdbId} was not found.");
             }
 
-            var preferredCountry = _countryProvider.GetPreferredCountryCode();
+            var preferredCountry = _countryProvider.GetPreferredCountryCode(movie.LibraryId);
             var preferredLanguage = _languageProvider.GetPreferredLanguage(movie.LibraryId);
             movieDetails.Update(movie, preferredCountry, preferredLanguage);
 
@@ -503,6 +500,9 @@ internal sealed class MetadataRefreshTaskExecutor
     {
         if (context.Task.RefreshTvShows)
         {
+            // Apply library's preferred language before making TMDb API calls
+            ApplyPreferredLanguage(tvShow.LibraryId);
+
             var tmdbId = tvShow.Id;
             var tvShowDetails = await _tmdbClient.GetTvShowAsync(
                 tmdbId,
@@ -562,7 +562,7 @@ internal sealed class MetadataRefreshTaskExecutor
                 seasons.Add(seasonMetadata);
             }
 
-            var preferredCountry = _countryProvider.GetPreferredCountryCode();
+            var preferredCountry = _countryProvider.GetPreferredCountryCode(tvShow.LibraryId);
             var preferredLanguage = _languageProvider.GetPreferredLanguage(tvShow.LibraryId);
             tvShowDetails.Update(tvShow, preferredCountry, preferredLanguage);
 
