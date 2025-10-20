@@ -20,17 +20,25 @@ RUN dotnet publish "Haas.Media.Services/Haas.Media.Services.csproj" -c Release -
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 
-# Install ffmpeg and VA-API dependencies
+# Install ffmpeg and VA-API dependencies required for AMD GPUs under WSL2
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ffmpeg \
-        libva2 \
         vainfo \
+        libva2 \
+        libva-drm2 \
         mesa-va-drivers \
+        mesa-vulkan-drivers \
         libdrm2 \
         libdrm-amdgpu1 \
-        libva-dev \
+        libgl1-mesa-dri \
+        libxcb-dri3-0 \
     && rm -rf /var/lib/apt/lists/*
+
+# Default runtime configuration for VAAPI on AMD (Radeon 890M)
+ENV FFMPEG_BINARY=/usr/bin/ffmpeg \
+    LIBVA_DRIVER_NAME=radeonsi \
+    LIBVA_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri
 
 # Copy published app
 COPY --from=build /app/publish .
