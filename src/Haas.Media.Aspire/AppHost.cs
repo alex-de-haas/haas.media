@@ -37,7 +37,7 @@ var downloaderApi = builder
     .WithEnvironment("JWT_EXPIRATION_MINUTES", jwtExpirationMinutes)
     .WithEnvironment("TMDB_API_KEY", tmdbApiKey)
     .WithEnvironment("DATA_DIRECTORY", builder.ExecutionContext.IsPublishMode ? "/data" : GetEnvOrEmpty("DATA_DIRECTORY"))
-    .WithEnvironment("FFMPEG_BINARY", builder.ExecutionContext.IsPublishMode ? "/ffmpeg" : GetEnvOrEmpty("FFMPEG_BINARY"))
+    .WithEnvironment("FFMPEG_BINARY", GetEnvOrEmpty("FFMPEG_BINARY"))
     .WithEnvironment("ALLOWED_CORS_ORIGINS", webBaseUrl)
     .WithExternalHttpEndpoints()
     .WithOtlpExporter()
