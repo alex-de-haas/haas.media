@@ -13,6 +13,11 @@ public class FileMetadata
     /// </summary>
     [BsonId]
     public required string Id { get; set; }
+
+    /// <summary>
+    /// The library that owns this media file.
+    /// </summary>
+    public required string LibraryId { get; set; }
     
     /// <summary>
     /// The TMDb ID of the associated media (Movie ID or TV Show ID).

@@ -8,11 +8,6 @@ public class TVShowMetadata
     [BsonId]
     public required int Id { get; set; }
 
-    /// <summary>
-    /// The library this TV show belongs to.
-    /// </summary>
-    public required string LibraryId { get; set; }
-
     public required string OriginalTitle { get; set; }
     public required string OriginalLanguage { get; set; }
     public required string Title { get; set; }
@@ -42,12 +37,11 @@ public class TVShowMetadata
 
 static class TVShowMetadataMapper
 {
-    public static TVShowMetadata Create(this TvShow tvShow, string libraryId, string? preferredCountryCode = null, string? preferredLanguage = null)
+    public static TVShowMetadata Create(this TvShow tvShow, string? preferredCountryCode = null, string? preferredLanguage = null)
     {
         return new TVShowMetadata
         {
             Id = tvShow.Id,
-            LibraryId = libraryId,
             OriginalTitle = tvShow.OriginalName,
             OriginalLanguage = tvShow.OriginalLanguage,
             Title = tvShow.Name,

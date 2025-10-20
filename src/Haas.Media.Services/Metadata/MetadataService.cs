@@ -120,18 +120,32 @@ public class MetadataService : IMetadataApi
 
     public Task<IEnumerable<MovieMetadata>> GetMovieMetadataAsync(string? libraryId = null)
     {
-        IEnumerable<MovieMetadata> results;
+        List<MovieMetadata> movieMetadata;
 
-        if (string.IsNullOrEmpty(libraryId))
+        if (string.IsNullOrWhiteSpace(libraryId))
         {
-            results = _movieMetadataCollection.FindAll();
+            movieMetadata = _movieMetadataCollection.FindAll().ToList();
         }
         else
         {
-            results = _movieMetadataCollection.Find(m => m.LibraryId == libraryId);
+            var movieIds = _fileMetadataCollection
+                .Find(f => f.LibraryId == libraryId && f.MediaType == LibraryType.Movies)
+                .Select(f => f.MediaId)
+                .Distinct()
+                .ToList();
+
+            movieMetadata = new List<MovieMetadata>(movieIds.Count);
+
+            foreach (var movieId in movieIds)
+            {
+                var movie = _movieMetadataCollection.FindById(new BsonValue(movieId));
+                if (movie is not null)
+                {
+                    movieMetadata.Add(movie);
+                }
+            }
         }
 
-        var movieMetadata = results.ToList();
         _logger.LogDebug("Retrieved {Count} movie metadata records", movieMetadata.Count);
         return Task.FromResult<IEnumerable<MovieMetadata>>(movieMetadata);
     }
@@ -191,18 +205,32 @@ public class MetadataService : IMetadataApi
 
     public Task<IEnumerable<TVShowMetadata>> GetTVShowMetadataAsync(string? libraryId = null)
     {
-        IEnumerable<TVShowMetadata> results;
+        List<TVShowMetadata> tvShowMetadata;
 
-        if (string.IsNullOrEmpty(libraryId))
+        if (string.IsNullOrWhiteSpace(libraryId))
         {
-            results = _tvShowMetadataCollection.FindAll();
+            tvShowMetadata = _tvShowMetadataCollection.FindAll().ToList();
         }
         else
         {
-            results = _tvShowMetadataCollection.Find(tv => tv.LibraryId == libraryId);
+            var tvShowIds = _fileMetadataCollection
+                .Find(f => f.LibraryId == libraryId && f.MediaType == LibraryType.TVShows)
+                .Select(f => f.MediaId)
+                .Distinct()
+                .ToList();
+
+            tvShowMetadata = new List<TVShowMetadata>(tvShowIds.Count);
+
+            foreach (var tvShowId in tvShowIds)
+            {
+                var tvShow = _tvShowMetadataCollection.FindById(new BsonValue(tvShowId));
+                if (tvShow is not null)
+                {
+                    tvShowMetadata.Add(tvShow);
+                }
+            }
         }
 
-        var tvShowMetadata = results.ToList();
         _logger.LogDebug("Retrieved {Count} TV show metadata records", tvShowMetadata.Count);
         return Task.FromResult<IEnumerable<TVShowMetadata>>(tvShowMetadata);
     }
@@ -514,14 +542,14 @@ public class MetadataService : IMetadataApi
         _librariesCollection.EnsureIndex(x => x.Title);
 
         _movieMetadataCollection.EnsureIndex(x => x.Title);
-        _movieMetadataCollection.EnsureIndex(x => x.LibraryId);
 
         _tvShowMetadataCollection.EnsureIndex(x => x.Title);
-        _tvShowMetadataCollection.EnsureIndex(x => x.LibraryId);
 
+        _fileMetadataCollection.EnsureIndex(x => x.LibraryId);
         _fileMetadataCollection.EnsureIndex(x => x.MediaId);
         _fileMetadataCollection.EnsureIndex(x => x.FilePath);
         _fileMetadataCollection.EnsureIndex(x => x.MediaType);
+        _fileMetadataCollection.EnsureIndex(x => new { x.LibraryId, x.MediaId });
         _personMetadataCollection.EnsureIndex(x => x.Name);
 
         _logger.LogDebug(
@@ -598,29 +626,15 @@ public class MetadataService : IMetadataApi
     {
         IEnumerable<FileMetadata> results;
 
-        if (!string.IsNullOrEmpty(libraryId) && mediaId.HasValue)
+        if (!string.IsNullOrWhiteSpace(libraryId) && mediaId.HasValue)
         {
-            // Verify that the media item belongs to the specified library
-            var movieInLibrary = _movieMetadataCollection.FindOne(m => m.Id == mediaId.Value && m.LibraryId == libraryId);
-            var tvShowInLibrary = _tvShowMetadataCollection.FindOne(tv => tv.Id == mediaId.Value && tv.LibraryId == libraryId);
-            
-            if (movieInLibrary != null || tvShowInLibrary != null)
-            {
-                results = _fileMetadataCollection.Find(f => f.MediaId == mediaId.Value);
-            }
-            else
-            {
-                results = Enumerable.Empty<FileMetadata>();
-            }
+            results = _fileMetadataCollection.Find(f =>
+                f.LibraryId == libraryId && f.MediaId == mediaId.Value
+            );
         }
-        else if (!string.IsNullOrEmpty(libraryId))
+        else if (!string.IsNullOrWhiteSpace(libraryId))
         {
-            // Get all media IDs in this library
-            var movieIds = _movieMetadataCollection.Find(m => m.LibraryId == libraryId).Select(m => m.Id).ToList();
-            var tvShowIds = _tvShowMetadataCollection.Find(tv => tv.LibraryId == libraryId).Select(tv => tv.Id).ToList();
-            var allMediaIds = movieIds.Concat(tvShowIds).ToHashSet();
-            
-            results = _fileMetadataCollection.FindAll().Where(f => allMediaIds.Contains(f.MediaId));
+            results = _fileMetadataCollection.Find(f => f.LibraryId == libraryId);
         }
         else if (mediaId.HasValue)
         {

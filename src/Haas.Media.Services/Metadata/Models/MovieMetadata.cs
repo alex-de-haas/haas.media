@@ -8,11 +8,6 @@ public class MovieMetadata
     [BsonId]
     public required int Id { get; set; }
     
-    /// <summary>
-    /// The library this movie belongs to.
-    /// </summary>
-    public required string LibraryId { get; set; }
-    
     public required string OriginalTitle { get; set; }
     public required string OriginalLanguage { get; set; }
     public required string Title { get; set; }
@@ -42,12 +37,11 @@ public class MovieMetadata
 
 static class MovieMetadataMapper
 {
-    public static MovieMetadata Create(this Movie source, string libraryId, string? preferredCountryCode = null, string? preferredLanguage = null)
+    public static MovieMetadata Create(this Movie source, string? preferredCountryCode = null, string? preferredLanguage = null)
     {
         return new MovieMetadata
         {
             Id = source.Id,
-            LibraryId = libraryId,
             OriginalTitle = source.OriginalTitle,
             OriginalLanguage = source.OriginalLanguage,
             Title = source.Title,

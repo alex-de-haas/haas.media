@@ -240,7 +240,7 @@ internal sealed class AddToLibraryTaskExecutor
         }
         else
         {
-            movieMetadata = movieDetails.Create(library.Id!, preferredCountry, preferredLanguage);
+            movieMetadata = movieDetails.Create(preferredCountry, preferredLanguage);
             _movieMetadataCollection.Insert(movieMetadata);
 
             _logger.LogInformation(
@@ -462,7 +462,7 @@ internal sealed class AddToLibraryTaskExecutor
         }
         else
         {
-            tvShowMetadata = tvShowDetails.Create(library.Id!, preferredCountry, preferredLanguage);
+            tvShowMetadata = tvShowDetails.Create(preferredCountry, preferredLanguage);
             tvShowMetadata.Seasons = seasons.ToArray();
             _tvShowMetadataCollection.Insert(tvShowMetadata);
 
