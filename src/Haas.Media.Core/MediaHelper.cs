@@ -8,6 +8,21 @@ namespace Haas.Media.Core;
 
 public static partial class MediaHelper
 {
+    private static readonly string[] VaapiDeviceCandidates =
+    [
+        "/dev/dri/renderD128",
+        "/dev/dri/renderD129",
+        "/dev/dri/renderD130",
+        "/dev/dri/renderD131",
+        "/dev/dri/renderD132",
+        "/dev/dri/renderD133",
+        "/dev/dri/renderD134",
+        "/dev/dri/card0",
+        "/dev/dri/card1",
+        "/dev/dri/card2",
+        "/dev/dri/card3"
+    ];
+
     public static async Task<HardwareAccelerationInfo[]> GetHardwareAccelerationInfoAsync()
     {
         var supportedAccelerations = await GetSupportedHardwareAccelerationsAsync();
@@ -99,24 +114,7 @@ public static partial class MediaHelper
             // For VAAPI, check for available DRM devices directly
             if (acceleration == HardwareAcceleration.VAAPI)
             {
-                var possibleDevices = new[] { 
-                    "/dev/dri/renderD128", 
-                    "/dev/dri/renderD129", 
-                    "/dev/dri/renderD130",  // For newer AMD GPUs like 890M
-                    "/dev/dri/card0", 
-                    "/dev/dri/card1",
-                    "/dev/dri/card2"
-                };
-                
-                foreach (var device in possibleDevices)
-                {
-                    if (File.Exists(device))
-                    {
-                        devices.Add(device);
-                    }
-                }
-                
-                return devices.ToArray();
+                return DiscoverVaapiDevices();
             }
 
             // For other hardware acceleration types, parse FFmpeg output
@@ -244,16 +242,7 @@ public static partial class MediaHelper
     {
         // Try to find available VAAPI devices dynamically
         // For newer AMD APUs like Ryzen AI 9 HX 370 with 890M
-        var possibleDevices = new[] { 
-            "/dev/dri/renderD128", 
-            "/dev/dri/renderD129", 
-            "/dev/dri/renderD130",
-            "/dev/dri/card0", 
-            "/dev/dri/card1",
-            "/dev/dri/card2"
-        };
-        
-        foreach (var device in possibleDevices)
+        foreach (var device in DiscoverVaapiDevices())
         {
             // In containers, device might not be accessible during build but available at runtime
             if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true" || File.Exists(device))
@@ -264,6 +253,64 @@ public static partial class MediaHelper
         
         // Fallback to default if no devices found
         return "-vaapi_device /dev/dri/renderD128 -f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -vf 'format=nv12,hwupload' -c:v h264_vaapi -f null -";
+    }
+
+    private static string[] DiscoverVaapiDevices()
+    {
+        var devices = new List<string>();
+        const string driPath = "/dev/dri";
+
+        try
+        {
+            if (Directory.Exists(driPath))
+            {
+                foreach (var entry in Directory.EnumerateFileSystemEntries(driPath, "*", SearchOption.TopDirectoryOnly))
+                {
+                    var name = Path.GetFileName(entry);
+                    if (string.IsNullOrEmpty(name))
+                    {
+                        continue;
+                    }
+
+                    if (name.StartsWith("renderD", StringComparison.OrdinalIgnoreCase) || name.StartsWith("card", StringComparison.OrdinalIgnoreCase))
+                    {
+                        devices.Add(entry);
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Ignore enumeration errors; fall back to known candidates below.
+        }
+
+        if (devices.Count == 0)
+        {
+            foreach (var candidate in VaapiDeviceCandidates)
+            {
+                if (PathExists(candidate))
+                {
+                    devices.Add(candidate);
+                }
+            }
+        }
+
+        return devices
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static bool PathExists(string path)
+    {
+        try
+        {
+            return File.Exists(path) || Directory.Exists(path);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static StreamCodec ParseCodecFromLine(string line, bool isEncoder)
