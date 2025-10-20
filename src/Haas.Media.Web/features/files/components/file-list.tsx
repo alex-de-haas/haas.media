@@ -17,6 +17,8 @@ interface FileListProps {
   loading?: boolean;
   renderActions?: (item: FileItem) => ReactNode;
   headerActions?: ReactNode;
+  scrollable?: boolean;
+  maxHeightClassName?: string;
 }
 
 function FileIcon({ item }: { item: FileItem }) {
@@ -41,8 +43,18 @@ function FileIcon({ item }: { item: FileItem }) {
   return <FileIconOutline className="h-5 w-5 text-muted-foreground" />;
 }
 
-export default function FileList({ files, currentPath, onNavigate, loading, renderActions, headerActions }: FileListProps) {
+export default function FileList({
+  files,
+  currentPath,
+  onNavigate,
+  loading,
+  renderActions,
+  headerActions,
+  scrollable = false,
+  maxHeightClassName,
+}: FileListProps) {
   const pathParts = currentPath ? currentPath.split("/").filter(Boolean) : [];
+  const maxHeightClass = scrollable ? maxHeightClassName ?? "max-h-[60vh]" : undefined;
 
   const handleItemClick = (item: FileItem) => {
     if (item.type === FileItemType.Directory) {
@@ -51,7 +63,7 @@ export default function FileList({ files, currentPath, onNavigate, loading, rend
   };
 
   return (
-    <Card className="overflow-hidden">
+    <Card className={cn("overflow-hidden", scrollable && "flex flex-col", maxHeightClass)}>
       <CardHeader className="border-b bg-muted/40 p-4 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -73,7 +85,7 @@ export default function FileList({ files, currentPath, onNavigate, loading, rend
           {headerActions ? <div className="flex items-center gap-2">{headerActions}</div> : null}
         </div>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className={cn("p-0", scrollable && "flex-1 overflow-y-auto")}>
         {loading ? (
           <div className="flex h-48 items-center justify-center">
             <Spinner className="size-8" />

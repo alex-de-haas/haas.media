@@ -111,7 +111,14 @@ export default function CopyMoveModal({ isOpen, onClose, action, item, onConfirm
           </div>
 
           <div className="space-y-4">
-            <FileList files={files} currentPath={currentPath} onNavigate={handleNavigate} loading={filesLoading} />
+            <FileList
+              files={files}
+              currentPath={currentPath}
+              onNavigate={handleNavigate}
+              loading={filesLoading}
+              scrollable
+              maxHeightClassName="max-h-[55vh]"
+            />
           </div>
 
           <div className="rounded-md border bg-background p-3 text-sm">
