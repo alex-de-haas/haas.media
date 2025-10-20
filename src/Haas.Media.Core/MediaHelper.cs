@@ -10,6 +10,7 @@ public static partial class MediaHelper
 {
     private static readonly string[] VaapiDeviceCandidates =
     [
+        "/dev/dxg",
         "/dev/dri/renderD128",
         "/dev/dri/renderD129",
         "/dev/dri/renderD130",
@@ -258,6 +259,11 @@ public static partial class MediaHelper
     private static string[] DiscoverVaapiDevices()
     {
         var devices = new List<string>();
+        const string dxgPath = "/dev/dxg";
+        if (PathExists(dxgPath))
+        {
+            devices.Add(dxgPath);
+        }
         const string driPath = "/dev/dri";
 
         try
