@@ -1,6 +1,6 @@
 "use client";
 
-import { MouseEvent, useState } from "react";
+import { MouseEvent, useMemo, useState } from "react";
 import { FileItemType } from "@/types/file";
 import type { FileItem } from "@/types/file";
 import {
@@ -18,16 +18,25 @@ import { TriangleAlert } from "lucide-react";
 interface DeleteModalProps {
   isOpen: boolean;
   onClose: () => void;
-  item: FileItem;
+  items: FileItem[];
   onConfirm: (path: string) => Promise<{ success: boolean; message: string }>;
 }
 
-export default function DeleteModal({ isOpen, onClose, item, onConfirm }: DeleteModalProps) {
+export default function DeleteModal({ isOpen, onClose, items, onConfirm }: DeleteModalProps) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const targets = useMemo(() => items.filter(Boolean), [items]);
+  const [primary] = targets;
+  if (!primary) {
+    return null;
+  }
+  const isBulk = targets.length > 1;
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       setLoading(false);
+      setError(null);
       onClose();
     }
   };
@@ -37,11 +46,25 @@ export default function DeleteModal({ isOpen, onClose, item, onConfirm }: Delete
     if (loading) return;
 
     setLoading(true);
+    setError(null);
+
     try {
-      const result = await onConfirm(item.relativePath);
-      if (result?.success) {
-        onClose();
+      let failureMessage: string | null = null;
+
+      for (const target of targets) {
+        const result = await onConfirm(target.relativePath);
+        if (!result?.success) {
+          failureMessage = result?.message ?? "Delete failed";
+          break;
+        }
       }
+
+      if (failureMessage) {
+        setError(failureMessage);
+        return;
+      }
+
+      onClose();
     } finally {
       setLoading(false);
     }
@@ -51,10 +74,32 @@ export default function DeleteModal({ isOpen, onClose, item, onConfirm }: Delete
     <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete {item.type === FileItemType.Directory ? "directory" : "file"}</AlertDialogTitle>
+          <AlertDialogTitle>
+            Delete {isBulk ? `${targets.length} items` : primary.type === FileItemType.Directory ? "directory" : "file"}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete <strong>{item.name}</strong>?
-            {item.type === FileItemType.Directory && " This will delete the directory and all of its contents."}
+            {isBulk ? (
+              <div className="space-y-2">
+                <p>Are you sure you want to delete the following items?</p>
+                <ul className="space-y-1 text-sm text-foreground">
+                  {targets.slice(0, 5).map((target: FileItem) => (
+                    <li key={target.relativePath}>
+                      <span className="font-medium">{target.name}</span>
+                    </li>
+                  ))}
+                  {targets.length > 5 ? (
+                    <li className="text-muted-foreground">
+                      +{targets.length - 5} more item{targets.length - 5 === 1 ? "" : "s"}
+                    </li>
+                  ) : null}
+                </ul>
+              </div>
+            ) : (
+              <span>
+                Are you sure you want to delete <strong>{primary.name}</strong>?
+                {primary.type === FileItemType.Directory && " This will delete the directory and all of its contents."}
+              </span>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -64,13 +109,17 @@ export default function DeleteModal({ isOpen, onClose, item, onConfirm }: Delete
             <div>
               <p className="font-medium">This action cannot be undone.</p>
               <p className="text-muted-foreground">
-                {item.type === FileItemType.Directory
-                  ? "All nested files and folders will be permanently removed."
-                  : "The file will be permanently removed."}
+                {isBulk
+                  ? "All selected items will be permanently removed."
+                  : primary.type === FileItemType.Directory
+                    ? "All nested files and folders will be permanently removed."
+                    : "The file will be permanently removed."}
               </p>
             </div>
           </div>
         </div>
+
+        {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
 
         <AlertDialogFooter>
           <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>

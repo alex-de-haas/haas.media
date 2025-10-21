@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFiles } from "@/features/files";
 import { useNotifications } from "@/lib/notifications";
 import FileList from "@/features/files/components/file-list";
@@ -20,7 +20,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Copy, Download, ExternalLink, FolderPlus, Info, MoreHorizontal, MoveRight, Pencil, Play, Trash2 } from "lucide-react";
+import {
+  CheckSquare,
+  Copy,
+  Download,
+  ExternalLink,
+  FolderPlus,
+  Info,
+  MoreHorizontal,
+  MoveRight,
+  Pencil,
+  Play,
+  Trash2,
+  X,
+} from "lucide-react";
 import { VideoPlayerDialog } from "@/components/ui/video-player-dialog";
 import { useVideoPlayer } from "@/features/files/hooks/use-video-player";
 
@@ -122,23 +135,31 @@ export default function FilesPage() {
 
   const { notify } = useNotifications();
 
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     action: "copy" | "move" | "delete" | "create-directory" | "rename" | null;
-    item?: FileItem;
+    items: FileItem[];
   }>({
     isOpen: false,
     action: null,
+    items: [],
   });
 
   const [isUploading, setIsUploading] = useState(false);
 
-  const openModal = useCallback((action: "copy" | "move" | "delete" | "create-directory" | "rename", item?: FileItem) => {
-    setModalState({ isOpen: true, action, ...(item && { item }) });
-  }, []);
+  const openModal = useCallback(
+    (action: "copy" | "move" | "delete" | "create-directory" | "rename", items?: FileItem | FileItem[]) => {
+      const normalized = Array.isArray(items) ? items : items ? [items] : [];
+      setModalState({ isOpen: true, action, items: normalized });
+    },
+    [],
+  );
 
   const closeModal = () => {
-    setModalState({ isOpen: false, action: null });
+    setModalState({ isOpen: false, action: null, items: [] });
   };
 
   type ModalPayload = CopyRequest | MoveRequest | CreateDirectoryRequest | RenameRequest | string;
@@ -171,8 +192,89 @@ export default function FilesPage() {
       message: result.message,
       type: result.success ? "success" : "error",
     });
+
+    if (result.success) {
+      if (action === "copy" || action === "move") {
+        const sourcePath = (data as CopyRequest | MoveRequest).sourcePath;
+        setSelectedPaths((prev) => {
+          if (!prev.has(sourcePath)) return prev;
+          const next = new Set(prev);
+          next.delete(sourcePath);
+          return next;
+        });
+      } else if (action === "delete") {
+        const path = data as string;
+        setSelectedPaths((prev) => {
+          if (!prev.has(path)) return prev;
+          const next = new Set(prev);
+          next.delete(path);
+          return next;
+        });
+      } else if (action === "rename") {
+        const originalPath = (data as RenameRequest).path;
+        setSelectedPaths((prev) => {
+          if (!prev.has(originalPath)) return prev;
+          const next = new Set(prev);
+          next.delete(originalPath);
+          return next;
+        });
+      }
+    }
     return result;
   };
+
+  useEffect(() => {
+    setSelectedPaths(new Set());
+  }, [currentPath]);
+
+  useEffect(() => {
+    setSelectedPaths((prev) => {
+      if (prev.size === 0) {
+        return prev;
+      }
+
+      const available = new Set(files.map((file) => file.relativePath));
+      let changed = false;
+      const next = new Set<string>();
+
+      prev.forEach((path) => {
+        if (available.has(path)) {
+          next.add(path);
+        } else {
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [files]);
+
+  const selectedItems = useMemo(() => files.filter((file) => selectedPaths.has(file.relativePath)), [files, selectedPaths]);
+
+  const toggleSelectionMode = useCallback(() => {
+    setSelectionMode((prev) => {
+      if (prev) {
+        setSelectedPaths(new Set());
+      }
+      return !prev;
+    });
+  }, []);
+
+  const handleToggleSelection = useCallback((item: FileItem) => {
+    setSelectedPaths((prev) => {
+      const next = new Set(prev);
+      if (next.has(item.relativePath)) {
+        next.delete(item.relativePath);
+      } else {
+        next.add(item.relativePath);
+      }
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedPaths(new Set());
+  }, []);
 
   const handleFileUpload = async (selectedFiles: File[]) => {
     if (!selectedFiles.length) {
@@ -193,17 +295,44 @@ export default function FilesPage() {
     }
   };
 
-  const handleDownloadTorrent = async (path: string, name: string) => {
-    const result = await downloadTorrentFromFile(path);
-    notify({
-      title: result.success ? "Torrent download started" : "Torrent start failed",
-      message: result.success ? `${name} — ${result.message}` : `${name}: ${result.message}`,
-      type: result.success ? "success" : "error",
-    });
-    return result;
-  };
+  const handleDownloadTorrent = useCallback(
+    async (path: string, name: string) => {
+      const result = await downloadTorrentFromFile(path);
+      notify({
+        title: result.success ? "Torrent download started" : "Torrent start failed",
+        message: result.success ? `${name} — ${result.message}` : `${name}: ${result.message}`,
+        type: result.success ? "success" : "error",
+      });
+      return result;
+    },
+    [downloadTorrentFromFile, notify],
+  );
 
   usePageTitle("Files");
+
+  const singleItemActions = useMemo(
+    () =>
+      selectionMode
+        ? undefined
+        : (item: FileItem) => (
+            <FileActions
+              item={item}
+              onDelete={() => openModal("delete", item)}
+              onCopy={() => openModal("copy", item)}
+              onMove={() => openModal("move", item)}
+              onRename={() => openModal("rename", item)}
+              {...(item.extension?.toLowerCase() === ".torrent"
+                ? {
+                    onDownloadTorrent: () => {
+                      void handleDownloadTorrent(item.relativePath, item.name);
+                    },
+                  }
+                : {})}
+              onPlayVideo={() => openVideo(item.relativePath, item.name)}
+            />
+          ),
+    [handleDownloadTorrent, openModal, openVideo, selectionMode],
+  );
 
   return (
     <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
@@ -224,29 +353,76 @@ export default function FilesPage() {
         onNavigate={navigateToPath}
         loading={loading}
         headerActions={
-          <Button onClick={() => openModal("create-directory")} size="sm" className="flex items-center gap-2">
-            <FolderPlus className="h-4 w-4" />
-            Create directory
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant={selectionMode ? "secondary" : "outline"}
+              size="sm"
+              className="flex items-center gap-2"
+              onClick={toggleSelectionMode}
+            >
+              {selectionMode ? <X className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
+              {selectionMode ? "Done" : "Select"}
+            </Button>
+            <Button onClick={() => openModal("create-directory")} size="sm" className="flex items-center gap-2">
+              <FolderPlus className="h-4 w-4" />
+              Create directory
+            </Button>
+          </div>
         }
-        renderActions={(item: FileItem) => (
-          <FileActions
-            item={item}
-            onDelete={() => openModal("delete", item)}
-            onCopy={() => openModal("copy", item)}
-            onMove={() => openModal("move", item)}
-            onRename={() => openModal("rename", item)}
-            {...(item.extension?.toLowerCase() === ".torrent"
-              ? {
-                  onDownloadTorrent: () => {
-                    void handleDownloadTorrent(item.relativePath, item.name);
-                  },
-                }
-              : {})}
-            onPlayVideo={() => openVideo(item.relativePath, item.name)}
-          />
-        )}
+        selectionMode={selectionMode}
+        selectedPaths={selectedPaths}
+        onToggleSelect={handleToggleSelection}
+        {...(singleItemActions && { renderActions: singleItemActions })}
       />
+
+      {selectionMode ? (
+        <section className="rounded-md border border-dashed border-primary/30 bg-primary/5 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm font-medium text-foreground">
+              {selectedItems.length} item{selectedItems.length === 1 ? "" : "s"} selected
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+                disabled={selectedItems.length === 0}
+                onClick={() => openModal("copy", selectedItems)}
+              >
+                <Copy className="h-4 w-4" />
+                Copy
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+                disabled={selectedItems.length === 0}
+                onClick={() => openModal("move", selectedItems)}
+              >
+                <MoveRight className="h-4 w-4" />
+                Move
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="flex items-center gap-2"
+                disabled={selectedItems.length === 0}
+                onClick={() => openModal("delete", selectedItems)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </Button>
+            </div>
+            <Button type="button" variant="ghost" size="sm" onClick={clearSelection} disabled={selectedItems.length === 0}>
+              Clear selection
+            </Button>
+          </div>
+        </section>
+      ) : null}
 
       {/* Video Player Dialog */}
       <VideoPlayerDialog
@@ -277,7 +453,7 @@ export default function FilesPage() {
         isOpen={modalState.isOpen}
         onClose={closeModal}
         action={modalState.action}
-        {...(modalState.item && { item: modalState.item })}
+        items={modalState.items}
         currentPath={currentPath}
         onConfirm={handleModalConfirm}
       />

@@ -7,6 +7,7 @@ import { formatFileSize, formatDate } from "@/lib/utils/format";
 import { Spinner } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { ChevronRight, File as FileIconOutline, Folder, Image as ImageIcon, Music, Video } from "lucide-react";
 
@@ -19,6 +20,9 @@ interface FileListProps {
   headerActions?: ReactNode;
   scrollable?: boolean;
   maxHeightClassName?: string;
+  selectionMode?: boolean;
+  selectedPaths?: Set<string>;
+  onToggleSelect?: (item: FileItem) => void;
 }
 
 function FileIcon({ item }: { item: FileItem }) {
@@ -52,11 +56,19 @@ export default function FileList({
   headerActions,
   scrollable = false,
   maxHeightClassName,
+  selectionMode = false,
+  selectedPaths,
+  onToggleSelect,
 }: FileListProps) {
   const pathParts = currentPath ? currentPath.split("/").filter(Boolean) : [];
   const maxHeightClass = scrollable ? maxHeightClassName ?? "max-h-[60vh]" : undefined;
 
   const handleItemClick = (item: FileItem) => {
+    if (selectionMode) {
+      onToggleSelect?.(item);
+      return;
+    }
+
     if (item.type === FileItemType.Directory) {
       onNavigate(item.relativePath);
     }
@@ -97,34 +109,57 @@ export default function FileList({
           </div>
         ) : (
           <div className="divide-y">
-            {files.map((item) => (
-              <div key={item.relativePath} className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
+            {files.map((item) => {
+              const isSelected = selectedPaths?.has(item.relativePath) ?? false;
+              return (
                 <div
+                  key={item.relativePath}
                   className={cn(
-                    "flex flex-1 items-center gap-3 overflow-hidden",
-                    item.type === FileItemType.Directory && "cursor-pointer hover:text-foreground",
+                    "flex items-center justify-between gap-4 px-4 py-3 sm:px-6",
+                    selectionMode && "hover:bg-muted/40",
+                    isSelected && "bg-muted/40",
                   )}
                   onClick={() => handleItemClick(item)}
                 >
-                  <FileIcon item={item} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      {item.type === FileItemType.Directory ? (
-                        <></>
-                      ) : (
-                        <>
-                          <span>{formatFileSize(item.size || 0)}</span>
-                          <span className="text-muted-foreground/40">•</span>
-                          <span>{formatDate(item.lastModified)}</span>
-                        </>
-                      )}
+                  <div
+                    className={cn(
+                      "flex flex-1 items-center gap-3 overflow-hidden",
+                      !selectionMode && item.type === FileItemType.Directory && "cursor-pointer hover:text-foreground",
+                      selectionMode && "cursor-pointer",
+                    )}
+                  >
+                    {selectionMode ? (
+                      <div
+                        onClick={(event) => event.stopPropagation()}
+                        className="flex items-center justify-center"
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => onToggleSelect?.(item)}
+                          aria-label={isSelected ? `Deselect ${item.name}` : `Select ${item.name}`}
+                        />
+                      </div>
+                    ) : null}
+                    <FileIcon item={item} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        {item.type === FileItemType.Directory ? (
+                          <></>
+                        ) : (
+                          <>
+                            <span>{formatFileSize(item.size || 0)}</span>
+                            <span className="text-muted-foreground/40">•</span>
+                            <span>{formatDate(item.lastModified)}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  {!selectionMode && renderActions ? renderActions(item) : null}
                 </div>
-                {renderActions && renderActions(item)}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>

@@ -14,15 +14,20 @@ interface CopyMoveModalProps {
   isOpen: boolean;
   onClose: () => void;
   action: "copy" | "move";
-  item: FileItem;
+  items: FileItem[];
   onConfirm: (data: CopyFileRequest | MoveFileRequest) => Promise<{ success: boolean; message: string }>;
 }
 
-export default function CopyMoveModal({ isOpen, onClose, action, item, onConfirm }: CopyMoveModalProps) {
+export default function CopyMoveModal({ isOpen, onClose, action, items, onConfirm }: CopyMoveModalProps) {
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [currentPath, setCurrentPath] = useState("");
   const [filesLoading, setFilesLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const targets = useMemo(() => items.filter(Boolean), [items]);
+  const [primary] = targets;
+  const isBulk = targets.length > 1;
 
   const actionTitle = useMemo(() => (action === "copy" ? "Copy" : "Move"), [action]);
   const loadingLabel = useMemo(() => (action === "copy" ? "Copying..." : "Moving..."), [action]);
@@ -49,6 +54,10 @@ export default function CopyMoveModal({ isOpen, onClose, action, item, onConfirm
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    setError(null);
+  }, [isOpen, targets]);
+
   const handleNavigate = (path: string) => {
     fetchFiles(path);
   };
@@ -56,6 +65,7 @@ export default function CopyMoveModal({ isOpen, onClose, action, item, onConfirm
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       setLoading(false);
+      setError(null);
       onClose();
     }
   };
@@ -66,33 +76,70 @@ export default function CopyMoveModal({ isOpen, onClose, action, item, onConfirm
     const basePath = currentPath.trim();
 
     setLoading(true);
+    setError(null);
     try {
-      const finalDestinationPath = basePath ? `${basePath}/${item.name}` : item.name;
-      const result = await onConfirm({
-        sourcePath: item.relativePath,
-        destinationPath: finalDestinationPath,
-      });
+      let failureMessage: string | null = null;
 
-      if (result?.success) {
-        handleOpenChange(false);
+      for (const target of targets) {
+        const destinationPath = basePath ? `${basePath}/${target.name}` : target.name;
+        const result = await onConfirm({
+          sourcePath: target.relativePath,
+          destinationPath,
+        });
+
+        if (!result?.success) {
+          failureMessage = result?.message ?? `${actionTitle} failed.`;
+          break;
+        }
       }
+
+      if (failureMessage) {
+        setError(failureMessage);
+        return;
+      }
+
+      handleOpenChange(false);
     } finally {
       setLoading(false);
     }
   };
 
   const summaryDestination = currentPath.trim();
-  const finalDestinationSummary = summaryDestination ? `${summaryDestination}/${item.name}` : item.name;
+  const previewDirectory = summaryDestination || "(root)";
+  const finalDestinationSummary = summaryDestination && primary ? `${summaryDestination}/${primary.name}` : primary?.name ?? "";
+
+  if (!primary) {
+    return null;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>
-            {actionTitle} {item.name}
+            {isBulk ? `${actionTitle} ${targets.length} items` : `${actionTitle} ${primary.name}`}
           </DialogTitle>
           <DialogDescription>
-            Current location: <span className="font-medium text-foreground">{item.relativePath}</span>
+            {isBulk ? (
+              <div className="space-y-1 text-xs text-muted-foreground">
+                <p className="text-sm text-foreground">Current selection:</p>
+                <ul className="space-y-1">
+                  {targets.slice(0, 5).map((target: FileItem) => (
+                    <li key={target.relativePath} className="flex items-center gap-2">
+                      <span className="font-medium text-foreground">{target.name}</span>
+                      <span className="text-muted-foreground/60">({target.relativePath})</span>
+                    </li>
+                  ))}
+                  {targets.length > 5 ? (
+                    <li className="text-muted-foreground/80">+{targets.length - 5} more item{targets.length - 5 === 1 ? "" : "s"}</li>
+                  ) : null}
+                </ul>
+              </div>
+            ) : (
+              <span>
+                Current location: <span className="font-medium text-foreground">{primary.relativePath}</span>
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -123,15 +170,24 @@ export default function CopyMoveModal({ isOpen, onClose, action, item, onConfirm
 
           <div className="rounded-md border bg-background p-3 text-sm">
             <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
-              <Badge variant="outline">Preview</Badge>
-              <span className="font-mono text-xs text-foreground">{finalDestinationSummary}</span>
+              <Badge variant="outline">Destination</Badge>
+              <span className="font-mono text-xs text-foreground">{previewDirectory}</span>
             </div>
+            {isBulk ? (
+              <p className="mt-2 text-xs text-muted-foreground">Each selected item will be placed in this directory.</p>
+            ) : (
+              <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                Final path: <span className="font-mono text-foreground">{finalDestinationSummary}</span>
+              </p>
+            )}
             {action === "move" && (
               <p className="mt-2 flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
                 Moving will remove the source after completion.
               </p>
             )}
           </div>
+
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={loading}>
