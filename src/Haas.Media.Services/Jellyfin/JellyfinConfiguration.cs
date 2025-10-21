@@ -243,7 +243,7 @@ public static class JellyfinConfiguration
                 var includeTypes = ParseIncludeTypes(context.Request.Query["IncludeItemTypes"].FirstOrDefault());
 
                 var query = new JellyfinItemsQuery(parentId, includeTypes, true, null);
-                var allItems = await service.GetItemsAsync(query);
+                var allItems = await service.GetItemsAsync(query, userId);
 
                 var latestItems = allItems.Items
                     .OrderByDescending(i => i.PremiereDate ?? DateTimeOffset.MinValue)
@@ -254,6 +254,28 @@ public static class JellyfinConfiguration
             })
             .AddEndpointFilter<JellyfinAuthFilter>()
             .WithName("JellyfinUserItemsLatest");
+
+        group
+            .MapGet("/Shows/NextUp", async (HttpContext context, JellyfinService service, IMetadataApi metadataApi) =>
+            {
+                var user = context.GetAuthenticatedUser();
+                var userId = context.Request.Query["UserId"].FirstOrDefault();
+                
+                if (!string.IsNullOrEmpty(userId) && !ValidateUserId(user, userId))
+                    return Results.Forbid();
+
+                var limit = ParseIntQuery(context.Request.Query, "Limit", 24);
+                var parentId = context.Request.Query["ParentId"].FirstOrDefault();
+
+                var nextUpItems = await service.GetNextUpAsync(user.Id, parentId, limit, metadataApi);
+                return JellyfinJson(new JellyfinItemsEnvelope 
+                { 
+                    Items = nextUpItems.ToArray(), 
+                    TotalRecordCount = nextUpItems.Count() 
+                });
+            })
+            .AddEndpointFilter<JellyfinAuthFilter>()
+            .WithName("JellyfinShowsNextUp");
 
         group
             .MapGet("/Users/{userId}/Items/Resume", (HttpContext context, string userId) =>

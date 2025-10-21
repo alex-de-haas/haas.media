@@ -38,6 +38,48 @@ Stored in LiteDB at `{DATA_DIRECTORY}/.db/common.db` in the `filePlaybackInfo` c
 
 ## API Endpoints
 
+### Next Up
+
+#### Get Next Up Episodes
+```
+GET /jellyfin/Shows/NextUp?UserId={userId}&Limit={limit}&ParentId={libraryId}
+```
+Returns the next unwatched episode for each TV series the user is currently watching. This powers the "Next Up" section in Jellyfin clients like Infuse.
+
+**Query Parameters:**
+- `UserId` (optional): User ID (defaults to authenticated user)
+- `Limit` (optional): Maximum number of episodes to return (default: 24)
+- `ParentId` (optional): Library ID to filter by specific library
+
+**Logic:**
+1. Finds all TV shows (optionally filtered by library)
+2. For each show, checks if user has watched at least one episode
+3. Identifies the last watched episode based on playback progress
+4. Returns the next unwatched episode in sequence
+5. Episodes are ordered by season and episode number
+
+**Response:**
+```json
+{
+  "Items": [
+    {
+      "Id": "episode-67890-1-2",
+      "Name": "Episode Title",
+      "Type": "Episode",
+      "SeriesName": "Show Name",
+      "SeasonId": "season-67890-1",
+      "UserData": {
+        "Played": false,
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0
+      },
+      ...
+    }
+  ],
+  "TotalRecordCount": 1
+}
+```
+
 ### Playback Progress Tracking
 
 #### Start Playback

@@ -1262,4 +1262,103 @@ public class JellyfinService
             PlayCount = playbackInfo.PlayCount
         };
     }
+
+    /// <summary>
+    /// Gets the next unwatched episode for each TV series the user is currently watching.
+    /// </summary>
+    public async Task<IEnumerable<JellyfinItem>> GetNextUpAsync(
+        string userId,
+        string? parentId,
+        int limit,
+        IMetadataApi metadataApi)
+    {
+        var nextUpItems = new List<JellyfinItem>();
+
+        // Get all TV shows (optionally filtered by library)
+        string? libraryId = null;
+        if (!string.IsNullOrWhiteSpace(parentId) && JellyfinIdHelper.TryParseLibraryId(parentId, out var libId))
+        {
+            libraryId = libId;
+        }
+
+        var tvShows = (await metadataApi.GetTVShowMetadataAsync(libraryId)).ToList();
+
+        foreach (var show in tvShows)
+        {
+            if (nextUpItems.Count >= limit)
+                break;
+
+            // Get all files for this show to check playback status
+            var showFiles = (await metadataApi.GetFilesByMediaIdAsync(show.Id, LibraryType.TVShows)).ToList();
+            if (showFiles.Count == 0)
+                continue;
+
+            // Get playback info for all episodes of this show
+            var playbackInfos = new Dictionary<string, FilePlaybackInfo>();
+            foreach (var file in showFiles)
+            {
+                var info = await metadataApi.GetPlaybackInfoAsync(userId, file.Id);
+                if (info != null)
+                {
+                    playbackInfos[file.Id] = info;
+                }
+            }
+
+            // If no episodes have been watched, skip this show
+            if (playbackInfos.Count == 0 || !playbackInfos.Values.Any(p => p.PlayCount > 0 || p.PlaybackPositionTicks > 0))
+                continue;
+
+            // Find the last watched episode and the next unwatched one
+            FileMetadata? nextEpisodeFile = null;
+            int lastWatchedSeason = 0;
+            int lastWatchedEpisode = 0;
+
+            // Find the last episode with any progress
+            foreach (var file in showFiles.OrderBy(f => f.SeasonNumber).ThenBy(f => f.EpisodeNumber))
+            {
+                if (playbackInfos.TryGetValue(file.Id, out var info) && 
+                    (info.PlayCount > 0 || info.PlaybackPositionTicks > 0))
+                {
+                    lastWatchedSeason = file.SeasonNumber ?? 0;
+                    lastWatchedEpisode = file.EpisodeNumber ?? 0;
+                }
+            }
+
+            // Find the next unwatched episode after the last watched one
+            foreach (var file in showFiles.OrderBy(f => f.SeasonNumber).ThenBy(f => f.EpisodeNumber))
+            {
+                var season = file.SeasonNumber ?? 0;
+                var episode = file.EpisodeNumber ?? 0;
+
+                // Skip if this is before or equal to the last watched
+                if (season < lastWatchedSeason || (season == lastWatchedSeason && episode <= lastWatchedEpisode))
+                    continue;
+
+                // Check if this episode is unwatched
+                if (!playbackInfos.TryGetValue(file.Id, out var info) || 
+                    (!info.Played && info.PlaybackPositionTicks == 0))
+                {
+                    nextEpisodeFile = file;
+                    break;
+                }
+            }
+
+            // If we found a next episode, add it to the results
+            if (nextEpisodeFile != null)
+            {
+                var episodeMetadata = show.Seasons
+                    .FirstOrDefault(s => s.SeasonNumber == nextEpisodeFile.SeasonNumber)
+                    ?.Episodes
+                    .FirstOrDefault(e => e.EpisodeNumber == nextEpisodeFile.EpisodeNumber);
+
+                if (episodeMetadata != null)
+                {
+                    var mappedEpisode = await MapEpisodeAsync(show, episodeMetadata, libraryId, userId);
+                    nextUpItems.Add(mappedEpisode);
+                }
+            }
+        }
+
+        return nextUpItems;
+    }
 }
