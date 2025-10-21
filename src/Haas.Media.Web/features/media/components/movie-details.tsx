@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MoreVertical, Trash2, Star, ArrowLeft, Film } from "lucide-react";
+import { MoreVertical, Trash2, Star, ArrowLeft, Film, Heart, Play, Eye } from "lucide-react";
 
-import { useMovie, useDeleteMovieMetadata } from "@/features/media/hooks";
+import { useMovie, useDeleteMovieMetadata, useMoviePlaybackInfo } from "@/features/media/hooks";
 import { useFilesByMediaId } from "@/features/media/hooks/useFileMetadata";
 import { LibraryType } from "@/types/library";
 import { Spinner } from "@/components/ui";
@@ -41,6 +41,7 @@ interface MovieDetailsProps {
 export default function MovieDetails({ movieId }: MovieDetailsProps) {
   const { movie, loading, error } = useMovie(movieId);
   const { files: movieFiles, loading: filesLoading } = useFilesByMediaId(movieId, LibraryType.Movies);
+  const { playbackInfo, loading: playbackLoading } = useMoviePlaybackInfo(movieId);
   const [imageError, setImageError] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const router = useRouter();
@@ -48,6 +49,13 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
   const { deleteMovie, loading: deletingMovie } = useDeleteMovieMetadata();
 
   const CREDIT_DISPLAY_LIMIT = 20;
+  const showPlaybackBadges = useMemo(() => {
+    if (!playbackInfo) {
+      return false;
+    }
+
+    return playbackInfo.anyPlayed || playbackInfo.totalPlayCount > 0 || playbackInfo.isFavorite;
+  }, [playbackInfo]);
   const releaseYear = useMemo(() => {
     if (!movie?.releaseDate) {
       return null;
@@ -273,6 +281,30 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                       <span className="font-semibold text-foreground">{movie.voteAverage.toFixed(1)}</span>
                     </Badge>
                     {movie.voteCount > 0 && <span className="text-muted-foreground">{movie.voteCount.toLocaleString()} votes</span>}
+                  </div>
+                )}
+
+                {/* Playback Info */}
+                {!playbackLoading && playbackInfo && showPlaybackBadges && (
+                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                    {playbackInfo.anyPlayed && (
+                      <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
+                        <Eye className="h-4 w-4 text-green-500" />
+                        <span>Watched</span>
+                      </Badge>
+                    )}
+                    {playbackInfo.totalPlayCount > 0 && (
+                      <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
+                        <Play className="h-4 w-4 text-blue-500" />
+                        <span>{playbackInfo.totalPlayCount} play{playbackInfo.totalPlayCount !== 1 ? "s" : ""}</span>
+                      </Badge>
+                    )}
+                    {playbackInfo.isFavorite && (
+                      <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
+                        <Heart className="h-4 w-4 fill-red-500 text-red-500" />
+                        <span>Favorite</span>
+                      </Badge>
+                    )}
                   </div>
                 )}
 

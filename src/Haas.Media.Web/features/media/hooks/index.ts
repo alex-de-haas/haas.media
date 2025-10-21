@@ -16,3 +16,4 @@ export {
   useAddToLibrary,
   useSearch,
 } from "./useMetadata";
+export { useMoviePlaybackInfo, useTVShowPlaybackInfo } from "./usePlaybackInfo";

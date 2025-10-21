@@ -236,3 +236,40 @@ export interface PersonCleanupOperationInfo {
   completedAt?: string | null;
   lastError?: string | null;
 }
+
+export interface FilePlaybackInfo {
+  id: string;
+  userId: string;
+  fileMetadataId: string;
+  playbackPositionTicks: number;
+  playCount: number;
+  played: boolean;
+  lastPlayedDate?: string | null;
+  isFavorite: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MoviePlaybackInfo {
+  movieId: number;
+  files: FilePlaybackInfo[];
+  totalPlayCount: number;
+  anyPlayed: boolean;
+  isFavorite: boolean;
+}
+
+export interface TVShowPlaybackInfo {
+  tvShowId: number;
+  totalEpisodes: number;
+  watchedEpisodes: number;
+  totalPlayCount: number;
+  isFavorite: boolean;
+}
+
+export interface SavePlaybackInfoRequest {
+  fileMetadataId: string;
+  playbackPositionTicks?: number;
+  playCount?: number;
+  played?: boolean;
+  isFavorite?: boolean;
+}

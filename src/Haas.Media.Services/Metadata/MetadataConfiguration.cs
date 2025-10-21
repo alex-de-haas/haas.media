@@ -409,6 +409,153 @@ public static class MetadataConfiguration
             .WithName("GetPersonCreditsById")
             .RequireAuthorization();
 
+        // Playback Info endpoints
+        app.MapGet(
+                "api/metadata/playback/{fileMetadataId}",
+                async (HttpContext context, IMetadataApi metadataService, string fileMetadataId) =>
+                {
+                    var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                    if (string.IsNullOrWhiteSpace(userId))
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    var playbackInfo = await metadataService.GetPlaybackInfoAsync(userId, fileMetadataId);
+                    return playbackInfo != null ? Results.Ok(playbackInfo) : Results.NotFound();
+                }
+            )
+            .WithName("GetPlaybackInfo")
+            .RequireAuthorization();
+
+        app.MapPost(
+                "api/metadata/playback",
+                async (HttpContext context, IMetadataApi metadataService, SavePlaybackInfoRequest request) =>
+                {
+                    var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                    if (string.IsNullOrWhiteSpace(userId))
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    var playbackInfo = new FilePlaybackInfo
+                    {
+                        Id = FilePlaybackInfo.CreateId(userId, request.FileMetadataId),
+                        UserId = userId,
+                        FileMetadataId = request.FileMetadataId,
+                        PlaybackPositionTicks = request.PlaybackPositionTicks ?? 0,
+                        PlayCount = request.PlayCount ?? 0,
+                        Played = request.Played ?? false,
+                        IsFavorite = request.IsFavorite ?? false,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+
+                    var savedPlaybackInfo = await metadataService.SavePlaybackInfoAsync(playbackInfo);
+                    return Results.Ok(savedPlaybackInfo);
+                }
+            )
+            .WithName("SavePlaybackInfo")
+            .RequireAuthorization();
+
+        app.MapGet(
+                "api/metadata/movies/{id}/playback",
+                async (HttpContext context, IMetadataApi metadataService, int id) =>
+                {
+                    var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                    if (string.IsNullOrWhiteSpace(userId))
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    var files = await metadataService.GetFilesByMediaIdAsync(id, LibraryType.Movies);
+                    var filesList = files.ToList();
+                    
+                    if (filesList.Count == 0)
+                    {
+                        return Results.Ok(new MoviePlaybackInfo
+                        {
+                            MovieId = id,
+                            Files = new List<FilePlaybackInfo>(),
+                            TotalPlayCount = 0,
+                            AnyPlayed = false,
+                            IsFavorite = false
+                        });
+                    }
+
+                    var playbackInfos = new List<FilePlaybackInfo>();
+                    foreach (var file in filesList)
+                    {
+                        var playbackInfo = await metadataService.GetPlaybackInfoAsync(userId, file.Id!);
+                        if (playbackInfo != null)
+                        {
+                            playbackInfos.Add(playbackInfo);
+                        }
+                    }
+
+                    var result = new MoviePlaybackInfo
+                    {
+                        MovieId = id,
+                        Files = playbackInfos,
+                        TotalPlayCount = playbackInfos.Sum(p => p.PlayCount),
+                        AnyPlayed = playbackInfos.Any(p => p.Played),
+                        IsFavorite = playbackInfos.Any(p => p.IsFavorite)
+                    };
+
+                    return Results.Ok(result);
+                }
+            )
+            .WithName("GetMoviePlaybackInfo")
+            .RequireAuthorization();
+
+        app.MapGet(
+                "api/metadata/tvshows/{id}/playback",
+                async (HttpContext context, IMetadataApi metadataService, int id) =>
+                {
+                    var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                    if (string.IsNullOrWhiteSpace(userId))
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    var files = await metadataService.GetFilesByMediaIdAsync(id, LibraryType.TVShows);
+                    var filesList = files.ToList();
+                    
+                    if (filesList.Count == 0)
+                    {
+                        return Results.Ok(new TVShowPlaybackInfo
+                        {
+                            TVShowId = id,
+                            TotalEpisodes = 0,
+                            WatchedEpisodes = 0,
+                            TotalPlayCount = 0,
+                            IsFavorite = false
+                        });
+                    }
+
+                    var playbackInfos = new List<FilePlaybackInfo>();
+                    foreach (var file in filesList)
+                    {
+                        var playbackInfo = await metadataService.GetPlaybackInfoAsync(userId, file.Id!);
+                        if (playbackInfo != null)
+                        {
+                            playbackInfos.Add(playbackInfo);
+                        }
+                    }
+
+                    var result = new TVShowPlaybackInfo
+                    {
+                        TVShowId = id,
+                        TotalEpisodes = filesList.Count,
+                        WatchedEpisodes = playbackInfos.Count(p => p.Played),
+                        TotalPlayCount = playbackInfos.Sum(p => p.PlayCount),
+                        IsFavorite = playbackInfos.Any(p => p.IsFavorite)
+                    };
+
+                    return Results.Ok(result);
+                }
+            )
+            .WithName("GetTVShowPlaybackInfo")
+            .RequireAuthorization();
+
         return app;
     }
 
@@ -424,3 +571,29 @@ public record RefreshMetadataRequest(
     bool RefreshTvShows = true,
     bool RefreshPeople = true
 );
+
+public record SavePlaybackInfoRequest(
+    string FileMetadataId,
+    long? PlaybackPositionTicks = null,
+    int? PlayCount = null,
+    bool? Played = null,
+    bool? IsFavorite = null
+);
+
+public record MoviePlaybackInfo
+{
+    public int MovieId { get; init; }
+    public List<FilePlaybackInfo> Files { get; init; } = new();
+    public int TotalPlayCount { get; init; }
+    public bool AnyPlayed { get; init; }
+    public bool IsFavorite { get; init; }
+}
+
+public record TVShowPlaybackInfo
+{
+    public int TVShowId { get; init; }
+    public int TotalEpisodes { get; init; }
+    public int WatchedEpisodes { get; init; }
+    public int TotalPlayCount { get; init; }
+    public bool IsFavorite { get; init; }
+}

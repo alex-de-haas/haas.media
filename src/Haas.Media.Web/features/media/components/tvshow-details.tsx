@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, MoreVertical, Trash2, Tv, Star } from "lucide-react";
+import { ArrowLeft, MoreVertical, Trash2, Tv, Star, Heart, Play, CheckCircle2 } from "lucide-react";
 
-import { useTVShow, useDeleteTVShowMetadata } from "@/features/media/hooks";
+import { useTVShow, useDeleteTVShowMetadata, useTVShowPlaybackInfo } from "@/features/media/hooks";
 import { useFilesByMediaId } from "@/features/media/hooks/useFileMetadata";
 import { LibraryType } from "@/types/library";
 import { Spinner } from "@/components/ui";
@@ -86,6 +86,7 @@ function EpisodeCard({ tvShowId, episode, episodeFiles }: EpisodeCardProps) {
 export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
   const { tvShow, loading, error } = useTVShow(tvShowId);
   const { files: showFiles } = useFilesByMediaId(tvShowId, LibraryType.TVShows);
+  const { playbackInfo, loading: playbackLoading } = useTVShowPlaybackInfo(tvShowId);
   const [imageError, setImageError] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expandedSeasons, setExpandedSeasons] = useState<string[]>([]);
@@ -138,6 +139,14 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
 
     setDeleteDialogOpen(false);
   };
+
+  const showPlaybackBadges = useMemo(() => {
+    if (!playbackInfo) {
+      return false;
+    }
+
+    return playbackInfo.watchedEpisodes > 0 || playbackInfo.totalPlayCount > 0 || playbackInfo.isFavorite;
+  }, [playbackInfo]);
 
   const expandAllSeasons = () => {
     if (seasonValues.length === 0) {
@@ -322,6 +331,32 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                       <span className="font-semibold text-foreground">{tvShow.voteAverage.toFixed(1)}</span>
                     </Badge>
                     {tvShow.voteCount > 0 && <span className="text-muted-foreground">{tvShow.voteCount.toLocaleString()} votes</span>}
+                  </div>
+                )}
+
+                {/* Playback Info */}
+                {!playbackLoading && playbackInfo && showPlaybackBadges && (
+                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                    {playbackInfo.watchedEpisodes > 0 && (
+                      <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <span>
+                          {playbackInfo.watchedEpisodes} / {playbackInfo.totalEpisodes} watched
+                        </span>
+                      </Badge>
+                    )}
+                    {playbackInfo.totalPlayCount > 0 && (
+                      <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
+                        <Play className="h-4 w-4 text-blue-500" />
+                        <span>{playbackInfo.totalPlayCount} play{playbackInfo.totalPlayCount !== 1 ? "s" : ""}</span>
+                      </Badge>
+                    )}
+                    {playbackInfo.isFavorite && (
+                      <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
+                        <Heart className="h-4 w-4 fill-red-500 text-red-500" />
+                        <span>Favorite</span>
+                      </Badge>
+                    )}
                   </div>
                 )}
 
