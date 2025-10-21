@@ -18,6 +18,115 @@ public static class JellyfinConfiguration
         WriteIndented = true,
     };
 
+    private sealed class JellyfinLoggingFilter : IEndpointFilter
+    {
+        public async ValueTask<object?> InvokeAsync(
+            EndpointFilterInvocationContext context,
+            EndpointFilterDelegate next
+        )
+        {
+            var httpContext = context.HttpContext;
+            var logger = httpContext.RequestServices.GetRequiredService<ILogger<JellyfinLoggingFilter>>();
+            var path = httpContext.Request.Path.Value;
+            var method = httpContext.Request.Method;
+            var queryString = httpContext.Request.QueryString.HasValue
+                ? httpContext.Request.QueryString.Value
+                : "";
+
+            // Log request
+            logger.LogInformation(
+                "Jellyfin Request: {Method} {Path}{QueryString}",
+                method,
+                path,
+                queryString
+            );
+
+            // Log request headers at debug level (useful for debugging auth issues)
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                var relevantHeaders = httpContext.Request.Headers
+                    .Where(h =>
+                        h.Key.StartsWith("X-", StringComparison.OrdinalIgnoreCase)
+                        || h.Key.Equals("Authorization", StringComparison.OrdinalIgnoreCase)
+                    )
+                    .Select(h =>
+                        h.Key.Equals("Authorization", StringComparison.OrdinalIgnoreCase)
+                            ? $"{h.Key}: [REDACTED]"
+                            : $"{h.Key}: {h.Value}"
+                    );
+
+                if (relevantHeaders.Any())
+                {
+                    logger.LogDebug(
+                        "Jellyfin Request Headers: {Headers}",
+                        string.Join(", ", relevantHeaders)
+                    );
+                }
+            }
+
+            // Execute the endpoint
+            var result = await next(context);
+
+            // Log response with body details
+            var statusCode = httpContext.Response.StatusCode;
+
+            // Try to extract response data from JSON results
+            try
+            {
+                object? responseData = null;
+
+                // Check for JsonHttpResult<T> using reflection since the generic type varies
+                var resultType = result?.GetType();
+                if (
+                    resultType != null
+                    && resultType.IsGenericType
+                    && resultType.Name.Contains("JsonHttpResult")
+                )
+                {
+                    var valueProperty = resultType.GetProperty("Value");
+                    if (valueProperty != null)
+                    {
+                        responseData = valueProperty.GetValue(result);
+                    }
+                }
+
+                if (responseData != null)
+                {
+                    var responseJson = JsonSerializer.Serialize(responseData, LoggingJsonOptions);
+                    logger.LogInformation(
+                        "Jellyfin Response: {Method} {Path} -> {StatusCode}\n{Response}",
+                        method,
+                        path,
+                        statusCode,
+                        responseJson
+                    );
+                }
+                else
+                {
+                    logger.LogInformation(
+                        "Jellyfin Response: {Method} {Path} -> {StatusCode} ({ResultType})",
+                        method,
+                        path,
+                        statusCode,
+                        result?.GetType().Name ?? "null"
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(
+                    ex,
+                    "Jellyfin Response: {Method} {Path} -> {StatusCode} (Failed to serialize response)",
+                    method,
+                    path,
+                    statusCode
+                );
+            }
+
+            return result;
+        }
+    }
+
     public static WebApplicationBuilder AddJellyfin(this WebApplicationBuilder builder)
     {
         builder.Services.AddScoped<JellyfinAuthService>();
@@ -28,14 +137,15 @@ public static class JellyfinConfiguration
 
     public static WebApplication UseJellyfin(this WebApplication app)
     {
-        var group = app.MapGroup("/jellyfin").WithTags("Jellyfin");
+        var group = app.MapGroup("/jellyfin")
+            .WithTags("Jellyfin")
+            .AddEndpointFilter<JellyfinLoggingFilter>();
 
         group.MapGet(
                 "/System/Info/Public",
-                (JellyfinService jellyfinService, ILogger<JellyfinService> logger) =>
+                (JellyfinService jellyfinService) =>
                 {
                     var info = jellyfinService.GetSystemInfo();
-                    LogResponse(logger, "System/Info/Public", info);
                     return JellyfinJson(info);
                 }
             )
@@ -44,10 +154,9 @@ public static class JellyfinConfiguration
 
         group.MapGet(
                 "/System/Info",
-                (JellyfinService jellyfinService, ILogger<JellyfinService> logger) =>
+                (JellyfinService jellyfinService) =>
                 {
                     var info = jellyfinService.GetSystemInfo();
-                    LogResponse(logger, "System/Info", info);
                     return JellyfinJson(info);
                 }
             )
@@ -63,7 +172,7 @@ public static class JellyfinConfiguration
 
         group.MapGet(
                 "/Branding/Configuration",
-                (ILogger<JellyfinService> logger) =>
+                () =>
                 {
                     var branding = new
                     {
@@ -71,7 +180,6 @@ public static class JellyfinConfiguration
                         CustomCss = "",
                         SplashscreenEnabled = false
                     };
-                    LogResponse(logger, "Branding/Configuration", branding);
                     return JellyfinJson(branding);
                 }
             )
@@ -83,16 +191,11 @@ public static class JellyfinConfiguration
                 async (
                     HttpContext context,
                     JellyfinAuthenticateRequest request,
-                    JellyfinAuthService authService,
-                    ILogger<JellyfinService> logger
+                    JellyfinAuthService authService
                 ) =>
                 {
                     var clientInfo = authService.GetClientInfo(context.Request);
                     var response = await authService.AuthenticateAsync(request, clientInfo);
-                    if (response is not null)
-                    {
-                        LogResponse(logger, "Users/AuthenticateByName", response);
-                    }
                     return response is null ? Results.Unauthorized() : JellyfinJson(response);
                 }
             )
@@ -101,10 +204,9 @@ public static class JellyfinConfiguration
 
         group.MapGet(
                 "/Users/Public",
-                async (JellyfinAuthService authService, ILogger<JellyfinService> logger) =>
+                async (JellyfinAuthService authService) =>
                 {
                     var users = await authService.GetPublicUsersAsync();
-                    LogResponse(logger, "Users/Public", users);
                     return JellyfinJson(users);
                 }
             )
@@ -116,8 +218,7 @@ public static class JellyfinConfiguration
                 async (
                     HttpContext context,
                     JellyfinAuthService authService,
-                    JellyfinService jellyfinService,
-                    ILogger<JellyfinService> logger
+                    JellyfinService jellyfinService
                 ) =>
                     await RequireAuthenticatedAsync(
                         context,
@@ -125,7 +226,6 @@ public static class JellyfinConfiguration
                         async _ =>
                         {
                             var libraries = await jellyfinService.GetLibrariesAsync();
-                            LogResponse(logger, "Library/MediaFolders", libraries);
                             return JellyfinJson(libraries);
                         }
                     )
@@ -137,8 +237,7 @@ public static class JellyfinConfiguration
                 async (
                     HttpContext context,
                     JellyfinAuthService authService,
-                    JellyfinService jellyfinService,
-                    ILogger<JellyfinService> logger
+                    JellyfinService jellyfinService
                 ) =>
                     await RequireAuthenticatedAsync(
                         context,
@@ -146,7 +245,6 @@ public static class JellyfinConfiguration
                         async _ =>
                         {
                             var virtualFolders = await jellyfinService.GetVirtualFoldersAsync();
-                            LogResponse(logger, "Library/VirtualFolders", virtualFolders);
                             return JellyfinJson(virtualFolders);
                         }
                     )
@@ -160,8 +258,7 @@ public static class JellyfinConfiguration
                     string displayPreferencesId,
                     string? userId,
                     string client,
-                    JellyfinAuthService authService,
-                    ILogger<JellyfinService> logger
+                    JellyfinAuthService authService
                 ) =>
                     await RequireAuthenticatedAsync(
                         context,
@@ -186,7 +283,6 @@ public static class JellyfinConfiguration
                                 ShowSidebar = false,
                                 Client = client
                             };
-                            LogResponse(logger, $"DisplayPreferences/{displayPreferencesId}", preferences);
                             return Task.FromResult<IResult>(JellyfinJson(preferences));
                         }
                     )
@@ -201,8 +297,7 @@ public static class JellyfinConfiguration
                     string? userId,
                     string client,
                     JellyfinDisplayPreferencesDto preferences,
-                    JellyfinAuthService authService,
-                    ILogger<JellyfinService> logger
+                    JellyfinAuthService authService
                 ) =>
                     await RequireAuthenticatedAsync(
                         context,
@@ -210,7 +305,6 @@ public static class JellyfinConfiguration
                         user =>
                         {
                             // Accept preferences but don't persist (placeholder)
-                            LogResponse(logger, $"DisplayPreferences/{displayPreferencesId} (POST)", preferences);
                             return Task.FromResult<IResult>(Results.NoContent());
                         }
                     )
@@ -221,8 +315,7 @@ public static class JellyfinConfiguration
                 "/Users",
                 async (
                     HttpContext context,
-                    JellyfinAuthService authService,
-                    ILogger<JellyfinService> logger
+                    JellyfinAuthService authService
                 ) =>
                     await RequireAuthenticatedAsync(
                         context,
@@ -231,7 +324,6 @@ public static class JellyfinConfiguration
                         {
                             var contract = authService.CreateUserContract(user);
                             var users = new[] { contract };
-                            LogResponse(logger, "Users", users);
                             return Task.FromResult<IResult>(JellyfinJson(users));
                         }
                     )
@@ -242,8 +334,7 @@ public static class JellyfinConfiguration
                 "/Users/Me",
                 async (
                     HttpContext context,
-                    JellyfinAuthService authService,
-                    ILogger<JellyfinService> logger
+                    JellyfinAuthService authService
                 ) =>
                     await RequireAuthenticatedAsync(
                         context,
@@ -251,7 +342,6 @@ public static class JellyfinConfiguration
                         user =>
                         {
                             var contract = authService.CreateUserContract(user);
-                            LogResponse(logger, "Users/Me", contract);
                             return Task.FromResult<IResult>(JellyfinJson(contract));
                         }
                     )
@@ -263,8 +353,7 @@ public static class JellyfinConfiguration
                 async (
                     HttpContext context,
                     string userId,
-                    JellyfinAuthService authService,
-                    ILogger<JellyfinService> logger
+                    JellyfinAuthService authService
                 ) =>
                     await RequireAuthenticatedAsync(
                         context,
@@ -277,7 +366,6 @@ public static class JellyfinConfiguration
                             }
 
                             var contract = authService.CreateUserContract(user);
-                            LogResponse(logger, $"Users/{userId}", contract);
                             return Task.FromResult<IResult>(JellyfinJson(contract));
                         }
                     )
@@ -304,7 +392,6 @@ public static class JellyfinConfiguration
                             }
 
                             var views = await jellyfinService.GetLibraryViewsAsync();
-                            LogResponse(logger, $"Users/{userId}/Views", views);
                             return JellyfinJson(views);
                         }
                     )
@@ -331,7 +418,6 @@ public static class JellyfinConfiguration
 
                             // Return empty array - grouping options not implemented yet
                             var groupingOptions = Array.Empty<object>();
-                            LogResponse(logger, $"Users/{userId}/GroupingOptions", groupingOptions);
                             return Task.FromResult<IResult>(JellyfinJson(groupingOptions));
                         }
                     )
@@ -353,7 +439,6 @@ public static class JellyfinConfiguration
                             var clientInfo = authService.GetClientInfo(context.Request);
                             var session = authService.CreateSessionInfo(user, clientInfo);
                             var sessions = new[] { session };
-                            LogResponse(logger, "Sessions", sessions);
                             return Task.FromResult<IResult>(JellyfinJson(sessions));
                         }
                     )
@@ -381,7 +466,6 @@ public static class JellyfinConfiguration
 
                             var query = BuildItemsQuery(context.Request);
                             var items = await jellyfinService.GetItemsAsync(query);
-                            LogResponse(logger, $"Users/{userId}/Items", items);
                             return JellyfinJson(items);
                         }
                     )
@@ -430,7 +514,6 @@ public static class JellyfinConfiguration
                                 .Take(limit)
                                 .ToArray();
                             
-                            LogResponse(logger, $"Users/{userId}/Items/Latest", latestItems);
                             return JellyfinJson(latestItems);
                         }
                     )
@@ -474,7 +557,6 @@ public static class JellyfinConfiguration
                             // This will be implemented when playback progress is persisted
                             var resumeItems = Array.Empty<JellyfinItem>();
                             
-                            LogResponse(logger, $"Users/{userId}/Items/Resume", resumeItems);
                             return JellyfinJson(resumeItems);
                         }
                     )
@@ -496,7 +578,6 @@ public static class JellyfinConfiguration
                         {
                             var query = BuildItemsQuery(context.Request);
                             var items = await jellyfinService.GetItemsAsync(query);
-                            LogResponse(logger, "Items", items);
                             return JellyfinJson(items);
                         }
                     )
@@ -520,7 +601,6 @@ public static class JellyfinConfiguration
                             var item = await jellyfinService.GetItemByIdAsync(itemId);
                             if (item is not null)
                             {
-                                LogResponse(logger, $"Items/{itemId}", item);
                             }
                             return item is null ? Results.NotFound() : JellyfinJson(item);
                         }
@@ -552,7 +632,6 @@ public static class JellyfinConfiguration
                             var item = await jellyfinService.GetItemByIdAsync(itemId);
                             if (item is not null)
                             {
-                                LogResponse(logger, $"Users/{userId}/Items/{itemId}", item);
                             }
                             return item is null ? Results.NotFound() : JellyfinJson(item);
                         }
@@ -592,7 +671,6 @@ public static class JellyfinConfiguration
                             query = query with { IncludeItemTypes = includeTypes };
 
                             var items = await jellyfinService.GetItemsAsync(query);
-                            LogResponse(logger, $"Shows/{seriesId}/Seasons", items);
                             return JellyfinJson(items);
                         }
                     )
@@ -643,7 +721,6 @@ public static class JellyfinConfiguration
                             query = query with { IncludeItemTypes = includeTypes };
 
                             var items = await jellyfinService.GetItemsAsync(query);
-                            LogResponse(logger, $"Shows/{seriesId}/Episodes", items);
                             return JellyfinJson(items);
                         }
                     )
@@ -834,7 +911,6 @@ public static class JellyfinConfiguration
                                 PlaySessionId = Guid.NewGuid().ToString("N"),
                             };
 
-                            LogResponse(logger, $"Items/{itemId}/PlaybackInfo", playbackInfo);
                             return JellyfinJson(playbackInfo);
                         }
                     )
@@ -867,7 +943,6 @@ public static class JellyfinConfiguration
                                 PlaySessionId = Guid.NewGuid().ToString("N"),
                             };
 
-                            LogResponse(logger, $"Items/{itemId}/PlaybackInfo", playbackInfo);
                             return JellyfinJson(playbackInfo);
                         }
                     )
@@ -952,20 +1027,4 @@ public static class JellyfinConfiguration
         return Results.Json(response, ResponseJsonOptions);
     }
 
-    private static void LogResponse<T>(ILogger logger, string endpoint, T response)
-    {
-        try
-        {
-            var json = JsonSerializer.Serialize(response, LoggingJsonOptions);
-            logger.LogInformation(
-                "Jellyfin response for {Endpoint}: {Response}",
-                endpoint,
-                json
-            );
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to serialize Jellyfin response for {Endpoint}", endpoint);
-        }
-    }
 }
