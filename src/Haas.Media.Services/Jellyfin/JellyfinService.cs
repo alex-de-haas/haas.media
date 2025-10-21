@@ -185,7 +185,7 @@ public class JellyfinService
                 return EmptyItems();
             }
 
-            return await BuildSeriesChildrenAsync(series, query);
+            return await BuildSeriesChildrenAsync(series, query, userId);
         }
 
         if (
@@ -261,7 +261,7 @@ public class JellyfinService
                 return null;
             }
 
-            return await MapSeriesAsync(show);
+            return await MapSeriesAsync(show, null, userId);
         }
 
         if (
@@ -278,7 +278,7 @@ public class JellyfinService
                 return null;
             }
 
-            return MapSeason(show, seasonNumber);
+            return await MapSeasonAsync(show, seasonNumber, null, userId);
         }
 
         if (
@@ -478,7 +478,7 @@ public class JellyfinService
             var shows = (await _metadataApi.GetTVShowMetadataAsync(library.Id)).ToList();
             var filtered = FilterByName(shows, query.SearchTerm, show => show.Title);
             var mappingTasks = filtered.Select(async show =>
-                await MapSeriesAsync(show, library.Id)
+                await MapSeriesAsync(show, library.Id, userId)
             );
             var allItems = await Task.WhenAll(mappingTasks);
             var items = allItems.Where(item => MatchesType(item, query)).ToList();
@@ -503,7 +503,8 @@ public class JellyfinService
 
     private async Task<JellyfinItemsEnvelope> BuildSeriesChildrenAsync(
         TVShowMetadata show,
-        JellyfinItemsQuery query
+        JellyfinItemsQuery query,
+        string? userId = null
     )
     {
         var items = new List<JellyfinItem>();
@@ -516,7 +517,7 @@ public class JellyfinService
                 continue; // Skip this season entirely
             }
 
-            var seasonItem = MapSeason(show, season.SeasonNumber);
+            var seasonItem = await MapSeasonAsync(show, season.SeasonNumber, null, userId);
             if (MatchesType(seasonItem, query))
             {
                 items.Add(seasonItem);
@@ -613,7 +614,7 @@ public class JellyfinService
 
             if (MatchesType("Season", query.IncludeItemTypes))
             {
-                items.Add(MapSeason(show, season.SeasonNumber));
+                items.Add(await MapSeasonAsync(show, season.SeasonNumber, libraryId, userId));
             }
 
             foreach (var episode in season.Episodes)
@@ -760,7 +761,8 @@ public class JellyfinService
 
     private async Task<JellyfinItem> MapSeriesAsync(
         TVShowMetadata metadata,
-        string? libraryId = null
+        string? libraryId = null,
+        string? userId = null
     )
     {
         var allFiles = (
@@ -799,6 +801,9 @@ public class JellyfinService
         // Build provider IDs
         var providerIds = new Dictionary<string, string> { ["Tmdb"] = metadata.Id.ToString(), };
 
+        // Calculate user data for the series if userId is provided
+        var userData = await CalculateSeriesUserDataAsync(userId, filteredFiles);
+
         return new JellyfinItem
         {
             Id = JellyfinIdHelper.CreateSeriesId(metadata.Id),
@@ -826,7 +831,7 @@ public class JellyfinService
             ImageTags = posterTags,
             BackdropImageTags = backdropTags,
             LocationType = "FileSystem",
-            UserData = new JellyfinUserData { Played = false },
+            UserData = userData,
             Genres = metadata.Genres,
             People = people,
             ProviderIds = providerIds,
@@ -841,7 +846,12 @@ public class JellyfinService
         };
     }
 
-    private JellyfinItem MapSeason(TVShowMetadata metadata, int seasonNumber)
+    private async Task<JellyfinItem> MapSeasonAsync(
+        TVShowMetadata metadata, 
+        int seasonNumber,
+        string? libraryId = null,
+        string? userId = null
+    )
     {
         var season = metadata.Seasons.FirstOrDefault(s => s.SeasonNumber == seasonNumber);
         var seasonName = season is null
@@ -849,10 +859,14 @@ public class JellyfinService
             : $"Season {season.SeasonNumber}";
         var imageTags = BuildPrimaryImageTag(season?.PosterPath);
 
-        // Calculate episode count based on episodes that have files
-        // Note: This is synchronous mapping, so we can't check files here
-        // The count might be inaccurate until we refactor to async
-        var episodeCount = season?.Episodes.Length ?? 0;
+        // Get files for this specific season
+        var allFiles = await _metadataApi.GetFilesByMediaIdAsync(metadata.Id, LibraryType.TVShows);
+        var seasonFiles = allFiles
+            .Where(f => f.SeasonNumber == seasonNumber && 
+                       (string.IsNullOrWhiteSpace(libraryId) || f.LibraryId == libraryId))
+            .ToList();
+
+        var episodeCount = seasonFiles.Count;
 
         // Build provider IDs
         var providerIds = new Dictionary<string, string> { ["Tmdb"] = metadata.Id.ToString(), };
@@ -863,6 +877,9 @@ public class JellyfinService
         // Get series image tags for parent references
         var seriesPosterTag = BuildPrimaryImageTag(metadata.PosterPath);
         var seriesId = JellyfinIdHelper.CreateSeriesId(metadata.Id);
+
+        // Calculate user data for the season if userId is provided
+        var userData = await CalculateSeasonUserDataAsync(userId, seasonFiles);
 
         return new JellyfinItem
         {
@@ -890,11 +907,7 @@ public class JellyfinService
             ImageTags = imageTags,
             BackdropImageTags = null,
             LocationType = "FileSystem",
-            UserData = new JellyfinUserData
-            {
-                Played = false,
-                UnplayedItemCount = episodeCount // All episodes unplayed by default
-            },
+            UserData = userData,
             ParentIndexNumberName = metadata.Title,
             IndexNumber = season?.SeasonNumber ?? seasonNumber,
             SeriesName = metadata.Title,
@@ -1118,6 +1131,78 @@ public class JellyfinService
         var bytes = Encoding.UTF8.GetBytes(path);
         var hash = SHA256.HashData(bytes);
         return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    private async Task<JellyfinUserData> CalculateSeriesUserDataAsync(
+        string? userId, 
+        IReadOnlyList<FileMetadata> allEpisodes
+    )
+    {
+        if (string.IsNullOrWhiteSpace(userId) || allEpisodes.Count == 0)
+        {
+            return new JellyfinUserData 
+            { 
+                Played = false, 
+                UnplayedItemCount = allEpisodes.Count 
+            };
+        }
+
+        var playbackInfos = new List<FilePlaybackInfo>();
+        foreach (var file in allEpisodes)
+        {
+            var info = await _metadataApi.GetPlaybackInfoAsync(userId!, file.Id);
+            if (info != null)
+            {
+                playbackInfos.Add(info);
+            }
+        }
+
+        var watchedCount = playbackInfos.Count(p => p.Played);
+        var unplayedCount = allEpisodes.Count - watchedCount;
+        var allPlayed = unplayedCount == 0 && allEpisodes.Count > 0;
+
+        return new JellyfinUserData
+        {
+            Played = allPlayed,
+            UnplayedItemCount = unplayedCount,
+            PlayCount = watchedCount
+        };
+    }
+
+    private async Task<JellyfinUserData> CalculateSeasonUserDataAsync(
+        string? userId, 
+        IReadOnlyList<FileMetadata> seasonEpisodes
+    )
+    {
+        if (string.IsNullOrWhiteSpace(userId) || seasonEpisodes.Count == 0)
+        {
+            return new JellyfinUserData 
+            { 
+                Played = false, 
+                UnplayedItemCount = seasonEpisodes.Count 
+            };
+        }
+
+        var playbackInfos = new List<FilePlaybackInfo>();
+        foreach (var file in seasonEpisodes)
+        {
+            var info = await _metadataApi.GetPlaybackInfoAsync(userId!, file.Id);
+            if (info != null)
+            {
+                playbackInfos.Add(info);
+            }
+        }
+
+        var watchedCount = playbackInfos.Count(p => p.Played);
+        var unplayedCount = seasonEpisodes.Count - watchedCount;
+        var allPlayed = unplayedCount == 0 && seasonEpisodes.Count > 0;
+
+        return new JellyfinUserData
+        {
+            Played = allPlayed,
+            UnplayedItemCount = unplayedCount,
+            PlayCount = watchedCount
+        };
     }
 
     private static IReadOnlyList<JellyfinPerson> MapPeople(CastMember[] cast, CrewMember[] crew)
