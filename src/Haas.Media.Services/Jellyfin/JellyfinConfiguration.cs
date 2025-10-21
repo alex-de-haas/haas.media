@@ -182,7 +182,7 @@ public static class JellyfinConfiguration
                 "/Users",
                 (HttpContext context, JellyfinAuthService authService) =>
                 {
-                    var user = JellyfinAuthFilter.GetAuthenticatedUser(context);
+                    var user = context.GetAuthenticatedUser();
                     var contract = authService.CreateUserContract(user);
                     var users = new[] { contract };
                     return JellyfinJson(users);
@@ -196,7 +196,7 @@ public static class JellyfinConfiguration
                 "/Users/Me",
                 (HttpContext context, JellyfinAuthService authService) =>
                 {
-                    var user = JellyfinAuthFilter.GetAuthenticatedUser(context);
+                    var user = context.GetAuthenticatedUser();
                     var contract = authService.CreateUserContract(user);
                     return JellyfinJson(contract);
                 }
@@ -209,7 +209,7 @@ public static class JellyfinConfiguration
                 "/Users/{userId}",
                 (HttpContext context, string userId, JellyfinAuthService authService) =>
                 {
-                    var user = JellyfinAuthFilter.GetAuthenticatedUser(context);
+                    var user = context.GetAuthenticatedUser();
                     if (!string.Equals(user.Id, userId, StringComparison.OrdinalIgnoreCase))
                     {
                         return Results.Forbid();
@@ -227,7 +227,7 @@ public static class JellyfinConfiguration
                 "/Users/{userId}/Views",
                 async (HttpContext context, string userId, JellyfinService jellyfinService) =>
                 {
-                    var user = JellyfinAuthFilter.GetAuthenticatedUser(context);
+                    var user = context.GetAuthenticatedUser();
                     if (!string.Equals(user.Id, userId, StringComparison.OrdinalIgnoreCase))
                     {
                         return Results.Forbid();
@@ -245,7 +245,7 @@ public static class JellyfinConfiguration
                 "/Users/{userId}/GroupingOptions",
                 (HttpContext context, string userId) =>
                 {
-                    var user = JellyfinAuthFilter.GetAuthenticatedUser(context);
+                    var user = context.GetAuthenticatedUser();
                     if (!string.Equals(user.Id, userId, StringComparison.OrdinalIgnoreCase))
                     {
                         return Results.Forbid();
@@ -264,7 +264,7 @@ public static class JellyfinConfiguration
                 "/Sessions",
                 (HttpContext context, JellyfinAuthService authService) =>
                 {
-                    var user = JellyfinAuthFilter.GetAuthenticatedUser(context);
+                    var user = context.GetAuthenticatedUser();
                     var clientInfo = authService.GetClientInfo(context.Request);
                     var session = authService.CreateSessionInfo(user, clientInfo);
                     var sessions = new[] { session };
@@ -279,7 +279,7 @@ public static class JellyfinConfiguration
                 "/Users/{userId}/Items",
                 async (HttpContext context, string userId, JellyfinService jellyfinService) =>
                 {
-                    var user = JellyfinAuthFilter.GetAuthenticatedUser(context);
+                    var user = context.GetAuthenticatedUser();
                     if (!string.Equals(user.Id, userId, StringComparison.OrdinalIgnoreCase))
                     {
                         return Results.Forbid();
@@ -298,7 +298,7 @@ public static class JellyfinConfiguration
                 "/Users/{userId}/Items/Latest",
                 async (HttpContext context, string userId, JellyfinService jellyfinService) =>
                 {
-                    var user = JellyfinAuthFilter.GetAuthenticatedUser(context);
+                    var user = context.GetAuthenticatedUser();
                     if (!string.Equals(user.Id, userId, StringComparison.OrdinalIgnoreCase))
                     {
                         return Results.Forbid();
@@ -349,7 +349,7 @@ public static class JellyfinConfiguration
                 "/Users/{userId}/Items/Resume",
                 (HttpContext context, string userId) =>
                 {
-                    var user = JellyfinAuthFilter.GetAuthenticatedUser(context);
+                    var user = context.GetAuthenticatedUser();
                     if (!string.Equals(user.Id, userId, StringComparison.OrdinalIgnoreCase))
                     {
                         return Results.Forbid();
@@ -427,7 +427,7 @@ public static class JellyfinConfiguration
                     JellyfinService jellyfinService
                 ) =>
                 {
-                    var user = JellyfinAuthFilter.GetAuthenticatedUser(context);
+                    var user = context.GetAuthenticatedUser();
                     if (!string.Equals(user.Id, userId, StringComparison.OrdinalIgnoreCase))
                     {
                         return Results.Forbid();
@@ -447,7 +447,7 @@ public static class JellyfinConfiguration
                 "/Shows/{seriesId}/Seasons",
                 async (HttpContext context, string seriesId, JellyfinService jellyfinService) =>
                 {
-                    var user = JellyfinAuthFilter.GetAuthenticatedUser(context);
+                    var user = context.GetAuthenticatedUser();
                     // Verify userId if provided
                     var userId = context.Request.Query["userId"].FirstOrDefault();
                     if (
@@ -485,7 +485,7 @@ public static class JellyfinConfiguration
                 "/Shows/{seriesId}/Episodes",
                 async (HttpContext context, string seriesId, JellyfinService jellyfinService) =>
                 {
-                    var user = JellyfinAuthFilter.GetAuthenticatedUser(context);
+                    var user = context.GetAuthenticatedUser();
                     // Verify userId if provided
                     var userId = context.Request.Query["userId"].FirstOrDefault();
                     if (

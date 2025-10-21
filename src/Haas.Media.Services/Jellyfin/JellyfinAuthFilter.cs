@@ -4,8 +4,6 @@ namespace Haas.Media.Services.Jellyfin;
 
 internal sealed class JellyfinAuthFilter : IEndpointFilter
 {
-    private const string AuthenticatedUserKey = "JellyfinAuthenticatedUser";
-
     public async ValueTask<object?> InvokeAsync(
         EndpointFilterInvocationContext context,
         EndpointFilterDelegate next
@@ -21,14 +19,8 @@ internal sealed class JellyfinAuthFilter : IEndpointFilter
         }
 
         // Store authenticated user in HttpContext.Items for endpoint access
-        httpContext.Items[AuthenticatedUserKey] = user;
+        httpContext.SetAuthenticatedUser(user);
 
         return await next(context);
-    }
-
-    public static User GetAuthenticatedUser(HttpContext context)
-    {
-        return context.Items[AuthenticatedUserKey] as User
-            ?? throw new InvalidOperationException("User not authenticated");
     }
 }
