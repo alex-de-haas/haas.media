@@ -11,6 +11,7 @@ public class MetadataService : IMetadataApi
     private readonly ILiteCollection<TVShowMetadata> _tvShowMetadataCollection;
     private readonly ILiteCollection<FileMetadata> _fileMetadataCollection;
     private readonly ILiteCollection<PersonMetadata> _personMetadataCollection;
+    private readonly ILiteCollection<FilePlaybackInfo> _playbackInfoCollection;
     private readonly ILogger<MetadataService> _logger;
     private readonly TMDbClient _tmdbClient;
     private readonly IBackgroundTaskManager _backgroundTaskManager;
@@ -29,6 +30,7 @@ public class MetadataService : IMetadataApi
         _tvShowMetadataCollection = database.GetCollection<TVShowMetadata>("tvShowMetadata");
         _fileMetadataCollection = database.GetCollection<FileMetadata>("fileMetadata");
         _personMetadataCollection = database.GetCollection<PersonMetadata>("personMetadata");
+        _playbackInfoCollection = database.GetCollection<FilePlaybackInfo>("filePlaybackInfo");
         _logger = logger;
         _backgroundTaskManager = backgroundTaskManager;
 
@@ -552,8 +554,12 @@ public class MetadataService : IMetadataApi
         _fileMetadataCollection.EnsureIndex(x => new { x.LibraryId, x.MediaId });
         _personMetadataCollection.EnsureIndex(x => x.Name);
 
+        _playbackInfoCollection.EnsureIndex("idx_userId", x => x.UserId, false);
+        _playbackInfoCollection.EnsureIndex("idx_fileMetadataId", x => x.FileMetadataId, false);
+        _playbackInfoCollection.EnsureIndex("idx_user_file", x => new { x.UserId, x.FileMetadataId }, false);
+
         _logger.LogDebug(
-            "Created indexes for libraries, movie metadata, TV show metadata, person metadata, and file metadata collections"
+            "Created indexes for libraries, movie metadata, TV show metadata, person metadata, file metadata, and playback info collections"
         );
     }
 
@@ -705,5 +711,72 @@ public class MetadataService : IMetadataApi
             mediaId
         );
         return Task.FromResult<IEnumerable<FileMetadata>>(fileMetadata);
+    }
+
+    public Task<FilePlaybackInfo?> GetPlaybackInfoAsync(string userId, string fileMetadataId)
+    {
+        var id = FilePlaybackInfo.CreateId(userId, fileMetadataId);
+        var playbackInfo = _playbackInfoCollection.FindById(new BsonValue(id));
+        _logger.LogDebug(
+            "Retrieved playback info for User: {UserId}, File: {FileMetadataId}",
+            userId,
+            fileMetadataId
+        );
+        return Task.FromResult<FilePlaybackInfo?>(playbackInfo);
+    }
+
+    public Task<FilePlaybackInfo> SavePlaybackInfoAsync(FilePlaybackInfo playbackInfo)
+    {
+        playbackInfo.UpdatedAt = DateTime.UtcNow;
+        
+        var existing = _playbackInfoCollection.FindById(new BsonValue(playbackInfo.Id));
+        if (existing != null)
+        {
+            _playbackInfoCollection.Update(playbackInfo);
+            _logger.LogDebug(
+                "Updated playback info: {Id}, Position: {Position} ticks",
+                playbackInfo.Id,
+                playbackInfo.PlaybackPositionTicks
+            );
+        }
+        else
+        {
+            playbackInfo.CreatedAt = DateTime.UtcNow;
+            _playbackInfoCollection.Insert(playbackInfo);
+            _logger.LogDebug("Created new playback info: {Id}", playbackInfo.Id);
+        }
+
+        return Task.FromResult(playbackInfo);
+    }
+
+    public Task<bool> DeletePlaybackInfoAsync(string userId, string fileMetadataId)
+    {
+        var id = FilePlaybackInfo.CreateId(userId, fileMetadataId);
+        var deleted = _playbackInfoCollection.Delete(new BsonValue(id));
+        
+        if (deleted)
+        {
+            _logger.LogInformation(
+                "Deleted playback info for User: {UserId}, File: {FileMetadataId}",
+                userId,
+                fileMetadataId
+            );
+            return Task.FromResult(true);
+        }
+
+        _logger.LogWarning(
+            "Playback info not found for User: {UserId}, File: {FileMetadataId}",
+            userId,
+            fileMetadataId
+        );
+        return Task.FromResult(false);
+    }
+
+    public Task<IEnumerable<FilePlaybackInfo>> GetUserPlaybackInfoAsync(string userId)
+    {
+        var results = _playbackInfoCollection.Find(p => p.UserId == userId);
+        var playbackInfos = results.ToList();
+        _logger.LogDebug("Retrieved {Count} playback records for user: {UserId}", playbackInfos.Count, userId);
+        return Task.FromResult<IEnumerable<FilePlaybackInfo>>(playbackInfos);
     }
 }

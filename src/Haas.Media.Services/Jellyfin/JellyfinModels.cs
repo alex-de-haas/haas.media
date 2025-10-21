@@ -419,3 +419,34 @@ public sealed record JellyfinBaseItemDto
     public string? Type { get; init; }
     public string? MediaType { get; init; }
 }
+
+public sealed record JellyfinPlaybackProgressInfo
+{
+    public bool CanSeek { get; init; }
+    public JellyfinBaseItemDto? Item { get; init; }
+    public string? ItemId { get; init; }
+    public string? SessionId { get; init; }
+    public string? MediaSourceId { get; init; }
+    public int? AudioStreamIndex { get; init; }
+    public int? SubtitleStreamIndex { get; init; }
+    public bool IsPaused { get; init; }
+    public bool IsMuted { get; init; }
+    public long PositionTicks { get; init; }
+    public string PlayMethod { get; init; } = "DirectPlay";
+    public string RepeatMode { get; init; } = "RepeatNone";
+}
+
+public sealed record JellyfinPlaybackStopInfo
+{
+    public JellyfinBaseItemDto? Item { get; init; }
+    public string? ItemId { get; init; }
+    public string? SessionId { get; init; }
+    public string? MediaSourceId { get; init; }
+    public long PositionTicks { get; init; }
+    public bool Failed { get; init; }
+}
+
+public sealed record JellyfinMarkPlayedRequest
+{
+    public DateTime? DatePlayed { get; init; }
+}

@@ -152,6 +152,7 @@ public class JellyfinService
 
     public async Task<JellyfinItemsEnvelope> GetItemsAsync(
         JellyfinItemsQuery query,
+        string? userId = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -173,7 +174,7 @@ public class JellyfinService
                 return EmptyItems();
             }
 
-            return await BuildLibraryItemsAsync(library, query);
+            return await BuildLibraryItemsAsync(library, query, userId);
         }
 
         if (JellyfinIdHelper.TryParseSeriesId(query.ParentId, out var seriesId))
@@ -209,6 +210,7 @@ public class JellyfinService
 
     public async Task<JellyfinItem?> GetItemByIdAsync(
         string itemId,
+        string? userId = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -248,7 +250,7 @@ public class JellyfinService
                 return null;
             }
 
-            return await MapMovieAsync(movie);
+            return await MapMovieAsync(movie, null, userId);
         }
 
         if (JellyfinIdHelper.TryParseSeriesId(itemId, out var seriesId))
@@ -303,7 +305,7 @@ public class JellyfinService
                 return null;
             }
 
-            return await MapEpisodeAsync(show, episodeMetadata);
+            return await MapEpisodeAsync(show, episodeMetadata, null, userId);
         }
 
         return null;
@@ -450,7 +452,8 @@ public class JellyfinService
 
     private async Task<JellyfinItemsEnvelope> BuildLibraryItemsAsync(
         LibraryInfo library,
-        JellyfinItemsQuery query
+        JellyfinItemsQuery query,
+        string? userId = null
     )
     {
         if (library.Type == LibraryType.Movies)
@@ -458,7 +461,7 @@ public class JellyfinService
             var movies = (await _metadataApi.GetMovieMetadataAsync(library.Id)).ToList();
             var filtered = FilterByName(movies, query.SearchTerm, movie => movie.Title);
             var mappingTasks = filtered.Select(async movie =>
-                await MapMovieAsync(movie, library.Id)
+                await MapMovieAsync(movie, library.Id, userId)
             );
             var allItems = await Task.WhenAll(mappingTasks);
             var items = allItems.Where(item => MatchesType(item, query)).ToArray();
@@ -485,7 +488,7 @@ public class JellyfinService
                 var additional = new List<JellyfinItem>();
                 foreach (var show in filtered)
                 {
-                    additional.AddRange(await MapAllEpisodesAsync(show, query, library.Id));
+                    additional.AddRange(await MapAllEpisodesAsync(show, query, library.Id, userId));
                 }
                 items.AddRange(additional);
             }
@@ -593,7 +596,8 @@ public class JellyfinService
     private async Task<IEnumerable<JellyfinItem>> MapAllEpisodesAsync(
         TVShowMetadata show,
         JellyfinItemsQuery query,
-        string? libraryId = null
+        string? libraryId = null,
+        string? userId = null
     )
     {
         var items = new List<JellyfinItem>();
@@ -626,7 +630,7 @@ public class JellyfinService
                     continue; // Skip episodes without files
                 }
 
-                var mapped = await MapEpisodeAsync(show, episode, libraryId);
+                var mapped = await MapEpisodeAsync(show, episode, libraryId, userId);
                 if (MatchesType(mapped, query))
                 {
                     items.Add(mapped);
@@ -661,7 +665,7 @@ public class JellyfinService
         };
     }
 
-    private async Task<JellyfinItem> MapMovieAsync(MovieMetadata metadata, string? libraryId = null)
+    private async Task<JellyfinItem> MapMovieAsync(MovieMetadata metadata, string? libraryId = null, string? userId = null)
     {
         // Get all files linked to this movie
         var allFiles = (
@@ -709,6 +713,11 @@ public class JellyfinService
         // Build provider IDs
         var providerIds = new Dictionary<string, string> { ["Tmdb"] = metadata.Id.ToString(), };
 
+        // Get user playback data if userId is provided
+        var userData = filteredFiles.Count > 0 && !string.IsNullOrWhiteSpace(userId)
+            ? await GetUserDataForFileAsync(userId, filteredFiles[0].Id)
+            : null;
+
         return new JellyfinItem
         {
             Id = movieIdString,
@@ -737,7 +746,7 @@ public class JellyfinService
             BackdropImageTags = backdropTags,
             LocationType = "FileSystem",
             MediaSources = mediaSources.Count > 0 ? mediaSources : [],
-            UserData = new JellyfinUserData { Played = false },
+            UserData = userData ?? new JellyfinUserData { Played = false },
             Genres = metadata.Genres,
             People = people,
             ProviderIds = providerIds,
@@ -907,7 +916,8 @@ public class JellyfinService
     private async Task<JellyfinItem> MapEpisodeAsync(
         TVShowMetadata show,
         TVEpisodeMetadata episode,
-        string? libraryId = null
+        string? libraryId = null,
+        string? userId = null
     )
     {
         // Get file metadata for this specific episode
@@ -921,6 +931,11 @@ public class JellyfinService
             JellyfinIdHelper.CreateEpisodeId(show.Id, episode.SeasonNumber, episode.EpisodeNumber),
             fileMetadata?.FilePath
         );
+
+        // Get user playback data if userId is provided
+        var userData = fileMetadata != null && !string.IsNullOrWhiteSpace(userId)
+            ? await GetUserDataForFileAsync(userId, fileMetadata.Id)
+            : null;
 
         return new JellyfinItem
         {
@@ -954,7 +969,7 @@ public class JellyfinService
             BackdropImageTags = null,
             LocationType = "FileSystem",
             MediaSources = mediaSource is null ? [] : new[] { mediaSource },
-            UserData = new JellyfinUserData { Played = false },
+            UserData = userData ?? new JellyfinUserData { Played = false },
             IndexNumber = episode.EpisodeNumber,
             ParentIndexNumber = episode.SeasonNumber,
             SeriesName = show.Title,
@@ -1220,5 +1235,31 @@ public class JellyfinService
         var bytes = Encoding.UTF8.GetBytes(normalized);
         var hash = SHA256.HashData(bytes);
         return Convert.ToHexString(hash)[..16];
+    }
+
+    /// <summary>
+    /// Gets user data for a specific file, including playback position and play status.
+    /// </summary>
+    private async Task<JellyfinUserData?> GetUserDataForFileAsync(string? userId, string? fileMetadataId)
+    {
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(fileMetadataId))
+        {
+            return null;
+        }
+
+        var playbackInfo = await _metadataApi.GetPlaybackInfoAsync(userId, fileMetadataId);
+        if (playbackInfo == null)
+        {
+            return new JellyfinUserData { Played = false };
+        }
+
+        return new JellyfinUserData
+        {
+            Played = playbackInfo.Played,
+            PlaybackPositionTicks = playbackInfo.PlaybackPositionTicks,
+            PlayedPercentage = null, // Can be calculated based on runtime if needed
+            IsFavorite = playbackInfo.IsFavorite,
+            PlayCount = playbackInfo.PlayCount
+        };
     }
 }

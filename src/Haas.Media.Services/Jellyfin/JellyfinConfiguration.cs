@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Haas.Media.Services.Files;
+using Haas.Media.Services.Metadata;
 
 namespace Haas.Media.Services.Jellyfin;
 
@@ -225,7 +226,7 @@ public static class JellyfinConfiguration
                     return Results.Forbid();
 
                 var query = BuildItemsQuery(context.Request);
-                return JellyfinJson(await service.GetItemsAsync(query));
+                return JellyfinJson(await service.GetItemsAsync(query, userId));
             })
             .AddEndpointFilter<JellyfinAuthFilter>()
             .WithName("JellyfinUserItems");
@@ -297,7 +298,7 @@ public static class JellyfinConfiguration
                 if (!ValidateUserId(user, userId))
                     return Results.Forbid();
 
-                var item = await service.GetItemByIdAsync(itemId);
+                var item = await service.GetItemByIdAsync(itemId, userId);
                 return item is null ? Results.NotFound() : JellyfinJson(item);
             })
             .AddEndpointFilter<JellyfinAuthFilter>()
@@ -449,6 +450,81 @@ public static class JellyfinConfiguration
                 await GetPlaybackInfo(itemId, service))
             .AddEndpointFilter<JellyfinAuthFilter>()
             .WithName("JellyfinPlaybackInfoPost");
+
+        // Playback tracking endpoints
+        group
+            .MapPost("/Sessions/Playing", async (
+                HttpContext context,
+                JellyfinPlaybackProgressInfo progressInfo,
+                IMetadataApi metadataApi) =>
+            {
+                var user = context.GetAuthenticatedUser();
+                await HandlePlaybackStart(user.Id, progressInfo, metadataApi);
+                return Results.NoContent();
+            })
+            .AddEndpointFilter<JellyfinAuthFilter>()
+            .WithName("JellyfinReportPlaybackStart");
+
+        group
+            .MapPost("/Sessions/Playing/Progress", async (
+                HttpContext context,
+                JellyfinPlaybackProgressInfo progressInfo,
+                IMetadataApi metadataApi) =>
+            {
+                var user = context.GetAuthenticatedUser();
+                await HandlePlaybackProgress(user.Id, progressInfo, metadataApi);
+                return Results.NoContent();
+            })
+            .AddEndpointFilter<JellyfinAuthFilter>()
+            .WithName("JellyfinReportPlaybackProgress");
+
+        group
+            .MapPost("/Sessions/Playing/Stopped", async (
+                HttpContext context,
+                JellyfinPlaybackStopInfo stopInfo,
+                IMetadataApi metadataApi) =>
+            {
+                var user = context.GetAuthenticatedUser();
+                await HandlePlaybackStopped(user.Id, stopInfo, metadataApi);
+                return Results.NoContent();
+            })
+            .AddEndpointFilter<JellyfinAuthFilter>()
+            .WithName("JellyfinReportPlaybackStopped");
+
+        group
+            .MapPost("/Users/{userId}/PlayedItems/{itemId}", async (
+                HttpContext context,
+                string userId,
+                string itemId,
+                IMetadataApi metadataApi,
+                JellyfinMarkPlayedRequest? request) =>
+            {
+                var user = context.GetAuthenticatedUser();
+                if (!ValidateUserId(user, userId))
+                    return Results.Forbid();
+
+                await MarkAsPlayed(user.Id, itemId, metadataApi, request?.DatePlayed ?? DateTime.UtcNow);
+                return JellyfinJson(new JellyfinUserData { Played = true, PlayCount = 1 });
+            })
+            .AddEndpointFilter<JellyfinAuthFilter>()
+            .WithName("JellyfinMarkPlayed");
+
+        group
+            .MapDelete("/Users/{userId}/PlayedItems/{itemId}", async (
+                HttpContext context,
+                string userId,
+                string itemId,
+                IMetadataApi metadataApi) =>
+            {
+                var user = context.GetAuthenticatedUser();
+                if (!ValidateUserId(user, userId))
+                    return Results.Forbid();
+
+                await MarkAsUnplayed(user.Id, itemId, metadataApi);
+                return JellyfinJson(new JellyfinUserData { Played = false, PlayCount = 0 });
+            })
+            .AddEndpointFilter<JellyfinAuthFilter>()
+            .WithName("JellyfinMarkUnplayed");
     }
 
     #endregion
@@ -539,6 +615,158 @@ public static class JellyfinConfiguration
 
     private static IResult JellyfinJson<T>(T response) => 
         Results.Json(response, ResponseJsonOptions);
+
+    private static async Task HandlePlaybackStart(
+        string userId,
+        JellyfinPlaybackProgressInfo progressInfo,
+        IMetadataApi metadataApi)
+    {
+        var itemId = progressInfo.ItemId;
+        if (string.IsNullOrWhiteSpace(itemId))
+            return;
+
+        var fileMetadataId = await ResolveFileMetadataId(itemId, metadataApi);
+        if (string.IsNullOrWhiteSpace(fileMetadataId))
+            return;
+
+        var playbackInfo = await metadataApi.GetPlaybackInfoAsync(userId, fileMetadataId) 
+            ?? new FilePlaybackInfo
+            {
+                Id = FilePlaybackInfo.CreateId(userId, fileMetadataId),
+                UserId = userId,
+                FileMetadataId = fileMetadataId
+            };
+
+        playbackInfo.LastPlayedDate = DateTime.UtcNow;
+        await metadataApi.SavePlaybackInfoAsync(playbackInfo);
+    }
+
+    private static async Task HandlePlaybackProgress(
+        string userId,
+        JellyfinPlaybackProgressInfo progressInfo,
+        IMetadataApi metadataApi)
+    {
+        var itemId = progressInfo.ItemId;
+        if (string.IsNullOrWhiteSpace(itemId))
+            return;
+
+        var fileMetadataId = await ResolveFileMetadataId(itemId, metadataApi);
+        if (string.IsNullOrWhiteSpace(fileMetadataId))
+            return;
+
+        var playbackInfo = await metadataApi.GetPlaybackInfoAsync(userId, fileMetadataId) 
+            ?? new FilePlaybackInfo
+            {
+                Id = FilePlaybackInfo.CreateId(userId, fileMetadataId),
+                UserId = userId,
+                FileMetadataId = fileMetadataId
+            };
+
+        playbackInfo.PlaybackPositionTicks = progressInfo.PositionTicks;
+        playbackInfo.LastPlayedDate = DateTime.UtcNow;
+        await metadataApi.SavePlaybackInfoAsync(playbackInfo);
+    }
+
+    private static async Task HandlePlaybackStopped(
+        string userId,
+        JellyfinPlaybackStopInfo stopInfo,
+        IMetadataApi metadataApi)
+    {
+        var itemId = stopInfo.ItemId;
+        if (string.IsNullOrWhiteSpace(itemId))
+            return;
+
+        var fileMetadataId = await ResolveFileMetadataId(itemId, metadataApi);
+        if (string.IsNullOrWhiteSpace(fileMetadataId))
+            return;
+
+        var playbackInfo = await metadataApi.GetPlaybackInfoAsync(userId, fileMetadataId) 
+            ?? new FilePlaybackInfo
+            {
+                Id = FilePlaybackInfo.CreateId(userId, fileMetadataId),
+                UserId = userId,
+                FileMetadataId = fileMetadataId
+            };
+
+        playbackInfo.PlaybackPositionTicks = stopInfo.PositionTicks;
+        playbackInfo.LastPlayedDate = DateTime.UtcNow;
+        
+        // Mark as played if stopped near the end (within last 10%)
+        // This is a simple heuristic - could be enhanced with runtime info
+        if (stopInfo.PositionTicks > 0)
+        {
+            playbackInfo.PlayCount++;
+        }
+
+        await metadataApi.SavePlaybackInfoAsync(playbackInfo);
+    }
+
+    private static async Task MarkAsPlayed(
+        string userId,
+        string itemId,
+        IMetadataApi metadataApi,
+        DateTime datePlayed)
+    {
+        var fileMetadataId = await ResolveFileMetadataId(itemId, metadataApi);
+        if (string.IsNullOrWhiteSpace(fileMetadataId))
+            return;
+
+        var playbackInfo = await metadataApi.GetPlaybackInfoAsync(userId, fileMetadataId) 
+            ?? new FilePlaybackInfo
+            {
+                Id = FilePlaybackInfo.CreateId(userId, fileMetadataId),
+                UserId = userId,
+                FileMetadataId = fileMetadataId
+            };
+
+        playbackInfo.Played = true;
+        playbackInfo.PlayCount = Math.Max(playbackInfo.PlayCount, 1);
+        playbackInfo.LastPlayedDate = datePlayed;
+        playbackInfo.PlaybackPositionTicks = 0; // Reset position when manually marking as played
+
+        await metadataApi.SavePlaybackInfoAsync(playbackInfo);
+    }
+
+    private static async Task MarkAsUnplayed(
+        string userId,
+        string itemId,
+        IMetadataApi metadataApi)
+    {
+        var fileMetadataId = await ResolveFileMetadataId(itemId, metadataApi);
+        if (string.IsNullOrWhiteSpace(fileMetadataId))
+            return;
+
+        var playbackInfo = await metadataApi.GetPlaybackInfoAsync(userId, fileMetadataId);
+        if (playbackInfo == null)
+            return;
+
+        playbackInfo.Played = false;
+        playbackInfo.PlayCount = 0;
+        playbackInfo.PlaybackPositionTicks = 0;
+
+        await metadataApi.SavePlaybackInfoAsync(playbackInfo);
+    }
+
+    private static async Task<string?> ResolveFileMetadataId(string itemId, IMetadataApi metadataApi)
+    {
+        // Try to parse as episode ID
+        if (JellyfinIdHelper.TryParseEpisodeId(itemId, out var seriesId, out var seasonNum, out var episodeNum))
+        {
+            var files = await metadataApi.GetFilesByMediaIdAsync(seriesId, LibraryType.TVShows);
+            var file = files.FirstOrDefault(f => 
+                f.SeasonNumber == seasonNum && f.EpisodeNumber == episodeNum);
+            return file?.Id;
+        }
+
+        // Try to parse as movie ID
+        if (JellyfinIdHelper.TryParseMovieId(itemId, out var movieId))
+        {
+            var files = await metadataApi.GetFilesByMediaIdAsync(movieId, LibraryType.Movies);
+            return files.FirstOrDefault()?.Id;
+        }
+
+        return null;
+    }
 
     #endregion
 }

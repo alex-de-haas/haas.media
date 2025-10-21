@@ -31,4 +31,10 @@ public interface IMetadataApi
     );
     Task<PersonMetadata?> GetPersonMetadataByIdAsync(int id);
     Task<PersonLibraryCredits?> GetPersonCreditsByIdAsync(int id);
+    
+    // Playback Info operations
+    Task<FilePlaybackInfo?> GetPlaybackInfoAsync(string userId, string fileMetadataId);
+    Task<FilePlaybackInfo> SavePlaybackInfoAsync(FilePlaybackInfo playbackInfo);
+    Task<bool> DeletePlaybackInfoAsync(string userId, string fileMetadataId);
+    Task<IEnumerable<FilePlaybackInfo>> GetUserPlaybackInfoAsync(string userId);
 }
