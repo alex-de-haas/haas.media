@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Haas.Media.Services.Authentication;
 using Haas.Media.Services.Files;
 
 namespace Haas.Media.Services.Jellyfin;
@@ -147,7 +146,7 @@ public static class JellyfinConfiguration
                         RememberIndexing = false,
                         PrimaryImageHeight = 250,
                         PrimaryImageWidth = 250,
-                        CustomPrefs = new Dictionary<string, string>(),
+                        CustomPrefs = [],
                         ScrollDirection = "Vertical",
                         ShowBackdrop = true,
                         RememberSorting = false,
