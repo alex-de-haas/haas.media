@@ -547,6 +547,40 @@ public static class JellyfinConfiguration
             })
             .AddEndpointFilter<JellyfinAuthFilter>()
             .WithName("JellyfinMarkUnplayed");
+
+        group
+            .MapPost("/Users/{userId}/FavoriteItems/{itemId}", async (
+                HttpContext context,
+                string userId,
+                string itemId,
+                IMetadataApi metadataApi) =>
+            {
+                var user = context.GetAuthenticatedUser();
+                if (!ValidateUserId(user, userId))
+                    return Results.Forbid();
+
+                var userData = await UpdateFavoriteStatus(user.Id, itemId, true, metadataApi);
+                return JellyfinJson(userData ?? new JellyfinUserData { IsFavorite = true });
+            })
+            .AddEndpointFilter<JellyfinAuthFilter>()
+            .WithName("JellyfinMarkFavorite");
+
+        group
+            .MapDelete("/Users/{userId}/FavoriteItems/{itemId}", async (
+                HttpContext context,
+                string userId,
+                string itemId,
+                IMetadataApi metadataApi) =>
+            {
+                var user = context.GetAuthenticatedUser();
+                if (!ValidateUserId(user, userId))
+                    return Results.Forbid();
+
+                var userData = await UpdateFavoriteStatus(user.Id, itemId, false, metadataApi);
+                return JellyfinJson(userData ?? new JellyfinUserData { IsFavorite = false });
+            })
+            .AddEndpointFilter<JellyfinAuthFilter>()
+            .WithName("JellyfinUnmarkFavorite");
     }
 
     #endregion
@@ -767,6 +801,38 @@ public static class JellyfinConfiguration
         playbackInfo.PlaybackPositionTicks = 0;
 
         await metadataApi.SavePlaybackInfoAsync(playbackInfo);
+    }
+
+    private static async Task<JellyfinUserData?> UpdateFavoriteStatus(
+        string userId,
+        string itemId,
+        bool isFavorite,
+        IMetadataApi metadataApi)
+    {
+        var fileMetadataId = await ResolveFileMetadataId(itemId, metadataApi);
+        if (string.IsNullOrWhiteSpace(fileMetadataId))
+            return null;
+
+        var playbackInfo = await metadataApi.GetPlaybackInfoAsync(userId, fileMetadataId)
+            ?? new FilePlaybackInfo
+            {
+                Id = FilePlaybackInfo.CreateId(userId, fileMetadataId),
+                UserId = userId,
+                FileMetadataId = fileMetadataId
+            };
+
+        playbackInfo.IsFavorite = isFavorite;
+        playbackInfo.UpdatedAt = DateTime.UtcNow;
+
+        var saved = await metadataApi.SavePlaybackInfoAsync(playbackInfo);
+
+        return new JellyfinUserData
+        {
+            Played = saved.Played,
+            PlaybackPositionTicks = saved.PlaybackPositionTicks,
+            IsFavorite = saved.IsFavorite,
+            PlayCount = saved.PlayCount
+        };
     }
 
     private static async Task<string?> ResolveFileMetadataId(string itemId, IMetadataApi metadataApi)
