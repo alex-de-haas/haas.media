@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using System.Linq;
 using Haas.Media.Services.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
@@ -34,7 +34,8 @@ public class JellyfinAuthService
             configuration["DATA_DIRECTORY"]
             ?? throw new InvalidOperationException("DATA_DIRECTORY is not configured.");
         _serverId = JellyfinService.ComputeServerId(_dataDirectory);
-        _serverVersion = typeof(JellyfinAuthService).Assembly.GetName().Version?.ToString() ?? "0.0.0";
+        _serverVersion =
+            typeof(JellyfinAuthService).Assembly.GetName().Version?.ToString() ?? "0.0.0";
 
         var jwtSecret = configuration["JWT_SECRET"];
         if (!string.IsNullOrWhiteSpace(jwtSecret))
@@ -68,19 +69,26 @@ public class JellyfinAuthService
             return client;
         }
 
-        string? device = request.Headers["X-Emby-Device"].FirstOrDefault()
+        string? device =
+            request.Headers["X-Emby-Device"].FirstOrDefault()
             ?? request.Headers["X-MediaBrowser-Device"].FirstOrDefault();
-        string? deviceId = request.Headers["X-Emby-Device-Id"].FirstOrDefault()
+        string? deviceId =
+            request.Headers["X-Emby-Device-Id"].FirstOrDefault()
             ?? request.Headers["X-MediaBrowser-Device-Id"].FirstOrDefault();
-        string? clientName = request.Headers["X-Emby-Client"].FirstOrDefault()
+        string? clientName =
+            request.Headers["X-Emby-Client"].FirstOrDefault()
             ?? request.Headers["X-MediaBrowser-Client"].FirstOrDefault();
-        string? version = request.Headers["X-Emby-Client-Version"].FirstOrDefault()
+        string? version =
+            request.Headers["X-Emby-Client-Version"].FirstOrDefault()
             ?? request.Headers["X-MediaBrowser-Client-Version"].FirstOrDefault();
 
         return new JellyfinClientInfo(clientName, device, deviceId, version);
     }
 
-    public async Task<User?> AuthenticateRequestAsync(HttpRequest request, CancellationToken cancellationToken = default)
+    public async Task<User?> AuthenticateRequestAsync(
+        HttpRequest request,
+        CancellationToken cancellationToken = default
+    )
     {
         var token = ExtractAccessToken(request);
         if (string.IsNullOrWhiteSpace(token))
@@ -90,7 +98,9 @@ public class JellyfinAuthService
 
         if (_tokenValidationParameters is null)
         {
-            _logger.LogWarning("JWT secret is not configured; Jellyfin token validation is unavailable.");
+            _logger.LogWarning(
+                "JWT secret is not configured; Jellyfin token validation is unavailable."
+            );
             return null;
         }
 
@@ -133,7 +143,9 @@ public class JellyfinAuthService
             return null;
         }
 
-        var authResponse = await _authenticationApi.LoginAsync(new LoginRequest(request.Username, password));
+        var authResponse = await _authenticationApi.LoginAsync(
+            new LoginRequest(request.Username, password)
+        );
 
         if (authResponse is null)
         {
@@ -169,7 +181,10 @@ public class JellyfinAuthService
     public JellyfinUserContract CreateUserContract(User user)
     {
         var policy = user.IsAdmin
-            ? JellyfinUserPolicy.Default with { IsAdministrator = true }
+            ? JellyfinUserPolicy.Default with
+            {
+                IsAdministrator = true
+            }
             : JellyfinUserPolicy.Default;
 
         return new JellyfinUserContract
@@ -249,15 +264,19 @@ public class JellyfinAuthService
 
     public string? ExtractAccessToken(HttpRequest request)
     {
-        if (request.HttpContext.Items.TryGetValue("jellyfin.token.from-header", out var tokenObj)
+        if (
+            request.HttpContext.Items.TryGetValue("jellyfin.token.from-header", out var tokenObj)
             && tokenObj is string cachedToken
-            && !string.IsNullOrWhiteSpace(cachedToken))
+            && !string.IsNullOrWhiteSpace(cachedToken)
+        )
         {
             return cachedToken;
         }
 
-        if (TryGetFirstNonEmpty(request.Headers, "X-MediaBrowser-Token", out var token)
-            || TryGetFirstNonEmpty(request.Headers, "X-Emby-Token", out token))
+        if (
+            TryGetFirstNonEmpty(request.Headers, "X-MediaBrowser-Token", out var token)
+            || TryGetFirstNonEmpty(request.Headers, "X-Emby-Token", out token)
+        )
         {
             return token;
         }
@@ -301,7 +320,9 @@ public class JellyfinAuthService
         return null;
     }
 
-    private static (string? Token, JellyfinClientInfo? ClientInfo) ParseAuthorizationHeader(StringValues headerValues)
+    private static (string? Token, JellyfinClientInfo? ClientInfo) ParseAuthorizationHeader(
+        StringValues headerValues
+    )
     {
         var headerValue = headerValues.FirstOrDefault();
         if (string.IsNullOrWhiteSpace(headerValue))
@@ -313,7 +334,10 @@ public class JellyfinAuthService
         if (trimmed.StartsWith("MediaBrowser", StringComparison.OrdinalIgnoreCase))
         {
             var parameters = trimmed["MediaBrowser".Length..].Trim();
-            var parts = parameters.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            var parts = parameters.Split(
+                ',',
+                StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries
+            );
             string? client = null;
             string? device = null;
             string? deviceId = null;
@@ -358,7 +382,11 @@ public class JellyfinAuthService
         return (null, null);
     }
 
-    private static bool TryGetFirstNonEmpty(IHeaderDictionary headers, string key, out string? value)
+    private static bool TryGetFirstNonEmpty(
+        IHeaderDictionary headers,
+        string key,
+        out string? value
+    )
     {
         if (headers.TryGetValue(key, out var values))
         {

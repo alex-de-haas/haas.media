@@ -11,14 +11,14 @@ public class JellyfinService
     private readonly string _dataDirectory;
     private readonly string _serverId;
     private const string ImageBaseUrl = "https://image.tmdb.org/t/p/";
-    
+
     // Helper method to get first file for a media item
     private async Task<FileMetadata?> GetFirstFileForMediaAsync(int mediaId, LibraryType mediaType)
     {
         var files = await _metadataApi.GetFilesByMediaIdAsync(mediaId, mediaType);
         return files.FirstOrDefault();
     }
-    
+
     // Helper method to get file for a specific episode
     private async Task<FileMetadata?> GetEpisodeFileAsync(
         int tvShowId,
@@ -27,17 +27,24 @@ public class JellyfinService
         string? libraryId = null
     )
     {
-        var files = (await _metadataApi.GetFilesByMediaIdAsync(tvShowId, LibraryType.TVShows))
-            .ToList();
+        var files = (
+            await _metadataApi.GetFilesByMediaIdAsync(tvShowId, LibraryType.TVShows)
+        ).ToList();
         if (!string.IsNullOrWhiteSpace(libraryId))
         {
             files = files.Where(f => f.LibraryId == libraryId).ToList();
         }
-        return files.FirstOrDefault(f => f.SeasonNumber == seasonNumber && f.EpisodeNumber == episodeNumber);
+        return files.FirstOrDefault(f =>
+            f.SeasonNumber == seasonNumber && f.EpisodeNumber == episodeNumber
+        );
     }
-    
+
     // Helper method to check if a season has any episode files
-    private async Task<bool> SeasonHasFilesAsync(int tvShowId, int seasonNumber, string? libraryId = null)
+    private async Task<bool> SeasonHasFilesAsync(
+        int tvShowId,
+        int seasonNumber,
+        string? libraryId = null
+    )
     {
         var files = await _metadataApi.GetFilesByMediaIdAsync(tvShowId, LibraryType.TVShows);
         if (!string.IsNullOrWhiteSpace(libraryId))
@@ -80,7 +87,9 @@ public class JellyfinService
         };
     }
 
-    public async Task<JellyfinLibraryEnvelope> GetLibrariesAsync(CancellationToken cancellationToken = default)
+    public async Task<JellyfinLibraryEnvelope> GetLibrariesAsync(
+        CancellationToken cancellationToken = default
+    )
     {
         var libraries = (await _metadataApi.GetLibrariesAsync()).ToList();
         var items = new List<JellyfinLibraryItem>(libraries.Count);
@@ -88,9 +97,10 @@ public class JellyfinService
         foreach (var library in libraries)
         {
             var collectionType = library.Type == LibraryType.Movies ? "movies" : "tvshows";
-            var childCount = library.Type == LibraryType.Movies
-                ? await CountMoviesAsync(library.Id)
-                : await CountTvShowsAsync(library.Id);
+            var childCount =
+                library.Type == LibraryType.Movies
+                    ? await CountMoviesAsync(library.Id)
+                    : await CountTvShowsAsync(library.Id);
 
             items.Add(
                 new JellyfinLibraryItem
@@ -111,22 +121,19 @@ public class JellyfinService
         };
     }
 
-    public async Task<JellyfinItemsEnvelope> GetLibraryViewsAsync(CancellationToken cancellationToken = default)
+    public async Task<JellyfinItemsEnvelope> GetLibraryViewsAsync(
+        CancellationToken cancellationToken = default
+    )
     {
         var librariesEnvelope = await GetLibrariesAsync(cancellationToken);
-        var items = librariesEnvelope
-            .Items
-            .Select(MapLibraryItemToFolder)
-            .ToArray();
+        var items = librariesEnvelope.Items.Select(MapLibraryItemToFolder).ToArray();
 
-        return new JellyfinItemsEnvelope
-        {
-            Items = items,
-            TotalRecordCount = items.Length,
-        };
+        return new JellyfinItemsEnvelope { Items = items, TotalRecordCount = items.Length, };
     }
 
-    public async Task<JellyfinVirtualFolderInfo[]> GetVirtualFoldersAsync(CancellationToken cancellationToken = default)
+    public async Task<JellyfinVirtualFolderInfo[]> GetVirtualFoldersAsync(
+        CancellationToken cancellationToken = default
+    )
     {
         var libraries = await _metadataApi.GetLibrariesAsync();
         return libraries
@@ -152,15 +159,10 @@ public class JellyfinService
         {
             var librariesEnvelope = await GetLibrariesAsync(cancellationToken);
             var items = librariesEnvelope
-                .Items
-                .Select(library => MapLibraryItemToFolder(library))
+                .Items.Select(library => MapLibraryItemToFolder(library))
                 .ToArray();
 
-            return new JellyfinItemsEnvelope
-            {
-                Items = items,
-                TotalRecordCount = items.Length,
-            };
+            return new JellyfinItemsEnvelope { Items = items, TotalRecordCount = items.Length, };
         }
 
         if (JellyfinIdHelper.TryParseLibraryId(query.ParentId, out var libraryId))
@@ -186,7 +188,11 @@ public class JellyfinService
         }
 
         if (
-            JellyfinIdHelper.TryParseSeasonId(query.ParentId, out var parentSeriesId, out var seasonNumber)
+            JellyfinIdHelper.TryParseSeasonId(
+                query.ParentId,
+                out var parentSeriesId,
+                out var seasonNumber
+            )
         )
         {
             var show = await _metadataApi.GetTVShowMetadataByIdAsync(parentSeriesId);
@@ -201,7 +207,10 @@ public class JellyfinService
         return EmptyItems();
     }
 
-    public async Task<JellyfinItem?> GetItemByIdAsync(string itemId, CancellationToken cancellationToken = default)
+    public async Task<JellyfinItem?> GetItemByIdAsync(
+        string itemId,
+        CancellationToken cancellationToken = default
+    )
     {
         if (JellyfinIdHelper.TryParseLibraryId(itemId, out var libraryId))
         {
@@ -253,7 +262,13 @@ public class JellyfinService
             return await MapSeriesAsync(show);
         }
 
-        if (JellyfinIdHelper.TryParseSeasonId(itemId, out var seriesIdForSeason, out var seasonNumber))
+        if (
+            JellyfinIdHelper.TryParseSeasonId(
+                itemId,
+                out var seriesIdForSeason,
+                out var seasonNumber
+            )
+        )
         {
             var show = await _metadataApi.GetTVShowMetadataByIdAsync(seriesIdForSeason);
             if (show is null)
@@ -280,8 +295,8 @@ public class JellyfinService
             }
 
             var episodeMetadata = show
-                .Seasons.FirstOrDefault(s => s.SeasonNumber == episodeSeason)?
-                .Episodes.FirstOrDefault(e => e.EpisodeNumber == episodeNumber);
+                .Seasons.FirstOrDefault(s => s.SeasonNumber == episodeSeason)
+                ?.Episodes.FirstOrDefault(e => e.EpisodeNumber == episodeNumber);
 
             if (episodeMetadata is null)
             {
@@ -294,7 +309,10 @@ public class JellyfinService
         return null;
     }
 
-    public async Task<JellyfinMediaPath?> ResolveMediaPathAsync(string itemId, string? mediaSourceId = null)
+    public async Task<JellyfinMediaPath?> ResolveMediaPathAsync(
+        string itemId,
+        string? mediaSourceId = null
+    )
     {
         if (JellyfinIdHelper.TryParseMovieId(itemId, out var movieId))
         {
@@ -314,7 +332,12 @@ public class JellyfinService
         }
 
         if (
-            JellyfinIdHelper.TryParseEpisodeId(itemId, out var seriesId, out var seasonNumber, out var episodeNumber)
+            JellyfinIdHelper.TryParseEpisodeId(
+                itemId,
+                out var seriesId,
+                out var seasonNumber,
+                out var episodeNumber
+            )
         )
         {
             var series = await _metadataApi.GetTVShowMetadataByIdAsync(seriesId);
@@ -371,8 +394,10 @@ public class JellyfinService
 
             relativePath = imageType switch
             {
-                var type when string.Equals(type, "Primary", StringComparison.OrdinalIgnoreCase) => movie.PosterPath,
-                var type when string.Equals(type, "Logo", StringComparison.OrdinalIgnoreCase) => movie.LogoPath,
+                var type when string.Equals(type, "Primary", StringComparison.OrdinalIgnoreCase)
+                    => movie.PosterPath,
+                var type when string.Equals(type, "Logo", StringComparison.OrdinalIgnoreCase)
+                    => movie.LogoPath,
                 _ => movie.BackdropPath
             };
         }
@@ -386,13 +411,19 @@ public class JellyfinService
 
             relativePath = imageType switch
             {
-                var type when string.Equals(type, "Backdrop", StringComparison.OrdinalIgnoreCase) => show.BackdropPath,
-                var type when string.Equals(type, "Logo", StringComparison.OrdinalIgnoreCase) => show.LogoPath,
+                var type when string.Equals(type, "Backdrop", StringComparison.OrdinalIgnoreCase)
+                    => show.BackdropPath,
+                var type when string.Equals(type, "Logo", StringComparison.OrdinalIgnoreCase)
+                    => show.LogoPath,
                 _ => show.PosterPath
             };
         }
         else if (
-            JellyfinIdHelper.TryParseSeasonId(itemId, out var seriesIdForSeason, out var seasonNumber)
+            JellyfinIdHelper.TryParseSeasonId(
+                itemId,
+                out var seriesIdForSeason,
+                out var seasonNumber
+            )
         )
         {
             var show = await _metadataApi.GetTVShowMetadataByIdAsync(seriesIdForSeason);
@@ -426,7 +457,9 @@ public class JellyfinService
         {
             var movies = (await _metadataApi.GetMovieMetadataAsync(library.Id)).ToList();
             var filtered = FilterByName(movies, query.SearchTerm, movie => movie.Title);
-            var mappingTasks = filtered.Select(async movie => await MapMovieAsync(movie, library.Id));
+            var mappingTasks = filtered.Select(async movie =>
+                await MapMovieAsync(movie, library.Id)
+            );
             var allItems = await Task.WhenAll(mappingTasks);
             var items = allItems.Where(item => MatchesType(item, query)).ToArray();
 
@@ -441,7 +474,9 @@ public class JellyfinService
         {
             var shows = (await _metadataApi.GetTVShowMetadataAsync(library.Id)).ToList();
             var filtered = FilterByName(shows, query.SearchTerm, show => show.Title);
-            var mappingTasks = filtered.Select(async show => await MapSeriesAsync(show, library.Id));
+            var mappingTasks = filtered.Select(async show =>
+                await MapSeriesAsync(show, library.Id)
+            );
             var allItems = await Task.WhenAll(mappingTasks);
             var items = allItems.Where(item => MatchesType(item, query)).ToList();
 
@@ -463,7 +498,10 @@ public class JellyfinService
         }
     }
 
-    private async Task<JellyfinItemsEnvelope> BuildSeriesChildrenAsync(TVShowMetadata show, JellyfinItemsQuery query)
+    private async Task<JellyfinItemsEnvelope> BuildSeriesChildrenAsync(
+        TVShowMetadata show,
+        JellyfinItemsQuery query
+    )
     {
         var items = new List<JellyfinItem>();
         foreach (var season in show.Seasons.OrderBy(s => s.SeasonNumber))
@@ -486,7 +524,11 @@ public class JellyfinService
                 foreach (var episode in season.Episodes.OrderBy(e => e.EpisodeNumber))
                 {
                     // Only include episodes that have files
-                    var episodeHasFile = await GetEpisodeFileAsync(show.Id, episode.SeasonNumber, episode.EpisodeNumber);
+                    var episodeHasFile = await GetEpisodeFileAsync(
+                        show.Id,
+                        episode.SeasonNumber,
+                        episode.EpisodeNumber
+                    );
                     if (episodeHasFile is null)
                     {
                         continue; // Skip episodes without files
@@ -524,7 +566,11 @@ public class JellyfinService
         foreach (var episode in season.Episodes.OrderBy(e => e.EpisodeNumber))
         {
             // Only include episodes that have files
-            var episodeFile = await GetEpisodeFileAsync(show.Id, episode.SeasonNumber, episode.EpisodeNumber);
+            var episodeFile = await GetEpisodeFileAsync(
+                show.Id,
+                episode.SeasonNumber,
+                episode.EpisodeNumber
+            );
             if (episodeFile is null)
             {
                 continue; // Skip episodes without files
@@ -551,7 +597,7 @@ public class JellyfinService
     )
     {
         var items = new List<JellyfinItem>();
-        
+
         foreach (var season in show.Seasons)
         {
             // Only include seasons that have at least one episode file
@@ -587,7 +633,7 @@ public class JellyfinService
                 }
             }
         }
-        
+
         return items;
     }
 
@@ -618,8 +664,9 @@ public class JellyfinService
     private async Task<JellyfinItem> MapMovieAsync(MovieMetadata metadata, string? libraryId = null)
     {
         // Get all files linked to this movie
-        var allFiles = (await _metadataApi.GetFilesByMediaIdAsync(metadata.Id, LibraryType.Movies))
-            .ToList();
+        var allFiles = (
+            await _metadataApi.GetFilesByMediaIdAsync(metadata.Id, LibraryType.Movies)
+        ).ToList();
 
         // Filter files to the requested library (if provided)
         var filteredFiles = !string.IsNullOrWhiteSpace(libraryId)
@@ -631,7 +678,8 @@ public class JellyfinService
             filteredFiles = allFiles;
         }
 
-        var resolvedLibraryId = libraryId
+        var resolvedLibraryId =
+            libraryId
             ?? filteredFiles.FirstOrDefault()?.LibraryId
             ?? allFiles.FirstOrDefault()?.LibraryId;
 
@@ -657,12 +705,9 @@ public class JellyfinService
         var imageTags = BuildImageTags(metadata.PosterPath, metadata.LogoPath);
         var backdropTags = BuildBackdropImageTag(metadata.BackdropPath);
         var people = MapPeople(metadata.Cast, metadata.Crew);
-        
+
         // Build provider IDs
-        var providerIds = new Dictionary<string, string>
-        {
-            ["Tmdb"] = metadata.Id.ToString(),
-        };
+        var providerIds = new Dictionary<string, string> { ["Tmdb"] = metadata.Id.ToString(), };
 
         return new JellyfinItem
         {
@@ -682,7 +727,9 @@ public class JellyfinService
             ServerId = _serverId,
             DateCreated = metadata.CreatedAt,
             Etag = $"{metadata.Id}-{metadata.UpdatedAt.Ticks}",
-            PremiereDate = metadata.ReleaseDate is null ? null : DateTime.SpecifyKind(metadata.ReleaseDate.Value, DateTimeKind.Utc),
+            PremiereDate = metadata.ReleaseDate is null
+                ? null
+                : DateTime.SpecifyKind(metadata.ReleaseDate.Value, DateTimeKind.Utc),
             ProductionYear = metadata.ReleaseDate?.Year,
             RunTimeTicks = null,
             CommunityRating = metadata.VoteAverage > 0 ? (float)metadata.VoteAverage : null,
@@ -702,10 +749,14 @@ public class JellyfinService
         };
     }
 
-    private async Task<JellyfinItem> MapSeriesAsync(TVShowMetadata metadata, string? libraryId = null)
+    private async Task<JellyfinItem> MapSeriesAsync(
+        TVShowMetadata metadata,
+        string? libraryId = null
+    )
     {
-        var allFiles = (await _metadataApi.GetFilesByMediaIdAsync(metadata.Id, LibraryType.TVShows))
-            .ToList();
+        var allFiles = (
+            await _metadataApi.GetFilesByMediaIdAsync(metadata.Id, LibraryType.TVShows)
+        ).ToList();
 
         var filteredFiles = !string.IsNullOrWhiteSpace(libraryId)
             ? allFiles.Where(f => f.LibraryId == libraryId).ToList()
@@ -716,7 +767,8 @@ public class JellyfinService
             filteredFiles = allFiles;
         }
 
-        var resolvedLibraryId = libraryId
+        var resolvedLibraryId =
+            libraryId
             ?? filteredFiles.FirstOrDefault()?.LibraryId
             ?? allFiles.FirstOrDefault()?.LibraryId;
 
@@ -734,12 +786,9 @@ public class JellyfinService
             .Distinct()
             .Count();
         var episodesWithFiles = filteredFiles.Count;
-        
+
         // Build provider IDs
-        var providerIds = new Dictionary<string, string>
-        {
-            ["Tmdb"] = metadata.Id.ToString(),
-        };
+        var providerIds = new Dictionary<string, string> { ["Tmdb"] = metadata.Id.ToString(), };
 
         return new JellyfinItem
         {
@@ -759,7 +808,7 @@ public class JellyfinService
             ServerId = _serverId,
             DateCreated = metadata.CreatedAt,
             Etag = $"{metadata.Id}-{metadata.UpdatedAt.Ticks}",
-            PremiereDate = metadata.FirstAirDate.HasValue 
+            PremiereDate = metadata.FirstAirDate.HasValue
                 ? DateTime.SpecifyKind(metadata.FirstAirDate.Value, DateTimeKind.Utc)
                 : null,
             ProductionYear = metadata.FirstAirDate?.Year,
@@ -786,23 +835,22 @@ public class JellyfinService
     private JellyfinItem MapSeason(TVShowMetadata metadata, int seasonNumber)
     {
         var season = metadata.Seasons.FirstOrDefault(s => s.SeasonNumber == seasonNumber);
-        var seasonName = season is null ? $"Season {seasonNumber}" : $"Season {season.SeasonNumber}";
+        var seasonName = season is null
+            ? $"Season {seasonNumber}"
+            : $"Season {season.SeasonNumber}";
         var imageTags = BuildPrimaryImageTag(season?.PosterPath);
-        
+
         // Calculate episode count based on episodes that have files
         // Note: This is synchronous mapping, so we can't check files here
         // The count might be inaccurate until we refactor to async
         var episodeCount = season?.Episodes.Length ?? 0;
-        
+
         // Build provider IDs
-        var providerIds = new Dictionary<string, string>
-        {
-            ["Tmdb"] = metadata.Id.ToString(),
-        };
-        
+        var providerIds = new Dictionary<string, string> { ["Tmdb"] = metadata.Id.ToString(), };
+
         // Map cast and crew from the show
         var people = MapPeople(metadata.Cast, metadata.Crew);
-        
+
         // Get series image tags for parent references
         var seriesPosterTag = BuildPrimaryImageTag(metadata.PosterPath);
         var seriesId = JellyfinIdHelper.CreateSeriesId(metadata.Id);
@@ -816,7 +864,7 @@ public class JellyfinService
             Type = "Season",
             DisplayPreferencesId = JellyfinIdHelper.CreateSeasonId(metadata.Id, seasonNumber),
             CollectionType = "tvshows",
-            MediaType = null,  // Seasons don't have a media type in Jellyfin
+            MediaType = null, // Seasons don't have a media type in Jellyfin
             ParentId = seriesId,
             IsFolder = true,
             Overview = season?.Overview,
@@ -825,7 +873,7 @@ public class JellyfinService
             ServerId = _serverId,
             DateCreated = metadata.CreatedAt,
             Etag = $"{metadata.Id}-{seasonNumber}-{metadata.UpdatedAt.Ticks}",
-            PremiereDate = metadata.FirstAirDate.HasValue 
+            PremiereDate = metadata.FirstAirDate.HasValue
                 ? DateTime.SpecifyKind(metadata.FirstAirDate.Value, DateTimeKind.Utc)
                 : null,
             ProductionYear = metadata.FirstAirDate?.Year,
@@ -833,10 +881,10 @@ public class JellyfinService
             ImageTags = imageTags,
             BackdropImageTags = null,
             LocationType = "FileSystem",
-            UserData = new JellyfinUserData 
-            { 
+            UserData = new JellyfinUserData
+            {
                 Played = false,
-                UnplayedItemCount = episodeCount  // All episodes unplayed by default
+                UnplayedItemCount = episodeCount // All episodes unplayed by default
             },
             ParentIndexNumberName = metadata.Title,
             IndexNumber = season?.SeasonNumber ?? seasonNumber,
@@ -876,12 +924,20 @@ public class JellyfinService
 
         return new JellyfinItem
         {
-            Id = JellyfinIdHelper.CreateEpisodeId(show.Id, episode.SeasonNumber, episode.EpisodeNumber),
+            Id = JellyfinIdHelper.CreateEpisodeId(
+                show.Id,
+                episode.SeasonNumber,
+                episode.EpisodeNumber
+            ),
             Name = episode.Name,
             OriginalTitle = episode.Name,
             SortName = episode.Name,
             Type = "Episode",
-            DisplayPreferencesId = JellyfinIdHelper.CreateEpisodeId(show.Id, episode.SeasonNumber, episode.EpisodeNumber),
+            DisplayPreferencesId = JellyfinIdHelper.CreateEpisodeId(
+                show.Id,
+                episode.SeasonNumber,
+                episode.EpisodeNumber
+            ),
             CollectionType = "tvshows",
             MediaType = "Video",
             ParentId = JellyfinIdHelper.CreateSeasonId(show.Id, episode.SeasonNumber),
@@ -962,13 +1018,14 @@ public class JellyfinService
 
         if (!normalizedAbsolute.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase))
         {
-            _logger.LogWarning("Rejected media path outside data directory: {Path}", normalizedAbsolute);
+            _logger.LogWarning(
+                "Rejected media path outside data directory: {Path}",
+                normalizedAbsolute
+            );
             return null;
         }
 
-        var container = Path.GetExtension(normalizedAbsolute)
-            .TrimStart('.')
-            .ToLowerInvariant();
+        var container = Path.GetExtension(normalizedAbsolute).TrimStart('.').ToLowerInvariant();
 
         return new JellyfinMediaPath
         {
@@ -978,7 +1035,10 @@ public class JellyfinService
         };
     }
 
-    private static IReadOnlyDictionary<string, string>? BuildImageTags(string? posterPath, string? logoPath)
+    private static IReadOnlyDictionary<string, string>? BuildImageTags(
+        string? posterPath,
+        string? logoPath
+    )
     {
         var tags = new Dictionary<string, string>();
 
@@ -1006,11 +1066,8 @@ public class JellyfinService
 
         var trimmedPath = path.Trim();
         var imageTag = GenerateImageTag(trimmedPath);
-        
-        return new Dictionary<string, string>
-        {
-            ["Primary"] = imageTag,
-        };
+
+        return new Dictionary<string, string> { ["Primary"] = imageTag, };
     }
 
     private static IReadOnlyList<string>? BuildBackdropImageTag(string? path)
@@ -1022,7 +1079,7 @@ public class JellyfinService
 
         var trimmedPath = path.Trim();
         var imageTag = GenerateImageTag(trimmedPath);
-        
+
         return [imageTag];
     }
 
@@ -1035,13 +1092,10 @@ public class JellyfinService
 
         var trimmedPath = path.Trim();
         var imageTag = GenerateImageTag(trimmedPath);
-        
-        return new Dictionary<string, string>
-        {
-            ["Logo"] = imageTag,
-        };
+
+        return new Dictionary<string, string> { ["Logo"] = imageTag, };
     }
-    
+
     private static string GenerateImageTag(string path)
     {
         // Generate a consistent hash from the image path
@@ -1058,31 +1112,35 @@ public class JellyfinService
         // Map top 10 cast members by order (TMDb order field represents billing/importance)
         foreach (var castMember in cast.OrderBy(c => c.Order).Take(10))
         {
-            people.Add(new JellyfinPerson
-            {
-                Id = JellyfinIdHelper.CreatePersonId(castMember.Id),
-                Name = castMember.Name,
-                Role = castMember.Character,
-                Type = "Actor",
-                PrimaryImageTag = castMember.ProfilePath is not null 
-                    ? GenerateImageTag(castMember.ProfilePath) 
-                    : null,
-            });
+            people.Add(
+                new JellyfinPerson
+                {
+                    Id = JellyfinIdHelper.CreatePersonId(castMember.Id),
+                    Name = castMember.Name,
+                    Role = castMember.Character,
+                    Type = "Actor",
+                    PrimaryImageTag = castMember.ProfilePath is not null
+                        ? GenerateImageTag(castMember.ProfilePath)
+                        : null,
+                }
+            );
         }
 
         // Map top 10 crew members (TMDb returns crew pre-sorted by importance)
         foreach (var crewMember in crew.Take(10))
         {
-            people.Add(new JellyfinPerson
-            {
-                Id = JellyfinIdHelper.CreatePersonId(crewMember.Id),
-                Name = crewMember.Name,
-                Role = crewMember.Job,
-                Type = crewMember.Department,
-                PrimaryImageTag = crewMember.ProfilePath is not null 
-                    ? GenerateImageTag(crewMember.ProfilePath) 
-                    : null,
-            });
+            people.Add(
+                new JellyfinPerson
+                {
+                    Id = JellyfinIdHelper.CreatePersonId(crewMember.Id),
+                    Name = crewMember.Name,
+                    Role = crewMember.Job,
+                    Type = crewMember.Department,
+                    PrimaryImageTag = crewMember.ProfilePath is not null
+                        ? GenerateImageTag(crewMember.ProfilePath)
+                        : null,
+                }
+            );
         }
 
         return people;

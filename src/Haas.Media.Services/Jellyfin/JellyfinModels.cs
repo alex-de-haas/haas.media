@@ -8,7 +8,8 @@ public sealed record JellyfinClientInfo(
     string? Client,
     string? Device,
     string? DeviceId,
-    string? Version);
+    string? Version
+);
 
 public sealed record JellyfinSystemInfoResponse
 {
@@ -50,7 +51,8 @@ public sealed record JellyfinUserContract
     public bool EnableAutoLogin { get; init; }
     public DateTime? LastLoginDate { get; init; }
     public DateTime? LastActivityDate { get; init; }
-    public JellyfinUserConfiguration Configuration { get; init; } = JellyfinUserConfiguration.Default;
+    public JellyfinUserConfiguration Configuration { get; init; } =
+        JellyfinUserConfiguration.Default;
     public JellyfinUserPolicy Policy { get; init; } = JellyfinUserPolicy.Default;
     public double? PrimaryImageAspectRatio { get; init; }
 }
@@ -307,7 +309,8 @@ public sealed record JellyfinPublicUser
     public bool EnableAutoLogin { get; init; }
     public DateTime? LastLoginDate { get; init; }
     public DateTime? LastActivityDate { get; init; }
-    public JellyfinUserConfiguration Configuration { get; init; } = JellyfinUserConfiguration.Default;
+    public JellyfinUserConfiguration Configuration { get; init; } =
+        JellyfinUserConfiguration.Default;
     public JellyfinUserPolicy Policy { get; init; } = JellyfinUserPolicy.Default;
     public double? PrimaryImageAspectRatio { get; init; }
 }
@@ -349,7 +352,8 @@ public sealed record JellyfinUserPolicy
     public string[] BlockedTags { get; init; } = Array.Empty<string>();
     public string[] AllowedTags { get; init; } = Array.Empty<string>();
     public bool EnableUserPreferenceAccess { get; init; } = true;
-    public JellyfinAccessSchedule[] AccessSchedules { get; init; } = Array.Empty<JellyfinAccessSchedule>();
+    public JellyfinAccessSchedule[] AccessSchedules { get; init; } =
+        Array.Empty<JellyfinAccessSchedule>();
     public string[] BlockUnratedItems { get; init; } = Array.Empty<string>();
     public bool EnableRemoteControlOfOtherUsers { get; init; }
     public bool EnableSharedDeviceControl { get; init; } = true;
