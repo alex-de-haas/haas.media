@@ -1235,7 +1235,7 @@ public class JellyfinService
                     Id = JellyfinIdHelper.CreatePersonId(crewMember.Id),
                     Name = crewMember.Name,
                     Role = crewMember.Job,
-                    Type = crewMember.Department,
+                    Type = MapCrewTypeToJellyfinType(crewMember.Job, crewMember.Department),
                     PrimaryImageTag = crewMember.ProfilePath is not null
                         ? GenerateImageTag(crewMember.ProfilePath)
                         : null,
@@ -1244,6 +1244,54 @@ public class JellyfinService
         }
 
         return people;
+    }
+
+    /// <summary>
+    /// Maps TMDb crew job and department to Jellyfin person type.
+    /// Infuse requires standardized type values (Director, Writer, Producer, etc.)
+    /// instead of TMDb's department names (Directing, Writing, Production).
+    /// </summary>
+    private static string MapCrewTypeToJellyfinType(string job, string department)
+    {
+        // Prioritize job-based mapping for accuracy
+        return job.ToLowerInvariant() switch
+        {
+            // Directing
+            "director" => "Director",
+            
+            // Writing
+            "writer" or "screenplay" or "story" or "characters" or "author" => "Writer",
+            
+            // Production
+            "producer" or "executive producer" or "co-producer" or "associate producer" => "Producer",
+            
+            // Music
+            "original music composer" or "composer" or "music" => "Composer",
+            "conductor" => "Conductor",
+            "lyricist" => "Lyricist",
+            
+            // Sound
+            "sound engineer" or "sound designer" => "Engineer",
+            "sound mixer" or "re-recording mixer" => "Mixer",
+            
+            // Creator (TV shows)
+            "creator" => "Creator",
+            
+            // Fallback to department-based mapping
+            _ => department.ToLowerInvariant() switch
+            {
+                "directing" => "Director",
+                "writing" => "Writer",
+                "production" => "Producer",
+                "sound" => "Engineer",
+                "editing" => "Producer", // No specific "Editor" type in Jellyfin
+                "camera" => "Producer",
+                "art" => "Producer",
+                "costume & make-up" => "Producer",
+                "visual effects" => "Producer",
+                _ => "Producer" // Default fallback for all other crew roles
+            }
+        };
     }
 
     private static IReadOnlyList<T> FilterByName<T>(
