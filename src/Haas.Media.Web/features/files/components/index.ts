@@ -5,3 +5,4 @@ export { FileUploadCard } from "./file-upload-card";
 export { default as DeleteModal } from "./delete-modal";
 export { default as CreateDirectoryModal } from "./create-directory-modal";
 export { default as CopyMoveModal } from "./copy-move-modal";
+export { default as EncodeModal } from "./encode-modal";

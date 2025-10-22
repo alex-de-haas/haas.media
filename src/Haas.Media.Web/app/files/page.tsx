@@ -6,11 +6,10 @@ import { useNotifications } from "@/lib/notifications";
 import FileList from "@/features/files/components/file-list";
 import FileActionsModal from "@/features/files/components/file-actions-modal";
 import CopyOperationsList from "@/features/files/components/copy-operations-list";
-import { FileUploadCard } from "@/features/files";
+import { FileUploadCard, EncodeModal } from "@/features/files";
 import type { CopyRequest, CreateDirectoryRequest, FileItem, MoveRequest, RenameRequest } from "@/types/file";
 import { FileItemType } from "@/types/file";
 import { usePageTitle } from "@/components/layout";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,20 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  CheckSquare,
-  Copy,
-  Download,
-  ExternalLink,
-  FolderPlus,
-  Info,
-  MoreHorizontal,
-  MoveRight,
-  Pencil,
-  Play,
-  Trash2,
-  X,
-} from "lucide-react";
+import { CheckSquare, Copy, Download, FolderPlus, MoreHorizontal, MoveRight, Pencil, Play, Settings, Trash2, X } from "lucide-react";
 import { VideoPlayerDialog } from "@/components/ui/video-player-dialog";
 import { useVideoPlayer } from "@/features/files/hooks/use-video-player";
 
@@ -45,9 +31,10 @@ interface FileActionsProps {
   onRename: () => void;
   onDownloadTorrent?: () => void;
   onPlayVideo?: () => void;
+  onEncode?: () => void;
 }
 
-function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorrent, onPlayVideo }: FileActionsProps) {
+function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorrent, onPlayVideo, onEncode }: FileActionsProps) {
   const isTorrent = item.extension?.toLowerCase() === ".torrent";
   const isVideo =
     item.extension &&
@@ -72,16 +59,15 @@ function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorre
             <DropdownMenuSeparator />
           </>
         )}
-        {(item.type === FileItemType.Media || item.type === FileItemType.Directory) && (
-          <DropdownMenuItem asChild>
-            <Link prefetch={false} href={`/media-info/${encodeURIComponent(item.relativePath)}`} className="flex items-center gap-2">
-              <Info className="h-4 w-4" />
-              Media info
-              <ExternalLink className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
-            </Link>
-          </DropdownMenuItem>
+        {(item.type === FileItemType.Media || item.type === FileItemType.Directory) && onEncode && (
+          <>
+            <DropdownMenuItem onSelect={onEncode} className="cursor-pointer">
+              <Settings className="h-4 w-4" />
+              Encode
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
         )}
-        {(item.type === FileItemType.Media || item.type === FileItemType.Directory) && <DropdownMenuSeparator />}
         {isTorrent && onDownloadTorrent && (
           <>
             <DropdownMenuItem onSelect={onDownloadTorrent} className="cursor-pointer">
@@ -137,6 +123,8 @@ export default function FilesPage() {
 
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+  const [encodeModalOpen, setEncodeModalOpen] = useState(false);
+  const [encodeFilePath, setEncodeFilePath] = useState<string>("");
 
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
@@ -150,13 +138,20 @@ export default function FilesPage() {
 
   const [isUploading, setIsUploading] = useState(false);
 
-  const openModal = useCallback(
-    (action: "copy" | "move" | "delete" | "create-directory" | "rename", items?: FileItem | FileItem[]) => {
-      const normalized = Array.isArray(items) ? items : items ? [items] : [];
-      setModalState({ isOpen: true, action, items: normalized });
-    },
-    [],
-  );
+  const openEncodeModal = useCallback((path: string) => {
+    setEncodeFilePath(path);
+    setEncodeModalOpen(true);
+  }, []);
+
+  const closeEncodeModal = useCallback(() => {
+    setEncodeModalOpen(false);
+    setEncodeFilePath("");
+  }, []);
+
+  const openModal = useCallback((action: "copy" | "move" | "delete" | "create-directory" | "rename", items?: FileItem | FileItem[]) => {
+    const normalized = Array.isArray(items) ? items : items ? [items] : [];
+    setModalState({ isOpen: true, action, items: normalized });
+  }, []);
 
   const closeModal = () => {
     setModalState({ isOpen: false, action: null, items: [] });
@@ -329,9 +324,10 @@ export default function FilesPage() {
                   }
                 : {})}
               onPlayVideo={() => openVideo(item.relativePath, item.name)}
+              onEncode={() => openEncodeModal(item.relativePath)}
             />
           ),
-    [handleDownloadTorrent, openModal, openVideo, selectionMode],
+    [handleDownloadTorrent, openModal, openVideo, openEncodeModal, selectionMode],
   );
 
   return (
@@ -457,6 +453,9 @@ export default function FilesPage() {
         currentPath={currentPath}
         onConfirm={handleModalConfirm}
       />
+
+      {/* Encode modal */}
+      <EncodeModal isOpen={encodeModalOpen} onClose={closeEncodeModal} filePath={encodeFilePath} />
     </main>
   );
 }
