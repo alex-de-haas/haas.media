@@ -48,8 +48,6 @@ export function useFiles(initialPath?: string) {
       isDirectory: typeof raw.isDirectory === "boolean" ? raw.isDirectory : undefined,
       totalFiles: typeof raw.totalFiles === "number" ? raw.totalFiles : undefined,
       copiedFiles: typeof raw.copiedFiles === "number" ? raw.copiedFiles : undefined,
-      speedBytesPerSecond: typeof raw.speedBytesPerSecond === "number" ? raw.speedBytesPerSecond : undefined,
-      estimatedTimeSeconds: typeof raw.estimatedTimeSeconds === "number" ? raw.estimatedTimeSeconds : undefined,
       currentPath: typeof raw.currentPath === "string" ? raw.currentPath : undefined,
     };
   }, []);

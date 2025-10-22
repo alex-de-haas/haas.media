@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useBackgroundTasks } from "@/features/background-tasks/hooks/useBackgroundTasks";
-import { cn, formatDuration, formatRate, formatSize } from "@/lib/utils";
+import { cn, formatDuration, formatSize } from "@/lib/utils";
 import type { CopyOperationInfo } from "@/types/file";
 import { BackgroundTaskStatus, backgroundTaskStatusLabel, isActiveBackgroundTask } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -111,21 +111,11 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
           const statusMessage = task?.statusMessage ?? operation.currentPath ?? null;
           const errorMessage = task?.errorMessage ?? null;
 
-          const showEta =
-            typeof operation.estimatedTimeSeconds === "number" &&
-            isFinite(operation.estimatedTimeSeconds) &&
-            operation.estimatedTimeSeconds >= 0;
-
           const sizeSummary = `${formatSize(operation.copiedBytes)} / ${formatSize(operation.totalBytes)}`;
           const fileSummary =
             operation.isDirectory && operation.totalFiles ? `${operation.copiedFiles ?? 0} / ${operation.totalFiles} files` : null;
-          const speedSummary =
-            typeof operation.speedBytesPerSecond === "number" && operation.speedBytesPerSecond > 0
-              ? formatRate(operation.speedBytesPerSecond)
-              : null;
-          const etaSummary = showEta ? `ETA ${formatDuration(operation.estimatedTimeSeconds!)}` : null;
 
-          const activeSummary = [sizeSummary, fileSummary, speedSummary, etaSummary].filter(Boolean).join(" • ");
+          const activeSummary = [sizeSummary, fileSummary].filter(Boolean).join(" • ");
 
           const completionDurationSeconds = operation.completedTime
             ? Math.max(0, Math.round((new Date(operation.completedTime).getTime() - new Date(operation.startTime).getTime()) / 1000))

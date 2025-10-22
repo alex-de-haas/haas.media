@@ -6,6 +6,7 @@ internal sealed class CopyOperationTaskExecutor
     : IBackgroundTaskExecutor<CopyOperationTask, CopyOperationInfo>
 {
     private readonly ILogger<CopyOperationTaskExecutor> _logger;
+    private const int ProgressUpdateIntervalBytes = 1024 * 1024 * 5; // Update every 5 MB
 
     public CopyOperationTaskExecutor(ILogger<CopyOperationTaskExecutor> logger)
     {
@@ -36,15 +37,13 @@ internal sealed class CopyOperationTaskExecutor
             task.SourcePath,
             task.DestinationPath,
             totalBytes,
-            CopiedBytes: 0,
-            StartTime: DateTime.UtcNow,
-            CompletedTime: null,
-            IsDirectory: task.IsDirectory,
-            TotalFiles: totalFiles,
-            CopiedFiles: 0,
-            SpeedBytesPerSecond: 0,
-            EstimatedTimeSeconds: null,
-            CurrentPath: null
+            0, // CopiedBytes
+            DateTime.UtcNow, // StartTime
+            null, // CompletedTime
+            task.IsDirectory,
+            totalFiles,
+            0, // CopiedFiles
+            null // CurrentPath
         );
 
         context.SetPayload(initialOperation);
@@ -80,6 +79,7 @@ internal sealed class CopyOperationTaskExecutor
 
             var buffer = new byte[81920];
             long totalCopied = 0;
+            long lastProgressUpdate = 0;
             int bytesRead;
 
             while (
@@ -96,15 +96,35 @@ internal sealed class CopyOperationTaskExecutor
                 await destinationStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
                 totalCopied += bytesRead;
 
-                UpdateProgress(
-                    context,
-                    task,
-                    context.State.Payload?.TotalBytes ?? 0,
-                    totalCopied,
-                    totalCopied == (context.State.Payload?.TotalBytes ?? 0) ? 1 : 0,
-                    Path.GetFileName(destinationFullPath)
-                );
+                // Update progress every 5 MB or when complete
+                var totalBytes = context.State.Payload?.TotalBytes ?? 0;
+                var isComplete = totalCopied >= totalBytes;
+                var shouldUpdate = isComplete || (totalCopied - lastProgressUpdate) >= ProgressUpdateIntervalBytes;
+
+                if (shouldUpdate)
+                {
+                    UpdateProgress(
+                        context,
+                        task,
+                        totalBytes,
+                        totalCopied,
+                        isComplete ? 1 : 0,
+                        Path.GetFileName(destinationFullPath)
+                    );
+                    lastProgressUpdate = totalCopied;
+                }
             }
+
+            // Final progress update to ensure accurate speed/ETA before completion
+            var finalTotalBytes = context.State.Payload?.TotalBytes ?? 0;
+            UpdateProgress(
+                context,
+                task,
+                finalTotalBytes,
+                totalCopied,
+                1,
+                Path.GetFileName(destinationFullPath)
+            );
 
             context.ReportProgress(100);
             context.ReportStatus(BackgroundTaskStatus.Completed);
@@ -154,6 +174,7 @@ internal sealed class CopyOperationTaskExecutor
         {
             var files = Directory.GetFiles(sourceFullPath, "*", SearchOption.AllDirectories);
             long totalCopied = 0;
+            long lastProgressUpdate = 0;
             var filesCopied = 0;
 
             foreach (var sourceFile in files)
@@ -193,17 +214,34 @@ internal sealed class CopyOperationTaskExecutor
                     await destinationStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
                     totalCopied += bytesRead;
 
-                    UpdateProgress(
-                        context,
-                        task,
-                        context.State.Payload?.TotalBytes ?? 0,
-                        totalCopied,
-                        filesCopied,
-                        Path.Combine(task.DestinationPath, relativePath)
-                    );
+                    // Update progress every 5 MB
+                    var shouldUpdate = (totalCopied - lastProgressUpdate) >= ProgressUpdateIntervalBytes;
+                    if (shouldUpdate)
+                    {
+                        UpdateProgress(
+                            context,
+                            task,
+                            context.State.Payload?.TotalBytes ?? 0,
+                            totalCopied,
+                            filesCopied,
+                            Path.Combine(task.DestinationPath, relativePath)
+                        );
+                        lastProgressUpdate = totalCopied;
+                    }
                 }
 
                 filesCopied++;
+
+                // Always update progress after each file completes
+                UpdateProgress(
+                    context,
+                    task,
+                    context.State.Payload?.TotalBytes ?? 0,
+                    totalCopied,
+                    filesCopied,
+                    Path.Combine(task.DestinationPath, relativePath)
+                );
+                lastProgressUpdate = totalCopied;
             }
 
             context.ReportProgress(100);
@@ -246,14 +284,6 @@ internal sealed class CopyOperationTaskExecutor
     )
     {
         var startedAt = context.State.StartedAt?.UtcDateTime ?? DateTime.UtcNow;
-        var elapsedSeconds = (DateTime.UtcNow - startedAt).TotalSeconds;
-        var speed = elapsedSeconds > 0 ? copiedBytes / elapsedSeconds : 0;
-        double? eta = null;
-        if (speed > 0)
-        {
-            var remainingBytes = Math.Max(0L, totalBytes - copiedBytes);
-            eta = remainingBytes / speed;
-        }
 
         var baseOperation =
             context.State.Payload
@@ -262,18 +292,19 @@ internal sealed class CopyOperationTaskExecutor
                 task.SourcePath,
                 task.DestinationPath,
                 context.State.Payload?.TotalBytes ?? 0,
-                0,
+                0, // CopiedBytes
                 startedAt,
-                IsDirectory: task.IsDirectory,
-                TotalFiles: context.State.Payload?.TotalFiles ?? 0
+                null, // CompletedTime
+                task.IsDirectory,
+                context.State.Payload?.TotalFiles ?? 0,
+                0, // CopiedFiles
+                null // CurrentPath
             );
 
         var updatedOperation = baseOperation with
         {
             CopiedBytes = copiedBytes,
             CopiedFiles = copiedFiles,
-            SpeedBytesPerSecond = speed,
-            EstimatedTimeSeconds = eta,
             CurrentPath = currentPath,
         };
         context.SetPayload(updatedOperation);

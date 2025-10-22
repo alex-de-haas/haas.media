@@ -45,8 +45,6 @@ export interface CopyOperationInfo {
   isDirectory?: boolean;
   totalFiles?: number;
   copiedFiles?: number;
-  speedBytesPerSecond?: number;
-  estimatedTimeSeconds?: number;
   currentPath?: string;
 }
 

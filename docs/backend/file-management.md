@@ -34,7 +34,7 @@ public record FileItem(
 
 - `StartCopyAsync` validates source and destination paths, computes aggregate size/ file count, then enqueues a background task identified by a GUID.
 - Each operation is tracked by the background task manager; clients query `/api/background-tasks/CopyOperationTask` to hydrate `CopyOperationInfo` payloads and monitor progress.
-- `CopyOperationTaskExecutor` streams bytes in 80 KB chunks, updating payload fields (copied bytes/files, instantaneous speed, ETA) while reporting progress through the background task context.
+- `CopyOperationTaskExecutor` streams bytes in 80 KB chunks, updating payload fields (copied bytes/files, current path) while reporting progress through the background task context.
 - Completion, failure, and cancellation are reflected by the background task lifecycle; the payload's `CompletedTime` marks when byte transfer finished. Completed operations remain queryable for auditing until the service restarts.
 - Directory copies preserve the relative path structure and create directories on demand.
 - Cancellation goes through `IBackgroundTaskManager.CancelTask`, exposed to clients as `DELETE /api/background-tasks/{taskId}`.
