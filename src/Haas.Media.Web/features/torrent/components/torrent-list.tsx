@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { formatSize, formatRate, formatPercentage } from "../../../lib/utils/format";
 import { TorrentState, type TorrentInfo } from "../../../types";
 import { TorrentFile } from "../../../types/torrent";
+import TorrentDeleteModal from "./torrent-delete-modal";
 
 interface TorrentListProps {
   torrents: TorrentInfo[];
@@ -25,12 +26,15 @@ interface TorrentListProps {
 }
 
 export default function TorrentList({ torrents, onDelete, onStart, onStop, onPause, loading }: TorrentListProps) {
-  const handleDelete = async (hash: string, name: string) => {
-    if (!onDelete) return;
+  const [torrentToDelete, setTorrentToDelete] = useState<TorrentInfo | null>(null);
 
-    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
-      await onDelete(hash);
-    }
+  const handleDeleteClick = (torrent: TorrentInfo) => {
+    setTorrentToDelete(torrent);
+  };
+
+  const handleDeleteConfirm = async (hash: string) => {
+    if (!onDelete) return { success: false, message: "Delete handler not available" };
+    return await onDelete(hash);
   };
 
   const handleStart = async (hash: string) => {
@@ -91,20 +95,27 @@ export default function TorrentList({ torrents, onDelete, onStart, onStop, onPau
           <TorrentCard
             key={torrent.hash}
             torrent={torrent}
-            onDelete={onDelete ? () => handleDelete(torrent.hash, torrent.name) : undefined}
+            onDelete={onDelete ? () => handleDeleteClick(torrent) : undefined}
             onStart={onStart ? () => handleStart(torrent.hash) : undefined}
             onStop={onStop ? () => handleStop(torrent.hash) : undefined}
             onPause={onPause ? () => handlePause(torrent.hash) : undefined}
           />
         ))}
       </div>
+
+      <TorrentDeleteModal
+        isOpen={Boolean(torrentToDelete)}
+        onClose={() => setTorrentToDelete(null)}
+        torrent={torrentToDelete}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 }
 
 interface TorrentCardProps {
   torrent: TorrentInfo;
-  onDelete?: (() => Promise<void>) | undefined;
+  onDelete?: (() => void) | undefined;
   onStart?: (() => Promise<void>) | undefined;
   onStop?: (() => Promise<void>) | undefined;
   onPause?: (() => Promise<void>) | undefined;
