@@ -9,6 +9,7 @@ Movie cards in Infuse were not displaying images when browsing the library throu
 The `ImageTags` dictionary in `JellyfinItem` responses was incorrectly populated with full TMDB image URLs instead of short hash tags.
 
 **Incorrect behavior:**
+
 ```json
 {
   "ImageTags": {
@@ -18,6 +19,7 @@ The `ImageTags` dictionary in `JellyfinItem` responses was incorrectly populated
 ```
 
 **Expected behavior:**
+
 ```json
 {
   "ImageTags": {
@@ -37,6 +39,7 @@ Infuse and other Jellyfin clients expect this protocol and will not display imag
 ## Image Delivery
 
 The `/Items/{itemId}/Images/{type}` endpoint now:
+
 1. Receives the image request from the client
 2. Fetches the image from TMDB using `HttpClient`
 3. Returns the image bytes directly with the appropriate content type
@@ -73,6 +76,7 @@ The existing `/Items/{itemId}/Images/{type}` endpoint already handles the redire
 ## Testing
 
 After this fix, movie cards in Infuse should display:
+
 - Primary poster images in list views
 - Backdrop images in detail views
 - Season poster images

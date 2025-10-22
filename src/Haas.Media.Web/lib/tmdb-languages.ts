@@ -26,7 +26,7 @@ export const TMDB_LANGUAGE_OPTIONS: TmdbLanguageOption[] = [
   { code: "da", label: "Danish" },
   { code: "pl", label: "Polish" },
   { code: "cs", label: "Czech" },
-  { code: "sk", label: "Slovak" }
+  { code: "sk", label: "Slovak" },
 ];
 
 export function isSupportedTmdbLanguage(code: string): boolean {

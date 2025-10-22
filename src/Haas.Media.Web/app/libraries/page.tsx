@@ -259,9 +259,8 @@ export default function LibrariesPage() {
     if (totalPeople > 0) {
       const syncedPeople = activeOperation.syncedPeople ?? 0;
       const failedPeople = activeOperation.failedPeople ?? 0;
-      const peopleLabel = failedPeople > 0
-        ? `People ${syncedPeople}/${totalPeople} (${failedPeople} failed)`
-        : `People ${syncedPeople}/${totalPeople}`;
+      const peopleLabel =
+        failedPeople > 0 ? `People ${syncedPeople}/${totalPeople} (${failedPeople} failed)` : `People ${syncedPeople}/${totalPeople}`;
       summaryParts.push(peopleLabel);
     }
 
@@ -300,9 +299,8 @@ export default function LibrariesPage() {
     if (totalPeople > 0) {
       const syncedPeople = refreshOperation.syncedPeople ?? 0;
       const failedPeople = refreshOperation.failedPeople ?? 0;
-      const label = failedPeople > 0
-        ? `People ${syncedPeople}/${totalPeople} (${failedPeople} failed)`
-        : `People ${syncedPeople}/${totalPeople}`;
+      const label =
+        failedPeople > 0 ? `People ${syncedPeople}/${totalPeople} (${failedPeople} failed)` : `People ${syncedPeople}/${totalPeople}`;
       refreshSummaryParts.push(label);
     }
   }
@@ -506,11 +504,7 @@ export default function LibrariesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <RefreshMetadataDialog
-        open={isRefreshDialogOpen}
-        onOpenChange={setIsRefreshDialogOpen}
-        onConfirm={handleRefreshConfirm}
-      />
+      <RefreshMetadataDialog open={isRefreshDialogOpen} onOpenChange={setIsRefreshDialogOpen} onConfirm={handleRefreshConfirm} />
     </main>
   );
 }

@@ -102,9 +102,7 @@ export function useFilesByMediaId(mediaId: string | number | null, mediaType: Li
       setError(null);
 
       const endpoint = mediaType === LibraryType.Movies ? "movies" : "tvshows";
-      const response = await fetchWithAuth(
-        `${getApiUrl()}/api/metadata/${endpoint}/${mediaId}/files`
-      );
+      const response = await fetchWithAuth(`${getApiUrl()}/api/metadata/${endpoint}/${mediaId}/files`);
       const filesData = await response.json();
       setFiles(filesData);
     } catch (err) {

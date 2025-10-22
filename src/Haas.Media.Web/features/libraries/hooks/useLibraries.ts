@@ -118,30 +118,37 @@ export function useLibraries() {
     }
   }, []);
 
-  const startMetadataRefresh = useCallback(async (options?: { refreshMovies?: boolean; refreshTvShows?: boolean; refreshPeople?: boolean }): Promise<{ success: boolean; message: string; operationId?: string }> => {
-    try {
-      const response = await fetchWithAuth(`${downloaderApi}/api/metadata/refresh/start`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(options ?? { refreshMovies: true, refreshTvShows: true, refreshPeople: true }),
-      });
+  const startMetadataRefresh = useCallback(
+    async (options?: {
+      refreshMovies?: boolean;
+      refreshTvShows?: boolean;
+      refreshPeople?: boolean;
+    }): Promise<{ success: boolean; message: string; operationId?: string }> => {
+      try {
+        const response = await fetchWithAuth(`${downloaderApi}/api/metadata/refresh/start`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(options ?? { refreshMovies: true, refreshTvShows: true, refreshPeople: true }),
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        return {
-          success: true,
-          message: data.message ?? "Metadata refresh started successfully",
-          operationId: data.operationId,
-        };
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            success: true,
+            message: data.message ?? "Metadata refresh started successfully",
+            operationId: data.operationId,
+          };
+        }
+
+        const errorText = await response.text();
+        return { success: false, message: errorText || "Failed to start metadata refresh" };
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Network error occurred while starting metadata refresh";
+        return { success: false, message };
       }
-
-      const errorText = await response.text();
-      return { success: false, message: errorText || "Failed to start metadata refresh" };
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Network error occurred while starting metadata refresh";
-      return { success: false, message };
-    }
-  }, []);
+    },
+    [],
+  );
 
   useEffect(() => {
     fetchLibraries();

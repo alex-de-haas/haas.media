@@ -5,6 +5,7 @@ The downloader API ships with a lightweight Jellyfin-compatible surface so sidec
 ## Supported Surface Area
 
 ### Authentication & System
+
 - `POST /jellyfin/Users/AuthenticateByName` — reuses the local authentication store and issues the standard JWT access token. `Username` and either `Pw` or `Password` are required.
 - `GET /jellyfin/System/Info/Public` — exposes server, version, and OS metadata expected by Jellyfin discovery flows.
 - `GET /jellyfin/System/Info` — authenticated system information endpoint.
@@ -13,6 +14,7 @@ The downloader API ships with a lightweight Jellyfin-compatible surface so sidec
 - `GET /jellyfin/Users/Public` — returns list of public users for login screen.
 
 ### User Management
+
 - `GET /jellyfin/Users` — authenticated user lookups for session handshakes.
 - `GET /jellyfin/Users/Me` — returns current authenticated user information.
 - `GET /jellyfin/Users/{id}` — retrieve specific user by ID.
@@ -21,14 +23,17 @@ The downloader API ships with a lightweight Jellyfin-compatible surface so sidec
 - `GET /jellyfin/Sessions` — advertises the current session for clients that validate presence after login.
 
 ### Display Preferences
+
 - `GET /jellyfin/DisplayPreferences/{displayPreferencesId}` — returns display preferences for UI customization (currently returns defaults).
 - `POST /jellyfin/DisplayPreferences/{displayPreferencesId}` — accepts display preference updates (not persisted yet).
 
 ### Library & Collections
+
 - `GET /jellyfin/Library/MediaFolders` — lists configured libraries, mapped to Jellyfin collection ids.
 - `GET /jellyfin/Library/VirtualFolders` — returns virtual folder configuration (mirrors library structure with locations).
 
 ### Items & Content
+
 - `GET /jellyfin/Users/{userId}/Items` — browse collections, series, seasons, and episodes with Jellyfin-style ids. Supports `IncludeItemTypes`, `ParentId`, `Recursive`, and `SearchTerm` filters.
 - `GET /jellyfin/Items` — browse all items with filtering support.
 - `GET /jellyfin/Items/{id}` — retrieve a single item including generated `MediaSources` for playback.
@@ -37,9 +42,11 @@ The downloader API ships with a lightweight Jellyfin-compatible surface so sidec
 - `GET /jellyfin/Users/{userId}/Items/Resume` — returns in-progress items (currently returns empty array until playback tracking is implemented).
 
 ### Images
+
 - `GET /jellyfin/Items/{id}/Images/{type}` — proxies TMDb artwork (primary or backdrop) via HTTP redirects. Supports `maxWidth` and `quality=original` query parameters.
 
 ### Playback
+
 - `GET /jellyfin/Items/{id}/PlaybackInfo` — returns the `MediaSources` payload with stream information.
 - `POST /jellyfin/Items/{id}/PlaybackInfo` — alternative POST endpoint for playback info.
 - `GET /jellyfin/Videos/{id}/stream` — direct or transcoded playback powered by the existing `VideoStreamingService`. Supports:
@@ -84,9 +91,10 @@ The API now supports multiple variations of common query parameters to ensure co
 
 ## Streaming Behaviour
 
-`/jellyfin/Videos/{id}/stream` resolves the media path relative to `DATA_DIRECTORY` and hands it to the shared `VideoStreamingService`. 
+`/jellyfin/Videos/{id}/stream` resolves the media path relative to `DATA_DIRECTORY` and hands it to the shared `VideoStreamingService`.
 
 **Stream Modes:**
+
 - **Direct Play** (default): `static=true` or no transcoding params — serves original file with full range request support
 - **Transcoded**: `transcode=true` — on-the-fly FFmpeg transcoding, no seeking support
 - **Container-specific**: `/Videos/{id}/stream.mp4` — explicit container format in URL path
@@ -98,10 +106,12 @@ Infuse typically requests direct play while falling back to transcoding when cod
 TMDb poster/backdrop paths stored in LiteDB are transformed into public URLs using `https://image.tmdb.org/t/p/`. Clients can request `Primary` or `Backdrop` images; optional `maxWidth` or `quality=original` parameters change the size segment.
 
 **Supported image types:**
+
 - `Primary` — main poster/cover art
 - `Backdrop` — background/fanart images
 
 **Size options:**
+
 - Default: `w780` (780px width)
 - Custom: `maxWidth=<pixels>` (e.g., `maxWidth=1920`)
 - Original: `quality=original` (full resolution)
@@ -111,6 +121,7 @@ TMDb poster/backdrop paths stored in LiteDB are transformed into public URLs usi
 The API now returns more detailed `MediaSource` and `MediaStream` information aligned with the Jellyfin OpenAPI specification:
 
 **MediaSource enhancements:**
+
 - `Protocol`, `Container`, `Size`, `Name`
 - `RunTimeTicks` for duration information
 - `SupportsDirectPlay`, `SupportsDirectStream`, `SupportsTranscoding` flags
@@ -118,6 +129,7 @@ The API now returns more detailed `MediaSource` and `MediaStream` information al
 - `DefaultAudioStreamIndex`, `DefaultSubtitleStreamIndex`
 
 **MediaStream enhancements:**
+
 - Video: `Codec`, `Width`, `Height`, `AspectRatio`, `BitRate`, `AverageFrameRate`, `RealFrameRate`, `Profile`, `Level`, `BitDepth`, `RefFrames`, `VideoRange`, `ColorSpace`, `ColorTransfer`, `ColorPrimaries`, `PixelFormat`, `IsInterlaced`, `IsAVC`
 - Audio: `Channels`, `SampleRate`, `ChannelLayout`, `BitDepth`
 - Subtitles: `IsForced`, `IsExternal`, `Path`, `SupportsExternalStream`
@@ -165,12 +177,14 @@ To test the Jellyfin API with Infuse:
 5. **Playback**: Test direct play and transcoding (if codecs aren't supported)
 
 **Expected behavior:**
+
 - Libraries should appear as collections (Movies, TV Shows)
 - Metadata, posters, and backdrops should display from TMDb
 - Direct play should work for most modern codecs
 - Transcoding fallback should activate for unsupported formats
 
 **Debug logs:**
+
 - Video stream requests are logged with item ID, parameters, and session info
 - All Jellyfin endpoint responses are logged in structured JSON format
 - Check API logs for authentication issues or missing content

@@ -25,6 +25,7 @@ The `MapLibraryItemToFolder` method in `JellyfinService.cs` was setting `ImageTa
 ```
 
 While this is technically valid JSON, some Jellyfin clients (particularly Infuse) expect these fields to either:
+
 1. Be **omitted entirely** (via null values that get filtered by JSON serialization)
 2. Contain actual image tag data
 
@@ -37,6 +38,7 @@ After fixing the empty dictionaries, Infuse still showed an error because the `L
 ### Issue 3: Incorrect MediaSources and UserData for Library Folders
 
 After adding `LocationType`, Infuse still showed "An error occurred" because:
+
 1. **MediaSources** was set to an empty array `[]` instead of `null` for library folders (folders don't have media sources)
 2. **UserData** shouldn't be present on library folder items - it's only relevant for actual media content (movies, episodes) that can be played/watched, not for organizational folders
 
@@ -73,6 +75,7 @@ LocationType = "FileSystem",
 ### Solution 3: Removed MediaSources and UserData from Library Folders
 
 **MediaSources:** Changed from empty array to `null`:
+
 ```csharp
 // Before
 MediaSources = Array.Empty<JellyfinMediaSource>(),
@@ -82,6 +85,7 @@ MediaSources = null,
 ```
 
 **UserData:** Changed to `null` for library folders (only actual playable content should have UserData):
+
 ```csharp
 // Before
 UserData = new JellyfinUserData { Played = false },
@@ -91,6 +95,7 @@ UserData = null,
 ```
 
 Note: We also updated the `JellyfinUserData` model to use non-nullable fields with defaults (matching Jellyfin OpenAPI spec) for when UserData IS used on actual media items:
+
 ```csharp
 public long PlaybackPositionTicks { get; init; } = 0;    // Was double?
 public bool IsFavorite { get; init; } = false;            // Was bool?
@@ -108,7 +113,6 @@ public int PlayCount { get; init; } = 0;                  // Was int?
 
 - `src/Haas.Media.Downloader.Api/Jellyfin/JellyfinModels.cs`
   - Added `LocationType` property to `JellyfinItem` record
-  
 - `src/Haas.Media.Downloader.Api/Jellyfin/JellyfinService.cs`
   - Method: `MapLibraryItemToFolder()`
   - Changed `ImageTags` and `BackdropImageTags` from empty dictionaries to `null`
@@ -144,6 +148,7 @@ After all fixes, the `/jellyfin/Users/{userId}/Views` endpoint will return:
 ```
 
 Key changes:
+
 - `ImageTags` and `BackdropImageTags` are **omitted** (null, not empty objects)
 - `LocationType` is set to `"FileSystem"`
 - `MediaSources` is **omitted** (null, not empty array)
@@ -156,18 +161,21 @@ Key changes:
 When creating Jellyfin response objects:
 
 ✅ **Do this** (use null for empty collections):
+
 ```csharp
 ImageTags = null,
 BackdropImageTags = null,
 ```
 
 ❌ **Don't do this** (empty dictionaries get serialized):
+
 ```csharp
 ImageTags = new Dictionary<string, string>(),
 BackdropImageTags = new Dictionary<string, string>(),
 ```
 
 ✅ **Or use helper methods** (they return null when appropriate):
+
 ```csharp
 ImageTags = BuildPrimaryImageTag(metadata.PosterPath),
 BackdropImageTags = BuildBackdropImageTag(metadata.BackdropPath),
@@ -176,6 +184,7 @@ BackdropImageTags = BuildBackdropImageTag(metadata.BackdropPath),
 ### LocationType Values
 
 Set `LocationType` based on item type:
+
 - `"FileSystem"` - Library folders and local content
 - `"Remote"` - Remote/network content
 - `"Virtual"` - Virtual folders/collections

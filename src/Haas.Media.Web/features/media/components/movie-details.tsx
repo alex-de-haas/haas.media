@@ -296,7 +296,9 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                     {playbackInfo.totalPlayCount > 0 && (
                       <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
                         <Play className="h-4 w-4 text-blue-500" />
-                        <span>{playbackInfo.totalPlayCount} play{playbackInfo.totalPlayCount !== 1 ? "s" : ""}</span>
+                        <span>
+                          {playbackInfo.totalPlayCount} play{playbackInfo.totalPlayCount !== 1 ? "s" : ""}
+                        </span>
                       </Badge>
                     )}
                     {playbackInfo.isFavorite && (
@@ -327,7 +329,12 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                   </div>
                 )}
 
-                {(movie.releaseDate || theatricalReleaseDate || digitalReleaseDate || movie.budget || movie.revenue || movieFiles.length > 0) && (
+                {(movie.releaseDate ||
+                  theatricalReleaseDate ||
+                  digitalReleaseDate ||
+                  movie.budget ||
+                  movie.revenue ||
+                  movieFiles.length > 0) && (
                   <div className="space-y-4">
                     <div className="grid gap-4 text-sm sm:grid-cols-2">
                       {movie.releaseDate && (
@@ -435,17 +442,17 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                               <CarouselItem
                                 key={`${crewMember.id}-${crewMember.job}`}
                                 className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
-                                >
-                                  <PersonCard
-                                    name={crewMember.name}
-                                    description={crewMember.job}
-                                    {...(crewMember.department ? { meta: crewMember.department } : {})}
-                                    profilePath={crewMember.profilePath ?? null}
-                                    href={`/people/${crewMember.id}`}
-                                    className="mx-auto h-full"
-                                  />
-                                </CarouselItem>
-                              ))}
+                              >
+                                <PersonCard
+                                  name={crewMember.name}
+                                  description={crewMember.job}
+                                  {...(crewMember.department ? { meta: crewMember.department } : {})}
+                                  profilePath={crewMember.profilePath ?? null}
+                                  href={`/people/${crewMember.id}`}
+                                  className="mx-auto h-full"
+                                />
+                              </CarouselItem>
+                            ))}
                           </CarouselContent>
                           <CarouselPrevious className="hidden md:flex -left-8" />
                           <CarouselNext className="hidden md:flex -right-8" />

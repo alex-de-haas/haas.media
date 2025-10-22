@@ -106,7 +106,7 @@ export default function CopyMoveModal({ isOpen, onClose, action, items, onConfir
 
   const summaryDestination = currentPath.trim();
   const previewDirectory = summaryDestination || "(root)";
-  const finalDestinationSummary = summaryDestination && primary ? `${summaryDestination}/${primary.name}` : primary?.name ?? "";
+  const finalDestinationSummary = summaryDestination && primary ? `${summaryDestination}/${primary.name}` : (primary?.name ?? "");
 
   if (!primary) {
     return null;
@@ -116,9 +116,7 @@ export default function CopyMoveModal({ isOpen, onClose, action, items, onConfir
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle>
-            {isBulk ? `${actionTitle} ${targets.length} items` : `${actionTitle} ${primary.name}`}
-          </DialogTitle>
+          <DialogTitle>{isBulk ? `${actionTitle} ${targets.length} items` : `${actionTitle} ${primary.name}`}</DialogTitle>
           <DialogDescription>
             {isBulk ? (
               <div className="space-y-1 text-xs text-muted-foreground">
@@ -131,7 +129,9 @@ export default function CopyMoveModal({ isOpen, onClose, action, items, onConfir
                     </li>
                   ))}
                   {targets.length > 5 ? (
-                    <li className="text-muted-foreground/80">+{targets.length - 5} more item{targets.length - 5 === 1 ? "" : "s"}</li>
+                    <li className="text-muted-foreground/80">
+                      +{targets.length - 5} more item{targets.length - 5 === 1 ? "" : "s"}
+                    </li>
                   ) : null}
                 </ul>
               </div>

@@ -5,15 +5,18 @@ Complete documentation for the Jellyfin compatibility layer in Haas.Media.
 ## 📚 Documentation Files
 
 ### Core Documentation
+
 - **[jellyfin-compatibility.md](./jellyfin-compatibility.md)** - Complete API reference with all endpoints, token handling, streaming behavior, and limitations
 - **[jellyfin-api-endpoint-map.md](./jellyfin-api-endpoint-map.md)** - Visual endpoint map with request flows and quick reference tables
 - **[jellyfin-api-quick-reference.md](./jellyfin-api-quick-reference.md)** - Developer quick start guide with common patterns and examples
 
 ### Change Documentation
+
 - **[jellyfin-api-infuse-enhancements.md](./jellyfin-api-infuse-enhancements.md)** - Detailed changelog of Infuse compatibility improvements
 - **[JELLYFIN-INFUSE-UPDATE-SUMMARY.md](./JELLYFIN-INFUSE-UPDATE-SUMMARY.md)** - Executive summary of recent updates
 
 ### Reference
+
 - **[/docs/jellyfin-openapi-stable.json](../jellyfin-openapi-stable.json)** - Official Jellyfin 10.11.0 OpenAPI specification
 
 ## 🚀 Quick Start
@@ -50,6 +53,7 @@ See [quick reference](./jellyfin-api-quick-reference.md) for detailed examples.
 ## 🎯 Key Features
 
 ### ✅ Supported
+
 - Authentication with JWT tokens
 - Library browsing (Movies, TV Shows)
 - Metadata display (titles, descriptions, posters)
@@ -60,6 +64,7 @@ See [quick reference](./jellyfin-api-quick-reference.md) for detailed examples.
 - Image proxying from TMDb
 
 ### 🚧 Planned
+
 - Playback position tracking (resume/continue watching)
 - Watched/unwatched state
 - FFprobe metadata extraction
@@ -69,15 +74,18 @@ See [quick reference](./jellyfin-api-quick-reference.md) for detailed examples.
 ## 🔗 Related Documentation
 
 ### Backend
+
 - [video-streaming-optimization.md](./video-streaming-optimization.md) - Streaming implementation details
 - [metadata.md](./metadata.md) - Metadata scanning and storage
 - [local-auth-complete-guide.md](./local-auth-complete-guide.md) - Authentication system
 
 ### Frontend
+
 - [video-player.md](../frontend/video-player.md) - Video player implementation
 - [AUTHENTICATION-COMPLETE-GUIDE.md](../frontend/AUTHENTICATION-COMPLETE-GUIDE.md) - Frontend auth
 
 ### Infrastructure
+
 - [background-tasks.md](../infrastructure/background-tasks.md) - Task system for encoding
 - [hardware-encoding.md](../infrastructure/hardware-encoding.md) - Hardware acceleration
 
@@ -92,6 +100,7 @@ See [quick reference](./jellyfin-api-quick-reference.md) for detailed examples.
 ## 🛠️ Implementation Details
 
 ### Files
+
 ```
 src/Haas.Media.Downloader.Api/Jellyfin/
 ├── JellyfinConfiguration.cs    # Endpoint definitions
@@ -102,6 +111,7 @@ src/Haas.Media.Downloader.Api/Jellyfin/
 ```
 
 ### Key Classes
+
 - `JellyfinConfiguration` - Endpoint registration
 - `JellyfinService` - Item resolution and library management
 - `JellyfinAuthService` - Token validation and user management
@@ -111,12 +121,14 @@ src/Haas.Media.Downloader.Api/Jellyfin/
 ## 🧪 Testing
 
 ### Manual Testing with Infuse
+
 1. Start API: `dotnet run --project src/Haas.Media.Aspire`
 2. Open Infuse, add server: `http://localhost:8000/jellyfin`
 3. Login with local credentials
 4. Verify libraries, browsing, and playback
 
 ### Automated Testing
+
 ```bash
 # Run all tests
 dotnet test
@@ -130,27 +142,32 @@ dotnet test src/Haas.Media.Downloader.Api.Tests/
 ### Common Issues
 
 **Can't connect from Infuse**
+
 - Check API is running: `curl http://localhost:8000/jellyfin/System/Ping`
 - Verify network connectivity
 - Check firewall settings
 
 **Authentication fails**
+
 - Verify credentials in local authentication store
 - Check JWT_SECRET is configured in .env
 - Review API logs for error messages
 
 **No content in libraries**
+
 - Run metadata scan first
 - Verify DATA_DIRECTORY is configured
 - Check file permissions
 
 **Playback doesn't work**
+
 - Verify file paths are correct
 - Check FFmpeg is installed (for transcoding)
 - Try direct play: `?static=true`
 - Review stream request logs
 
 **Images don't load**
+
 - Check TMDB_API_KEY is configured
 - Verify metadata scan completed
 - Check network access to image.tmdb.org
@@ -175,6 +192,7 @@ When enhancing the Jellyfin layer:
 ## 📮 Support
 
 For issues or questions:
+
 - Check troubleshooting section above
 - Review [jellyfin-compatibility.md](./jellyfin-compatibility.md) limitations
 - Check API logs for detailed error messages

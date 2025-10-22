@@ -108,9 +108,8 @@ export default function AddToLibraryProgress({ libraryType }: AddToLibraryProgre
           if (totalPeople > 0) {
             const syncedPeople = payload.syncedPeople ?? 0;
             const failedPeople = payload.failedPeople ?? 0;
-            const label = failedPeople > 0
-              ? `People ${syncedPeople}/${totalPeople} (${failedPeople} failed)`
-              : `People ${syncedPeople}/${totalPeople}`;
+            const label =
+              failedPeople > 0 ? `People ${syncedPeople}/${totalPeople} (${failedPeople} failed)` : `People ${syncedPeople}/${totalPeople}`;
             infoBadges.push(label);
           }
 
@@ -127,9 +126,7 @@ export default function AddToLibraryProgress({ libraryType }: AddToLibraryProgre
                     <span>{statusLabel}</span>
                   </Badge>
                 </div>
-                {infoBadges.length > 0 && (
-                  <p className="text-sm text-muted-foreground">{infoBadges.join(" • ")}</p>
-                )}
+                {infoBadges.length > 0 && <p className="text-sm text-muted-foreground">{infoBadges.join(" • ")}</p>}
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">

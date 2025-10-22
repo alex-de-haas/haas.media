@@ -9,9 +9,11 @@ Added support for logo images from TMDb for both movies and TV shows. Logos are 
 ### Models
 
 **MovieMetadata** and **TVShowMetadata** models now include:
+
 - `LogoPath` (string?, nullable) - TMDb relative path to the logo image
 
 **SearchResult** model updated:
+
 - Added `LogoPath` property for search results
 
 ### TMDb API Integration
@@ -19,11 +21,13 @@ Added support for logo images from TMDb for both movies and TV shows. Logos are 
 Updated all metadata fetching operations to include `Images` in the API request:
 
 **Movies:**
+
 ```csharp
 MovieMethods.ReleaseDates | MovieMethods.Credits | MovieMethods.Images
 ```
 
 **TV Shows:**
+
 ```csharp
 TvShowMethods.Credits | TvShowMethods.Images
 ```
@@ -33,12 +37,14 @@ TvShowMethods.Credits | TvShowMethods.Images
 Implemented `GetBestLogo()` helper method in both `MovieMetadataMapper` and `TVShowMetadataMapper`:
 
 **Priority:**
+
 1. User's preferred language from profile settings (e.g., `de` for German, `fr` for French)
 2. English language logos (`iso_639_1 == "en"`) as fallback
 3. Language-neutral logos (`iso_639_1 == null`) - universal logos without text
 4. Highest voted logos (by `VoteAverage` and `VoteCount`)
 
 **Language Code Normalization:**
+
 - Accepts ISO 639-1 language codes (2-letter codes like "en", "de", "fr")
 - Handles locale formats (e.g., "en-US" → "en")
 - Falls back to English if user preference is not set
@@ -56,6 +62,7 @@ Updated `JellyfinService` to support logo images:
 ### TypeScript Types
 
 Updated metadata type definitions in `src/Haas.Media.Web/types/metadata.ts`:
+
 - `MovieMetadata.logoPath?: string`
 - `TVShowMetadata.logoPath?: string`
 - `SearchResult.logoPath?: string`
@@ -71,7 +78,7 @@ Added `getLogoUrl()` function to `src/Haas.Media.Web/lib/tmdb.ts`:
  * @param size The image size (e.g., 'w92', 'w154', 'w185', 'w300', 'w500', 'original')
  * @returns Full image URL or null if path is null/empty
  */
-export function getLogoUrl(logoPath?: string | null, size: string = "w300"): string | null
+export function getLogoUrl(logoPath?: string | null, size: string = "w300"): string | null;
 ```
 
 ## Usage Examples
@@ -102,6 +109,7 @@ Logos are automatically included in Jellyfin API responses:
 ```
 
 Clients can request logos via:
+
 ```
 GET /Items/{itemId}/Images/Logo
 ```
@@ -109,6 +117,7 @@ GET /Items/{itemId}/Images/Logo
 ## TMDb Image Sizes
 
 Available logo sizes from TMDb:
+
 - `w45`, `w92`, `w154`, `w185`, `w300`, `w500`, `original`
 
 Recommended default: `w300` (good balance between quality and file size)
@@ -122,6 +131,7 @@ Logo selection respects the user's preferred metadata language setting:
 3. **Fallback Chain:** If a logo in the preferred language isn't available, the system falls back to English, then universal (no language), then highest voted
 
 **Example:**
+
 - User prefers German (`de`)
 - System will look for German logo first
 - If not available, tries English logo
@@ -131,6 +141,7 @@ Logo selection respects the user's preferred metadata language setting:
 ## Data Migration
 
 No migration required - existing metadata will not have `LogoPath` populated until:
+
 1. New metadata is scanned
 2. Existing metadata is refreshed via the refresh endpoint
 3. New items are added to the library

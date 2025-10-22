@@ -14,28 +14,33 @@ Enhanced the Jellyfin compatibility layer in Haas.Media to improve support for I
 #### New Endpoints
 
 **Playback Information (GET)**
+
 - Added `GET /jellyfin/Items/{itemId}/PlaybackInfo` to complement existing POST endpoint
 - Infuse and other clients may use either GET or POST for playback info requests
 - Returns `MediaSources` and `PlaySessionId` for playback initialization
 
 **Latest Items**
+
 - Added `GET /jellyfin/Users/{userId}/Items/Latest`
 - Returns recently added content sorted by premiere date
 - Supports `Limit`, `ParentId`, and `IncludeItemTypes` query parameters
 - Default limit: 16 items
 
 **Resume Items**
+
 - Added `GET /jellyfin/Users/{userId}/Items/Resume`
 - Endpoint for "Continue Watching" functionality
 - Currently returns empty array (placeholder for future playback tracking)
 - Supports same query parameters as Latest endpoint
 
 **Branding Configuration**
+
 - Added `GET /jellyfin/Branding/Configuration`
 - Returns UI customization settings (empty by default)
 - Allows clients to customize login screen and appearance
 
 **Video Stream with Container Extension**
+
 - Added `GET /jellyfin/Videos/{itemId}/stream.{container}`
 - Explicit container format in URL path (e.g., `.mp4`, `.mkv`)
 - Complements existing `/stream` endpoint
@@ -43,12 +48,14 @@ Enhanced the Jellyfin compatibility layer in Haas.Media to improve support for I
 #### Enhanced Existing Endpoints
 
 **Video Streaming Enhancements**
+
 - Added support for `static` query parameter (forces direct play)
 - Enhanced logging for all playback requests
 - Logs include: itemId, static flag, transcode flag, container, mediaSourceId, playSessionId
 - Better handling of container format negotiation
 
 **Items Query Parameter Support**
+
 - Added case-insensitive support for query parameters:
   - `ParentId` / `parentId` / `ParentID`
   - `Recursive` / `recursive`
@@ -60,6 +67,7 @@ Enhanced the Jellyfin compatibility layer in Haas.Media to improve support for I
 #### JellyfinMediaSource Enhancements
 
 Added fields aligned with Jellyfin OpenAPI specification:
+
 - `Name` - human-readable source name
 - `IsRemote` - indicates if source is remote
 - `ETag` - entity tag for caching
@@ -77,6 +85,7 @@ Added fields aligned with Jellyfin OpenAPI specification:
 Added comprehensive codec and stream information:
 
 **Video Stream Properties:**
+
 - `Width`, `Height` - video dimensions
 - `AspectRatio` - display aspect ratio
 - `BitRate` - stream bitrate
@@ -91,18 +100,21 @@ Added comprehensive codec and stream information:
 - `IsAVC` - AVC/H.264 indicator
 
 **Audio Stream Properties:**
+
 - `Channels` - audio channel count
 - `SampleRate` - audio sample rate
 - `ChannelLayout` - channel layout (5.1, 7.1, etc.)
 - `BitDepth` - audio bit depth
 
 **Subtitle Stream Properties:**
+
 - `IsForced` - forced subtitle flag
 - `IsExternal` - external subtitle file
 - `Path` - external file path
 - `SupportsExternalStream` - external streaming capability
 
 **Common Properties:**
+
 - `Title`, `DisplayTitle` - stream title
 - `Language` - language code
 - `IsDefault` - default stream flag
@@ -112,6 +124,7 @@ Added comprehensive codec and stream information:
 ### 3. Documentation Updates
 
 Updated `/docs/backend/jellyfin-compatibility.md` with:
+
 - Complete endpoint reference organized by category
 - Query parameter support documentation
 - Streaming behavior details
@@ -181,6 +194,7 @@ The implementation now aligns with the following Jellyfin OpenAPI 10.11.0 endpoi
 ### Debug Verification
 
 Check logs for:
+
 - Successful authentication requests
 - Library enumeration requests
 - Item browsing requests
@@ -191,17 +205,20 @@ Check logs for:
 ## Future Enhancements
 
 ### Short Term
+
 - **FFprobe Integration**: Extract real codec information during metadata scans
 - **Media Analysis**: Populate actual resolution, bitrate, codec details in MediaStreams
 - **Playback Tracking**: Implement playback position persistence for resume functionality
 
 ### Medium Term
+
 - **Progress Reporting**: Implement `/Sessions/Playing` and `/Sessions/Playing/Progress` endpoints
 - **Watched Status**: Track and persist watched/unwatched state
 - **User Preferences**: Per-user subtitle and audio preferences
 - **Advanced Search**: Enhanced search with filters and sorting
 
 ### Long Term
+
 - **Transcoding Profiles**: Client-specific transcoding profiles
 - **Subtitle Management**: External subtitle file support and on-the-fly conversion
 - **Multi-user Support**: Enhanced multi-user features with separate libraries/permissions

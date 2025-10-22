@@ -3,6 +3,7 @@
 Visual reference of all Jellyfin endpoints implemented in Haas.Media.
 
 ## Authentication & System
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ 🔓 ANONYMOUS (No Auth Required)                             │
@@ -22,6 +23,7 @@ Visual reference of all Jellyfin endpoints implemented in Haas.Media.
 ```
 
 ## User Management
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ 🔒 USER ENDPOINTS (Authenticated)                            │
@@ -35,6 +37,7 @@ Visual reference of all Jellyfin endpoints implemented in Haas.Media.
 ```
 
 ## Library & Content
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ 📚 LIBRARY ENDPOINTS                                         │
@@ -54,6 +57,7 @@ Visual reference of all Jellyfin endpoints implemented in Haas.Media.
 ```
 
 ## TV Shows
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ 📺 TV SHOW ENDPOINTS                                         │
@@ -70,6 +74,7 @@ Visual reference of all Jellyfin endpoints implemented in Haas.Media.
 ```
 
 ## Images
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ 🖼️  IMAGE ENDPOINTS                                          │
@@ -81,6 +86,7 @@ Visual reference of all Jellyfin endpoints implemented in Haas.Media.
 ```
 
 ## Playback
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ ▶️  PLAYBACK ENDPOINTS                                       │
@@ -101,6 +107,7 @@ Visual reference of all Jellyfin endpoints implemented in Haas.Media.
 ## Request Flow Examples
 
 ### Initial Connection
+
 ```
 Client                                  Server
   │                                       │
@@ -118,6 +125,7 @@ Client                                  Server
 ```
 
 ### Browse Library
+
 ```
 Client                                  Server
   │                                       │
@@ -137,6 +145,7 @@ Client                                  Server
 ```
 
 ### Play Video
+
 ```
 Client                                  Server
   │                                       │
@@ -162,48 +171,52 @@ Client                                  Server
 ## Query Parameter Quick Reference
 
 ### Items Endpoints
-| Parameter | Values | Description |
-|-----------|--------|-------------|
-| `ParentId` | ID string | Filter by parent (library/series/season) |
-| `IncludeItemTypes` | Movie,Series,Season,Episode | Comma-separated types |
-| `Recursive` | true/false | Include all descendants |
-| `SearchTerm` | String | Search query |
-| `Limit` | Number | Max results |
+
+| Parameter          | Values                      | Description                              |
+| ------------------ | --------------------------- | ---------------------------------------- |
+| `ParentId`         | ID string                   | Filter by parent (library/series/season) |
+| `IncludeItemTypes` | Movie,Series,Season,Episode | Comma-separated types                    |
+| `Recursive`        | true/false                  | Include all descendants                  |
+| `SearchTerm`       | String                      | Search query                             |
+| `Limit`            | Number                      | Max results                              |
 
 ### TV Shows Endpoints
-| Parameter | Values | Description |
-|-----------|--------|-------------|
-| `userId` | User ID | User context for playback info |
-| `seasonId` | Season ID | Filter episodes by season (e.g., season-95480-1) |
-| `excludeLocationTypes` | Virtual | Exclude virtual/placeholder items |
-| `fields` | Comma-separated | Additional fields (e.g., PrimaryImageAspectRatio) |
+
+| Parameter              | Values          | Description                                       |
+| ---------------------- | --------------- | ------------------------------------------------- |
+| `userId`               | User ID         | User context for playback info                    |
+| `seasonId`             | Season ID       | Filter episodes by season (e.g., season-95480-1)  |
+| `excludeLocationTypes` | Virtual         | Exclude virtual/placeholder items                 |
+| `fields`               | Comma-separated | Additional fields (e.g., PrimaryImageAspectRatio) |
 
 ### Streaming Endpoints
-| Parameter | Values | Description |
-|-----------|--------|-------------|
-| `static` | true/false | Force direct play |
-| `transcode` | true/false | Force transcoding |
-| `container` | mp4,mkv,webm,etc | Target format |
-| `quality` | 1080p,720p,etc | Quality preset |
-| `mediaSourceId` | ID string | Specific media source |
-| `playSessionId` | ID string | Session tracking |
+
+| Parameter       | Values           | Description           |
+| --------------- | ---------------- | --------------------- |
+| `static`        | true/false       | Force direct play     |
+| `transcode`     | true/false       | Force transcoding     |
+| `container`     | mp4,mkv,webm,etc | Target format         |
+| `quality`       | 1080p,720p,etc   | Quality preset        |
+| `mediaSourceId` | ID string        | Specific media source |
+| `playSessionId` | ID string        | Session tracking      |
 
 ### Image Endpoints
-| Parameter | Values | Description |
-|-----------|--------|-------------|
-| `maxWidth` | Number | Max width in pixels |
-| `quality` | original | Use full resolution |
+
+| Parameter  | Values   | Description         |
+| ---------- | -------- | ------------------- |
+| `maxWidth` | Number   | Max width in pixels |
+| `quality`  | original | Use full resolution |
 
 ## Response Codes
 
-| Code | Meaning | Common Causes |
-|------|---------|---------------|
-| 200 | OK | Successful request |
-| 302 | Redirect | Image proxy to TMDb |
-| 401 | Unauthorized | Missing/invalid token |
-| 403 | Forbidden | User doesn't own resource |
-| 404 | Not Found | Item doesn't exist |
-| 503 | Service Unavailable | Server starting up |
+| Code | Meaning             | Common Causes             |
+| ---- | ------------------- | ------------------------- |
+| 200  | OK                  | Successful request        |
+| 302  | Redirect            | Image proxy to TMDb       |
+| 401  | Unauthorized        | Missing/invalid token     |
+| 403  | Forbidden           | User doesn't own resource |
+| 404  | Not Found           | Item doesn't exist        |
+| 503  | Service Unavailable | Server starting up        |
 
 ## Item ID Patterns
 

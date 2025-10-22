@@ -3,6 +3,7 @@
 This is a quick reference for the most commonly used Jellyfin endpoints by Infuse and similar clients.
 
 ## Base URL
+
 All endpoints are prefixed with `/jellyfin`
 
 Example: `http://localhost:8000/jellyfin/System/Info`
@@ -10,18 +11,23 @@ Example: `http://localhost:8000/jellyfin/System/Info`
 ## Authentication Flow
 
 ### 1. Get Public System Info (Optional)
+
 ```http
 GET /jellyfin/System/Info/Public
 ```
+
 No authentication required. Returns server version and capabilities.
 
 ### 2. Get Public Users
+
 ```http
 GET /jellyfin/Users/Public
 ```
+
 Returns list of users for login screen.
 
 ### 3. Authenticate
+
 ```http
 POST /jellyfin/Users/AuthenticateByName
 Content-Type: application/json
@@ -33,6 +39,7 @@ Content-Type: application/json
 ```
 
 Returns:
+
 ```json
 {
   "AccessToken": "jwt-token-here",
@@ -42,7 +49,9 @@ Returns:
 ```
 
 ### 4. Use Token
+
 Pass token in one of these ways:
+
 - Header: `Authorization: Bearer <token>`
 - Header: `X-Emby-Token: <token>`
 - Query: `?api_key=<token>`
@@ -50,12 +59,14 @@ Pass token in one of these ways:
 ## Core Endpoints
 
 ### Get User Info
+
 ```http
 GET /jellyfin/Users/Me
 Authorization: Bearer <token>
 ```
 
 ### Get Libraries
+
 ```http
 GET /jellyfin/Library/MediaFolders
 Authorization: Bearer <token>
@@ -64,18 +75,21 @@ Authorization: Bearer <token>
 Returns your movie and TV show libraries.
 
 ### Browse Library Contents
+
 ```http
 GET /jellyfin/Users/{userId}/Items?ParentId={libraryId}&Recursive=true
 Authorization: Bearer <token>
 ```
 
 Query parameters:
+
 - `ParentId` - Library or folder ID
 - `Recursive` - Include all descendants
 - `IncludeItemTypes` - Filter by type (Movie, Series, Season, Episode)
 - `SearchTerm` - Search query
 
 ### Get Single Item
+
 ```http
 GET /jellyfin/Items/{itemId}
 Authorization: Bearer <token>
@@ -84,6 +98,7 @@ Authorization: Bearer <token>
 Returns full item details including `MediaSources` for playback.
 
 ### Get Latest Items
+
 ```http
 GET /jellyfin/Users/{userId}/Items/Latest?Limit=16
 Authorization: Bearer <token>
@@ -92,6 +107,7 @@ Authorization: Bearer <token>
 Returns recently added content.
 
 ### Get Item Image
+
 ```http
 GET /jellyfin/Items/{itemId}/Images/Primary?maxWidth=780
 Authorization: Bearer <token>
@@ -102,6 +118,7 @@ Image types: `Primary`, `Backdrop`
 ## Playback Flow
 
 ### 1. Get Playback Info
+
 ```http
 GET /jellyfin/Items/{itemId}/PlaybackInfo
 Authorization: Bearer <token>
@@ -112,24 +129,28 @@ Returns `MediaSources` with stream URLs and codec information.
 ### 2. Stream Video
 
 **Direct Play (recommended):**
+
 ```http
 GET /jellyfin/Videos/{itemId}/stream?static=true
 Authorization: Bearer <token>
 ```
 
 **Transcoded:**
+
 ```http
 GET /jellyfin/Videos/{itemId}/stream?transcode=true&container=mp4&quality=1080p
 Authorization: Bearer <token>
 ```
 
 **With Container Extension:**
+
 ```http
 GET /jellyfin/Videos/{itemId}/stream.mp4?static=true
 Authorization: Bearer <token>
 ```
 
 Parameters:
+
 - `static` - Force direct play (no transcoding)
 - `transcode` - Force transcoding
 - `container` - Target format (mp4, mkv, etc.)
@@ -165,6 +186,7 @@ Example: `movie-603` for TMDb movie ID 603
 ## Common Query Parameters
 
 ### For Items Endpoints
+
 - `ParentId` - Filter by parent (library, series, season)
 - `IncludeItemTypes` - Comma-separated types (Movie,Series,Season,Episode)
 - `Recursive` - Include all descendants (true/false)
@@ -172,6 +194,7 @@ Example: `movie-603` for TMDb movie ID 603
 - `Limit` - Max results to return
 
 ### For Streaming
+
 - `static` - Direct play without transcoding (true/false)
 - `transcode` - Force transcoding (true/false)
 - `container` - Target container format
@@ -180,6 +203,7 @@ Example: `movie-603` for TMDb movie ID 603
 - `playSessionId` - Session tracking ID
 
 ### For Images
+
 - `maxWidth` - Max width in pixels
 - `quality` - Use "original" for full resolution
 
@@ -188,6 +212,7 @@ Example: `movie-603` for TMDb movie ID 603
 All responses use JSON with camelCase property names.
 
 ### Item Response
+
 ```json
 {
   "Id": "movie-603",
@@ -214,13 +239,17 @@ All responses use JSON with camelCase property names.
 ## Debugging Tips
 
 ### Enable Request Logging
+
 All Jellyfin endpoint responses are logged. Check API logs for:
+
 ```
 Jellyfin response for {Endpoint}: {Response}
 ```
 
 ### Video Stream Logging
+
 Stream requests log:
+
 ```
 Video stream request: ItemId=..., Static=..., Transcode=..., Container=...
 ```
@@ -240,6 +269,7 @@ Video stream request: ItemId=..., Static=..., Transcode=..., Container=...
 ## Environment Variables
 
 Required in `.env`:
+
 ```bash
 DATA_DIRECTORY=/path/to/media
 JWT_SECRET=your-secret-key
@@ -248,6 +278,7 @@ JWT_AUDIENCE=haas-media-api
 ```
 
 Optional:
+
 ```bash
 TMDB_API_KEY=your-tmdb-key  # For metadata
 FFMPEG_BINARY=/usr/bin/ffmpeg  # For transcoding

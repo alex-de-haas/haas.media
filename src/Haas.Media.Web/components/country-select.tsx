@@ -4,14 +4,7 @@ import { useId, useMemo, useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList
-} from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { COUNTRY_OPTIONS, findCountryLabel } from "@/lib/countries";
 import { cn } from "@/lib/utils";
@@ -25,14 +18,7 @@ interface CountrySelectProps {
   className?: string;
 }
 
-export function CountrySelect({
-  value,
-  onChange,
-  disabled,
-  id,
-  placeholder = "Select a country",
-  className
-}: CountrySelectProps) {
+export function CountrySelect({ value, onChange, disabled, id, placeholder = "Select a country", className }: CountrySelectProps) {
   const [open, setOpen] = useState(false);
   const generatedId = useId();
   const triggerId = id ?? generatedId;
@@ -59,12 +45,7 @@ export function CountrySelect({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="z-50 w-[var(--radix-popover-trigger-width,16rem)] p-0"
-        id={listboxId}
-        role="listbox"
-      >
+      <PopoverContent align="start" className="z-50 w-[var(--radix-popover-trigger-width,16rem)] p-0" id={listboxId} role="listbox">
         <Command>
           <CommandInput placeholder="Search countries..." />
           <CommandList>

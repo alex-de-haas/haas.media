@@ -20,7 +20,6 @@ export default function SettingsPage() {
   const [countryCode, setCountryCode] = useState("US");
 
   const fetchSettings = useCallback(async () => {
-
     try {
       setIsLoading(true);
       const token = localStorage.getItem("auth_token");
@@ -116,8 +115,8 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Metadata Preferences</CardTitle>
           <CardDescription>
-            Configure default language and country for metadata. These settings are used as fallback when libraries
-            don&apos;t specify their own preferences.
+            Configure default language and country for metadata. These settings are used as fallback when libraries don&apos;t specify their
+            own preferences.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -125,28 +124,14 @@ export default function SettingsPage() {
             <div className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="preferredLanguage">Preferred TMDB Language</Label>
-                <LanguageSelect
-                  id="preferredLanguage"
-                  value={preferredLanguage}
-                  onChange={setPreferredLanguage}
-                  disabled={isSaving}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Default language for fetching movie and TV show metadata from TMDB
-                </p>
+                <LanguageSelect id="preferredLanguage" value={preferredLanguage} onChange={setPreferredLanguage} disabled={isSaving} />
+                <p className="text-sm text-muted-foreground">Default language for fetching movie and TV show metadata from TMDB</p>
               </div>
 
               <div className="grid gap-2">
                 <Label htmlFor="countryCode">Preferred Country (ISO 3166-1 alpha-2)</Label>
-                <CountrySelect
-                  id="countryCode"
-                  value={countryCode}
-                  onChange={setCountryCode}
-                  disabled={isSaving}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Default country for release dates and regional content
-                </p>
+                <CountrySelect id="countryCode" value={countryCode} onChange={setCountryCode} disabled={isSaving} />
+                <p className="text-sm text-muted-foreground">Default country for release dates and regional content</p>
               </div>
             </div>
 

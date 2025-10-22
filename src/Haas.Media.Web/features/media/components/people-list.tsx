@@ -44,9 +44,7 @@ function PersonCard({ person }: PersonCardProps) {
         <CardContent className="space-y-3 p-4">
           <div className="space-y-1">
             <h3 className="line-clamp-2 text-base font-semibold leading-tight text-foreground">{person.name}</h3>
-            {person.placeOfBirth && (
-              <p className="line-clamp-1 text-xs text-muted-foreground">{person.placeOfBirth}</p>
-            )}
+            {person.placeOfBirth && <p className="line-clamp-1 text-xs text-muted-foreground">{person.placeOfBirth}</p>}
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -64,16 +62,7 @@ function PersonCard({ person }: PersonCardProps) {
 
 export default function PeopleList() {
   const [searchQuery, setSearchQuery] = useState("");
-  const {
-    people,
-    totalCount,
-    loading,
-    loadingMore,
-    error,
-    hasMore,
-    loadMore,
-    refetch,
-  } = usePeople(searchQuery);
+  const { people, totalCount, loading, loadingMore, error, hasMore, loadMore, refetch } = usePeople(searchQuery);
   const hasActiveSearch = Boolean(searchQuery.trim());
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const shouldShowLoadMore = hasMore;
@@ -88,7 +77,7 @@ export default function PeopleList() {
           void loadMore();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     const currentRef = loadMoreRef.current;
@@ -135,9 +124,7 @@ export default function PeopleList() {
         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
           <User className="mb-4 h-12 w-12 text-muted-foreground" />
           <h3 className="mb-2 text-lg font-semibold">No people found</h3>
-          <p className="mb-4 text-sm text-muted-foreground">
-            People will appear here after you scan your libraries.
-          </p>
+          <p className="mb-4 text-sm text-muted-foreground">People will appear here after you scan your libraries.</p>
         </CardContent>
       </Card>
     );
@@ -152,17 +139,11 @@ export default function PeopleList() {
               ? `${totalCount} ${totalCount === 1 ? "matching person" : "matching people"}`
               : `${totalCount} ${totalCount === 1 ? "person" : "people"}`}
           </h2>
-          {people.length < totalCount && totalCount > 0 && (
-            <span className="text-sm text-muted-foreground">
-              (loaded {people.length})
-            </span>
-          )}
+          {people.length < totalCount && totalCount > 0 && <span className="text-sm text-muted-foreground">(loaded {people.length})</span>}
           <Button variant="ghost" size="icon" onClick={refetch} className="h-8 w-8">
             <RefreshCw className="h-4 w-4" />
           </Button>
-          {loading && people.length > 0 && (
-            <Spinner className="ml-2 size-4 text-muted-foreground" />
-          )}
+          {loading && people.length > 0 && <Spinner className="ml-2 size-4 text-muted-foreground" />}
         </div>
 
         <div className="relative w-full sm:w-80">
@@ -203,9 +184,7 @@ export default function PeopleList() {
 
           {/* End message */}
           {!shouldShowLoadMore && totalCount > 0 && (
-            <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
-              All {totalCount} people loaded
-            </div>
+            <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">All {totalCount} people loaded</div>
           )}
         </>
       )}

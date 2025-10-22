@@ -26,11 +26,7 @@ export interface RefreshOptions {
   refreshPeople: boolean;
 }
 
-export function RefreshMetadataDialog({
-  open,
-  onOpenChange,
-  onConfirm,
-}: RefreshMetadataDialogProps) {
+export function RefreshMetadataDialog({ open, onOpenChange, onConfirm }: RefreshMetadataDialogProps) {
   const [refreshMovies, setRefreshMovies] = useState(true);
   const [refreshTvShows, setRefreshTvShows] = useState(true);
   const [refreshPeople, setRefreshPeople] = useState(true);
@@ -62,11 +58,7 @@ export function RefreshMetadataDialog({
 
         <div className="space-y-4 py-4">
           <div className="flex items-center space-x-2">
-            <Checkbox
-              id="refresh-movies"
-              checked={refreshMovies}
-              onCheckedChange={(checked) => setRefreshMovies(checked === true)}
-            />
+            <Checkbox id="refresh-movies" checked={refreshMovies} onCheckedChange={(checked) => setRefreshMovies(checked === true)} />
             <Label
               htmlFor="refresh-movies"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -76,11 +68,7 @@ export function RefreshMetadataDialog({
           </div>
 
           <div className="flex items-center space-x-2">
-            <Checkbox
-              id="refresh-tvshows"
-              checked={refreshTvShows}
-              onCheckedChange={(checked) => setRefreshTvShows(checked === true)}
-            />
+            <Checkbox id="refresh-tvshows" checked={refreshTvShows} onCheckedChange={(checked) => setRefreshTvShows(checked === true)} />
             <Label
               htmlFor="refresh-tvshows"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -90,11 +78,7 @@ export function RefreshMetadataDialog({
           </div>
 
           <div className="flex items-center space-x-2">
-            <Checkbox
-              id="refresh-people"
-              checked={refreshPeople}
-              onCheckedChange={(checked) => setRefreshPeople(checked === true)}
-            />
+            <Checkbox id="refresh-people" checked={refreshPeople} onCheckedChange={(checked) => setRefreshPeople(checked === true)} />
             <Label
               htmlFor="refresh-people"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -103,19 +87,12 @@ export function RefreshMetadataDialog({
             </Label>
           </div>
 
-          {!hasAtLeastOneSelection && (
-            <p className="text-sm text-destructive">
-              Please select at least one option
-            </p>
-          )}
+          {!hasAtLeastOneSelection && <p className="text-sm text-destructive">Please select at least one option</p>}
         </div>
 
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleConfirm}
-            disabled={!hasAtLeastOneSelection}
-          >
+          <AlertDialogAction onClick={handleConfirm} disabled={!hasAtLeastOneSelection}>
             Start Refresh
           </AlertDialogAction>
         </AlertDialogFooter>

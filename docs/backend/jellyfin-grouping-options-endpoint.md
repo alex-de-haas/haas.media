@@ -3,6 +3,7 @@
 ## Issue
 
 Infuse was showing an error when trying to call:
+
 ```
 GET /jellyfin/Users/{userId}/GroupingOptions
 ```
@@ -12,6 +13,7 @@ This endpoint was not implemented, causing a 404 error.
 ## What is GroupingOptions?
 
 The `GroupingOptions` endpoint returns special view options that allow users to view/group their library content in different ways. Common grouping options in Jellyfin include:
+
 - By Folder
 - By Genre
 - By Studio
@@ -55,12 +57,13 @@ Per the Jellyfin OpenAPI spec, the endpoint returns an array of `SpecialViewOpti
 
 ```typescript
 interface SpecialViewOptionDto {
-  Name?: string;   // View option name (e.g., "By Genre")
-  Id?: string;     // View option ID
+  Name?: string; // View option name (e.g., "By Genre")
+  Id?: string; // View option ID
 }
 ```
 
 **Current implementation returns:**
+
 ```json
 []
 ```
@@ -72,6 +75,7 @@ This empty array indicates no special grouping options are available, which is a
 To implement actual grouping options, we would:
 
 1. Define the `SpecialViewOptionDto` model in `JellyfinModels.cs`:
+
 ```csharp
 public sealed record JellyfinSpecialViewOption
 {
@@ -81,6 +85,7 @@ public sealed record JellyfinSpecialViewOption
 ```
 
 2. Return standard grouping options:
+
 ```csharp
 var groupingOptions = new[]
 {
@@ -109,12 +114,14 @@ var groupingOptions = new[]
 After this change, the endpoint returns:
 
 **Request:**
+
 ```http
 GET /jellyfin/Users/{userId}/GroupingOptions
 Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```http
 HTTP/1.1 200 OK
 Content-Type: application/json

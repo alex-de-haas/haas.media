@@ -46,7 +46,7 @@ interface EpisodeCardProps {
 
 function EpisodeCard({ tvShowId, episode, episodeFiles }: EpisodeCardProps) {
   return (
-    <Link 
+    <Link
       href={`/tvshows/${tvShowId}/episodes/${episode.seasonNumber}/${episode.episodeNumber}`}
       className="block transition hover:scale-[1.02]"
     >
@@ -110,9 +110,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
 
   // Helper function to get files for a specific episode
   const getEpisodeFiles = (seasonNumber: number, episodeNumber: number): FileMetadata[] => {
-    return showFiles.filter(
-      (file) => file.seasonNumber === seasonNumber && file.episodeNumber === episodeNumber
-    );
+    return showFiles.filter((file) => file.seasonNumber === seasonNumber && file.episodeNumber === episodeNumber);
   };
 
   const handleDelete = async () => {
@@ -348,7 +346,9 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                     {playbackInfo.totalPlayCount > 0 && (
                       <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
                         <Play className="h-4 w-4 text-blue-500" />
-                        <span>{playbackInfo.totalPlayCount} play{playbackInfo.totalPlayCount !== 1 ? "s" : ""}</span>
+                        <span>
+                          {playbackInfo.totalPlayCount} play{playbackInfo.totalPlayCount !== 1 ? "s" : ""}
+                        </span>
                       </Badge>
                     )}
                     {playbackInfo.isFavorite && (
@@ -547,7 +547,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                             {episodeCount > 0 ? (
                               <div className="space-y-3">
                                 {season.episodes.map((episode) => (
-                                  <EpisodeCard 
+                                  <EpisodeCard
                                     key={`${episode.seasonNumber}-${episode.episodeNumber}`}
                                     tvShowId={tvShowId}
                                     episode={episode}

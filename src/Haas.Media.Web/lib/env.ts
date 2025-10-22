@@ -65,10 +65,7 @@ export function getApiUrl(): string {
   // Client-side: use public API URL
   if (typeof window !== "undefined") {
     const publicApiUrl = pickFirstUrl(
-      [
-        resolveCandidateUrl(env("NEXT_PUBLIC_API_BASE_URL")),
-        resolveCandidateUrl(process.env.NEXT_PUBLIC_API_BASE_URL),
-      ],
+      [resolveCandidateUrl(env("NEXT_PUBLIC_API_BASE_URL")), resolveCandidateUrl(process.env.NEXT_PUBLIC_API_BASE_URL)],
       excluded,
     );
     return publicApiUrl ?? "http://localhost:8000";
@@ -90,10 +87,7 @@ export function getApiUrl(): string {
   }
 
   const fallback = pickFirstUrl(
-    [
-      resolveCandidateUrl(env("NEXT_PUBLIC_API_BASE_URL")),
-      resolveCandidateUrl(process.env.NEXT_PUBLIC_API_BASE_URL),
-    ],
+    [resolveCandidateUrl(env("NEXT_PUBLIC_API_BASE_URL")), resolveCandidateUrl(process.env.NEXT_PUBLIC_API_BASE_URL)],
     excluded,
   );
 

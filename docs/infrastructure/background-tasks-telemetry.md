@@ -19,6 +19,7 @@ Each background task execution creates a span with the following structure:
 
 **Span Name**: `BackgroundTask.{TaskType}`  
 Examples:
+
 - `BackgroundTask.MetadataScanTask`
 - `BackgroundTask.AddToLibraryTask`
 - `BackgroundTask.PersonCleanupTask`
@@ -31,34 +32,34 @@ Examples:
 
 All task executions include these tags:
 
-| Tag | Description | Example |
-|-----|-------------|---------|
-| `task.id` | Unique task identifier (GUID) | `"01932b4e-7890-7abc-def0-123456789abc"` |
-| `task.type` | Task class name | `"MetadataScanTask"` |
-| `task.name` | Human-readable task name | `"Metadata library scan"` |
-| `task.status` | Final task status | `"Completed"`, `"Failed"`, `"Cancelled"` |
-| `task.duration_ms` | Total execution time in milliseconds | `12543.5` |
+| Tag                | Description                          | Example                                  |
+| ------------------ | ------------------------------------ | ---------------------------------------- |
+| `task.id`          | Unique task identifier (GUID)        | `"01932b4e-7890-7abc-def0-123456789abc"` |
+| `task.type`        | Task class name                      | `"MetadataScanTask"`                     |
+| `task.name`        | Human-readable task name             | `"Metadata library scan"`                |
+| `task.status`      | Final task status                    | `"Completed"`, `"Failed"`, `"Cancelled"` |
+| `task.duration_ms` | Total execution time in milliseconds | `12543.5`                                |
 
 ### Exception Tags (on failure)
 
 When a task fails, additional exception details are recorded:
 
-| Tag | Description |
-|-----|-------------|
-| `exception.type` | Full type name of the exception | 
-| `exception.message` | Exception message |
-| `exception.stacktrace` | Full stack trace |
+| Tag                    | Description                     |
+| ---------------------- | ------------------------------- |
+| `exception.type`       | Full type name of the exception |
+| `exception.message`    | Exception message               |
+| `exception.stacktrace` | Full stack trace                |
 
 ### Events
 
 Background task spans emit lifecycle events:
 
-| Event | When | Description |
-|-------|------|-------------|
-| `task.started` | Task begins execution | Indicates transition from Pending to Running |
-| `task.completed` | Task completes successfully | Final status is Completed |
-| `task.cancelled` | Task is cancelled | User or system requested cancellation |
-| `task.failed` | Task throws an exception | Error details included in tags |
+| Event            | When                        | Description                                  |
+| ---------------- | --------------------------- | -------------------------------------------- |
+| `task.started`   | Task begins execution       | Indicates transition from Pending to Running |
+| `task.completed` | Task completes successfully | Final status is Completed                    |
+| `task.cancelled` | Task is cancelled           | User or system requested cancellation        |
+| `task.failed`    | Task throws an exception    | Error details included in tags               |
 
 ### Status Codes
 
@@ -154,6 +155,7 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 ```
 
 Supported backends:
+
 - Jaeger
 - Zipkin
 - Grafana Tempo
@@ -163,13 +165,15 @@ Supported backends:
 ### Querying Traces
 
 **Find all failed background tasks:**
+
 ```
-span.kind = "Internal" 
+span.kind = "Internal"
 AND span.name LIKE "BackgroundTask.%"
 AND task.status = "Failed"
 ```
 
 **Find slow task executions (>5 minutes):**
+
 ```
 span.kind = "Internal"
 AND span.name LIKE "BackgroundTask.%"
@@ -177,6 +181,7 @@ AND task.duration_ms > 300000
 ```
 
 **Find specific task type:**
+
 ```
 span.kind = "Internal"
 AND task.type = "MetadataScanTask"

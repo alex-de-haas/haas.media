@@ -16,23 +16,19 @@ Added logo image display to movie and TV show details pages. When a logo is avai
 The logo is displayed conditionally in the header section:
 
 ```tsx
-{logoUrl ? (
-  <div className="mb-2">
-    <Image
-      src={logoUrl}
-      alt={`${title} logo`}
-      width={300}
-      height={100}
-      className="max-w-[300px] h-auto object-contain"
-      priority
-    />
-  </div>
-) : (
-  <CardTitle className="text-3xl md:text-4xl">{title}</CardTitle>
-)}
+{
+  logoUrl ? (
+    <div className="mb-2">
+      <Image src={logoUrl} alt={`${title} logo`} width={300} height={100} className="max-w-[300px] h-auto object-contain" priority />
+    </div>
+  ) : (
+    <CardTitle className="text-3xl md:text-4xl">{title}</CardTitle>
+  );
+}
 ```
 
 **Behavior:**
+
 - **Logo available:** Displays the logo image above metadata (year, rating, language)
 - **No logo:** Falls back to displaying the text title as before
 
@@ -46,6 +42,7 @@ The logo is displayed conditionally in the header section:
 ### Visual Placement
 
 The logo is positioned:
+
 1. At the top of the details card header
 2. Above the original title (if different from main title)
 3. Above the metadata badges (year, rating, language, etc.)
@@ -69,6 +66,7 @@ The logo is positioned:
 ## Examples
 
 ### With Logo
+
 ```
 ┌─────────────────────────────────────┐
 │  [JURASSIC PARK Logo Image]        │
@@ -79,6 +77,7 @@ The logo is positioned:
 ```
 
 ### Without Logo (Fallback)
+
 ```
 ┌─────────────────────────────────────┐
 │  Jurassic Park                      │
@@ -97,6 +96,7 @@ The logo is positioned:
 ## Future Enhancements
 
 Potential improvements:
+
 1. Add hover effects or animations
 2. Support different logo sizes based on viewport
 3. Add backdrop overlay with logo for hero sections

@@ -47,7 +47,7 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
           // Only set token and user if verification succeeds
           setToken(storedToken);
           setUser({
-            username: data.username
+            username: data.username,
           });
         })
         .catch(() => {
@@ -82,7 +82,7 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
       const data: AuthResponse = await res.json();
       setToken(data.token);
       setUser({
-        username: data.username
+        username: data.username,
       });
       localStorage.setItem("auth_token", data.token);
       return true;
@@ -110,7 +110,7 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
       const data: AuthResponse = await res.json();
       setToken(data.token);
       setUser({
-        username: data.username
+        username: data.username,
       });
       localStorage.setItem("auth_token", data.token);
       return true;

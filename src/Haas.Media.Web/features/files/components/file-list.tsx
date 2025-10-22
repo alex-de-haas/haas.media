@@ -61,7 +61,7 @@ export default function FileList({
   onToggleSelect,
 }: FileListProps) {
   const pathParts = currentPath ? currentPath.split("/").filter(Boolean) : [];
-  const maxHeightClass = scrollable ? maxHeightClassName ?? "max-h-[60vh]" : undefined;
+  const maxHeightClass = scrollable ? (maxHeightClassName ?? "max-h-[60vh]") : undefined;
 
   const handleItemClick = (item: FileItem) => {
     if (selectionMode) {
@@ -129,10 +129,7 @@ export default function FileList({
                     )}
                   >
                     {selectionMode ? (
-                      <div
-                        onClick={(event) => event.stopPropagation()}
-                        className="flex items-center justify-center"
-                      >
+                      <div onClick={(event) => event.stopPropagation()} className="flex items-center justify-center">
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={() => onToggleSelect?.(item)}

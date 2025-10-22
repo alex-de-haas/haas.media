@@ -36,12 +36,14 @@ Added session state and capabilities:
 ### 3. Added Supporting Models
 
 **JellyfinPlayState:**
+
 - Playback position and state tracking
 - Audio/subtitle stream selection
 - Play method (DirectPlay, DirectStream, Transcode)
 - Repeat mode and playback order
 
 **JellyfinBaseItemDto:**
+
 - Basic media item information
 - Used for `NowPlayingItem` in session info
 
@@ -119,7 +121,7 @@ Added `ServerId` field to `JellyfinAuthenticateResponse` for server identificati
 The default user configuration enables common playback preferences:
 
 - **Audio/Video**: Play default audio track, remember selections
-- **Subtitles**: Smart subtitle mode, remember selections  
+- **Subtitles**: Smart subtitle mode, remember selections
 - **Playback**: Auto-play next episode enabled
 - **Latest Items**: Hide played items
 
@@ -162,6 +164,7 @@ This format matches the official Jellyfin API and is compatible with:
 **File:** `src/Haas.Media.Downloader.Api/Jellyfin/JellyfinModels.cs`
 
 All models use C# records with init-only properties and sensible defaults from static instances:
+
 - `JellyfinUserConfiguration.Default`
 - `JellyfinUserPolicy.Default`
 

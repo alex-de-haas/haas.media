@@ -5,6 +5,7 @@ This document describes the playback information tracking feature for Jellyfin c
 ## Overview
 
 The system now stores and tracks playback information for files on a per-user basis, including:
+
 - Playback position (in ticks, compatible with Jellyfin)
 - Play count
 - Played/watched status
@@ -20,6 +21,7 @@ This information integrates with Jellyfin clients (like Infuse) to provide resum
 Stored in LiteDB at `{DATA_DIRECTORY}/.db/common.db` in the `filePlaybackInfo` collection.
 
 **Fields:**
+
 - `Id` (string): Composite key `{UserId}_{FileMetadataId}`
 - `UserId` (string): User ID from authentication system
 - `FileMetadataId` (string): Reference to FileMetadata.Id
@@ -32,6 +34,7 @@ Stored in LiteDB at `{DATA_DIRECTORY}/.db/common.db` in the `filePlaybackInfo` c
 - `UpdatedAt` (DateTime): Last update timestamp
 
 **Indexes:**
+
 - `UserId` - For querying all playback info for a user
 - `FileMetadataId` - For querying playback info for a specific file
 - Compound `(UserId, FileMetadataId)` - For fast lookups
@@ -41,17 +44,21 @@ Stored in LiteDB at `{DATA_DIRECTORY}/.db/common.db` in the `filePlaybackInfo` c
 ### Next Up
 
 #### Get Next Up Episodes
+
 ```
 GET /jellyfin/Shows/NextUp?UserId={userId}&Limit={limit}&ParentId={libraryId}
 ```
+
 Returns the next unwatched episode for each TV series the user is currently watching. This powers the "Next Up" section in Jellyfin clients like Infuse.
 
 **Query Parameters:**
+
 - `UserId` (optional): User ID (defaults to authenticated user)
 - `Limit` (optional): Maximum number of episodes to return (default: 24)
 - `ParentId` (optional): Library ID to filter by specific library
 
 **Logic:**
+
 1. Finds all TV shows (optionally filtered by library)
 2. For each show, checks if user has watched at least one episode
 3. Identifies the last watched episode based on playback progress
@@ -59,6 +66,7 @@ Returns the next unwatched episode for each TV series the user is currently watc
 5. Episodes are ordered by season and episode number
 
 **Response:**
+
 ```json
 {
   "Items": [
@@ -83,24 +91,31 @@ Returns the next unwatched episode for each TV series the user is currently watc
 ### Playback Progress Tracking
 
 #### Start Playback
+
 ```
 POST /jellyfin/Sessions/Playing
 ```
+
 Notifies the server that playback has started. Updates `LastPlayedDate`.
 
 #### Report Progress
+
 ```
 POST /jellyfin/Sessions/Playing/Progress
 ```
+
 Updates playback position during playback. Clients typically call this every few seconds.
 
 #### Stop Playback
+
 ```
 POST /jellyfin/Sessions/Playing/Stopped
 ```
+
 Called when playback stops. Increments play count if stopped with progress.
 
 **Request Body (all endpoints):**
+
 ```json
 {
   "ItemId": "movie-12345" or "episode-67890-1-2",
@@ -114,12 +129,15 @@ Called when playback stops. Increments play count if stopped with progress.
 ### Manual Played Status
 
 #### Mark as Played
+
 ```
 POST /jellyfin/Users/{userId}/PlayedItems/{itemId}
 ```
+
 Manually marks an item as watched. Resets position to 0.
 
 **Optional Request Body:**
+
 ```json
 {
   "DatePlayed": "2025-10-21T12:00:00Z"
@@ -127,9 +145,11 @@ Manually marks an item as watched. Resets position to 0.
 ```
 
 #### Mark as Unplayed
+
 ```
 DELETE /jellyfin/Users/{userId}/PlayedItems/{itemId}
 ```
+
 Marks an item as unwatched. Resets position and play count to 0.
 
 ## Service Layer
@@ -149,12 +169,13 @@ Movie and episode items now include `UserData` populated from playback info when
 
 ```csharp
 public async Task<JellyfinItem?> GetItemByIdAsync(
-    string itemId, 
+    string itemId,
     string? userId = null,
     CancellationToken cancellationToken = default)
 ```
 
 **UserData Structure:**
+
 ```csharp
 public sealed record JellyfinUserData
 {
@@ -179,12 +200,14 @@ This mapping is handled by `ResolveFileMetadataId()` in `JellyfinConfiguration.c
 ## Client Behavior
 
 ### Infuse (iOS/Apple TV)
+
 - Sends progress updates every 5-10 seconds during playback
 - Sends stop event when user exits or video ends
 - Reads `PlaybackPositionTicks` to resume from last position
 - Uses `Played` status to mark watched items
 
 ### Expected Workflow
+
 1. Client requests item via `/Users/{userId}/Items/{itemId}`
 2. Response includes `UserData.PlaybackPositionTicks` with saved position
 3. Client starts playback at saved position (or from beginning if 0)
@@ -195,19 +218,22 @@ This mapping is handled by `ResolveFileMetadataId()` in `JellyfinConfiguration.c
 ## Playback Heuristics
 
 ### Auto-Mark as Played
+
 Currently, the system increments play count when playback is stopped with position > 0.
 
 **Future Enhancement:** Mark as played automatically when position is within last 10% of runtime:
+
 ```csharp
 var runtimeTicks = GetRuntimeTicks(fileMetadata);
 var percentWatched = (double)stopInfo.PositionTicks / runtimeTicks;
-if (percentWatched >= 0.9) 
+if (percentWatched >= 0.9)
 {
     playbackInfo.Played = true;
 }
 ```
 
 ### Resume Position Reset
+
 Manually marking as played resets `PlaybackPositionTicks` to 0, allowing re-watch from beginning.
 
 ## Testing
@@ -215,6 +241,7 @@ Manually marking as played resets `PlaybackPositionTicks` to 0, allowing re-watc
 ### Manual Testing with curl
 
 **Report playback progress:**
+
 ```bash
 curl -X POST http://localhost:8000/jellyfin/Sessions/Playing/Progress \
   -H "Authorization: Bearer $JELLYFIN_TOKEN" \
@@ -227,12 +254,14 @@ curl -X POST http://localhost:8000/jellyfin/Sessions/Playing/Progress \
 ```
 
 **Mark as played:**
+
 ```bash
 curl -X POST http://localhost:8000/jellyfin/Users/$USER_ID/PlayedItems/movie-12345 \
   -H "Authorization: Bearer $JELLYFIN_TOKEN"
 ```
 
 **Check item with user data:**
+
 ```bash
 curl http://localhost:8000/jellyfin/Users/$USER_ID/Items/movie-12345 \
   -H "Authorization: Bearer $JELLYFIN_TOKEN"

@@ -89,13 +89,7 @@ export default function EpisodeDetails({ tvShowId, seasonNumber, episodeNumber }
       <div className="relative h-96 bg-gradient-to-b from-background/80 to-background md:h-[500px]">
         {backdropUrl ? (
           <div className="relative h-full w-full">
-            <Image
-              src={backdropUrl}
-              alt={`${tvShow.title} backdrop`}
-              fill
-              className="object-cover"
-              priority
-            />
+            <Image src={backdropUrl} alt={`${tvShow.title} backdrop`} fill className="object-cover" priority />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
           </div>
         ) : (

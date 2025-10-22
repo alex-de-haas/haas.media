@@ -14,10 +14,12 @@ Infuse client was displaying empty details for TV shows when browsing through th
 ### Missing Fields
 
 For both Series and Season items, the following fields were always `null`:
+
 - `PremiereDate` - The date the show first aired
 - `ProductionYear` - The year the show premiered
 
 These fields are important for Jellyfin clients like Infuse to properly display and organize content. Without premiere dates, clients may:
+
 - Show empty or incomplete detail screens
 - Fail to sort content chronologically
 - Not display year badges or release information
@@ -68,7 +70,7 @@ target.Status = source.Status;
 Modified `MapSeriesAsync` in `JellyfinService.cs` to use the FirstAirDate:
 
 ```csharp
-PremiereDate = metadata.FirstAirDate.HasValue 
+PremiereDate = metadata.FirstAirDate.HasValue
     ? DateTime.SpecifyKind(metadata.FirstAirDate.Value, DateTimeKind.Utc)
     : null,
 ProductionYear = metadata.FirstAirDate?.Year,
@@ -79,7 +81,7 @@ ProductionYear = metadata.FirstAirDate?.Year,
 Modified `MapSeason` in `JellyfinService.cs` to inherit premiere date from the series:
 
 ```csharp
-PremiereDate = metadata.FirstAirDate.HasValue 
+PremiereDate = metadata.FirstAirDate.HasValue
     ? DateTime.SpecifyKind(metadata.FirstAirDate.Value, DateTimeKind.Utc)
     : null,
 ProductionYear = metadata.FirstAirDate?.Year,
@@ -92,11 +94,13 @@ ProductionYear = metadata.FirstAirDate?.Year,
 Added multiple fields to match real Jellyfin responses (discovered by comparing with actual Jellyfin server output):
 
 **Status field:**
+
 ```csharp
 public string? Status { get; init; }  // "Returning Series", "Ended", etc.
 ```
 
 **Series reference fields for seasons:**
+
 ```csharp
 public string? SeriesPrimaryImageTag { get; init; }
 public double? PrimaryImageAspectRatio { get; init; }  // Standard poster ratio: 0.6666...
@@ -107,11 +111,13 @@ public string? ParentThumbImageTag { get; init; }
 ```
 
 **UserData enhancements:**
+
 ```csharp
 public int? UnplayedItemCount { get; init; }  // Important for Infuse to show episode counts
 ```
 
 **Season mapping updates:**
+
 - Set `MediaType = null` for seasons (matches Jellyfin behavior)
 - Populate `SeriesName` and `SeriesId` fields
 - Add `SeriesPrimaryImageTag` from parent series
@@ -146,11 +152,13 @@ foreach (var season in show.Seasons.OrderBy(s => s.SeasonNumber))
 ```
 
 **Why this matters:** TMDb provides metadata for ALL seasons of a show, but users may only have downloaded some seasons. Returning seasons without files causes:
+
 - Infuse to show empty placeholders
 - Confusion about which content is actually available
 - Potential rendering issues in clients expecting playable content
 
 **Methods updated:**
+
 - `BuildSeriesChildrenAsync` - Filters out seasons without files
 - `BuildSeasonEpisodesAsync` - Only returns episodes with files
 - `MapAllEpisodesAsync` - Filters both seasons and episodes
@@ -164,8 +172,8 @@ Updated `TVShowMetadata` interface in `types/metadata.ts` to match the backend m
 export interface TVShowMetadata {
   // ... existing fields ...
   officialRating?: string | null;
-  firstAirDate?: string | null;  // NEW
-  status?: string | null;         // NEW
+  firstAirDate?: string | null; // NEW
+  status?: string | null; // NEW
   createdAt: string;
   updatedAt: string;
 }
@@ -176,6 +184,7 @@ export interface TVShowMetadata {
 After this fix and re-scanning metadata, Jellyfin API responses will include:
 
 **For Series:**
+
 ```json
 {
   "Id": "series-95480",
@@ -189,6 +198,7 @@ After this fix and re-scanning metadata, Jellyfin API responses will include:
 ```
 
 **For Seasons:**
+
 ```json
 {
   "Id": "season-95480-1",
@@ -219,6 +229,7 @@ Alternatively, delete the existing TV show metadata and perform a fresh scan.
 ### Manual Testing with Infuse
 
 1. **Rebuild and restart the application:**
+
    ```bash
    dotnet run --project src/Haas.Media.Aspire
    ```
@@ -244,7 +255,7 @@ Test the updated endpoints directly:
 curl -H "Authorization: Bearer <token>" \
   http://localhost:8000/jellyfin/Items/series-95480
 
-# Get seasons for a series  
+# Get seasons for a series
 curl -H "Authorization: Bearer <token>" \
   http://localhost:8000/jellyfin/Shows/series-95480/Seasons
 ```
@@ -273,6 +284,7 @@ Currently, seasons inherit the series' premiere date. For more accuracy:
    - `TvSeason` object includes `AirDate` field
 
 2. **Add AirDate to TVSeasonMetadata:**
+
    ```csharp
    public class TVSeasonMetadata
    {
@@ -283,9 +295,9 @@ Currently, seasons inherit the series' premiere date. For more accuracy:
 
 3. **Use season-specific dates in Jellyfin mapping:**
    ```csharp
-   PremiereDate = season?.AirDate.HasValue 
+   PremiereDate = season?.AirDate.HasValue
        ? DateTime.SpecifyKind(season.AirDate.Value, DateTimeKind.Utc)
-       : (metadata.FirstAirDate.HasValue 
+       : (metadata.FirstAirDate.HasValue
            ? DateTime.SpecifyKind(metadata.FirstAirDate.Value, DateTimeKind.Utc)
            : null),
    ```

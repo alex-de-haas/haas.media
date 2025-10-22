@@ -89,7 +89,19 @@ export function useEncodeStreams(
     } finally {
       setEncoding(false);
     }
-  }, [path, mediaFiles, selectedStreams, hardwareAcceleration, videoCodec, device, availableDevices, videoBitrate, crf, resolution, encoding]);
+  }, [
+    path,
+    mediaFiles,
+    selectedStreams,
+    hardwareAcceleration,
+    videoCodec,
+    device,
+    availableDevices,
+    videoBitrate,
+    crf,
+    resolution,
+    encoding,
+  ]);
 
   return { encodeAll, encoding, encodeError } as const;
 }

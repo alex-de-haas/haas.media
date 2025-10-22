@@ -22,11 +22,7 @@ export default function ProfilePage() {
   usePageTitle("Profile");
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">
-        Loading...
-      </div>
-    );
+    return <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">Loading...</div>;
   }
 
   if (!isAuthenticated) {
@@ -65,7 +61,9 @@ export default function ProfilePage() {
       <Card>
         <CardHeader>
           <CardTitle>Profile</CardTitle>
-          <CardDescription>View your account information. Configure metadata preferences per library in the Libraries page.</CardDescription>
+          <CardDescription>
+            View your account information. Configure metadata preferences per library in the Libraries page.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">

@@ -27,6 +27,7 @@ The progress bar now uses a weighted calculation:
 This provides a smoother, more accurate progress indication as both files and their associated people metadata are processed.
 
 **Formula:**
+
 ```csharp
 fileProgress = (processedFiles / totalFiles) * 70.0
 peopleProgress = (syncedPeople / totalPeople) * 30.0
@@ -36,12 +37,14 @@ progress = fileProgress + peopleProgress
 ### Movie Library Scanning
 
 **Key improvements:**
+
 - Increments `TotalPeople` when movie credits are fetched (before syncing)
 - Reports progress during person sync with real-time updates
 - Updates `SyncedPeople` and `FailedPeople` counters during sync
 - Displays current movie filename being processed
 
 **Flow:**
+
 1. Scan movie file
 2. Fetch movie details from TMDb (including credits)
 3. Count total cast/crew and add to `TotalPeople`
@@ -51,12 +54,14 @@ progress = fileProgress + peopleProgress
 ### TV Show Library Scanning
 
 **Key improvements:**
+
 - Counts total people from show, season, and episode credits
 - Reports total people count before syncing starts
 - Provides real-time progress updates during person sync
 - Displays current show title being processed
 
 **Flow:**
+
 1. Scan TV show directory
 2. Fetch show details, seasons, and episodes from TMDb
 3. Collect all unique person IDs from credits
@@ -67,17 +72,20 @@ progress = fileProgress + peopleProgress
 ### Modified Methods
 
 #### `ScanMovieLibraryWithProgressAsync`
+
 - Removed local `peopleCountInMedia` and `peopleProcessed` variables
 - Added people counts to payload state updates
 - Simplified progress reporting with new `UpdateProgress()` helper
 - Real-time progress during person sync
 
 #### `ScanTVShowLibraryWithProgressAsync`
+
 - Added `UpdateProgress()` helper function
 - Updates state with people counts throughout processing
 - Smooth progress calculation based on files and people
 
 #### `CreateTVShowMetadata`
+
 - Added optional callbacks:
   - `onTotalPeopleCountAvailable` - Called when total people count is known
   - `onPersonSyncProgress` - Called for each person sync event
@@ -114,6 +122,7 @@ During a scan, the `ScanOperationInfo` payload now contains:
 ## Frontend Integration
 
 The frontend can now display:
+
 - Progress bar: `(processedFiles/totalFiles * 70 + syncedPeople/totalPeople * 30)%`
 - Current file: `currentFile`
 - Files: `processedFiles / totalFiles`

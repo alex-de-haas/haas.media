@@ -267,13 +267,13 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col">
       <div className="px-6 pb-4 pt-6">
-  <Link href="/" {...(homeClick ? { onClick: homeClick } : {})} className="flex flex-col">
+        <Link href="/" {...(homeClick ? { onClick: homeClick } : {})} className="flex flex-col">
           <span className="text-sm font-semibold uppercase text-muted-foreground">Haas Media Server</span>
           <span className="text-lg font-bold tracking-tight text-foreground">Control Center</span>
         </Link>
       </div>
       <ScrollArea className="flex-1">
-  <NavigationList pathname={pathname} {...(onNavigate ? { onNavigate } : {})} />
+        <NavigationList pathname={pathname} {...(onNavigate ? { onNavigate } : {})} />
       </ScrollArea>
       <div className="mt-auto space-y-4 border-t border-border px-6 py-5">
         <ThemeSwitch variant="dropdown" className="w-full" />

@@ -8,7 +8,7 @@ When movies or TV shows are deleted, the system automatically queues a backgroun
 
 ### Location
 
-- **Files**: 
+- **Files**:
   - `src/Haas.Media.Downloader.Api/Metadata/MetadataService.cs` - Deletion methods that queue cleanup
   - `src/Haas.Media.Downloader.Api/Metadata/PersonCleanupTask.cs` - Background task definition
   - `src/Haas.Media.Downloader.Api/Metadata/PersonCleanupTaskExecutor.cs` - Cleanup logic executor
@@ -56,10 +56,12 @@ The `PersonCleanupTaskExecutor` runs asynchronously and:
 The `CleanupOrphanedPeople` method checks for person references across:
 
 **Movies:**
+
 - `MovieMetadata.Cast[]` - Cast members with character information
 - `MovieMetadata.Crew[]` - Crew members with job/department information
 
 **TV Shows:**
+
 - `TVShowMetadata.Cast[]` - Show-level cast
 - `TVShowMetadata.Crew[]` - Show-level crew
 - `TVShowMetadata.Seasons[].Episodes[].Cast[]` - Episode-level guest stars
@@ -79,10 +81,12 @@ The cleanup operation runs as a **background task**, which provides several bene
 ### Cleanup Performance
 
 The background task performs:
+
 - One full scan of all movies for each person ID
 - One full scan of all TV shows (including nested episodes) for each person ID
 
 For example, deleting a movie with 50 cast/crew members will result in:
+
 - 50 × (movie collection scan + TV show collection scan)
 
 The task uses `await Task.Yield()` between person checks to allow other tasks to run.
@@ -98,6 +102,7 @@ If performance becomes an issue with large libraries, consider:
 3. **Deferred Cleanup**: Aggregate person IDs from multiple deletions before starting cleanup.
 
 For now, the straightforward background task approach is acceptable since:
+
 - Movie/TV show deletions are infrequent operations
 - Most media items have 10-50 cast/crew members
 - LiteDB in-memory indexes make full scans relatively fast
@@ -107,17 +112,18 @@ For now, the straightforward background task approach is acceptable since:
 
 The cleanup process logs:
 
-- **Debug level**: 
+- **Debug level**:
   - Queuing of cleanup task with person count
   - Individual person metadata deletions
-- **Info level**: 
+- **Info level**:
   - Start of cleanup task
   - Summary of total orphaned records cleaned up
-- **Warning level**: 
+- **Warning level**:
   - When movie/TV show not found during deletion
   - When cleanup task payload is null
 
 Example log output:
+
 ```
 [INF] Deleted movie metadata with ID: 550
 [DBG] Queued person cleanup task for 35 people from deleted movie 550
@@ -142,7 +148,7 @@ The cleanup task is fully integrated with the background task system:
   - `StartedAt` / `CompletedAt`: Timestamps
 - **Progress**: Percentage based on checked vs. total people
 - **SignalR Hub**: `/hub/background-tasks` - broadcasts updates every 200ms
-- **API Endpoints**: 
+- **API Endpoints**:
   - `GET /api/background-tasks` - List all tasks including cleanup
   - `DELETE /api/background-tasks/{id}` - Cancel a running cleanup task
 
@@ -249,6 +255,7 @@ The cleanup task appears in the background tasks UI alongside other operations:
 - Cleanup tasks can be cancelled if needed (though this is rarely necessary)
 
 Example task state in UI:
+
 ```json
 {
   "id": "01932b4e-7890-7abc-def0-123456789abc",
@@ -265,4 +272,3 @@ Example task state in UI:
   }
 }
 ```
-

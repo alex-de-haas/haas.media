@@ -16,11 +16,11 @@ The metadata service provides library management, TMDb search, and catalog stora
 
 ## Collections & Indexes
 
-| Collection       | Purpose                               | Key Indexes                             |
-| ---------------- | ------------------------------------- | --------------------------------------- |
-| `libraries`      | Library definitions                   | `DirectoryPath` (unique), `Title`       |
-| `movieMetadata`  | Movies synced from TMDb               | `TmdbId` (unique), `Title` |
-| `tvShowMetadata` | TV shows with nested seasons/episodes | `TmdbId` (unique), `Title` |
+| Collection       | Purpose                                   | Key Indexes                                     |
+| ---------------- | ----------------------------------------- | ----------------------------------------------- |
+| `libraries`      | Library definitions                       | `DirectoryPath` (unique), `Title`               |
+| `movieMetadata`  | Movies synced from TMDb                   | `TmdbId` (unique), `Title`                      |
+| `tvShowMetadata` | TV shows with nested seasons/episodes     | `TmdbId` (unique), `Title`                      |
 | `fileMetadata`   | File-to-media associations (many-to-many) | `LibraryId`, `MediaId`, `FilePath`, `MediaType` |
 
 Document identifiers are LiteDB `ObjectId` values stored as strings in API responses.
@@ -28,6 +28,7 @@ Document identifiers are LiteDB `ObjectId` values stored as strings in API respo
 ### File-Media Relationship
 
 The system uses a **many-to-many relationship** between media items (movies/TV shows) and physical files through the `fileMetadata` collection. This allows:
+
 - Multiple files per movie (e.g., Director's Cut, 4K version, theatrical version)
 - Multiple files per TV episode (e.g., different quality versions)
 - Flexible file associations managed independently from metadata

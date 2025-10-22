@@ -35,6 +35,7 @@ All long-running operations (encoding, metadata scans, file copies) use a unifie
 **Creating a new background task:**
 
 1. **Define task** by extending `BackgroundTaskBase`:
+
    ```csharp
    public sealed record MyTask : BackgroundTaskBase
    {
@@ -43,11 +44,13 @@ All long-running operations (encoding, metadata scans, file copies) use a unifie
    ```
 
 2. **Create payload** (data needed during execution):
+
    ```csharp
    public sealed record MyTaskPayload(string FilePath, bool SomeOption);
    ```
 
 3. **Implement executor** via `IBackgroundTaskExecutor<TTask, TPayload>`:
+
    ```csharp
    public class MyTaskExecutor : IBackgroundTaskExecutor<MyTask, MyTaskPayload>
    {
@@ -61,6 +64,7 @@ All long-running operations (encoding, metadata scans, file copies) use a unifie
    ```
 
 4. **Register in feature configuration**:
+
    ```csharp
    builder.Services.AddBackgroundTask<MyTask, MyTaskPayload, MyTaskExecutor>();
    ```
@@ -71,6 +75,7 @@ All long-running operations (encoding, metadata scans, file copies) use a unifie
    ```
 
 **Key features:**
+
 - SignalR hub (`/hub/background-tasks`) auto-broadcasts task updates (200ms throttle to prevent flooding)
 - `BackgroundTaskHub` replays active tasks on client connect
 - `BackgroundWorkerContext` provides progress reporting, cancellation, and state management
@@ -115,6 +120,7 @@ var arguments = builder.Build();
 ```
 
 **Hardware acceleration detection:**
+
 - `HardwareAccelerationInfo.DetectAvailable()` probes system capabilities
 - VAAPI: Validates device exists (`/dev/dri/renderD128`, `/dev/dri/renderD129`, etc.)
 - Auto mode: Picks best available (NVENC > VAAPI > QSV > AMF > VideoToolbox > None)

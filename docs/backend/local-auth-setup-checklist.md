@@ -51,6 +51,7 @@ Use this checklist to set up local authentication for Haas.Media.
   ```
 
 - [ ] Verify API_BASE_URL is set (optional):
+
   ```env
   API_BASE_URL=http://localhost:8000
   ```

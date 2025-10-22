@@ -264,9 +264,7 @@ export default function PersonDetails({ personId }: PersonDetailsProps) {
                           </div>
                           <CardContent className="space-y-1.5 p-3">
                             <div className="space-y-0.5">
-                              <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-foreground">
-                                {movie.title}
-                              </h3>
+                              <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-foreground">{movie.title}</h3>
                               {releaseYear ? <p className="text-xs text-muted-foreground">Released {releaseYear}</p> : null}
                             </div>
                             {rolesSummary ? <p className="text-xs text-muted-foreground/90">{rolesSummary}</p> : null}
@@ -308,9 +306,7 @@ export default function PersonDetails({ personId }: PersonDetailsProps) {
                             )}
                           </div>
                           <CardContent className="space-y-1.5 p-3">
-                            <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-foreground">
-                              {show.title}
-                            </h3>
+                            <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-foreground">{show.title}</h3>
                             {rolesSummary ? <p className="text-xs text-muted-foreground/90">{rolesSummary}</p> : null}
                           </CardContent>
                         </Card>
