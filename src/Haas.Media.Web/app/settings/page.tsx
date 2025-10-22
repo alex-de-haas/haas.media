@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -19,35 +19,36 @@ export default function SettingsPage() {
   const [preferredLanguage, setPreferredLanguage] = useState("en");
   const [countryCode, setCountryCode] = useState("US");
 
-  const fetchSettings = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const token = localStorage.getItem("auth_token");
-      const response = await fetch(`${getApiUrl()}/api/global-settings`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch settings");
-      }
-
-      const settings: GlobalSettings = await response.json();
-      const code = settings.preferredMetadataLanguage ?? "en";
-      setPreferredLanguage(code && isSupportedTmdbLanguage(code) ? code : "en");
-      setCountryCode((settings.countryCode ?? "US").toUpperCase());
-    } catch (error) {
-      console.error("Error fetching settings:", error);
-      notify({ message: "Failed to load settings", type: "error" });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [notify]);
-
   useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        setIsLoading(true);
+        const token = localStorage.getItem("auth_token");
+        const response = await fetch(`${getApiUrl()}/api/global-settings`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch settings");
+        }
+
+        const settings: GlobalSettings = await response.json();
+        const code = settings.preferredMetadataLanguage ?? "en";
+        setPreferredLanguage(code && isSupportedTmdbLanguage(code) ? code : "en");
+        setCountryCode((settings.countryCode ?? "US").toUpperCase());
+      } catch (error) {
+        console.error("Error fetching settings:", error);
+        notify({ message: "Failed to load settings", type: "error" });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     fetchSettings();
-  }, [fetchSettings]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -76,9 +77,6 @@ export default function SettingsPage() {
       }
 
       notify({ message: "Settings updated successfully", type: "success" });
-
-      // Optionally refresh the page or update local state
-      await fetchSettings();
     } catch (error) {
       console.error("Error updating settings:", error);
       notify({
@@ -96,7 +94,7 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="container py-8">
+      <div className="container mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -105,7 +103,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="container max-w-4xl py-8">
+    <div className="container mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground">Manage global application settings</p>
