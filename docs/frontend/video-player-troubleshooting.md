@@ -122,7 +122,8 @@ Check these claims:
 ```bash
 # Get a token from the frontend
 # Open browser console on http://localhost:3000 and run:
-fetch('/api/token').then(r => r.json()).then(d => console.log(d.accessToken))
+import { getValidToken } from '@/lib/auth/token';
+getValidToken().then(token => console.log(token));
 
 # Test the backend API directly
 curl -H "Authorization: Bearer YOUR_TOKEN_HERE" \

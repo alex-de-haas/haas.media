@@ -13,7 +13,6 @@ Complete documentation for the Jellyfin compatibility layer in Haas.Media.
 ### Change Documentation
 
 - **[jellyfin-api-infuse-enhancements.md](./jellyfin-api-infuse-enhancements.md)** - Detailed changelog of Infuse compatibility improvements
-- **[JELLYFIN-INFUSE-UPDATE-SUMMARY.md](./JELLYFIN-INFUSE-UPDATE-SUMMARY.md)** - Executive summary of recent updates
 
 ### Reference
 

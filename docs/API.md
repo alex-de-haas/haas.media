@@ -1,12 +1,13 @@
 # Backend API Reference
 
-The Haas.Media backend exposes REST endpoints grouped by domain. Every endpoint requires a valid Auth0 bearer token unless noted otherwise. SignalR hubs mirror long-running or event-driven operations.
+The Haas.Media backend exposes REST endpoints grouped by domain. Every endpoint requires a valid JWT bearer token unless noted otherwise. SignalR hubs mirror long-running or event-driven operations.
 
 ## Authentication & Conventions
 
 - Base URL: depends on deployment; use `http://localhost:8000` when running locally.
-- Authentication: Auth0 JWT via `Authorization: Bearer <token>` header. WebSocket connections append `?access_token=` query parameter.
+- Authentication: Local JWT authentication via `Authorization: Bearer <token>` header. WebSocket connections append `?access_token=` query parameter.
 - Success responses follow standard HTTP codes (`200 OK`, `201 Created`, etc.). Validation failures return `400 Bad Request` with a JSON `message` field; conflicts return `409 Conflict`.
+- Authentication: See `/docs/backend/local-auth-complete-guide.md` for authentication setup and usage.
 
 ## Torrent Management
 
