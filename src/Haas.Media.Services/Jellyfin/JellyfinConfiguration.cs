@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using Haas.Media.Services.Files;
 using Haas.Media.Services.Metadata;
 using static Haas.Media.Services.Jellyfin.JellyfinHelper;
@@ -334,14 +336,85 @@ public static class JellyfinConfiguration
         group
             .MapGet(
                 "/Users/{userId}/Items/Resume",
-                (HttpContext context, string userId) =>
+                async (
+                    HttpContext context,
+                    string userId,
+                    JellyfinService service,
+                    IMetadataApi metadataApi
+                ) =>
                 {
                     var user = context.GetAuthenticatedUser();
                     if (!ValidateUserId(user, userId))
                         return Results.Forbid();
 
-                    // TODO: Implement resume functionality when playback progress is persisted
-                    return JellyfinJson(Array.Empty<JellyfinItem>());
+                    var limit = ParseIntQuery(context.Request.Query, "Limit", 24);
+                    var startIndex = ParseIntQuery(context.Request.Query, "StartIndex", 0);
+
+                    var playbackInfos = (await metadataApi.GetUserPlaybackInfoAsync(userId))
+                        .Where(info => !info.Played && info.PlaybackPositionTicks > 0)
+                        .OrderByDescending(info => info.UpdatedAt)
+                        .ToList();
+
+                    var totalCount = playbackInfos.Count;
+                    var pagedPlaybackInfos = playbackInfos
+                        .Skip(Math.Max(startIndex, 0))
+                        .ToList();
+                    if (limit > 0)
+                    {
+                        pagedPlaybackInfos = pagedPlaybackInfos.Take(limit).ToList();
+                    }
+
+                    var resumeItems = new List<JellyfinItem>(pagedPlaybackInfos.Count);
+
+                    foreach (var playbackInfo in pagedPlaybackInfos)
+                    {
+                        var fileMetadata = await metadataApi.GetFileMetadataByIdAsync(
+                            playbackInfo.FileMetadataId
+                        );
+                        if (fileMetadata is null)
+                        {
+                            continue;
+                        }
+
+                        string? itemId = null;
+                        if (fileMetadata.MediaType == LibraryType.Movies)
+                        {
+                            itemId = JellyfinIdHelper.CreateMovieId(fileMetadata.MediaId);
+                        }
+                        else if (
+                            fileMetadata.MediaType == LibraryType.TVShows
+                            && fileMetadata.SeasonNumber.HasValue
+                            && fileMetadata.EpisodeNumber.HasValue
+                        )
+                        {
+                            itemId = JellyfinIdHelper.CreateEpisodeId(
+                                fileMetadata.MediaId,
+                                fileMetadata.SeasonNumber.Value,
+                                fileMetadata.EpisodeNumber.Value
+                            );
+                        }
+
+                        if (string.IsNullOrWhiteSpace(itemId))
+                        {
+                            continue;
+                        }
+
+                        var item = await service.GetItemByIdAsync(itemId, userId);
+                        if (item is null)
+                        {
+                            continue;
+                        }
+
+                        resumeItems.Add(item);
+                    }
+
+                    return JellyfinJson(
+                        new JellyfinItemsEnvelope
+                        {
+                            Items = resumeItems.ToArray(),
+                            TotalRecordCount = totalCount
+                        }
+                    );
                 }
             )
             .AddEndpointFilter<JellyfinAuthFilter>()
