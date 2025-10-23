@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src\Haas.Media.Services\Haas.Media.Services.csproj" />
+    <Project Path="src\Haas.Media.Aspire\Haas.Media.Aspire.csproj" />
+    <Project Path="src\Haas.Media.Core\Haas.Media.Core.csproj" />
+  </Folder>
+</Solution>
