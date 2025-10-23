@@ -9,13 +9,24 @@ builder.AddDockerComposeEnvironment("haas-media");
 string GetEnvOrEmpty(string key) => env.TryGetValue(key, out var value) ? value : string.Empty;
 
 // Local auth parameters
-var jwtSecret = builder.AddParameter("jwt-secret", value: GetEnvOrEmpty("JWT_SECRET"), secret: true);
+var jwtSecret = builder.AddParameter(
+    "jwt-secret",
+    value: GetEnvOrEmpty("JWT_SECRET"),
+    secret: true
+);
 var jwtIssuer = builder.AddParameter("jwt-issuer", value: GetEnvOrEmpty("JWT_ISSUER"));
 var jwtAudience = builder.AddParameter("jwt-audience", value: GetEnvOrEmpty("JWT_AUDIENCE"));
-var jwtExpirationMinutes = builder.AddParameter("jwt-expiration-minutes", value: GetEnvOrEmpty("JWT_EXPIRATION_MINUTES"));
+var jwtExpirationMinutes = builder.AddParameter(
+    "jwt-expiration-minutes",
+    value: GetEnvOrEmpty("JWT_EXPIRATION_MINUTES")
+);
 
 // TMDb parameters
-var tmdbApiKey = builder.AddParameter("tmdb-api-key", value: GetEnvOrEmpty("TMDB_API_KEY"), secret: true);
+var tmdbApiKey = builder.AddParameter(
+    "tmdb-api-key",
+    value: GetEnvOrEmpty("TMDB_API_KEY"),
+    secret: true
+);
 
 // URLs
 var webBaseUrl = builder.AddParameter("web-base-url", "http://localhost:3000");
@@ -24,7 +35,11 @@ var configuredInternalApiBaseUrl = GetEnvOrEmpty("INTERNAL_API_BASE_URL");
 var internalApiBaseUrl = builder.AddParameter(
     "internal-api-base-url",
     string.IsNullOrWhiteSpace(configuredInternalApiBaseUrl)
-        ? (builder.ExecutionContext.IsPublishMode ? "http://localhost:8000" : "http://localhost:8000")
+        ? (
+            builder.ExecutionContext.IsPublishMode
+                ? "http://localhost:8000"
+                : "http://localhost:8000"
+        )
         : configuredInternalApiBaseUrl
 );
 
@@ -36,7 +51,10 @@ var downloaderApi = builder
     .WithEnvironment("JWT_AUDIENCE", jwtAudience)
     .WithEnvironment("JWT_EXPIRATION_MINUTES", jwtExpirationMinutes)
     .WithEnvironment("TMDB_API_KEY", tmdbApiKey)
-    .WithEnvironment("DATA_DIRECTORY", builder.ExecutionContext.IsPublishMode ? "/data" : GetEnvOrEmpty("DATA_DIRECTORY"))
+    .WithEnvironment(
+        "DATA_DIRECTORY",
+        builder.ExecutionContext.IsPublishMode ? "/data" : GetEnvOrEmpty("DATA_DIRECTORY")
+    )
     .WithEnvironment("FFMPEG_BINARY", GetEnvOrEmpty("FFMPEG_BINARY"))
     .WithEnvironment("ALLOWED_CORS_ORIGINS", webBaseUrl)
     .WithExternalHttpEndpoints()

@@ -16,7 +16,12 @@ internal static class JellyfinHelper
         {
             PropertyNamingPolicy = null,
             DictionaryKeyPolicy = null,
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+            DefaultIgnoreCondition = System
+                .Text
+                .Json
+                .Serialization
+                .JsonIgnoreCondition
+                .WhenWritingNull,
         };
 
     internal static async Task<IResult> GetPlaybackInfo(string itemId, JellyfinService service)
@@ -26,11 +31,7 @@ internal static class JellyfinHelper
             return Results.NotFound();
 
         return JellyfinJson(
-            new
-            {
-                MediaSources = item.MediaSources,
-                PlaySessionId = Guid.NewGuid().ToString("N"),
-            }
+            new { MediaSources = item.MediaSources, PlaySessionId = Guid.NewGuid().ToString("N"), }
         );
     }
 
@@ -96,7 +97,8 @@ internal static class JellyfinHelper
             ?? request.Query["ParentID"].FirstOrDefault();
 
         var includeTypes = ParseIncludeTypes(request.Query["IncludeItemTypes"].FirstOrDefault());
-        var recursive = ParseBool(request.Query, "Recursive") || ParseBool(request.Query, "recursive");
+        var recursive =
+            ParseBool(request.Query, "Recursive") || ParseBool(request.Query, "recursive");
         var searchTerm =
             request.Query["SearchTerm"].FirstOrDefault()
             ?? request.Query["searchTerm"].FirstOrDefault();
@@ -107,12 +109,11 @@ internal static class JellyfinHelper
     internal static bool ParseBool(IQueryCollection query, string key)
     {
         var value = query[key].FirstOrDefault();
-        return !string.IsNullOrWhiteSpace(value)
-            && bool.TryParse(value, out var parsed)
-            && parsed;
+        return !string.IsNullOrWhiteSpace(value) && bool.TryParse(value, out var parsed) && parsed;
     }
 
-    internal static IResult JellyfinJson<T>(T response) => Results.Json(response, ResponseJsonOptions);
+    internal static IResult JellyfinJson<T>(T response) =>
+        Results.Json(response, ResponseJsonOptions);
 
     internal static async Task HandlePlaybackStart(
         string userId,
@@ -291,10 +292,19 @@ internal static class JellyfinHelper
         IMetadataApi metadataApi
     )
     {
-        if (JellyfinIdHelper.TryParseEpisodeId(itemId, out var seriesId, out var seasonNum, out var episodeNum))
+        if (
+            JellyfinIdHelper.TryParseEpisodeId(
+                itemId,
+                out var seriesId,
+                out var seasonNum,
+                out var episodeNum
+            )
+        )
         {
             var files = await metadataApi.GetFilesByMediaIdAsync(seriesId, LibraryType.TVShows);
-            var file = files.FirstOrDefault(f => f.SeasonNumber == seasonNum && f.EpisodeNumber == episodeNum);
+            var file = files.FirstOrDefault(f =>
+                f.SeasonNumber == seasonNum && f.EpisodeNumber == episodeNum
+            );
             return file?.Id;
         }
 

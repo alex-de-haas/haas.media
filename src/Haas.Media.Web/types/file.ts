@@ -47,7 +47,3 @@ export interface CopyOperationInfo {
   copiedFiles?: number;
   currentPath?: string;
 }
-
-// Legacy type aliases for backward compatibility
-export interface CopyFileRequest extends CopyRequest {}
-export interface MoveFileRequest extends MoveRequest {}

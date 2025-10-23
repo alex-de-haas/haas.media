@@ -7,7 +7,7 @@ public class MovieMetadata
 {
     [BsonId]
     public required int Id { get; set; }
-    
+
     public required string OriginalTitle { get; set; }
     public required string OriginalLanguage { get; set; }
     public required string Title { get; set; }
@@ -18,7 +18,7 @@ public class MovieMetadata
     public ReleaseDate[] ReleaseDates { get; set; } = [];
     public long Budget { get; set; }
     public long Revenue { get; set; }
-    
+
     // TMDB image paths
     public string? PosterPath { get; set; }
     public string? BackdropPath { get; set; }
@@ -29,7 +29,7 @@ public class MovieMetadata
     public CrewMember[] Crew { get; set; } = [];
     public CastMember[] Cast { get; set; } = [];
     public string? OfficialRating { get; set; }
-    
+
     public required DateTime CreatedAt { get; set; }
 
     public required DateTime UpdatedAt { get; set; }
@@ -37,7 +37,11 @@ public class MovieMetadata
 
 static class MovieMetadataMapper
 {
-    public static MovieMetadata Create(this Movie source, string? preferredCountryCode = null, string? preferredLanguage = null)
+    public static MovieMetadata Create(
+        this Movie source,
+        string? preferredCountryCode = null,
+        string? preferredLanguage = null
+    )
     {
         return new MovieMetadata
         {
@@ -64,7 +68,12 @@ static class MovieMetadataMapper
         };
     }
 
-    public static void Update(this Movie source, MovieMetadata target, string? preferredCountryCode = null, string? preferredLanguage = null)
+    public static void Update(
+        this Movie source,
+        MovieMetadata target,
+        string? preferredCountryCode = null,
+        string? preferredLanguage = null
+    )
     {
         target.OriginalTitle = source.OriginalTitle;
         target.OriginalLanguage = source.OriginalLanguage;
@@ -102,7 +111,10 @@ static class MovieMetadataMapper
         return source.Genres?.Select(g => g.Name).ToArray() ?? [];
     }
 
-    private static string? GetBestLogo(TMDbLib.Objects.General.Images? images, string? preferredLanguage)
+    private static string? GetBestLogo(
+        TMDbLib.Objects.General.Images? images,
+        string? preferredLanguage
+    )
     {
         if (images?.Logos == null || images.Logos.Count == 0)
         {
@@ -112,8 +124,10 @@ static class MovieMetadataMapper
         var normalizedPreferred = NormalizeLanguageCode(preferredLanguage) ?? "en";
 
         // Prefer user's preferred language, then English, then null language (universal), then highest voted
-        var logo = images.Logos
-            .OrderByDescending(l => string.Equals(l.Iso_639_1, normalizedPreferred, StringComparison.OrdinalIgnoreCase))
+        var logo = images
+            .Logos.OrderByDescending(l =>
+                string.Equals(l.Iso_639_1, normalizedPreferred, StringComparison.OrdinalIgnoreCase)
+            )
             .ThenByDescending(l => l.Iso_639_1 == "en")
             .ThenByDescending(l => l.Iso_639_1 == null)
             .ThenByDescending(l => l.VoteAverage)
@@ -159,16 +173,17 @@ static class MovieMetadataMapper
         var normalizedPreferred = NormalizeCountryCode(preferredCountryCode) ?? "US";
 
         // Try to find preferred country certification first
-        var preferredRelease = releases.FirstOrDefault(r => 
-            string.Equals(r.Iso_3166_1, normalizedPreferred, StringComparison.OrdinalIgnoreCase));
-        
+        var preferredRelease = releases.FirstOrDefault(r =>
+            string.Equals(r.Iso_3166_1, normalizedPreferred, StringComparison.OrdinalIgnoreCase)
+        );
+
         if (preferredRelease?.ReleaseDates != null)
         {
-            var certification = preferredRelease.ReleaseDates
-                .Where(rd => !string.IsNullOrWhiteSpace(rd.Certification))
+            var certification = preferredRelease
+                .ReleaseDates.Where(rd => !string.IsNullOrWhiteSpace(rd.Certification))
                 .Select(rd => rd.Certification)
                 .FirstOrDefault();
-            
+
             if (!string.IsNullOrWhiteSpace(certification))
             {
                 return certification;
@@ -183,8 +198,8 @@ static class MovieMetadataMapper
                 continue;
             }
 
-            var certification = countryRelease.ReleaseDates
-                .Where(rd => !string.IsNullOrWhiteSpace(rd.Certification))
+            var certification = countryRelease
+                .ReleaseDates.Where(rd => !string.IsNullOrWhiteSpace(rd.Certification))
                 .Select(rd => rd.Certification)
                 .FirstOrDefault();
 

@@ -556,7 +556,11 @@ public class MetadataService : IMetadataApi
 
         _playbackInfoCollection.EnsureIndex("idx_userId", x => x.UserId, false);
         _playbackInfoCollection.EnsureIndex("idx_fileMetadataId", x => x.FileMetadataId, false);
-        _playbackInfoCollection.EnsureIndex("idx_user_file", x => new { x.UserId, x.FileMetadataId }, false);
+        _playbackInfoCollection.EnsureIndex(
+            "idx_user_file",
+            x => new { x.UserId, x.FileMetadataId },
+            false
+        );
 
         _logger.LogDebug(
             "Created indexes for libraries, movie metadata, TV show metadata, person metadata, file metadata, and playback info collections"
@@ -589,7 +593,11 @@ public class MetadataService : IMetadataApi
         return Task.FromResult(operationId);
     }
 
-    public Task<string> StartRefreshMetadataAsync(bool refreshMovies = true, bool refreshTvShows = true, bool refreshPeople = true)
+    public Task<string> StartRefreshMetadataAsync(
+        bool refreshMovies = true,
+        bool refreshTvShows = true,
+        bool refreshPeople = true
+    )
     {
         var task = new MetadataRefreshTask
         {
@@ -728,7 +736,7 @@ public class MetadataService : IMetadataApi
     public Task<FilePlaybackInfo> SavePlaybackInfoAsync(FilePlaybackInfo playbackInfo)
     {
         playbackInfo.UpdatedAt = DateTime.UtcNow;
-        
+
         var existing = _playbackInfoCollection.FindById(new BsonValue(playbackInfo.Id));
         if (existing != null)
         {
@@ -753,7 +761,7 @@ public class MetadataService : IMetadataApi
     {
         var id = FilePlaybackInfo.CreateId(userId, fileMetadataId);
         var deleted = _playbackInfoCollection.Delete(new BsonValue(id));
-        
+
         if (deleted)
         {
             _logger.LogInformation(
@@ -776,7 +784,11 @@ public class MetadataService : IMetadataApi
     {
         var results = _playbackInfoCollection.Find(p => p.UserId == userId);
         var playbackInfos = results.ToList();
-        _logger.LogDebug("Retrieved {Count} playback records for user: {UserId}", playbackInfos.Count, userId);
+        _logger.LogDebug(
+            "Retrieved {Count} playback records for user: {UserId}",
+            playbackInfos.Count,
+            userId
+        );
         return Task.FromResult<IEnumerable<FilePlaybackInfo>>(playbackInfos);
     }
 }

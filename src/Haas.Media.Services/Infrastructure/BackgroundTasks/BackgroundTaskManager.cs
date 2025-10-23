@@ -8,15 +8,15 @@ namespace Haas.Media.Services.Infrastructure.BackgroundTasks;
 
 public class BackgroundTaskManager : IBackgroundTaskManager, IHostedService
 {
-    private static readonly ActivitySource ActivitySource = new(
-        CommonConstants.ActivitySources.BackgroundTasks
-    );
+    private static readonly ActivitySource ActivitySource =
+        new(CommonConstants.ActivitySources.BackgroundTasks);
 
     private readonly ConcurrentDictionary<Guid, BackgroundTaskState> _taskStates = new();
     private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _cancellationTokens =
         new();
     private readonly ConcurrentDictionary<Guid, DateTimeOffset> _lastBroadcastTimes = new();
-    private readonly ConcurrentDictionary<Guid, BackgroundTaskState> _pendingBroadcastStates = new();
+    private readonly ConcurrentDictionary<Guid, BackgroundTaskState> _pendingBroadcastStates =
+        new();
     private readonly ILogger<BackgroundTaskManager> _logger;
     private readonly IHubContext<BackgroundTaskHub, IBackgroundTaskClient> _hubContext;
     private readonly IServiceProvider _serviceProvider;
@@ -39,7 +39,9 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IHostedService
     {
         ArgumentNullException.ThrowIfNull(task);
 
-        var worker = _serviceProvider.GetRequiredService<IBackgroundTaskExecutor<TTask, TPayload>>();
+        var worker = _serviceProvider.GetRequiredService<
+            IBackgroundTaskExecutor<TTask, TPayload>
+        >();
 
         var cancellationTokenSource = new CancellationTokenSource();
 
@@ -164,10 +166,7 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IHostedService
     }
 
     public IReadOnlyCollection<BackgroundTaskState> GetTasks() =>
-        _taskStates
-            .Values
-            .OrderByDescending(t => t.CreatedAt)
-            .ToArray();
+        _taskStates.Values.OrderByDescending(t => t.CreatedAt).ToArray();
 
     public IReadOnlyCollection<BackgroundTaskState> GetTasks(string type) =>
         _taskStates.Values.Where(t => t.Type == type).OrderByDescending(t => t.CreatedAt).ToArray();
@@ -205,10 +204,11 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IHostedService
     private void BroadcastTaskUpdate(BackgroundTaskState taskState)
     {
         var now = DateTimeOffset.UtcNow;
-        var isTerminalState = taskState.Status
-            is BackgroundTaskStatus.Completed
-                or BackgroundTaskStatus.Cancelled
-                or BackgroundTaskStatus.Failed;
+        var isTerminalState =
+            taskState.Status
+                is BackgroundTaskStatus.Completed
+                    or BackgroundTaskStatus.Cancelled
+                    or BackgroundTaskStatus.Failed;
 
         var lastBroadcast = _lastBroadcastTimes.TryGetValue(taskState.Id, out var value)
             ? value
@@ -247,12 +247,13 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IHostedService
             return;
         }
 
-        _ = Task.Delay(delay).ContinueWith(
-            _ => TryBroadcastPending(taskState.Id),
-            CancellationToken.None,
-            TaskContinuationOptions.ExecuteSynchronously,
-            TaskScheduler.Default
-        );
+        _ = Task.Delay(delay)
+            .ContinueWith(
+                _ => TryBroadcastPending(taskState.Id),
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default
+            );
     }
 
     private void TryBroadcastPending(Guid taskId)

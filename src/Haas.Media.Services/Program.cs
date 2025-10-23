@@ -6,9 +6,9 @@ using Haas.Media.Services.Files;
 using Haas.Media.Services.GlobalSettings;
 using Haas.Media.Services.Infrastructure;
 using Haas.Media.Services.Infrastructure.BackgroundTasks;
+using Haas.Media.Services.Jellyfin;
 using Haas.Media.Services.Metadata;
 using Haas.Media.Services.Torrents;
-using Haas.Media.Services.Jellyfin;
 using LiteDB;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
@@ -46,6 +46,7 @@ builder.AddJellyfin();
 
 // Add services to the container.
 builder.Services.AddControllers();
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSignalR();
@@ -88,7 +89,9 @@ if (!string.IsNullOrWhiteSpace(jwtSecret))
                 },
                 OnAuthenticationFailed = context =>
                 {
-                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    var logger = context.HttpContext.RequestServices.GetRequiredService<
+                        ILogger<Program>
+                    >();
                     logger.LogError(
                         "Authentication failed for {Path}: {Exception}",
                         context.HttpContext.Request.Path,
@@ -123,12 +126,20 @@ logger.LogInformation("Database Path: {DatabasePath}", databasePath);
 if (!string.IsNullOrWhiteSpace(jwtSecret))
 {
     logger.LogInformation("🔐 Local JWT Authentication ENABLED");
-    logger.LogInformation("   Issuer: {Issuer}", builder.Configuration["JWT_ISSUER"] ?? "haas-media-local");
-    logger.LogInformation("   Audience: {Audience}", builder.Configuration["JWT_AUDIENCE"] ?? "haas-media-api");
+    logger.LogInformation(
+        "   Issuer: {Issuer}",
+        builder.Configuration["JWT_ISSUER"] ?? "haas-media-local"
+    );
+    logger.LogInformation(
+        "   Audience: {Audience}",
+        builder.Configuration["JWT_AUDIENCE"] ?? "haas-media-api"
+    );
 }
 else
 {
-    logger.LogWarning("⚠️  Authentication DISABLED - Configure JWT_SECRET to enable authentication");
+    logger.LogWarning(
+        "⚠️  Authentication DISABLED - Configure JWT_SECRET to enable authentication"
+    );
 }
 
 // Configure the HTTP request pipeline.

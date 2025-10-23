@@ -20,10 +20,13 @@ internal static class TmdbClientConfigurator
 
         if (restClientField == null)
         {
-            throw new InvalidOperationException("Unable to find TMDbClient internal RestClient field");
+            throw new InvalidOperationException(
+                "Unable to find TMDbClient internal RestClient field"
+            );
         }
 
-        var restClient = restClientField.GetValue(client)
+        var restClient =
+            restClientField.GetValue(client)
             ?? throw new InvalidOperationException("TMDbClient internal RestClient is null");
 
         var restClientType = restClient.GetType();
@@ -37,7 +40,10 @@ internal static class TmdbClientConfigurator
             throw new InvalidOperationException("Unable to access RestClient HttpClient field");
         }
 
-        if (httpClientField.GetValue(restClient) is HttpClient existing && !ReferenceEquals(existing, httpClient))
+        if (
+            httpClientField.GetValue(restClient) is HttpClient existing
+            && !ReferenceEquals(existing, httpClient)
+        )
         {
             existing.Dispose();
         }

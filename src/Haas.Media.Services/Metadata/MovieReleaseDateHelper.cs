@@ -39,26 +39,44 @@ internal static class MovieReleaseDateHelper
                     continue;
                 }
 
-                releaseDates.Add(new ReleaseDate
-                {
-                    Type = MapReleaseType(release.Type),
-                    Date = release.ReleaseDate.Date,
-                    CountryCode = countryCode
-                });
+                releaseDates.Add(
+                    new ReleaseDate
+                    {
+                        Type = MapReleaseType(release.Type),
+                        Date = release.ReleaseDate.Date,
+                        CountryCode = countryCode
+                    }
+                );
             }
         }
 
         // Sort by date and remove duplicates
         return releaseDates
-            .GroupBy(r => new { r.Type, r.Date, CountryCode = r.CountryCode ?? DefaultCountryCode })
+            .GroupBy(r => new
+            {
+                r.Type,
+                r.Date,
+                CountryCode = r.CountryCode ?? DefaultCountryCode
+            })
             .Select(g => g.First())
-            .OrderBy(r => string.Equals(r.CountryCode, normalizedPreferred, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .OrderBy(r =>
+                string.Equals(
+                    r.CountryCode,
+                    normalizedPreferred,
+                    StringComparison.OrdinalIgnoreCase
+                )
+                    ? 0
+                    : 1
+            )
             .ThenBy(r => r.Date)
             .ThenBy(r => r.Type)
             .ToArray();
     }
 
-    public static ReleaseDate[] FilterReleaseDates(IEnumerable<ReleaseDate> releaseDates, string? countryCode)
+    public static ReleaseDate[] FilterReleaseDates(
+        IEnumerable<ReleaseDate> releaseDates,
+        string? countryCode
+    )
     {
         if (releaseDates == null)
         {
@@ -73,7 +91,9 @@ internal static class MovieReleaseDateHelper
         }
 
         var preferred = releases
-            .Where(r => string.Equals(r.CountryCode, normalizedCountry, StringComparison.OrdinalIgnoreCase))
+            .Where(r =>
+                string.Equals(r.CountryCode, normalizedCountry, StringComparison.OrdinalIgnoreCase)
+            )
             .OrderBy(r => r.Date)
             .ThenBy(r => r.Type)
             .ToArray();
@@ -83,10 +103,7 @@ internal static class MovieReleaseDateHelper
             return preferred;
         }
 
-        return releases
-            .OrderBy(r => r.Date)
-            .ThenBy(r => r.Type)
-            .ToArray();
+        return releases.OrderBy(r => r.Date).ThenBy(r => r.Type).ToArray();
     }
 
     private static ReleaseDateType MapReleaseType(TMDbLib.Objects.Movies.ReleaseDateType tmdbType)
@@ -94,7 +111,8 @@ internal static class MovieReleaseDateHelper
         return tmdbType switch
         {
             TMDbLib.Objects.Movies.ReleaseDateType.Premiere => ReleaseDateType.Premiere,
-            TMDbLib.Objects.Movies.ReleaseDateType.TheatricalLimited => ReleaseDateType.TheatricalLimited,
+            TMDbLib.Objects.Movies.ReleaseDateType.TheatricalLimited
+                => ReleaseDateType.TheatricalLimited,
             TMDbLib.Objects.Movies.ReleaseDateType.Theatrical => ReleaseDateType.Theatrical,
             TMDbLib.Objects.Movies.ReleaseDateType.Digital => ReleaseDateType.Digital,
             TMDbLib.Objects.Movies.ReleaseDateType.Physical => ReleaseDateType.Physical,

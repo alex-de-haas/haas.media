@@ -8,5 +8,9 @@ public interface IFilesApi
     void RenameFile(string relativePath, string newName);
     void Delete(string relativePath);
     void CreateDirectory(string relativePath);
-    Task<FileUploadResult> UploadAsync(string? directoryPath, IFormFileCollection files, bool overwriteExisting = false);
+    Task<FileUploadResult> UploadAsync(
+        string? directoryPath,
+        IFormFileCollection files,
+        bool overwriteExisting = false
+    );
 }

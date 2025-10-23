@@ -116,7 +116,11 @@ public static class MediaManager
             return null;
 
         var parts = frameRateString.Split('/');
-        if (parts.Length == 2 && double.TryParse(parts[0], out var numerator) && double.TryParse(parts[1], out var denominator))
+        if (
+            parts.Length == 2
+            && double.TryParse(parts[0], out var numerator)
+            && double.TryParse(parts[1], out var denominator)
+        )
         {
             return denominator != 0 ? numerator / denominator : null;
         }

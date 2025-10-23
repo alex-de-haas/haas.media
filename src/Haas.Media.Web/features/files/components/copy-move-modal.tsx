@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import type { FileItem, CopyFileRequest, MoveFileRequest } from "@/types/file";
+import type { FileItem, CopyRequest, MoveRequest } from "@/types/file";
 import { fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 import { downloaderApi } from "@/lib/api";
 import FileList from "./file-list";
@@ -15,7 +15,7 @@ interface CopyMoveModalProps {
   onClose: () => void;
   action: "copy" | "move";
   items: FileItem[];
-  onConfirm: (data: CopyFileRequest | MoveFileRequest) => Promise<{ success: boolean; message: string }>;
+  onConfirm: (data: CopyRequest | MoveRequest) => Promise<{ success: boolean; message: string }>;
 }
 
 export default function CopyMoveModal({ isOpen, onClose, action, items, onConfirm }: CopyMoveModalProps) {

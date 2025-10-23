@@ -8,10 +8,7 @@ internal sealed class TmdbCountryProvider : ITmdbCountryProvider
     private readonly ILiteCollection<GlobalSettings.GlobalSettings> _globalSettings;
     private readonly ILogger<TmdbCountryProvider> _logger;
 
-    public TmdbCountryProvider(
-        LiteDatabase database,
-        ILogger<TmdbCountryProvider> logger
-    )
+    public TmdbCountryProvider(LiteDatabase database, ILogger<TmdbCountryProvider> logger)
     {
         _globalSettings = database.GetCollection<GlobalSettings.GlobalSettings>("globalSettings");
         _logger = logger;
@@ -26,7 +23,10 @@ internal sealed class TmdbCountryProvider : ITmdbCountryProvider
             var globalCountryCode = NormalizeCountryCode(globalSettings?.CountryCode);
             if (globalCountryCode is not null)
             {
-                _logger.LogDebug("Using global preferred country code: {CountryCode}", globalCountryCode);
+                _logger.LogDebug(
+                    "Using global preferred country code: {CountryCode}",
+                    globalCountryCode
+                );
                 return globalCountryCode;
             }
         }

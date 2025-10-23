@@ -13,7 +13,11 @@ public static class FilesConfiguration
         // Register VideoStreamingService for FFmpeg-based streaming
         builder.Services.AddSingleton<VideoStreamingService>();
 
-        builder.Services.AddBackgroundTask<CopyOperationTask, CopyOperationInfo, CopyOperationTaskExecutor>();
+        builder.Services.AddBackgroundTask<
+            CopyOperationTask,
+            CopyOperationInfo,
+            CopyOperationTaskExecutor
+        >();
 
         return builder;
     }
@@ -34,19 +38,23 @@ public static class FilesConfiguration
         app.MapGet(
                 "api/files/stream",
                 async (
-                    string path, 
-                    HttpContext context, 
+                    string path,
+                    HttpContext context,
                     IConfiguration configuration,
                     VideoStreamingService streamingService,
                     bool transcode = false,
                     string? format = null,
-                    string? quality = null) =>
+                    string? quality = null
+                ) =>
                 {
-                    var dataPath = configuration["DATA_DIRECTORY"] 
-                        ?? throw new InvalidOperationException("DATA_DIRECTORY configuration is required.");
-                    
+                    var dataPath =
+                        configuration["DATA_DIRECTORY"]
+                        ?? throw new InvalidOperationException(
+                            "DATA_DIRECTORY configuration is required."
+                        );
+
                     var filePath = Path.Combine(dataPath, path);
-                    
+
                     if (!File.Exists(filePath))
                     {
                         return Results.NotFound("File not found");
@@ -62,7 +70,13 @@ public static class FilesConfiguration
                     }
 
                     // Use VideoStreamingService for all streaming (handles both direct and transcoded)
-                    await streamingService.StreamVideoAsync(filePath, context, transcode, format, quality);
+                    await streamingService.StreamVideoAsync(
+                        filePath,
+                        context,
+                        transcode,
+                        format,
+                        quality
+                    );
                     return Results.Empty;
                 }
             )
@@ -79,12 +93,11 @@ public static class FilesConfiguration
                     }
 
                     var form = await request.ReadFormAsync();
-                    var targetPath =
-                        request.Query.TryGetValue("path", out var queryPath)
-                            ? queryPath.FirstOrDefault()
-                            : form.TryGetValue("path", out var formPath)
-                                ? formPath.FirstOrDefault()
-                                : null;
+                    var targetPath = request.Query.TryGetValue("path", out var queryPath)
+                        ? queryPath.FirstOrDefault()
+                        : form.TryGetValue("path", out var formPath)
+                            ? formPath.FirstOrDefault()
+                            : null;
 
                     var overwrite = false;
                     if (
@@ -129,9 +142,12 @@ public static class FilesConfiguration
 
         app.MapPost(
                 "api/files/copy",
-                async (CopyFileRequest request, IFilesApi filesApi) =>
+                async (CopyRequest request, IFilesApi filesApi) =>
                 {
-                    var operationId = await filesApi.StartCopyAsync(request.SourcePath, request.DestinationPath);
+                    var operationId = await filesApi.StartCopyAsync(
+                        request.SourcePath,
+                        request.DestinationPath
+                    );
                     return Results.Ok(new { OperationId = operationId });
                 }
             )
@@ -140,7 +156,7 @@ public static class FilesConfiguration
 
         app.MapPost(
                 "api/files/move",
-                (MoveFileRequest request, IFilesApi filesApi) =>
+                (MoveRequest request, IFilesApi filesApi) =>
                 {
                     filesApi.Move(request.SourcePath, request.DestinationPath);
                     return Results.Ok();

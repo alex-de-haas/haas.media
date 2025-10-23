@@ -37,7 +37,11 @@ public class TVShowMetadata
 
 static class TVShowMetadataMapper
 {
-    public static TVShowMetadata Create(this TvShow tvShow, string? preferredCountryCode = null, string? preferredLanguage = null)
+    public static TVShowMetadata Create(
+        this TvShow tvShow,
+        string? preferredCountryCode = null,
+        string? preferredLanguage = null
+    )
     {
         return new TVShowMetadata
         {
@@ -63,7 +67,12 @@ static class TVShowMetadataMapper
         };
     }
 
-    public static void Update(this TvShow source, TVShowMetadata target, string? preferredCountryCode = null, string? preferredLanguage = null)
+    public static void Update(
+        this TvShow source,
+        TVShowMetadata target,
+        string? preferredCountryCode = null,
+        string? preferredLanguage = null
+    )
     {
         target.OriginalTitle = source.OriginalName;
         target.OriginalLanguage = source.OriginalLanguage;
@@ -104,7 +113,10 @@ static class TVShowMetadataMapper
         return source.Networks?.Select(n => n.Map()).ToArray() ?? [];
     }
 
-    private static string? GetBestLogo(TMDbLib.Objects.General.Images? images, string? preferredLanguage)
+    private static string? GetBestLogo(
+        TMDbLib.Objects.General.Images? images,
+        string? preferredLanguage
+    )
     {
         if (images?.Logos == null || images.Logos.Count == 0)
         {
@@ -114,8 +126,10 @@ static class TVShowMetadataMapper
         var normalizedPreferred = NormalizeLanguageCode(preferredLanguage) ?? "en";
 
         // Prefer user's preferred language, then English, then null language (universal), then highest voted
-        var logo = images.Logos
-            .OrderByDescending(l => string.Equals(l.Iso_639_1, normalizedPreferred, StringComparison.OrdinalIgnoreCase))
+        var logo = images
+            .Logos.OrderByDescending(l =>
+                string.Equals(l.Iso_639_1, normalizedPreferred, StringComparison.OrdinalIgnoreCase)
+            )
             .ThenByDescending(l => l.Iso_639_1 == "en")
             .ThenByDescending(l => l.Iso_639_1 == null)
             .ThenByDescending(l => l.VoteAverage)
@@ -161,18 +175,18 @@ static class TVShowMetadataMapper
         var normalizedPreferred = NormalizeCountryCode(preferredCountryCode) ?? "US";
 
         // Try to find preferred country rating first
-        var preferredRating = contentRatings.FirstOrDefault(r => 
-            string.Equals(r.Iso_3166_1, normalizedPreferred, StringComparison.OrdinalIgnoreCase));
-        
+        var preferredRating = contentRatings.FirstOrDefault(r =>
+            string.Equals(r.Iso_3166_1, normalizedPreferred, StringComparison.OrdinalIgnoreCase)
+        );
+
         if (preferredRating != null && !string.IsNullOrWhiteSpace(preferredRating.Rating))
         {
             return preferredRating.Rating;
         }
 
         // Fallback to any available rating
-        var anyRating = contentRatings.FirstOrDefault(r => 
-            !string.IsNullOrWhiteSpace(r.Rating));
-        
+        var anyRating = contentRatings.FirstOrDefault(r => !string.IsNullOrWhiteSpace(r.Rating));
+
         return anyRating?.Rating;
     }
 

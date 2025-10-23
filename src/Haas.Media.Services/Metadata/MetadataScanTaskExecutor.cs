@@ -783,7 +783,9 @@ internal sealed class MetadataScanTaskExecutor
                     var movieResult = searchResults.Results[0];
                     var movieDetails = await _tmdbClient.GetMovieAsync(
                         movieResult.Id,
-                        extraMethods: MovieMethods.ReleaseDates | MovieMethods.Credits | MovieMethods.Images,
+                        extraMethods: MovieMethods.ReleaseDates
+                            | MovieMethods.Credits
+                            | MovieMethods.Images,
                         cancellationToken: context.CancellationToken
                     );
 
@@ -844,7 +846,11 @@ internal sealed class MetadataScanTaskExecutor
                     if (existsMovieMetadata != null)
                     {
                         // Update existing metadata
-                        movieDetails.Update(existsMovieMetadata, preferredCountry, preferredLanguage);
+                        movieDetails.Update(
+                            existsMovieMetadata,
+                            preferredCountry,
+                            preferredLanguage
+                        );
                         _movieMetadataCollection.Update(existsMovieMetadata);
                         movieMetadata = existsMovieMetadata;
                     }

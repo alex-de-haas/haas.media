@@ -63,5 +63,6 @@ public class FilePlaybackInfo
     /// <summary>
     /// Creates a unique ID for a playback info record.
     /// </summary>
-    public static string CreateId(string userId, string fileMetadataId) => $"{userId}_{fileMetadataId}";
+    public static string CreateId(string userId, string fileMetadataId) =>
+        $"{userId}_{fileMetadataId}";
 }

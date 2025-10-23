@@ -7,10 +7,7 @@ internal sealed class GlobalSettingsService : IGlobalSettingsApi
     private readonly ILiteCollection<GlobalSettings> _settings;
     private readonly ILogger<GlobalSettingsService> _logger;
 
-    public GlobalSettingsService(
-        LiteDatabase database,
-        ILogger<GlobalSettingsService> logger
-    )
+    public GlobalSettingsService(LiteDatabase database, ILogger<GlobalSettingsService> logger)
     {
         _settings = database.GetCollection<GlobalSettings>("globalSettings");
         _logger = logger;

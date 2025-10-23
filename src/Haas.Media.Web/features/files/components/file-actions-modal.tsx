@@ -4,7 +4,7 @@ import DeleteModal from "./delete-modal";
 import CreateDirectoryModal from "./create-directory-modal";
 import CopyMoveModal from "./copy-move-modal";
 import RenameModal from "./rename-modal";
-import type { FileItem, CopyFileRequest, MoveFileRequest, CreateDirectoryRequest, RenameRequest } from "@/types/file";
+import type { FileItem, CopyRequest, MoveRequest, CreateDirectoryRequest, RenameRequest } from "@/types/file";
 
 interface FileActionsModalProps {
   isOpen: boolean;
@@ -13,7 +13,7 @@ interface FileActionsModalProps {
   items: FileItem[];
   currentPath: string;
   onConfirm: (
-    data: CopyFileRequest | MoveFileRequest | CreateDirectoryRequest | RenameRequest | string,
+    data: CopyRequest | MoveRequest | CreateDirectoryRequest | RenameRequest | string,
   ) => Promise<{ success: boolean; message: string }>;
 }
 

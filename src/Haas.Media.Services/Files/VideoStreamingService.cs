@@ -24,7 +24,8 @@ public class VideoStreamingService
         HttpContext context,
         bool transcode = false,
         string? format = null,
-        string? quality = null)
+        string? quality = null
+    )
     {
         if (!File.Exists(filePath))
         {
@@ -51,10 +52,10 @@ public class VideoStreamingService
     {
         var fileInfo = new FileInfo(filePath);
         var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        
+
         var contentType = GetContentType(fileInfo.Extension);
         var rangeHeader = context.Request.Headers.Range.ToString();
-        
+
         if (!string.IsNullOrEmpty(rangeHeader))
         {
             var range = ParseRangeHeader(rangeHeader, fileInfo.Length);
@@ -62,27 +63,27 @@ public class VideoStreamingService
             {
                 var (start, end) = range.Value;
                 var length = end - start + 1;
-                
+
                 fileStream.Seek(start, SeekOrigin.Begin);
                 var limitedStream = new LimitedStream(fileStream, length);
-                
+
                 context.Response.StatusCode = 206;
                 context.Response.Headers.ContentRange = $"bytes {start}-{end}/{fileInfo.Length}";
                 context.Response.ContentType = contentType;
                 context.Response.Headers.AcceptRanges = "bytes";
                 context.Response.ContentLength = length;
-                
+
                 await limitedStream.CopyToAsync(context.Response.Body);
                 await limitedStream.DisposeAsync();
                 return;
             }
         }
-        
+
         // Normal response without range
         context.Response.Headers.AcceptRanges = "bytes";
         context.Response.ContentType = contentType;
         context.Response.ContentLength = fileInfo.Length;
-        
+
         await fileStream.CopyToAsync(context.Response.Body);
         await fileStream.DisposeAsync();
     }
@@ -95,7 +96,8 @@ public class VideoStreamingService
         string filePath,
         HttpContext context,
         string? format,
-        string? quality)
+        string? quality
+    )
     {
         // Parse output format (default to mp4)
         var outputFormat = format?.ToLowerInvariant() ?? "mp4";
@@ -115,11 +117,20 @@ public class VideoStreamingService
         {
             // Build FFmpeg command for streaming
             var ffmpegPath = GlobalFFOptions.GetFFMpegBinaryPath();
-            var arguments = BuildFFmpegStreamingArgs(filePath, outputFormat, videoCodec, crf, audioBitrate);
+            var arguments = BuildFFmpegStreamingArgs(
+                filePath,
+                outputFormat,
+                videoCodec,
+                crf,
+                audioBitrate
+            );
 
             _logger.LogInformation(
                 "Starting FFmpeg transcode stream: {FilePath} -> {Format} (quality: {Quality})",
-                filePath, outputFormat, qualityPreset);
+                filePath,
+                outputFormat,
+                qualityPreset
+            );
 
             var processStartInfo = new ProcessStartInfo
             {
@@ -132,7 +143,7 @@ public class VideoStreamingService
             };
 
             using var process = new Process { StartInfo = processStartInfo };
-            
+
             // Start the process
             process.Start();
 
@@ -143,7 +154,10 @@ public class VideoStreamingService
             // and we cannot support range requests during transcoding
 
             // Stream FFmpeg output directly to response
-            await process.StandardOutput.BaseStream.CopyToAsync(context.Response.Body, context.RequestAborted);
+            await process.StandardOutput.BaseStream.CopyToAsync(
+                context.Response.Body,
+                context.RequestAborted
+            );
 
             // Log any errors from FFmpeg
             _ = Task.Run(async () =>
@@ -189,14 +203,15 @@ public class VideoStreamingService
         string format,
         string videoCodec,
         int crf,
-        string audioBitrate)
+        string audioBitrate
+    )
     {
         // Select appropriate audio codec based on output format
         var audioCodec = format switch
         {
-            "webm" => "libopus",  // Opus for WebM
-            "mp4" => "aac",       // AAC for MP4
-            "mkv" => "aac",       // AAC for MKV
+            "webm" => "libopus", // Opus for WebM
+            "mp4" => "aac", // AAC for MP4
+            "mkv" => "aac", // AAC for MKV
             _ => "aac"
         };
 
@@ -204,16 +219,12 @@ public class VideoStreamingService
         {
             // Input
             $"-i \"{inputPath}\"",
-            
             // Video codec
             $"-c:v {videoCodec}",
-            
             // Quality setting (CRF for quality-based encoding)
             $"-crf {crf}",
-            
             // Preset for encoding speed vs compression
             "-preset fast",
-            
             // Audio codec and bitrate
             $"-c:a {audioCodec}",
             $"-b:a {audioBitrate}",
@@ -227,7 +238,7 @@ public class VideoStreamingService
 
         // Output format
         args.Add($"-f {format}");
-        
+
         // Output to stdout (pipe:1)
         args.Add("pipe:1");
 
@@ -237,14 +248,17 @@ public class VideoStreamingService
     /// <summary>
     /// Get video codec, audio bitrate, and CRF based on format and quality
     /// </summary>
-    private (string videoCodec, string audioBitrate, int crf) GetQualitySettings(string format, string quality)
+    private (string videoCodec, string audioBitrate, int crf) GetQualitySettings(
+        string format,
+        string quality
+    )
     {
         // Select video codec based on format
         var videoCodec = format switch
         {
-            "webm" => "libvpx-vp9",  // VP9 for WebM
-            "mp4" => "libx264",       // H.264 for MP4
-            "mkv" => "libx264",       // H.264 for MKV
+            "webm" => "libvpx-vp9", // VP9 for WebM
+            "mp4" => "libx264", // H.264 for MP4
+            "mkv" => "libx264", // H.264 for MKV
             _ => "libx264"
         };
 
@@ -252,11 +266,11 @@ public class VideoStreamingService
         // CRF scale: 0 (lossless) to 51 (worst) - typical range 18-28
         var (crf, audioBitrate) = quality switch
         {
-            "low" => (28, "96k"),      // Low quality, smaller file
-            "medium" => (23, "128k"),   // Balanced
-            "high" => (20, "192k"),     // High quality
-            "ultra" => (18, "256k"),    // Very high quality
-            _ => (23, "128k")           // Default to medium
+            "low" => (28, "96k"), // Low quality, smaller file
+            "medium" => (23, "128k"), // Balanced
+            "high" => (20, "192k"), // High quality
+            "ultra" => (18, "256k"), // Very high quality
+            _ => (23, "128k") // Default to medium
         };
 
         return (videoCodec, audioBitrate, crf);

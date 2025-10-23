@@ -17,4 +17,3 @@ public class SearchResult
     public string? BackdropPath { get; set; }
     public string? LogoPath { get; set; }
 }
-

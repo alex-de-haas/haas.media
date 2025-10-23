@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using TMDbLib.Objects.General;
 using TMDbLib.Objects.TvShows;
-using MovieCredits = TMDbLib.Objects.Movies.Credits;
 using MovieCast = TMDbLib.Objects.Movies.Cast;
+using MovieCredits = TMDbLib.Objects.Movies.Credits;
 using TvCast = TMDbLib.Objects.TvShows.Cast;
 using TvSeasonCredits = TMDbLib.Objects.TvShows.Credits;
 
@@ -16,9 +16,8 @@ internal static class PersonMetadataCollector
     {
         return credits is null
             ? Array.Empty<int>()
-            : EnumerateIds(credits.Cast, cast => cast.Id).Concat(
-                EnumerateIds(credits.Crew, crew => crew.Id)
-            );
+            : EnumerateIds(credits.Cast, cast => cast.Id)
+                .Concat(EnumerateIds(credits.Crew, crew => crew.Id));
     }
 
     public static IEnumerable<int> FromCredits(TvSeasonCredits? credits)
@@ -71,8 +70,6 @@ internal static class PersonMetadataCollector
             return Array.Empty<int>();
         }
 
-        return source
-            .Select(selector)
-            .Where(id => id > 0);
+        return source.Select(selector).Where(id => id > 0);
     }
 }

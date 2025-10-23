@@ -170,9 +170,15 @@ public static class MetadataConfiguration
 
         app.MapGet(
                 "api/metadata/movies",
-                async (HttpContext context, IMetadataApi metadataService, string? libraryId = null) =>
+                async (
+                    HttpContext context,
+                    IMetadataApi metadataService,
+                    string? libraryId = null
+                ) =>
                 {
-                    var movieMetadata = (await metadataService.GetMovieMetadataAsync(libraryId)).ToList();
+                    var movieMetadata = (
+                        await metadataService.GetMovieMetadataAsync(libraryId)
+                    ).ToList();
                     var preferredCountry = ResolvePreferredCountryCode(context.User);
 
                     foreach (var metadata in movieMetadata)
@@ -420,7 +426,10 @@ public static class MetadataConfiguration
                         return Results.Unauthorized();
                     }
 
-                    var playbackInfo = await metadataService.GetPlaybackInfoAsync(userId, fileMetadataId);
+                    var playbackInfo = await metadataService.GetPlaybackInfoAsync(
+                        userId,
+                        fileMetadataId
+                    );
                     return playbackInfo != null ? Results.Ok(playbackInfo) : Results.NotFound();
                 }
             )
@@ -429,7 +438,11 @@ public static class MetadataConfiguration
 
         app.MapPost(
                 "api/metadata/playback",
-                async (HttpContext context, IMetadataApi metadataService, SavePlaybackInfoRequest request) =>
+                async (
+                    HttpContext context,
+                    IMetadataApi metadataService,
+                    SavePlaybackInfoRequest request
+                ) =>
                 {
                     var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
                     if (string.IsNullOrWhiteSpace(userId))
@@ -449,7 +462,9 @@ public static class MetadataConfiguration
                         UpdatedAt = DateTime.UtcNow
                     };
 
-                    var savedPlaybackInfo = await metadataService.SavePlaybackInfoAsync(playbackInfo);
+                    var savedPlaybackInfo = await metadataService.SavePlaybackInfoAsync(
+                        playbackInfo
+                    );
                     return Results.Ok(savedPlaybackInfo);
                 }
             )
@@ -466,25 +481,33 @@ public static class MetadataConfiguration
                         return Results.Unauthorized();
                     }
 
-                    var files = await metadataService.GetFilesByMediaIdAsync(id, LibraryType.Movies);
+                    var files = await metadataService.GetFilesByMediaIdAsync(
+                        id,
+                        LibraryType.Movies
+                    );
                     var filesList = files.ToList();
-                    
+
                     if (filesList.Count == 0)
                     {
-                        return Results.Ok(new MoviePlaybackInfo
-                        {
-                            MovieId = id,
-                            Files = new List<FilePlaybackInfo>(),
-                            TotalPlayCount = 0,
-                            AnyPlayed = false,
-                            IsFavorite = false
-                        });
+                        return Results.Ok(
+                            new MoviePlaybackInfo
+                            {
+                                MovieId = id,
+                                Files = new List<FilePlaybackInfo>(),
+                                TotalPlayCount = 0,
+                                AnyPlayed = false,
+                                IsFavorite = false
+                            }
+                        );
                     }
 
                     var playbackInfos = new List<FilePlaybackInfo>();
                     foreach (var file in filesList)
                     {
-                        var playbackInfo = await metadataService.GetPlaybackInfoAsync(userId, file.Id!);
+                        var playbackInfo = await metadataService.GetPlaybackInfoAsync(
+                            userId,
+                            file.Id!
+                        );
                         if (playbackInfo != null)
                         {
                             playbackInfos.Add(playbackInfo);
@@ -516,25 +539,33 @@ public static class MetadataConfiguration
                         return Results.Unauthorized();
                     }
 
-                    var files = await metadataService.GetFilesByMediaIdAsync(id, LibraryType.TVShows);
+                    var files = await metadataService.GetFilesByMediaIdAsync(
+                        id,
+                        LibraryType.TVShows
+                    );
                     var filesList = files.ToList();
-                    
+
                     if (filesList.Count == 0)
                     {
-                        return Results.Ok(new TVShowPlaybackInfo
-                        {
-                            TVShowId = id,
-                            TotalEpisodes = 0,
-                            WatchedEpisodes = 0,
-                            TotalPlayCount = 0,
-                            IsFavorite = false
-                        });
+                        return Results.Ok(
+                            new TVShowPlaybackInfo
+                            {
+                                TVShowId = id,
+                                TotalEpisodes = 0,
+                                WatchedEpisodes = 0,
+                                TotalPlayCount = 0,
+                                IsFavorite = false
+                            }
+                        );
                     }
 
                     var playbackInfos = new List<FilePlaybackInfo>();
                     foreach (var file in filesList)
                     {
-                        var playbackInfo = await metadataService.GetPlaybackInfoAsync(userId, file.Id!);
+                        var playbackInfo = await metadataService.GetPlaybackInfoAsync(
+                            userId,
+                            file.Id!
+                        );
                         if (playbackInfo != null)
                         {
                             playbackInfos.Add(playbackInfo);

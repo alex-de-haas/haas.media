@@ -61,7 +61,7 @@ public class MediaEncodingBuilder
     )
     {
         HardwareAccel = acceleration;
-        
+
         // Validate VAAPI device if specified
         if (acceleration == HardwareAcceleration.VAAPI)
         {
@@ -72,14 +72,16 @@ public class MediaEncodingBuilder
             }
             else
             {
-                throw new InvalidOperationException($"VAAPI device '{vaapiDevice}' not found or not accessible");
+                throw new InvalidOperationException(
+                    $"VAAPI device '{vaapiDevice}' not found or not accessible"
+                );
             }
         }
         else
         {
             HardwareDevice = device;
         }
-        
+
         return this;
     }
 
@@ -95,7 +97,13 @@ public class MediaEncodingBuilder
 
     private static string? GetDefaultVAAPIDevice()
     {
-        var possibleDevices = new[] { "/dev/dri/renderD128", "/dev/dri/renderD129", "/dev/dri/card0", "/dev/dri/card1" };
+        var possibleDevices = new[]
+        {
+            "/dev/dri/renderD128",
+            "/dev/dri/renderD129",
+            "/dev/dri/card0",
+            "/dev/dri/card1"
+        };
         return possibleDevices.FirstOrDefault(File.Exists);
     }
 
@@ -103,7 +111,10 @@ public class MediaEncodingBuilder
     {
         if (bitrate <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(bitrate), "Bitrate must be greater than zero");
+            throw new ArgumentOutOfRangeException(
+                nameof(bitrate),
+                "Bitrate must be greater than zero"
+            );
         }
 
         VideoBitrate = bitrate;
@@ -122,7 +133,10 @@ public class MediaEncodingBuilder
 
         if (crf < 0 || crf > 51)
         {
-            throw new ArgumentOutOfRangeException(nameof(crf), "CRF must be between 0 (lossless) and 51 (lowest quality)");
+            throw new ArgumentOutOfRangeException(
+                nameof(crf),
+                "CRF must be between 0 (lossless) and 51 (lowest quality)"
+            );
         }
 
         VideoCrf = crf;
@@ -240,7 +254,9 @@ public class MediaEncodingBuilder
 
             case HardwareAcceleration.VAAPI:
                 // For VAAPI, we need to initialize the device first, then set hwaccel
-                var vaapiDevice = !string.IsNullOrEmpty(HardwareDevice) ? HardwareDevice : GetDefaultVAAPIDevice();
+                var vaapiDevice = !string.IsNullOrEmpty(HardwareDevice)
+                    ? HardwareDevice
+                    : GetDefaultVAAPIDevice();
                 if (string.IsNullOrEmpty(vaapiDevice))
                 {
                     throw new InvalidOperationException("No VAAPI device available");
@@ -283,9 +299,10 @@ public class MediaEncodingBuilder
             StreamCodec.DolbyDigital => "ac3",
             StreamCodec.DolbyDigitalPlus => "eac3",
             StreamCodec.DolbyTrueHD => "truehd",
-            _ => throw new NotSupportedException(
-                $"Codec {codec} is not supported for software encoding"
-            ),
+            _
+                => throw new NotSupportedException(
+                    $"Codec {codec} is not supported for software encoding"
+                ),
         };
     }
 
@@ -304,9 +321,7 @@ public class MediaEncodingBuilder
             if (videoCodec.Contains("videotoolbox", StringComparison.OrdinalIgnoreCase))
             {
                 var quality = Math.Max(0, Math.Min(100, 100 - (VideoCrf.Value * 1.96)));
-                command.Append(
-                    $" -q:v {quality.ToString(CultureInfo.InvariantCulture)}"
-                );
+                command.Append($" -q:v {quality.ToString(CultureInfo.InvariantCulture)}");
                 return;
             }
 
@@ -317,9 +332,7 @@ public class MediaEncodingBuilder
                 );
             }
 
-            command.Append(
-                $" -crf {VideoCrf.Value.ToString(CultureInfo.InvariantCulture)}"
-            );
+            command.Append($" -crf {VideoCrf.Value.ToString(CultureInfo.InvariantCulture)}");
             return;
         }
 
@@ -338,7 +351,9 @@ public class MediaEncodingBuilder
         {
             if (VideoResolution.HasValue)
             {
-                throw new InvalidOperationException("Cannot apply scaling when copying the source video stream.");
+                throw new InvalidOperationException(
+                    "Cannot apply scaling when copying the source video stream."
+                );
             }
             return;
         }
@@ -363,7 +378,10 @@ public class MediaEncodingBuilder
         }
     }
 
-    private static string? BuildScaleFilter(EncodingResolution resolution, HardwareAcceleration hwAccel)
+    private static string? BuildScaleFilter(
+        EncodingResolution resolution,
+        HardwareAcceleration hwAccel
+    )
     {
         var targetHeight = resolution switch
         {
@@ -519,9 +537,10 @@ public class MediaEncodingBuilder
             HardwareAcceleration.VideoToolbox => GetVideoToolboxCodec(codec),
             HardwareAcceleration.VAAPI => GetVAAPICodec(codec),
             HardwareAcceleration.Auto => GetAutoCodec(codec),
-            _ => throw new NotSupportedException(
-                $"Hardware acceleration {hwAccel} is not supported"
-            ),
+            _
+                => throw new NotSupportedException(
+                    $"Hardware acceleration {hwAccel} is not supported"
+                ),
         };
     }
 
@@ -532,9 +551,10 @@ public class MediaEncodingBuilder
             StreamCodec.H264 => "h264_nvenc",
             StreamCodec.HEVC => "hevc_nvenc",
             StreamCodec.AV1 => "av1_nvenc",
-            _ => throw new NotSupportedException(
-                $"Codec {codec} is not supported for NVIDIA hardware encoding"
-            ),
+            _
+                => throw new NotSupportedException(
+                    $"Codec {codec} is not supported for NVIDIA hardware encoding"
+                ),
         };
     }
 
@@ -547,9 +567,10 @@ public class MediaEncodingBuilder
             StreamCodec.AV1 => "av1_qsv",
             StreamCodec.VP9 => "vp9_qsv",
             StreamCodec.Mpeg2Video => "mpeg2_qsv",
-            _ => throw new NotSupportedException(
-                $"Codec {codec} is not supported for Intel QuickSync hardware encoding"
-            ),
+            _
+                => throw new NotSupportedException(
+                    $"Codec {codec} is not supported for Intel QuickSync hardware encoding"
+                ),
         };
     }
 
@@ -559,9 +580,10 @@ public class MediaEncodingBuilder
         {
             StreamCodec.H264 => "h264_amf",
             StreamCodec.HEVC => "hevc_amf",
-            _ => throw new NotSupportedException(
-                $"Codec {codec} is not supported for AMD hardware encoding"
-            ),
+            _
+                => throw new NotSupportedException(
+                    $"Codec {codec} is not supported for AMD hardware encoding"
+                ),
         };
     }
 
@@ -572,9 +594,10 @@ public class MediaEncodingBuilder
             StreamCodec.H264 => "h264_videotoolbox",
             StreamCodec.HEVC => "hevc_videotoolbox",
             StreamCodec.ProRes => "prores_videotoolbox",
-            _ => throw new NotSupportedException(
-                $"Codec {codec} is not supported for VideoToolbox hardware encoding"
-            ),
+            _
+                => throw new NotSupportedException(
+                    $"Codec {codec} is not supported for VideoToolbox hardware encoding"
+                ),
         };
     }
 
@@ -588,9 +611,10 @@ public class MediaEncodingBuilder
             StreamCodec.VP9 => "vp9_vaapi",
             StreamCodec.AV1 => "av1_vaapi",
             StreamCodec.Mpeg2Video => "mpeg2_vaapi",
-            _ => throw new NotSupportedException(
-                $"Codec {codec} is not supported for VA-API hardware encoding"
-            ),
+            _
+                => throw new NotSupportedException(
+                    $"Codec {codec} is not supported for VA-API hardware encoding"
+                ),
         };
     }
 

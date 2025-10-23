@@ -8,7 +8,11 @@ public interface IMetadataApi
     Task<LibraryInfo?> UpdateLibraryAsync(string id, LibraryInfo library);
     Task<bool> DeleteLibraryAsync(string id);
     Task<string> StartScanLibrariesAsync();
-    Task<string> StartRefreshMetadataAsync(bool refreshMovies = true, bool refreshTvShows = true, bool refreshPeople = true);
+    Task<string> StartRefreshMetadataAsync(
+        bool refreshMovies = true,
+        bool refreshTvShows = true,
+        bool refreshPeople = true
+    );
     Task<IEnumerable<MovieMetadata>> GetMovieMetadataAsync(string? libraryId = null);
     Task<MovieMetadata?> GetMovieMetadataByIdAsync(int id);
     Task<bool> DeleteMovieMetadataAsync(int id);
@@ -17,9 +21,12 @@ public interface IMetadataApi
     Task<bool> DeleteTVShowMetadataAsync(int id);
     Task<IEnumerable<SearchResult>> SearchAsync(string query, LibraryType? libraryType = null);
     Task<AddToLibraryResponse> AddToLibraryAsync(AddToLibraryRequest request);
-    
+
     // File Metadata operations
-    Task<IEnumerable<FileMetadata>> GetFileMetadataAsync(string? libraryId = null, int? mediaId = null);
+    Task<IEnumerable<FileMetadata>> GetFileMetadataAsync(
+        string? libraryId = null,
+        int? mediaId = null
+    );
     Task<FileMetadata?> GetFileMetadataByIdAsync(string id);
     Task<FileMetadata> AddFileMetadataAsync(FileMetadata fileMetadata);
     Task<bool> DeleteFileMetadataAsync(string id);
@@ -31,7 +38,7 @@ public interface IMetadataApi
     );
     Task<PersonMetadata?> GetPersonMetadataByIdAsync(int id);
     Task<PersonLibraryCredits?> GetPersonCreditsByIdAsync(int id);
-    
+
     // Playback Info operations
     Task<FilePlaybackInfo?> GetPlaybackInfoAsync(string userId, string fileMetadataId);
     Task<FilePlaybackInfo> SavePlaybackInfoAsync(FilePlaybackInfo playbackInfo);

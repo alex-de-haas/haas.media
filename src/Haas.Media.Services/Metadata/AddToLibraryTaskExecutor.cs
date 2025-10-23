@@ -68,9 +68,7 @@ internal sealed class AddToLibraryTaskExecutor
             var library = _librariesCollection.FindById(new BsonValue(task.LibraryId));
             if (library is null)
             {
-                throw new ArgumentException(
-                    $"Library with ID '{task.LibraryId}' not found."
-                );
+                throw new ArgumentException($"Library with ID '{task.LibraryId}' not found.");
             }
 
             if (library.Type != task.LibraryType)
@@ -80,11 +78,7 @@ internal sealed class AddToLibraryTaskExecutor
                 );
             }
 
-            payload = payload with
-            {
-                LibraryTitle = library.Title,
-                Stage = "Validating request"
-            };
+            payload = payload with { LibraryTitle = library.Title, Stage = "Validating request" };
             context.SetPayload(payload);
             context.ReportProgress(5);
 
@@ -92,26 +86,16 @@ internal sealed class AddToLibraryTaskExecutor
             {
                 LibraryType.Movies => await ProcessMovieAsync(context, library, payload),
                 LibraryType.TVShows => await ProcessTvShowAsync(context, library, payload),
-                _ => throw new ArgumentException(
-                    $"Unsupported library type: {task.LibraryType}"
-                ),
+                _ => throw new ArgumentException($"Unsupported library type: {task.LibraryType}"),
             };
 
-            payload = payload with
-            {
-                Stage = "Completed",
-                CompletedTime = DateTime.UtcNow
-            };
+            payload = payload with { Stage = "Completed", CompletedTime = DateTime.UtcNow };
             context.SetPayload(payload);
             context.ReportProgress(100);
         }
         catch (OperationCanceledException)
         {
-            payload = payload with
-            {
-                Stage = "Cancelled",
-                CompletedTime = DateTime.UtcNow
-            };
+            payload = payload with { Stage = "Cancelled", CompletedTime = DateTime.UtcNow };
             context.SetPayload(payload);
 
             _logger.LogInformation(
@@ -124,11 +108,7 @@ internal sealed class AddToLibraryTaskExecutor
         }
         catch (Exception ex)
         {
-            payload = payload with
-            {
-                Stage = "Failed",
-                CompletedTime = DateTime.UtcNow
-            };
+            payload = payload with { Stage = "Failed", CompletedTime = DateTime.UtcNow };
             context.SetPayload(payload);
 
             _logger.LogError(
@@ -235,7 +215,7 @@ internal sealed class AddToLibraryTaskExecutor
                 SyncedPeople = syncedPeople,
                 FailedPeople = failedPeople
             };
-            
+
             movieMetadata = existingMovie;
         }
         else
@@ -293,7 +273,9 @@ internal sealed class AddToLibraryTaskExecutor
 
         var associatedPersonIds = new HashSet<int>();
         associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(tvShowDetails.Credits));
-        associatedPersonIds.UnionWith(PersonMetadataCollector.FromCreators(tvShowDetails.CreatedBy));
+        associatedPersonIds.UnionWith(
+            PersonMetadataCollector.FromCreators(tvShowDetails.CreatedBy)
+        );
 
         payload = payload with { Stage = "Fetching TV show credits" };
         context.SetPayload(payload);
@@ -302,11 +284,11 @@ internal sealed class AddToLibraryTaskExecutor
         var existingTVShow = _tvShowMetadataCollection.FindById(new BsonValue(tmdbId.ToString()));
 
         var seasons = new List<TVSeasonMetadata>();
-        var orderedSeasons = tvShowDetails
-            .Seasons?
-            .Where(s => s.SeasonNumber > 0)
-            .OrderBy(s => s.SeasonNumber)
-            .ToArray() ?? Array.Empty<SearchTvSeason>();
+        var orderedSeasons =
+            tvShowDetails
+                .Seasons?.Where(s => s.SeasonNumber > 0)
+                .OrderBy(s => s.SeasonNumber)
+                .ToArray() ?? Array.Empty<SearchTvSeason>();
 
         var totalSeasons = orderedSeasons.Length;
         payload = payload with { TotalSeasons = totalSeasons, ProcessedSeasons = 0 };
@@ -337,7 +319,9 @@ internal sealed class AddToLibraryTaskExecutor
             var seasonMetadata = seasonDetails.Create();
             var episodes = new List<TVEpisodeMetadata>();
 
-            associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(seasonDetails.Credits));
+            associatedPersonIds.UnionWith(
+                PersonMetadataCollector.FromCredits(seasonDetails.Credits)
+            );
 
             totalEpisodes += seasonDetails.Episodes.Count;
 
@@ -356,13 +340,20 @@ internal sealed class AddToLibraryTaskExecutor
                 episodes.Add(episodeMetadata);
                 processedEpisodes++;
 
-                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(episodeDetails.Credits));
-                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCrew(episodeDetails.Crew));
-                associatedPersonIds.UnionWith(PersonMetadataCollector.FromCast(episodeDetails.GuestStars));
+                associatedPersonIds.UnionWith(
+                    PersonMetadataCollector.FromCredits(episodeDetails.Credits)
+                );
+                associatedPersonIds.UnionWith(
+                    PersonMetadataCollector.FromCrew(episodeDetails.Crew)
+                );
+                associatedPersonIds.UnionWith(
+                    PersonMetadataCollector.FromCast(episodeDetails.GuestStars)
+                );
 
-                var episodeProgress = totalEpisodes > 0
-                    ? 20 + Math.Min(80, 80 * (double)processedEpisodes / totalEpisodes)
-                    : 20;
+                var episodeProgress =
+                    totalEpisodes > 0
+                        ? 20 + Math.Min(80, 80 * (double)processedEpisodes / totalEpisodes)
+                        : 20;
                 payload = payload with
                 {
                     ProcessedEpisodes = processedEpisodes,
@@ -383,9 +374,10 @@ internal sealed class AddToLibraryTaskExecutor
             };
             context.SetPayload(payload);
 
-            var seasonProgress = totalSeasons > 0
-                ? 20 + Math.Min(80, 80 * (double)processedSeasons / totalSeasons)
-                : 20;
+            var seasonProgress =
+                totalSeasons > 0
+                    ? 20 + Math.Min(80, 80 * (double)processedSeasons / totalSeasons)
+                    : 20;
             context.ReportProgress(Math.Min(99, seasonProgress));
         }
 
@@ -457,7 +449,7 @@ internal sealed class AddToLibraryTaskExecutor
                 SyncedPeople = syncedPeople,
                 FailedPeople = failedPeople
             };
-            
+
             tvShowMetadata = existingTVShow;
         }
         else

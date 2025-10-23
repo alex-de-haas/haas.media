@@ -12,61 +12,87 @@ public static class AuthenticationConfiguration
     {
         var group = app.MapGroup("/api/auth").WithTags("Authentication");
 
-        group.MapPost("/register", async (RegisterRequest request, IAuthenticationApi authService) =>
-        {
-            var response = await authService.RegisterAsync(request);
-            return response != null ? Results.Ok(response) : Results.BadRequest(new { error = "Registration failed" });
-        })
-        .AllowAnonymous()
-        .WithName("Register");
+        group
+            .MapPost(
+                "/register",
+                async (RegisterRequest request, IAuthenticationApi authService) =>
+                {
+                    var response = await authService.RegisterAsync(request);
+                    return response != null
+                        ? Results.Ok(response)
+                        : Results.BadRequest(new { error = "Registration failed" });
+                }
+            )
+            .AllowAnonymous()
+            .WithName("Register");
 
-        group.MapPost("/login", async (LoginRequest request, IAuthenticationApi authService) =>
-        {
-            var response = await authService.LoginAsync(request);
-            return response != null ? Results.Ok(response) : Results.Unauthorized();
-        })
-        .AllowAnonymous()
-        .WithName("Login");
+        group
+            .MapPost(
+                "/login",
+                async (LoginRequest request, IAuthenticationApi authService) =>
+                {
+                    var response = await authService.LoginAsync(request);
+                    return response != null ? Results.Ok(response) : Results.Unauthorized();
+                }
+            )
+            .AllowAnonymous()
+            .WithName("Login");
 
-        group.MapGet("/me", async (HttpContext context, IAuthenticationApi authService) =>
-        {
-            var username = context.User.Identity?.Name;
-            if (string.IsNullOrEmpty(username))
-            {
-                return Results.Unauthorized();
-            }
+        group
+            .MapGet(
+                "/me",
+                async (HttpContext context, IAuthenticationApi authService) =>
+                {
+                    var username = context.User.Identity?.Name;
+                    if (string.IsNullOrEmpty(username))
+                    {
+                        return Results.Unauthorized();
+                    }
 
-            var user = await authService.GetUserByUsernameAsync(username);
-            if (user == null)
-            {
-                return Results.NotFound();
-            }
+                    var user = await authService.GetUserByUsernameAsync(username);
+                    if (user == null)
+                    {
+                        return Results.NotFound();
+                    }
 
-            return Results.Ok(new
-            {
-                user.Username,
-                user.CreatedAt,
-                user.LastLoginAt
-            });
-        })
-        .RequireAuthorization()
-        .WithName("GetCurrentUser");
+                    return Results.Ok(
+                        new
+                        {
+                            user.Username,
+                            user.CreatedAt,
+                            user.LastLoginAt
+                        }
+                    );
+                }
+            )
+            .RequireAuthorization()
+            .WithName("GetCurrentUser");
 
         // Profile update endpoint removed - language/country now configured per library
-        
-        group.MapPut("/me/password", async (HttpContext context, UpdatePasswordRequest request, IAuthenticationApi authService) =>
-        {
-            var username = context.User.Identity?.Name;
-            if (string.IsNullOrEmpty(username))
-            {
-                return Results.Unauthorized();
-            }
 
-            var success = await authService.UpdatePasswordAsync(username, request);
-            return success ? Results.NoContent() : Results.BadRequest(new { error = "Password update failed" });
-        })
-        .RequireAuthorization()
-        .WithName("UpdatePassword");
+        group
+            .MapPut(
+                "/me/password",
+                async (
+                    HttpContext context,
+                    UpdatePasswordRequest request,
+                    IAuthenticationApi authService
+                ) =>
+                {
+                    var username = context.User.Identity?.Name;
+                    if (string.IsNullOrEmpty(username))
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    var success = await authService.UpdatePasswordAsync(username, request);
+                    return success
+                        ? Results.NoContent()
+                        : Results.BadRequest(new { error = "Password update failed" });
+                }
+            )
+            .RequireAuthorization()
+            .WithName("UpdatePassword");
 
         return app;
     }

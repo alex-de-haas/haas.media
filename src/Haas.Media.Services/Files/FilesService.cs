@@ -124,8 +124,6 @@ public class FilesService : IFilesApi
             Directory.CreateDirectory(destinationDir);
         }
 
-        
-
         var copyTask = new CopyOperationTask(
             isDirectory ? CopyOperationTaskKind.Directory : CopyOperationTaskKind.File,
             sourcePath,

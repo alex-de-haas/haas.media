@@ -55,7 +55,14 @@ public static class TorrentConfiguration
                         return Results.BadRequest(new { uploaded, errors });
                     }
 
-                    return Results.Ok(new { uploaded, failed = errors.Count, errors });
+                    return Results.Ok(
+                        new
+                        {
+                            uploaded,
+                            failed = errors.Count,
+                            errors
+                        }
+                    );
                 }
             )
             .WithName("UploadTorrent")

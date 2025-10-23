@@ -32,7 +32,10 @@ public sealed class TmdbThrottlingHandler : DelegatingHandler
             var (newRateLimiter, newConcurrencyLimiter) = CreateLimiters(options);
 
             var oldRateLimiter = Interlocked.Exchange(ref _rateLimiter, newRateLimiter);
-            var oldConcurrencyLimiter = Interlocked.Exchange(ref _concurrencyLimiter, newConcurrencyLimiter);
+            var oldConcurrencyLimiter = Interlocked.Exchange(
+                ref _concurrencyLimiter,
+                newConcurrencyLimiter
+            );
 
             oldRateLimiter?.Dispose();
             oldConcurrencyLimiter?.Dispose();
@@ -70,10 +73,13 @@ public sealed class TmdbThrottlingHandler : DelegatingHandler
             cancellationToken.ThrowIfCancellationRequested();
             attempt++;
 
-            using var rateLease = await _rateLimiter.AcquireAsync(1, cancellationToken).ConfigureAwait(false);
+            using var rateLease = await _rateLimiter
+                .AcquireAsync(1, cancellationToken)
+                .ConfigureAwait(false);
             EnsureLease(rateLease, "rate limit");
 
-            using var concurrencyLease = await _concurrencyLimiter.AcquireAsync(1, cancellationToken)
+            using var concurrencyLease = await _concurrencyLimiter
+                .AcquireAsync(1, cancellationToken)
                 .ConfigureAwait(false);
             EnsureLease(concurrencyLease, "concurrency limit");
 
@@ -100,9 +106,10 @@ public sealed class TmdbThrottlingHandler : DelegatingHandler
             response.Dispose();
 
             var backoffDelay = CalculateBackoffDelay(attempt, options);
-            var effectiveDelay = retryAfter.HasValue && retryAfter.Value > backoffDelay
-                ? retryAfter.Value
-                : backoffDelay;
+            var effectiveDelay =
+                retryAfter.HasValue && retryAfter.Value > backoffDelay
+                    ? retryAfter.Value
+                    : backoffDelay;
 
             if (effectiveDelay < TimeSpan.Zero)
             {
@@ -132,7 +139,13 @@ public sealed class TmdbThrottlingHandler : DelegatingHandler
         reason = response.StatusCode.ToString();
 
         var statusCode = (int)response.StatusCode;
-        if (statusCode == 429 || statusCode == 500 || statusCode == 502 || statusCode == 503 || statusCode == 504)
+        if (
+            statusCode == 429
+            || statusCode == 500
+            || statusCode == 502
+            || statusCode == 503
+            || statusCode == 504
+        )
         {
             if (TryParseRetryAfter(response.Headers.RetryAfter, out var serverDelay))
             {
@@ -145,10 +158,7 @@ public sealed class TmdbThrottlingHandler : DelegatingHandler
         return false;
     }
 
-    private bool TryParseRetryAfter(
-        RetryConditionHeaderValue? header,
-        out TimeSpan? retryAfter
-    )
+    private bool TryParseRetryAfter(RetryConditionHeaderValue? header, out TimeSpan? retryAfter)
     {
         retryAfter = null;
         if (header == null)
@@ -177,24 +187,30 @@ public sealed class TmdbThrottlingHandler : DelegatingHandler
         return false;
     }
 
-    private static (RateLimiter rateLimiter, RateLimiter concurrencyLimiter) CreateLimiters(TmdbClientOptions options)
+    private static (RateLimiter rateLimiter, RateLimiter concurrencyLimiter) CreateLimiters(
+        TmdbClientOptions options
+    )
     {
-        var rateLimiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
-        {
-            TokenLimit = Math.Max(1, options.MaxRequestsPerSecond),
-            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-            QueueLimit = options.MaxRequestsPerSecond * 2,
-            ReplenishmentPeriod = TimeSpan.FromSeconds(1),
-            TokensPerPeriod = Math.Max(1, options.MaxRequestsPerSecond),
-            AutoReplenishment = true,
-        });
+        var rateLimiter = new TokenBucketRateLimiter(
+            new TokenBucketRateLimiterOptions
+            {
+                TokenLimit = Math.Max(1, options.MaxRequestsPerSecond),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = options.MaxRequestsPerSecond * 2,
+                ReplenishmentPeriod = TimeSpan.FromSeconds(1),
+                TokensPerPeriod = Math.Max(1, options.MaxRequestsPerSecond),
+                AutoReplenishment = true,
+            }
+        );
 
-        var concurrencyLimiter = new ConcurrencyLimiter(new ConcurrencyLimiterOptions
-        {
-            PermitLimit = Math.Max(1, options.MaxConcurrency),
-            QueueLimit = options.MaxConcurrency * 2,
-            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-        });
+        var concurrencyLimiter = new ConcurrencyLimiter(
+            new ConcurrencyLimiterOptions
+            {
+                PermitLimit = Math.Max(1, options.MaxConcurrency),
+                QueueLimit = options.MaxConcurrency * 2,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            }
+        );
 
         return (rateLimiter, concurrencyLimiter);
     }
@@ -218,7 +234,8 @@ public sealed class TmdbThrottlingHandler : DelegatingHandler
 
         lease.TryGetMetadata(MetadataName.RetryAfter, out TimeSpan retryAfter);
         throw new HttpRequestException(
-            $"TMDb {resource} unavailable. Retry after {retryAfter.TotalMilliseconds} ms.");
+            $"TMDb {resource} unavailable. Retry after {retryAfter.TotalMilliseconds} ms."
+        );
     }
 
     private async Task DelayAsync(TimeSpan delay, CancellationToken cancellationToken)
@@ -228,23 +245,38 @@ public sealed class TmdbThrottlingHandler : DelegatingHandler
             return;
         }
 
-        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tcs = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
         ITimer? timer = null;
 
-        timer = _timeProvider.CreateTimer(static state =>
-        {
-            var source = (TaskCompletionSource<bool>)state!;
-            source.TrySetResult(true);
-        }, tcs, delay, Timeout.InfiniteTimeSpan);
-
-        var registration = cancellationToken.Register(static state =>
-        {
-            var tuple = ((TaskCompletionSource<bool> completion, ITimer timer, CancellationToken token))state!;
-            if (tuple.completion.TrySetCanceled(tuple.token))
+        timer = _timeProvider.CreateTimer(
+            static state =>
             {
-                tuple.timer.Dispose();
-            }
-        }, (tcs, timer, cancellationToken));
+                var source = (TaskCompletionSource<bool>)state!;
+                source.TrySetResult(true);
+            },
+            tcs,
+            delay,
+            Timeout.InfiniteTimeSpan
+        );
+
+        var registration = cancellationToken.Register(
+            static state =>
+            {
+                var tuple = ((
+                    TaskCompletionSource<bool> completion,
+                    ITimer timer,
+                    CancellationToken token
+                ))
+                    state!;
+                if (tuple.completion.TrySetCanceled(tuple.token))
+                {
+                    tuple.timer.Dispose();
+                }
+            },
+            (tcs, timer, cancellationToken)
+        );
 
         try
         {

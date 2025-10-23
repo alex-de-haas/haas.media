@@ -87,16 +87,15 @@ public static partial class MediaHelper
     {
         var deviceArgument = acceleration switch
         {
-            HardwareAcceleration.NVENC =>
-                "-f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -c:v h264_nvenc -list_devices 1 -f null -",
-            HardwareAcceleration.QSV =>
-                "-init_hw_device qsv -f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -c:v h264_qsv -list_devices 1 -f null -",
-            HardwareAcceleration.AMF =>
-                "-f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -c:v h264_amf -list_devices 1 -f null -",
-            HardwareAcceleration.VideoToolbox =>
-                "-f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -c:v h264_videotoolbox -f null -",
-            HardwareAcceleration.VAAPI =>
-                GetVAAPIDeviceTestCommand(),
+            HardwareAcceleration.NVENC
+                => "-f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -c:v h264_nvenc -list_devices 1 -f null -",
+            HardwareAcceleration.QSV
+                => "-init_hw_device qsv -f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -c:v h264_qsv -list_devices 1 -f null -",
+            HardwareAcceleration.AMF
+                => "-f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -c:v h264_amf -list_devices 1 -f null -",
+            HardwareAcceleration.VideoToolbox
+                => "-f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -c:v h264_videotoolbox -f null -",
+            HardwareAcceleration.VAAPI => GetVAAPIDeviceTestCommand(),
             _ => null,
         };
 
@@ -199,14 +198,14 @@ public static partial class MediaHelper
     )
     {
         var crfSupport = new Dictionary<StreamCodec, bool>();
-        
+
         foreach (var encoder in encoders)
         {
             var codecName = GetCodecName(encoder, acceleration);
             var supportsCrf = MediaEncodingBuilder.SupportsCrf(codecName);
             crfSupport[encoder] = supportsCrf;
         }
-        
+
         return crfSupport;
     }
 
@@ -246,12 +245,15 @@ public static partial class MediaHelper
         foreach (var device in DiscoverVaapiDevices())
         {
             // In containers, device might not be accessible during build but available at runtime
-            if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true" || File.Exists(device))
+            if (
+                Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true"
+                || File.Exists(device)
+            )
             {
                 return $"-vaapi_device {device} -f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -vf 'format=nv12,hwupload' -c:v h264_vaapi -f null -";
             }
         }
-        
+
         // Fallback to default if no devices found
         return "-vaapi_device /dev/dri/renderD128 -f lavfi -i testsrc2=duration=1:size=320x240:rate=1 -vf 'format=nv12,hwupload' -c:v h264_vaapi -f null -";
     }
@@ -270,7 +272,13 @@ public static partial class MediaHelper
         {
             if (Directory.Exists(driPath))
             {
-                foreach (var entry in Directory.EnumerateFileSystemEntries(driPath, "*", SearchOption.TopDirectoryOnly))
+                foreach (
+                    var entry in Directory.EnumerateFileSystemEntries(
+                        driPath,
+                        "*",
+                        SearchOption.TopDirectoryOnly
+                    )
+                )
                 {
                     var name = Path.GetFileName(entry);
                     if (string.IsNullOrEmpty(name))
@@ -278,7 +286,10 @@ public static partial class MediaHelper
                         continue;
                     }
 
-                    if (name.StartsWith("renderD", StringComparison.OrdinalIgnoreCase) || name.StartsWith("card", StringComparison.OrdinalIgnoreCase))
+                    if (
+                        name.StartsWith("renderD", StringComparison.OrdinalIgnoreCase)
+                        || name.StartsWith("card", StringComparison.OrdinalIgnoreCase)
+                    )
                     {
                         devices.Add(entry);
                     }

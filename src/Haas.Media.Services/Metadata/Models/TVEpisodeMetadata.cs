@@ -1,5 +1,5 @@
-using TMDbLib.Objects.TvShows;
 using TMDbLib.Objects.Search;
+using TMDbLib.Objects.TvShows;
 
 namespace Haas.Media.Services.Metadata;
 
@@ -76,4 +76,3 @@ static class TVEpisodeMetadataMapper
             .ToArray();
     }
 }
-

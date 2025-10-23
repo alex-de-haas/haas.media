@@ -4,7 +4,12 @@ namespace Haas.Media.Services.Metadata;
 
 public sealed class AddToLibraryTask : BackgroundTaskBase
 {
-    public AddToLibraryTask(string libraryId, LibraryType libraryType, int tmdbId, string? libraryTitle = null)
+    public AddToLibraryTask(
+        string libraryId,
+        LibraryType libraryType,
+        int tmdbId,
+        string? libraryTitle = null
+    )
     {
         LibraryId = libraryId;
         LibraryType = libraryType;

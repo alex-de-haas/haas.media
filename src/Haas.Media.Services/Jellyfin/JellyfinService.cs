@@ -666,7 +666,11 @@ public class JellyfinService
         };
     }
 
-    private async Task<JellyfinItem> MapMovieAsync(MovieMetadata metadata, string? libraryId = null, string? userId = null)
+    private async Task<JellyfinItem> MapMovieAsync(
+        MovieMetadata metadata,
+        string? libraryId = null,
+        string? userId = null
+    )
     {
         // Get all files linked to this movie
         var allFiles = (
@@ -715,9 +719,10 @@ public class JellyfinService
         var providerIds = new Dictionary<string, string> { ["Tmdb"] = metadata.Id.ToString(), };
 
         // Get user playback data if userId is provided
-        var userData = filteredFiles.Count > 0 && !string.IsNullOrWhiteSpace(userId)
-            ? await GetUserDataForFileAsync(userId, filteredFiles[0].Id)
-            : null;
+        var userData =
+            filteredFiles.Count > 0 && !string.IsNullOrWhiteSpace(userId)
+                ? await GetUserDataForFileAsync(userId, filteredFiles[0].Id)
+                : null;
 
         return new JellyfinItem
         {
@@ -847,7 +852,7 @@ public class JellyfinService
     }
 
     private async Task<JellyfinItem> MapSeasonAsync(
-        TVShowMetadata metadata, 
+        TVShowMetadata metadata,
         int seasonNumber,
         string? libraryId = null,
         string? userId = null
@@ -862,8 +867,10 @@ public class JellyfinService
         // Get files for this specific season
         var allFiles = await _metadataApi.GetFilesByMediaIdAsync(metadata.Id, LibraryType.TVShows);
         var seasonFiles = allFiles
-            .Where(f => f.SeasonNumber == seasonNumber && 
-                       (string.IsNullOrWhiteSpace(libraryId) || f.LibraryId == libraryId))
+            .Where(f =>
+                f.SeasonNumber == seasonNumber
+                && (string.IsNullOrWhiteSpace(libraryId) || f.LibraryId == libraryId)
+            )
             .ToList();
 
         var episodeCount = seasonFiles.Count;
@@ -946,9 +953,10 @@ public class JellyfinService
         );
 
         // Get user playback data if userId is provided
-        var userData = fileMetadata != null && !string.IsNullOrWhiteSpace(userId)
-            ? await GetUserDataForFileAsync(userId, fileMetadata.Id)
-            : null;
+        var userData =
+            fileMetadata != null && !string.IsNullOrWhiteSpace(userId)
+                ? await GetUserDataForFileAsync(userId, fileMetadata.Id)
+                : null;
 
         return new JellyfinItem
         {
@@ -1134,17 +1142,13 @@ public class JellyfinService
     }
 
     private async Task<JellyfinUserData> CalculateSeriesUserDataAsync(
-        string? userId, 
+        string? userId,
         IReadOnlyList<FileMetadata> allEpisodes
     )
     {
         if (string.IsNullOrWhiteSpace(userId) || allEpisodes.Count == 0)
         {
-            return new JellyfinUserData 
-            { 
-                Played = false, 
-                UnplayedItemCount = allEpisodes.Count 
-            };
+            return new JellyfinUserData { Played = false, UnplayedItemCount = allEpisodes.Count };
         }
 
         var playbackInfos = new List<FilePlaybackInfo>();
@@ -1170,16 +1174,16 @@ public class JellyfinService
     }
 
     private async Task<JellyfinUserData> CalculateSeasonUserDataAsync(
-        string? userId, 
+        string? userId,
         IReadOnlyList<FileMetadata> seasonEpisodes
     )
     {
         if (string.IsNullOrWhiteSpace(userId) || seasonEpisodes.Count == 0)
         {
-            return new JellyfinUserData 
-            { 
-                Played = false, 
-                UnplayedItemCount = seasonEpisodes.Count 
+            return new JellyfinUserData
+            {
+                Played = false,
+                UnplayedItemCount = seasonEpisodes.Count
             };
         }
 
@@ -1258,39 +1262,44 @@ public class JellyfinService
         {
             // Directing
             "director" => "Director",
-            
+
             // Writing
             "writer" or "screenplay" or "story" or "characters" or "author" => "Writer",
-            
+
             // Production
-            "producer" or "executive producer" or "co-producer" or "associate producer" => "Producer",
-            
+            "producer"
+            or "executive producer"
+            or "co-producer"
+            or "associate producer"
+                => "Producer",
+
             // Music
             "original music composer" or "composer" or "music" => "Composer",
             "conductor" => "Conductor",
             "lyricist" => "Lyricist",
-            
+
             // Sound
             "sound engineer" or "sound designer" => "Engineer",
             "sound mixer" or "re-recording mixer" => "Mixer",
-            
+
             // Creator (TV shows)
             "creator" => "Creator",
-            
+
             // Fallback to department-based mapping
-            _ => department.ToLowerInvariant() switch
-            {
-                "directing" => "Director",
-                "writing" => "Writer",
-                "production" => "Producer",
-                "sound" => "Engineer",
-                "editing" => "Producer", // No specific "Editor" type in Jellyfin
-                "camera" => "Producer",
-                "art" => "Producer",
-                "costume & make-up" => "Producer",
-                "visual effects" => "Producer",
-                _ => "Producer" // Default fallback for all other crew roles
-            }
+            _
+                => department.ToLowerInvariant() switch
+                {
+                    "directing" => "Director",
+                    "writing" => "Writer",
+                    "production" => "Producer",
+                    "sound" => "Engineer",
+                    "editing" => "Producer", // No specific "Editor" type in Jellyfin
+                    "camera" => "Producer",
+                    "art" => "Producer",
+                    "costume & make-up" => "Producer",
+                    "visual effects" => "Producer",
+                    _ => "Producer" // Default fallback for all other crew roles
+                }
         };
     }
 
@@ -1373,7 +1382,10 @@ public class JellyfinService
     /// <summary>
     /// Gets user data for a specific file, including playback position and play status.
     /// </summary>
-    private async Task<JellyfinUserData?> GetUserDataForFileAsync(string? userId, string? fileMetadataId)
+    private async Task<JellyfinUserData?> GetUserDataForFileAsync(
+        string? userId,
+        string? fileMetadataId
+    )
     {
         if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(fileMetadataId))
         {
@@ -1403,13 +1415,17 @@ public class JellyfinService
         string userId,
         string? parentId,
         int limit,
-        IMetadataApi metadataApi)
+        IMetadataApi metadataApi
+    )
     {
         var nextUpItems = new List<JellyfinItem>();
 
         // Get all TV shows (optionally filtered by library)
         string? libraryId = null;
-        if (!string.IsNullOrWhiteSpace(parentId) && JellyfinIdHelper.TryParseLibraryId(parentId, out var libId))
+        if (
+            !string.IsNullOrWhiteSpace(parentId)
+            && JellyfinIdHelper.TryParseLibraryId(parentId, out var libId)
+        )
         {
             libraryId = libId;
         }
@@ -1422,7 +1438,9 @@ public class JellyfinService
                 break;
 
             // Get all files for this show to check playback status
-            var showFiles = (await metadataApi.GetFilesByMediaIdAsync(show.Id, LibraryType.TVShows)).ToList();
+            var showFiles = (
+                await metadataApi.GetFilesByMediaIdAsync(show.Id, LibraryType.TVShows)
+            ).ToList();
             if (showFiles.Count == 0)
                 continue;
 
@@ -1438,7 +1456,10 @@ public class JellyfinService
             }
 
             // If no episodes have been watched, skip this show
-            if (playbackInfos.Count == 0 || !playbackInfos.Values.Any(p => p.PlayCount > 0 || p.PlaybackPositionTicks > 0))
+            if (
+                playbackInfos.Count == 0
+                || !playbackInfos.Values.Any(p => p.PlayCount > 0 || p.PlaybackPositionTicks > 0)
+            )
                 continue;
 
             // Find the last watched episode and the next unwatched one
@@ -1447,10 +1468,14 @@ public class JellyfinService
             int lastWatchedEpisode = 0;
 
             // Find the last episode with any progress
-            foreach (var file in showFiles.OrderBy(f => f.SeasonNumber).ThenBy(f => f.EpisodeNumber))
+            foreach (
+                var file in showFiles.OrderBy(f => f.SeasonNumber).ThenBy(f => f.EpisodeNumber)
+            )
             {
-                if (playbackInfos.TryGetValue(file.Id, out var info) && 
-                    (info.PlayCount > 0 || info.PlaybackPositionTicks > 0))
+                if (
+                    playbackInfos.TryGetValue(file.Id, out var info)
+                    && (info.PlayCount > 0 || info.PlaybackPositionTicks > 0)
+                )
                 {
                     lastWatchedSeason = file.SeasonNumber ?? 0;
                     lastWatchedEpisode = file.EpisodeNumber ?? 0;
@@ -1458,18 +1483,25 @@ public class JellyfinService
             }
 
             // Find the next unwatched episode after the last watched one
-            foreach (var file in showFiles.OrderBy(f => f.SeasonNumber).ThenBy(f => f.EpisodeNumber))
+            foreach (
+                var file in showFiles.OrderBy(f => f.SeasonNumber).ThenBy(f => f.EpisodeNumber)
+            )
             {
                 var season = file.SeasonNumber ?? 0;
                 var episode = file.EpisodeNumber ?? 0;
 
                 // Skip if this is before or equal to the last watched
-                if (season < lastWatchedSeason || (season == lastWatchedSeason && episode <= lastWatchedEpisode))
+                if (
+                    season < lastWatchedSeason
+                    || (season == lastWatchedSeason && episode <= lastWatchedEpisode)
+                )
                     continue;
 
                 // Check if this episode is unwatched
-                if (!playbackInfos.TryGetValue(file.Id, out var info) || 
-                    (!info.Played && info.PlaybackPositionTicks == 0))
+                if (
+                    !playbackInfos.TryGetValue(file.Id, out var info)
+                    || (!info.Played && info.PlaybackPositionTicks == 0)
+                )
                 {
                     nextEpisodeFile = file;
                     break;
@@ -1479,14 +1511,20 @@ public class JellyfinService
             // If we found a next episode, add it to the results
             if (nextEpisodeFile != null)
             {
-                var episodeMetadata = show.Seasons
-                    .FirstOrDefault(s => s.SeasonNumber == nextEpisodeFile.SeasonNumber)
-                    ?.Episodes
-                    .FirstOrDefault(e => e.EpisodeNumber == nextEpisodeFile.EpisodeNumber);
+                var episodeMetadata = show
+                    .Seasons.FirstOrDefault(s => s.SeasonNumber == nextEpisodeFile.SeasonNumber)
+                    ?.Episodes.FirstOrDefault(e =>
+                        e.EpisodeNumber == nextEpisodeFile.EpisodeNumber
+                    );
 
                 if (episodeMetadata != null)
                 {
-                    var mappedEpisode = await MapEpisodeAsync(show, episodeMetadata, libraryId, userId);
+                    var mappedEpisode = await MapEpisodeAsync(
+                        show,
+                        episodeMetadata,
+                        libraryId,
+                        userId
+                    );
                     nextUpItems.Add(mappedEpisode);
                 }
             }

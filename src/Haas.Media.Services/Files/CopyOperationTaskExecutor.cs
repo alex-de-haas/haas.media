@@ -52,9 +52,10 @@ internal sealed class CopyOperationTaskExecutor
         {
             CopyOperationTaskKind.File => ExecuteFileCopyAsync(context, task),
             CopyOperationTaskKind.Directory => ExecuteDirectoryCopyAsync(context, task),
-            _ => throw new InvalidOperationException(
-                $"Unsupported copy operation kind: {task.Kind}"
-            ),
+            _
+                => throw new InvalidOperationException(
+                    $"Unsupported copy operation kind: {task.Kind}"
+                ),
         };
     }
 
@@ -99,7 +100,8 @@ internal sealed class CopyOperationTaskExecutor
                 // Update progress every 5 MB or when complete
                 var totalBytes = context.State.Payload?.TotalBytes ?? 0;
                 var isComplete = totalCopied >= totalBytes;
-                var shouldUpdate = isComplete || (totalCopied - lastProgressUpdate) >= ProgressUpdateIntervalBytes;
+                var shouldUpdate =
+                    isComplete || (totalCopied - lastProgressUpdate) >= ProgressUpdateIntervalBytes;
 
                 if (shouldUpdate)
                 {
@@ -215,7 +217,8 @@ internal sealed class CopyOperationTaskExecutor
                     totalCopied += bytesRead;
 
                     // Update progress every 5 MB
-                    var shouldUpdate = (totalCopied - lastProgressUpdate) >= ProgressUpdateIntervalBytes;
+                    var shouldUpdate =
+                        (totalCopied - lastProgressUpdate) >= ProgressUpdateIntervalBytes;
                     if (shouldUpdate)
                     {
                         UpdateProgress(

@@ -22,12 +22,15 @@ public class EncodingService : IEncodingApi
             ?? throw new ArgumentException("DATA_DIRECTORY configuration is required.");
 
         _encodingsPath = Path.Combine(_dataPath, "Encodings");
-        
+
         _backgroundTaskManager = backgroundTaskManager;
         _logger = logger;
 
         Directory.CreateDirectory(_encodingsPath);
-        _logger.LogInformation("Encoding service initialized with path: {EncodingsPath}", _encodingsPath);
+        _logger.LogInformation(
+            "Encoding service initialized with path: {EncodingsPath}",
+            _encodingsPath
+        );
     }
 
     public async Task<EncodingInfo> GetEncodingInfoAsync(string relativePath)
@@ -35,14 +38,14 @@ public class EncodingService : IEncodingApi
         var path = Path.Combine(_dataPath, relativePath);
         var isDirectory = Directory.Exists(path);
 
-        var filesInfo =
-            isDirectory
-                ? Directory
-                    .EnumerateFiles(path, "*.*", SearchOption.AllDirectories)
-                    .Where(FileHelper.IsMediaFile)
-                    .ToArray()
-            : FileHelper.IsMediaFile(path) ? [path]
-            : [];
+        var filesInfo = isDirectory
+            ? Directory
+                .EnumerateFiles(path, "*.*", SearchOption.AllDirectories)
+                .Where(FileHelper.IsMediaFile)
+                .ToArray()
+            : FileHelper.IsMediaFile(path)
+                ? [path]
+                : [];
         var files = filesInfo
             .Select(f =>
             {

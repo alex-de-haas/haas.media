@@ -7,7 +7,11 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Haas.Media.Services.Authentication;
 
-public class AuthenticationService(LiteDatabase db, IConfiguration configuration, ILogger<AuthenticationService> logger) : IAuthenticationApi
+public class AuthenticationService(
+    LiteDatabase db,
+    IConfiguration configuration,
+    ILogger<AuthenticationService> logger
+) : IAuthenticationApi
 {
     private readonly ILiteCollection<User> _users = db.GetCollection<User>("users");
     private readonly PasswordHasher<User> _passwordHasher = new();
@@ -53,20 +57,24 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
         _users.Insert(user);
         _users.EnsureIndex(u => u.Username);
 
-        logger.LogInformation("User registered: {Username} (Admin: {IsAdmin})", user.Username, user.IsAdmin);
+        logger.LogInformation(
+            "User registered: {Username} (Admin: {IsAdmin})",
+            user.Username,
+            user.IsAdmin
+        );
 
         // Generate token
         var token = GenerateJwtToken(user);
 
-        return new AuthResponse(
-            token,
-            user.Username
-        );
+        return new AuthResponse(token, user.Username);
     }
 
     public async Task<AuthResponse?> LoginAsync(LoginRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+        if (
+            string.IsNullOrWhiteSpace(request.Username)
+            || string.IsNullOrWhiteSpace(request.Password)
+        )
         {
             logger.LogWarning("Login failed: Invalid credentials format");
             return null;
@@ -81,7 +89,11 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
         }
 
         // Verify password using ASP.NET Core Identity's PasswordHasher
-        var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
+        var result = _passwordHasher.VerifyHashedPassword(
+            user,
+            user.PasswordHash,
+            request.Password
+        );
         if (result == PasswordVerificationResult.Failed)
         {
             logger.LogWarning("Login failed: Invalid password for user {Username}", user.Username);
@@ -97,10 +109,7 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
         // Generate token
         var token = GenerateJwtToken(user);
 
-        return new AuthResponse(
-            token,
-            user.Username
-        );
+        return new AuthResponse(token, user.Username);
     }
 
     public async Task<User?> GetUserByUsernameAsync(string username)
@@ -114,7 +123,10 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
         return Task.FromResult<IReadOnlyList<User>>(users);
     }
 
-    public async Task<AuthResponse?> UpdateProfileAsync(string username, UpdateProfileRequest request)
+    public async Task<AuthResponse?> UpdateProfileAsync(
+        string username,
+        UpdateProfileRequest request
+    )
     {
         // Profile updates are currently not supported
         // This method is kept for API compatibility but returns null
@@ -139,21 +151,34 @@ public class AuthenticationService(LiteDatabase db, IConfiguration configuration
 
         if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
         {
-            logger.LogWarning("Password update failed for {Username}: password too short", username);
+            logger.LogWarning(
+                "Password update failed for {Username}: password too short",
+                username
+            );
             return false;
         }
 
         // Verify current password using ASP.NET Core Identity's PasswordHasher
         if (string.IsNullOrWhiteSpace(request.CurrentPassword))
         {
-            logger.LogWarning("Password update failed for {Username}: current password missing", username);
+            logger.LogWarning(
+                "Password update failed for {Username}: current password missing",
+                username
+            );
             return false;
         }
 
-        var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.CurrentPassword);
+        var result = _passwordHasher.VerifyHashedPassword(
+            user,
+            user.PasswordHash,
+            request.CurrentPassword
+        );
         if (result == PasswordVerificationResult.Failed)
         {
-            logger.LogWarning("Password update failed for {Username}: current password invalid", username);
+            logger.LogWarning(
+                "Password update failed for {Username}: current password invalid",
+                username
+            );
             return false;
         }
 

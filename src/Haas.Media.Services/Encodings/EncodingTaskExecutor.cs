@@ -3,7 +3,8 @@ using Haas.Media.Core.BackgroundTasks;
 
 namespace Haas.Media.Services.Encodings;
 
-internal sealed class EncodingTaskExecutor : IBackgroundTaskExecutor<EncodingTask, EncodingProcessInfo>
+internal sealed class EncodingTaskExecutor
+    : IBackgroundTaskExecutor<EncodingTask, EncodingProcessInfo>
 {
     private readonly ILogger<EncodingTaskExecutor> _logger;
 
