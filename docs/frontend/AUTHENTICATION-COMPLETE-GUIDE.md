@@ -903,7 +903,7 @@ url.searchParams.set("limit", limit.toString());
 
 1. Verify using `fetchWithAuth()` or `fetchJsonWithAuth()`
 2. Check browser console for token fetch errors
-3. Verify `/api/token` endpoint is working
+3. Verify `getValidToken()` from `lib/auth/token.ts` is working correctly
 
 ### Issue: Return URL Not Working
 
