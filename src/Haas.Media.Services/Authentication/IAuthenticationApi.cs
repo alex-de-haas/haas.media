@@ -4,10 +4,10 @@ namespace Haas.Media.Services.Authentication;
 
 public interface IAuthenticationApi
 {
-    Task<AuthResponse?> RegisterAsync(RegisterRequest request);
-    Task<AuthResponse?> LoginAsync(LoginRequest request);
-    Task<User?> GetUserByUsernameAsync(string username);
-    Task<IReadOnlyList<User>> GetAllUsersAsync();
-    Task<AuthResponse?> UpdateProfileAsync(string username, UpdateProfileRequest request);
-    Task<bool> UpdatePasswordAsync(string username, UpdatePasswordRequest request);
+    AuthResponse? Register(RegisterRequest request);
+    AuthResponse? Login(LoginRequest request);
+    User? GetUserByUsername(string username);
+    IReadOnlyList<User> GetAllUsers();
+    AuthResponse? UpdateProfile(string username, UpdateProfileRequest request);
+    bool UpdatePassword(string username, UpdatePasswordRequest request);
 }

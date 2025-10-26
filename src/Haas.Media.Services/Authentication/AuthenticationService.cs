@@ -16,7 +16,7 @@ public class AuthenticationService(
     private readonly ILiteCollection<User> _users = db.GetCollection<User>("users");
     private readonly PasswordHasher<User> _passwordHasher = new();
 
-    public async Task<AuthResponse?> RegisterAsync(RegisterRequest request)
+    public AuthResponse? Register(RegisterRequest request)
     {
         // Validate input
         if (string.IsNullOrWhiteSpace(request.Username) || request.Username.Length < 3)
@@ -69,7 +69,7 @@ public class AuthenticationService(
         return new AuthResponse(token, user.Username);
     }
 
-    public async Task<AuthResponse?> LoginAsync(LoginRequest request)
+    public AuthResponse? Login(LoginRequest request)
     {
         if (
             string.IsNullOrWhiteSpace(request.Username)
@@ -112,18 +112,18 @@ public class AuthenticationService(
         return new AuthResponse(token, user.Username);
     }
 
-    public async Task<User?> GetUserByUsernameAsync(string username)
+    public User? GetUserByUsername(string username)
     {
         return _users.FindOne(u => u.Username == username);
     }
 
-    public Task<IReadOnlyList<User>> GetAllUsersAsync()
+    public IReadOnlyList<User> GetAllUsers()
     {
         var users = _users.FindAll().ToList();
-        return Task.FromResult<IReadOnlyList<User>>(users);
+        return users;
     }
 
-    public async Task<AuthResponse?> UpdateProfileAsync(
+    public AuthResponse? UpdateProfile(
         string username,
         UpdateProfileRequest request
     )
@@ -134,7 +134,7 @@ public class AuthenticationService(
         return null;
     }
 
-    public async Task<bool> UpdatePasswordAsync(string username, UpdatePasswordRequest request)
+    public bool UpdatePassword(string username, UpdatePasswordRequest request)
     {
         if (string.IsNullOrWhiteSpace(username))
         {

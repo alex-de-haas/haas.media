@@ -15,9 +15,9 @@ public static class AuthenticationConfiguration
         group
             .MapPost(
                 "/register",
-                async (RegisterRequest request, IAuthenticationApi authService) =>
+                (RegisterRequest request, IAuthenticationApi authService) =>
                 {
-                    var response = await authService.RegisterAsync(request);
+                    var response = authService.Register(request);
                     return response != null
                         ? Results.Ok(response)
                         : Results.BadRequest(new { error = "Registration failed" });
@@ -29,9 +29,9 @@ public static class AuthenticationConfiguration
         group
             .MapPost(
                 "/login",
-                async (LoginRequest request, IAuthenticationApi authService) =>
+                (LoginRequest request, IAuthenticationApi authService) =>
                 {
-                    var response = await authService.LoginAsync(request);
+                    var response = authService.Login(request);
                     return response != null ? Results.Ok(response) : Results.Unauthorized();
                 }
             )
@@ -41,7 +41,7 @@ public static class AuthenticationConfiguration
         group
             .MapGet(
                 "/me",
-                async (HttpContext context, IAuthenticationApi authService) =>
+                (HttpContext context, IAuthenticationApi authService) =>
                 {
                     var username = context.User.Identity?.Name;
                     if (string.IsNullOrEmpty(username))
@@ -49,7 +49,7 @@ public static class AuthenticationConfiguration
                         return Results.Unauthorized();
                     }
 
-                    var user = await authService.GetUserByUsernameAsync(username);
+                    var user = authService.GetUserByUsername(username);
                     if (user == null)
                     {
                         return Results.NotFound();
@@ -73,7 +73,7 @@ public static class AuthenticationConfiguration
         group
             .MapPut(
                 "/me/password",
-                async (
+                (
                     HttpContext context,
                     UpdatePasswordRequest request,
                     IAuthenticationApi authService
@@ -85,7 +85,7 @@ public static class AuthenticationConfiguration
                         return Results.Unauthorized();
                     }
 
-                    var success = await authService.UpdatePasswordAsync(username, request);
+                    var success = authService.UpdatePassword(username, request);
                     return success
                         ? Results.NoContent()
                         : Results.BadRequest(new { error = "Password update failed" });

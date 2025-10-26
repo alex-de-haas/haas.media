@@ -1,11 +1,8 @@
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Haas.Media.Services.Authentication;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
 
@@ -85,7 +82,7 @@ public class JellyfinAuthService
         return new JellyfinClientInfo(clientName, device, deviceId, version);
     }
 
-    public async Task<User?> AuthenticateRequestAsync(
+    public User? AuthenticateRequest(
         HttpRequest request,
         CancellationToken cancellationToken = default
     )
@@ -117,7 +114,8 @@ public class JellyfinAuthService
                 return null;
             }
 
-            return await _authenticationApi.GetUserByUsernameAsync(username);
+            var user = _authenticationApi.GetUserByUsername(username);
+            return user;
         }
         catch (Exception ex)
         {
@@ -126,7 +124,7 @@ public class JellyfinAuthService
         }
     }
 
-    public async Task<JellyfinAuthenticateResponse?> AuthenticateAsync(
+    public JellyfinAuthenticateResponse? Authenticate(
         JellyfinAuthenticateRequest request,
         JellyfinClientInfo clientInfo,
         CancellationToken cancellationToken = default
@@ -143,7 +141,7 @@ public class JellyfinAuthService
             return null;
         }
 
-        var authResponse = await _authenticationApi.LoginAsync(
+        var authResponse = _authenticationApi.Login(
             new LoginRequest(request.Username, password)
         );
 
@@ -152,7 +150,7 @@ public class JellyfinAuthService
             return null;
         }
 
-        var user = await _authenticationApi.GetUserByUsernameAsync(authResponse.Username);
+        var user = _authenticationApi.GetUserByUsername(authResponse.Username);
         if (user is null)
         {
             return null;
@@ -237,9 +235,9 @@ public class JellyfinAuthService
         };
     }
 
-    public async Task<IReadOnlyList<JellyfinPublicUser>> GetPublicUsersAsync()
+    public IReadOnlyList<JellyfinPublicUser> GetPublicUsers()
     {
-        var users = await _authenticationApi.GetAllUsersAsync();
+        var users = _authenticationApi.GetAllUsers();
         var ordered = users
             .OrderBy(u => u.Username, StringComparer.OrdinalIgnoreCase)
             .Select(user => new JellyfinPublicUser

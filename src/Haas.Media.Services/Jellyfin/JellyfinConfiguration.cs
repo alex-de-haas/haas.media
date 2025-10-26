@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using Haas.Media.Services.Files;
 using Haas.Media.Services.Metadata;
 using static Haas.Media.Services.Jellyfin.JellyfinHelper;
@@ -86,14 +84,14 @@ public static class JellyfinConfiguration
         group
             .MapPost(
                 "/Users/AuthenticateByName",
-                async (
+                (
                     HttpContext context,
                     JellyfinAuthenticateRequest request,
                     JellyfinAuthService authService
                 ) =>
                 {
                     var clientInfo = authService.GetClientInfo(context.Request);
-                    var response = await authService.AuthenticateAsync(request, clientInfo);
+                    var response = authService.Authenticate(request, clientInfo);
                     return response is null ? Results.Unauthorized() : JellyfinJson(response);
                 }
             )
@@ -103,8 +101,8 @@ public static class JellyfinConfiguration
         group
             .MapGet(
                 "/Users/Public",
-                async (JellyfinAuthService authService) =>
-                    JellyfinJson(await authService.GetPublicUsersAsync())
+                (JellyfinAuthService authService) =>
+                    JellyfinJson(authService.GetPublicUsers())
             )
             .AllowAnonymous()
             .WithName("JellyfinPublicUsers");

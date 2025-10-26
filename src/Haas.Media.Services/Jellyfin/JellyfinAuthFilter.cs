@@ -1,5 +1,3 @@
-using Haas.Media.Services.Authentication;
-
 namespace Haas.Media.Services.Jellyfin;
 
 internal sealed class JellyfinAuthFilter : IEndpointFilter
@@ -12,7 +10,7 @@ internal sealed class JellyfinAuthFilter : IEndpointFilter
         var httpContext = context.HttpContext;
         var authService = httpContext.RequestServices.GetRequiredService<JellyfinAuthService>();
 
-        var user = await authService.AuthenticateRequestAsync(httpContext.Request);
+        var user = authService.AuthenticateRequest(httpContext.Request);
         if (user is null)
         {
             return Results.Unauthorized();
