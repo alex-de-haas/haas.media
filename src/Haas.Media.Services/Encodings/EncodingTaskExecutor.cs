@@ -133,10 +133,18 @@ internal sealed class EncodingTaskExecutor
                 if (progressFraction > 0)
                 {
                     var totalEstimate = info.ElapsedTimeSeconds / progressFraction;
-                    info.EstimatedTimeSeconds = Math.Max(
-                        0,
-                        totalEstimate - info.ElapsedTimeSeconds
-                    );
+                    // Ensure the result is finite to avoid JSON serialization errors
+                    if (double.IsFinite(totalEstimate))
+                    {
+                        info.EstimatedTimeSeconds = Math.Max(
+                            0,
+                            totalEstimate - info.ElapsedTimeSeconds
+                        );
+                    }
+                    else
+                    {
+                        info.EstimatedTimeSeconds = 0;
+                    }
                 }
                 else
                 {
