@@ -64,6 +64,71 @@ internal sealed class JellyfinLoggingFilter : IEndpointFilter
             }
         }
 
+        // Log request body for POST/PUT/PATCH requests
+        if (
+            logger.IsEnabled(LogLevel.Debug)
+            && httpContext.Request.ContentLength > 0
+            && (method == "POST" || method == "PUT" || method == "PATCH")
+        )
+        {
+            try
+            {
+                // Enable buffering to allow reading the body multiple times
+                httpContext.Request.EnableBuffering();
+
+                // Read the request body
+                using var reader = new StreamReader(
+                    httpContext.Request.Body,
+                    encoding: System.Text.Encoding.UTF8,
+                    detectEncodingFromByteOrderMarks: false,
+                    leaveOpen: true
+                );
+
+                var body = await reader.ReadToEndAsync();
+
+                // Reset the stream position for the endpoint to read
+                httpContext.Request.Body.Position = 0;
+
+                if (!string.IsNullOrWhiteSpace(body))
+                {
+                    // Try to parse and pretty-print JSON, otherwise log as-is
+                    try
+                    {
+                        var jsonDoc = JsonDocument.Parse(body);
+                        var prettyJson = JsonSerializer.Serialize(
+                            jsonDoc.RootElement,
+                            LoggingJsonOptions
+                        );
+                        logger.LogDebug(
+                            "Jellyfin Request Body: {Method} {Path}\n{Body}",
+                            method,
+                            path,
+                            prettyJson
+                        );
+                    }
+                    catch
+                    {
+                        // Not JSON, log as-is
+                        logger.LogDebug(
+                            "Jellyfin Request Body: {Method} {Path}\n{Body}",
+                            method,
+                            path,
+                            body
+                        );
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(
+                    ex,
+                    "Failed to read request body for {Method} {Path}",
+                    method,
+                    path
+                );
+            }
+        }
+
         // Execute the endpoint
         var result = await next(context);
 
