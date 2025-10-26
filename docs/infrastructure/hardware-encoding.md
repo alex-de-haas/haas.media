@@ -70,7 +70,7 @@ Hardware selection influences the encoder name passed to FFmpeg:
 | ------------ | -------------------------------------------------------------------------------- |
 | NVENC        | `h264_nvenc`, `hevc_nvenc`, `av1_nvenc`                                          |
 | QSV          | `h264_qsv`, `hevc_qsv`, `av1_qsv`, `vp9_qsv`, `mpeg2_qsv`                        |
-| AMF          | `h264_amf`, `hevc_amf`                                                           |
+| AMF          | `h264_amf`, `hevc_amf`, `av1_amf`                                                |
 | VideoToolbox | `h264_videotoolbox`, `hevc_videotoolbox`, `prores_videotoolbox`                  |
 | VAAPI        | `h264_vaapi`, `hevc_vaapi`, `vp8_vaapi`, `vp9_vaapi`, `av1_vaapi`, `mpeg2_vaapi` |
 | None         | Falls back to software encoders (`libx264`, `libx265`, `libaom-av1`, etc.)       |
@@ -100,11 +100,11 @@ The builder's `SupportsCrf()` method determines if a specific encoder supports C
 | Encoder Type | H.264 | HEVC | AV1 | VP9 | VP8 |
 | ------------ | ----- | ---- | --- | --- | --- |
 | Software     | ✅    | ✅   | ✅  | ✅  | ✅  |
-| NVENC        | ❌    | ❌   | ❌  | ❌  | ❌  |
-| QSV          | ❌    | ❌   | ❌  | ❌  | ❌  |
+| NVENC        | ✅    | ✅   | ✅  | ❌  | ❌  |
+| QSV          | ✅    | ✅   | ✅  | ❌  | ❌  |
 | AMF          | ❌    | ❌   | ❌  | ❌  | ❌  |
 | VideoToolbox | ✅    | ✅   | ❌  | ❌  | ❌  |
-| VAAPI        | ❌    | ❌   | ❌  | ❌  | ❌  |
+| VAAPI        | ✅    | ✅   | ✅  | ❌  | ❌  |
 
 ### Runtime CRF Detection
 

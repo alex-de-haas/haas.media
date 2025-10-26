@@ -433,6 +433,17 @@ public class MediaEncodingBuilder
             "libaom-av1" => true,
             "libvpx-vp9" => true,
             "libvpx" => true,
+            // Hardware encoders with CRF support
+            "h264_nvenc" => true,
+            "hevc_nvenc" => true,
+            "av1_nvenc" => true,
+            "h264_qsv" => true,
+            "hevc_qsv" => true,
+            "av1_qsv" => true,
+            "h264_vaapi" => true,
+            "hevc_vaapi" => true,
+            "av1_vaapi" => true,
+            // Note: AMF encoders support -qp but not -crf
             // Apple VideoToolbox does NOT support CRF - uses -q:v instead
             "h264_videotoolbox" => false,
             "hevc_videotoolbox" => false,
@@ -580,6 +591,7 @@ public class MediaEncodingBuilder
         {
             StreamCodec.H264 => "h264_amf",
             StreamCodec.HEVC => "hevc_amf",
+            StreamCodec.AV1 => "av1_amf",
             _
                 => throw new NotSupportedException(
                     $"Codec {codec} is not supported for AMD hardware encoding"
