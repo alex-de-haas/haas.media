@@ -94,6 +94,101 @@ public static class AuthenticationConfiguration
             .RequireAuthorization()
             .WithName("UpdatePassword");
 
+        // External Token Management
+
+        group
+            .MapPost(
+                "/tokens",
+                (
+                    HttpContext context,
+                    CreateExternalTokenRequest request,
+                    IAuthenticationApi authService
+                ) =>
+                {
+                    var username = context.User.Identity?.Name;
+                    if (string.IsNullOrEmpty(username))
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    var user = authService.GetUserByUsername(username);
+                    if (user == null)
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    try
+                    {
+                        var response = authService.CreateExternalToken(user, request);
+                        return Results.Created($"/api/auth/tokens/{response.Id}", response);
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        return Results.BadRequest(new { error = ex.Message });
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        return Results.BadRequest(new { error = ex.Message });
+                    }
+                }
+            )
+            .RequireAuthorization()
+            .WithName("CreateExternalToken");
+
+        group
+            .MapGet(
+                "/tokens",
+                (HttpContext context, IAuthenticationApi authService) =>
+                {
+                    var username = context.User.Identity?.Name;
+                    if (string.IsNullOrEmpty(username))
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    var user = authService.GetUserByUsername(username);
+                    if (user == null)
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    var tokens = authService.GetExternalTokens(user);
+                    return Results.Ok(tokens);
+                }
+            )
+            .RequireAuthorization()
+            .WithName("GetExternalTokens");
+
+        group
+            .MapDelete(
+                "/tokens/{tokenId}",
+                (
+                    string tokenId,
+                    HttpContext context,
+                    IAuthenticationApi authService
+                ) =>
+                {
+                    var username = context.User.Identity?.Name;
+                    if (string.IsNullOrEmpty(username))
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    var user = authService.GetUserByUsername(username);
+                    if (user == null)
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    var success = authService.RevokeExternalToken(user, tokenId);
+                    return success
+                        ? Results.NoContent()
+                        : Results.NotFound(new { error = "Token not found" });
+                }
+            )
+            .RequireAuthorization()
+            .WithName("RevokeExternalToken");
+
         return app;
     }
 }

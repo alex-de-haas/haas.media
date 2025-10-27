@@ -20,6 +20,7 @@ import {
   UserRound,
   Users,
   Network,
+  Key,
 } from "lucide-react";
 
 import { useLayout } from "./layout-provider";
@@ -251,6 +252,14 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
         >
           <UserRound className="h-4 w-4" />
           Profile
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => {
+            router.push("/tokens");
+          }}
+        >
+          <Key className="h-4 w-4" />
+          API Tokens
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>

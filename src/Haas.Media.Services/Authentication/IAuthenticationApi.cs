@@ -10,4 +10,10 @@ public interface IAuthenticationApi
     IReadOnlyList<User> GetAllUsers();
     AuthResponse? UpdateProfile(string username, UpdateProfileRequest request);
     bool UpdatePassword(string username, UpdatePasswordRequest request);
+    
+    // External token management
+    ExternalTokenResponse CreateExternalToken(User user, CreateExternalTokenRequest request);
+    IReadOnlyList<ExternalTokenInfo> GetExternalTokens(User user);
+    bool RevokeExternalToken(User user, string tokenId);
+    User? ValidateExternalToken(string token);
 }

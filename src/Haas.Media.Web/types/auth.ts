@@ -23,3 +23,23 @@ export interface UpdatePasswordRequest {
   currentPassword: string;
   newPassword: string;
 }
+
+// External Tokens
+export interface ExternalTokenInfo {
+  id: string;
+  name: string;
+  token: string;
+  createdAt: string;
+  lastUsedAt?: string;
+}
+
+export interface ExternalTokenResponse {
+  id: string;
+  name: string;
+  token: string;
+  createdAt: string;
+}
+
+export interface CreateExternalTokenRequest {
+  name: string;
+}

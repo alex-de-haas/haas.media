@@ -58,6 +58,18 @@ public static class NodesConfiguration
                         return Results.BadRequest(new { error = "URL is required" });
                     }
 
+                    // ApiKey must be an external token (not a regular JWT)
+                    if (string.IsNullOrWhiteSpace(request.ApiKey))
+                    {
+                        return Results.BadRequest(
+                            new
+                            {
+                                error =
+                                    "API Key is required. Use an external token from /api/auth/tokens endpoint."
+                            }
+                        );
+                    }
+
                     // Validate URL format
                     if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri))
                     {
@@ -84,8 +96,11 @@ public static class NodesConfiguration
                         );
                     }
 
-                    // Get current node API key (optional)
-                    var currentNodeApiKey = configuration["NODE_API_KEY"];
+                    // Get current node API key from authenticated user's external token
+                    // Extract from Authorization header
+                    var currentNodeApiKey = httpContext.Request.Headers.Authorization
+                        .ToString()
+                        .Replace("Bearer ", "");
 
                     try
                     {
@@ -146,7 +161,7 @@ public static class NodesConfiguration
                 }
             )
             .WithName("RegisterNode")
-            .RequireAuthorization();
+            .RequireAuthorization(Authentication.AuthorizationPolicies.AllowExternalToken);
 
         // Update a node
         api.MapPut(

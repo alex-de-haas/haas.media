@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using LiteDB;
 using Microsoft.AspNetCore.Identity;
@@ -14,6 +15,7 @@ public class AuthenticationService(
 ) : IAuthenticationApi
 {
     private readonly ILiteCollection<User> _users = db.GetCollection<User>("users");
+    private readonly ILiteCollection<ExternalToken> _externalTokens = db.GetCollection<ExternalToken>("external_tokens");
     private readonly PasswordHasher<User> _passwordHasher = new();
 
     public AuthResponse? Register(RegisterRequest request)
@@ -223,5 +225,107 @@ public class AuthenticationService(
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    // External Token Management
+
+    public ExternalTokenResponse CreateExternalToken(User user, CreateExternalTokenRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            throw new ArgumentException("Token name is required");
+        }
+
+        // Generate a cryptographically secure random token
+        var tokenBytes = new byte[32];
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(tokenBytes);
+        }
+        var tokenValue = Convert.ToBase64String(tokenBytes);
+
+        var externalToken = new ExternalToken
+        {
+            Name = request.Name,
+            Token = tokenValue,
+            UserId = user.Id,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _externalTokens.Insert(externalToken);
+        _externalTokens.EnsureIndex(t => t.UserId);
+        _externalTokens.EnsureIndex(t => t.Token);
+
+        logger.LogInformation(
+            "External token created: {TokenName} for user {Username}",
+            request.Name,
+            user.Username
+        );
+
+        // Return the token value
+        return new ExternalTokenResponse(
+            externalToken.Id,
+            externalToken.Name,
+            tokenValue,
+            externalToken.CreatedAt
+        );
+    }
+
+    public IReadOnlyList<ExternalTokenInfo> GetExternalTokens(User user)
+    {
+        var tokens = _externalTokens
+            .Find(t => t.UserId == user.Id)
+            .Select(t => new ExternalTokenInfo(t.Id, t.Name, t.Token, t.CreatedAt, t.LastUsedAt))
+            .ToList();
+
+        return tokens;
+    }
+
+    public bool RevokeExternalToken(User user, string tokenId)
+    {
+        var token = _externalTokens.FindById(tokenId);
+        if (token == null || token.UserId != user.Id)
+        {
+            logger.LogWarning(
+                "Token revocation failed: token {TokenId} not found or doesn't belong to user {Username}",
+                tokenId,
+                user.Username
+            );
+            return false;
+        }
+
+        var deleted = _externalTokens.Delete(tokenId);
+        if (deleted)
+        {
+            logger.LogInformation(
+                "External token revoked: {TokenName} for user {Username}",
+                token.Name,
+                user.Username
+            );
+        }
+
+        return deleted;
+    }
+
+    public User? ValidateExternalToken(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return null;
+        }
+
+        var externalToken = _externalTokens.FindOne(t => t.Token == token);
+        
+        if (externalToken == null)
+        {
+            return null;
+        }
+
+        // Update last used timestamp
+        externalToken.LastUsedAt = DateTime.UtcNow;
+        _externalTokens.Update(externalToken);
+
+        var user = _users.FindById(externalToken.UserId);
+        return user;
     }
 }

@@ -12,6 +12,7 @@ using Haas.Media.Services.Nodes;
 using Haas.Media.Services.Torrents;
 using LiteDB;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.IdentityModel.Tokens;
 
@@ -53,7 +54,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddSignalR();
 
-// Authentication Configuration - Local JWT only
+// Authentication Configuration - Hybrid JWT + External Tokens
 var jwtSecret = builder.Configuration["JWT_SECRET"];
 
 if (!string.IsNullOrWhiteSpace(jwtSecret))
@@ -63,48 +64,58 @@ if (!string.IsNullOrWhiteSpace(jwtSecret))
 
     builder
         .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(options =>
-        {
-            options.TokenValidationParameters = new TokenValidationParameters
+        .AddScheme<JwtBearerOptions, HybridAuthenticationHandler>(
+            JwtBearerDefaults.AuthenticationScheme,
+            options =>
             {
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-                ValidIssuer = jwtIssuer,
-                ValidAudience = jwtAudience,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret!))
-            };
-
-            // Allow tokens via query string for WebSockets/SignalR
-            options.Events = new JwtBearerEvents
-            {
-                OnMessageReceived = context =>
+                options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    var accessToken = context.Request.Query["access_token"];
-                    var path = context.HttpContext.Request.Path;
-                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hub"))
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtIssuer,
+                    ValidAudience = jwtAudience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret!))
+                };
+
+                // Allow tokens via query string for WebSockets/SignalR
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
                     {
-                        context.Token = accessToken!;
-                    }
-                    return Task.CompletedTask;
-                },
-                OnAuthenticationFailed = context =>
-                {
-                    var logger = context.HttpContext.RequestServices.GetRequiredService<
-                        ILogger<Program>
-                    >();
-                    logger.LogError(
-                        "Authentication failed for {Path}: {Exception}",
-                        context.HttpContext.Request.Path,
-                        context.Exception.Message
-                    );
-                    return Task.CompletedTask;
-                },
-            };
-        });
+                        var accessToken = context.Request.Query["access_token"];
+                        var path = context.HttpContext.Request.Path;
+                        if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hub"))
+                        {
+                            context.Token = accessToken!;
+                        }
+                        return Task.CompletedTask;
+                    },
+                    OnAuthenticationFailed = context =>
+                    {
+                        var logger = context.HttpContext.RequestServices.GetRequiredService<
+                            ILogger<Program>
+                        >();
+                        logger.LogError(
+                            "Authentication failed for {Path}: {Exception}",
+                            context.HttpContext.Request.Path,
+                            context.Exception.Message
+                        );
+                        return Task.CompletedTask;
+                    },
+                };
+            }
+        );
 
-    builder.Services.AddAuthorization();
+    // Configure authorization policies
+    builder.Services.AddAuthorizationBuilder()
+        .AddPolicy(AuthorizationPolicies.Authenticated, policy => policy.RequireAuthenticatedUser())
+        .AddPolicy(AuthorizationPolicies.JwtOnly, policy => policy.AddRequirements(new JwtOnlyRequirement()))
+        .AddPolicy(AuthorizationPolicies.AllowExternalToken, policy => policy.RequireAuthenticatedUser());
+
+    // Register authorization handlers
+    builder.Services.AddSingleton<IAuthorizationHandler, JwtOnlyRequirementHandler>();
 }
 
 var origins = builder.Configuration["ALLOWED_CORS_ORIGINS"]?.Split(',') ?? [];
