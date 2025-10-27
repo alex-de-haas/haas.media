@@ -16,8 +16,10 @@ export interface NodeInfo {
 export interface ConnectNodeRequest {
   name: string;
   url: string;
-  apiKey?: string;
-  tokenId?: string;
+  /** API key/token from destination node (to authenticate TO destination) - must be entered manually */
+  destinationApiKey?: string;
+  /** ID of current node's external token (to send TO destination for callback) */
+  currentNodeTokenId?: string;
 }
 
 export interface UpdateNodeRequest {

@@ -53,11 +53,16 @@ public sealed record ConnectNodeRequest
 {
     public required string Name { get; init; }
     public required string Url { get; init; }
-    public string? ApiKey { get; init; }
+    
     /// <summary>
-    /// ID of an existing external token to use for authentication
+    /// API key/token from the destination node (to authenticate TO the destination) - must be provided manually
     /// </summary>
-    public string? TokenId { get; init; }
+    public string? DestinationApiKey { get; init; }
+    
+    /// <summary>
+    /// ID of current node's external token (to send TO destination so it can authenticate back)
+    /// </summary>
+    public string? CurrentNodeTokenId { get; init; }
 }
 
 /// <summary>

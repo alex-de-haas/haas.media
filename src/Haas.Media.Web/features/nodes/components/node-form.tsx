@@ -8,8 +8,8 @@ import { Loader2, CheckCircle, XCircle, Key } from "lucide-react";
 import type { ConnectNodeRequest, NodeInfo, UpdateNodeRequest, NodeValidationResult } from "@/types/node";
 import type { ExternalTokenInfo } from "@/types/auth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 import { getApiUrl } from "@/lib/api";
 
@@ -23,9 +23,13 @@ interface NodeFormProps {
 export function NodeForm({ node, onSubmit, onCancel, onValidate }: NodeFormProps) {
   const [name, setName] = useState(node?.name || "");
   const [url, setUrl] = useState(node?.url || "");
-  const [authMode, setAuthMode] = useState<"token" | "manual">("token");
-  const [selectedTokenId, setSelectedTokenId] = useState<string>("");
-  const [apiKey, setApiKey] = useState(node?.apiKey || "");
+  
+  // Destination node authentication (to authenticate TO destination) - manual only
+  const [destApiKey, setDestApiKey] = useState("");
+  
+  // Current node authentication (to send TO destination)
+  const [selectedCurrentTokenId, setSelectedCurrentTokenId] = useState<string>("");
+  
   const [tokens, setTokens] = useState<ExternalTokenInfo[]>([]);
   const [loadingTokens, setLoadingTokens] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,11 +63,7 @@ export function NodeForm({ node, onSubmit, onCancel, onValidate }: NodeFormProps
     setValidationResult(null);
     try {
       if (onValidate) {
-        const keyToValidate = authMode === "token" 
-          ? tokens.find(t => t.id === selectedTokenId)?.token 
-          : apiKey;
-        
-        const result = await onValidate(url, keyToValidate || undefined);
+        const result = await onValidate(url, destApiKey || undefined);
         if (result.result) {
           setValidationResult(result.result);
         }
@@ -80,8 +80,8 @@ export function NodeForm({ node, onSubmit, onCancel, onValidate }: NodeFormProps
       const data: ConnectNodeRequest | UpdateNodeRequest = {
         name,
         url,
-        ...(authMode === "token" && selectedTokenId ? { tokenId: selectedTokenId } : {}),
-        ...(authMode === "manual" && apiKey ? { apiKey } : {}),
+        ...(destApiKey ? { destinationApiKey: destApiKey } : {}),
+        ...(selectedCurrentTokenId ? { currentNodeTokenId: selectedCurrentTokenId } : {}),
       };
       await onSubmit(data);
     } finally {
@@ -89,7 +89,9 @@ export function NodeForm({ node, onSubmit, onCancel, onValidate }: NodeFormProps
     }
   };
 
-  const canValidate = url && ((authMode === "token" && selectedTokenId) || (authMode === "manual" && apiKey));
+  const hasDestAuth = !!destApiKey;
+  const canValidate = url && hasDestAuth;
+  const canSubmit = canValidate && selectedCurrentTokenId;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -111,17 +113,37 @@ export function NodeForm({ node, onSubmit, onCancel, onValidate }: NodeFormProps
       </div>
 
       {!node && (
-        <div className="space-y-3">
-          <Label>Authentication</Label>
-          <Tabs value={authMode} onValueChange={(value) => setAuthMode(value as "token" | "manual")}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="token">Use Existing Token</TabsTrigger>
-              <TabsTrigger value="manual">Enter API Key</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="token" className="space-y-3 mt-3">
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Destination Node Token</CardTitle>
+              <CardDescription>Enter the token FROM the destination node to authenticate TO it</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="tokenSelect">Select Token</Label>
+                <Label htmlFor="destApiKey">Destination Token</Label>
+                <p className="text-xs text-muted-foreground">Paste the token from the destination node</p>
+                <Input
+                  id="destApiKey"
+                  type="password"
+                  placeholder="Enter destination node's token"
+                  value={destApiKey}
+                  onChange={(e) => setDestApiKey(e.target.value)}
+                  required
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Current Node Token</CardTitle>
+              <CardDescription>Your token to send TO the destination node (for callbacks)</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="currentTokenSelect">Select Your Token to Share</Label>
+                <p className="text-xs text-muted-foreground">This token will be sent to the destination node</p>
                 {loadingTokens ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -139,9 +161,9 @@ export function NodeForm({ node, onSubmit, onCancel, onValidate }: NodeFormProps
                     </AlertDescription>
                   </Alert>
                 ) : (
-                  <Select value={selectedTokenId} onValueChange={setSelectedTokenId}>
-                    <SelectTrigger id="tokenSelect">
-                      <SelectValue placeholder="Select a token..." />
+                  <Select value={selectedCurrentTokenId} onValueChange={setSelectedCurrentTokenId}>
+                    <SelectTrigger id="currentTokenSelect">
+                      <SelectValue placeholder="Select a token to share..." />
                     </SelectTrigger>
                     <SelectContent>
                       {tokens.map((token) => (
@@ -153,22 +175,9 @@ export function NodeForm({ node, onSubmit, onCancel, onValidate }: NodeFormProps
                   </Select>
                 )}
               </div>
-            </TabsContent>
-            
-            <TabsContent value="manual" className="space-y-3 mt-3">
-              <div className="space-y-2">
-                <Label htmlFor="apiKey">API Key</Label>
-                <Input
-                  id="apiKey"
-                  type="password"
-                  placeholder="Enter API key"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                />
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+            </CardContent>
+          </Card>
+        </>
       )}
 
       {node && (
@@ -178,8 +187,9 @@ export function NodeForm({ node, onSubmit, onCancel, onValidate }: NodeFormProps
             id="apiKey"
             type="password"
             placeholder="Optional API key"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
+            value={node.apiKey || ""}
+            onChange={() => {}}
+            disabled
           />
         </div>
       )}
@@ -231,7 +241,7 @@ export function NodeForm({ node, onSubmit, onCancel, onValidate }: NodeFormProps
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || (!node && !canSubmit)}>
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

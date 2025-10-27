@@ -57,7 +57,7 @@ public sealed class NodesService : INodesApi
         _logger.LogInformation("Connecting to new node: {Name} at {Url}", request.Name, request.Url);
 
         // Validate the connection first
-        var validationResult = await ValidateNodeAsync(request.Url, request.ApiKey);
+        var validationResult = await ValidateNodeAsync(request.Url, request.DestinationApiKey);
         if (!validationResult.IsValid)
         {
             _logger.LogError(
@@ -82,7 +82,7 @@ public sealed class NodesService : INodesApi
         {
             await RegisterWithRemoteNodeAsync(
                 request.Url,
-                request.ApiKey,
+                request.DestinationApiKey,
                 new NodeRegistrationData
                 {
                     Name = GetCurrentNodeName(),
@@ -104,7 +104,7 @@ public sealed class NodesService : INodesApi
         {
             Name = request.Name,
             Url = request.Url.TrimEnd('/'),
-            ApiKey = request.ApiKey,
+            ApiKey = request.DestinationApiKey,
             LastValidatedAt = DateTime.UtcNow,
             Metadata = validationResult.SystemInfo ?? new Dictionary<string, string>()
         };

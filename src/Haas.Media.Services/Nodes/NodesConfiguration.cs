@@ -61,45 +61,54 @@ public static class NodesConfiguration
                         return Results.BadRequest(new { error = "URL is required" });
                     }
 
-                    // Resolve API key from tokenId if provided
-                    string? apiKey = request.ApiKey;
-                    if (!string.IsNullOrWhiteSpace(request.TokenId))
+                    // Get the current authenticated user
+                    var username = httpContext.User.Identity?.Name;
+                    if (string.IsNullOrWhiteSpace(username))
                     {
-                        // Get the current authenticated user
-                        var username = httpContext.User.Identity?.Name;
-                        if (string.IsNullOrWhiteSpace(username))
-                        {
-                            return Results.Unauthorized();
-                        }
-
-                        var user = authApi.GetUserByUsername(username);
-                        if (user == null)
-                        {
-                            return Results.Unauthorized();
-                        }
-
-                        // Get the user's external tokens
-                        var tokens = authApi.GetExternalTokens(user);
-                        var selectedToken = tokens.FirstOrDefault(t => t.Id == request.TokenId);
-                        
-                        if (selectedToken == null)
-                        {
-                            return Results.BadRequest(
-                                new { error = "Selected token not found or does not belong to current user" }
-                            );
-                        }
-
-                        apiKey = selectedToken.Token;
+                        return Results.Unauthorized();
                     }
 
-                    // ApiKey must be provided (either directly or via tokenId)
-                    if (string.IsNullOrWhiteSpace(apiKey))
+                    var user = authApi.GetUserByUsername(username);
+                    if (user == null)
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    // Destination API key is required (must be provided manually)
+                    if (string.IsNullOrWhiteSpace(request.DestinationApiKey))
                     {
                         return Results.BadRequest(
                             new
                             {
-                                error =
-                                    "API Key is required. Use an external token from /api/auth/tokens endpoint."
+                                error = "Destination API key is required. Provide the token from the destination node."
+                            }
+                        );
+                    }
+
+                    // Resolve current node API key (token TO SEND to destination node for callback)
+                    string? currentNodeApiKey = null;
+                    if (!string.IsNullOrWhiteSpace(request.CurrentNodeTokenId))
+                    {
+                        var tokens = authApi.GetExternalTokens(user);
+                        var selectedToken = tokens.FirstOrDefault(t => t.Id == request.CurrentNodeTokenId);
+                        
+                        if (selectedToken == null)
+                        {
+                            return Results.BadRequest(
+                                new { error = "Current node token not found or does not belong to current user" }
+                            );
+                        }
+
+                        currentNodeApiKey = selectedToken.Token;
+                    }
+
+                    // Current node API key is required for bidirectional authentication
+                    if (string.IsNullOrWhiteSpace(currentNodeApiKey))
+                    {
+                        return Results.BadRequest(
+                            new
+                            {
+                                error = "Current node API key is required. Provide CurrentNodeTokenId to enable bidirectional authentication."
                             }
                         );
                     }
@@ -130,24 +139,10 @@ public static class NodesConfiguration
                         );
                     }
 
-                    // Get current node API key from authenticated user's external token
-                    // Extract from Authorization header
-                    var currentNodeApiKey = httpContext.Request.Headers.Authorization
-                        .ToString()
-                        .Replace("Bearer ", "");
-
                     try
                     {
-                        // Create a modified request with the resolved API key
-                        var connectRequest = new ConnectNodeRequest
-                        {
-                            Name = request.Name,
-                            Url = request.Url,
-                            ApiKey = apiKey
-                        };
-                        
                         var node = await nodesApi.ConnectNodeAsync(
-                            connectRequest,
+                            request,
                             currentNodeUrl,
                             currentNodeApiKey
                         );
