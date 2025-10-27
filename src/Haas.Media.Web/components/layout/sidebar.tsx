@@ -19,6 +19,7 @@ import {
   CalendarDays,
   UserRound,
   Users,
+  Network,
 } from "lucide-react";
 
 import { useLayout } from "./layout-provider";
@@ -89,6 +90,11 @@ const navigationItems = [
     name: "Releases Calendar",
     href: "/releases",
     icon: CalendarDays,
+  },
+  {
+    name: "Connected Nodes",
+    href: "/nodes",
+    icon: Network,
   },
   {
     name: "Settings",

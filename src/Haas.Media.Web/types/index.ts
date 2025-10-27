@@ -11,3 +11,4 @@ export * from "./library";
 export * from "./media-file-info";
 export * from "./media-info";
 export * from "./background-task";
+export * from "./node";
