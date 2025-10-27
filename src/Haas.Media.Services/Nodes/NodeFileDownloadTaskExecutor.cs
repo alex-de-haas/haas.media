@@ -1,5 +1,6 @@
 using Haas.Media.Core.BackgroundTasks;
 using Haas.Media.Services.Metadata;
+using Haas.Media.Services.Utilities;
 using LiteDB;
 
 namespace Haas.Media.Services.Nodes;
@@ -106,6 +107,27 @@ internal sealed class NodeFileDownloadTaskExecutor
             // Get total file size from Content-Length header
             var totalBytes = response.Content.Headers.ContentLength ?? 0;
 
+            // Get file metadata to retrieve expected MD5 hash
+            var allFileMetadata = await _metadataApi.GetFileMetadataAsync();
+            var fileMetadata = allFileMetadata.FirstOrDefault(fm =>
+                fm.NodeId == task.NodeId && fm.FilePath == task.RemoteFilePath
+            );
+            var expectedMd5Hash = fileMetadata?.Md5Hash;
+
+            if (!string.IsNullOrEmpty(expectedMd5Hash))
+            {
+                _logger.LogInformation(
+                    "File has expected MD5 hash: {Hash}. Will validate after download.",
+                    expectedMd5Hash
+                );
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "No MD5 hash found for file. Download will proceed without validation."
+                );
+            }
+
             // Initialize payload
             var initialInfo = new NodeFileDownloadInfo(
                 task.Id.ToString(),
@@ -117,7 +139,10 @@ internal sealed class NodeFileDownloadTaskExecutor
                 0, // DownloadedBytes
                 DateTime.UtcNow,
                 null, // CompletedTime
-                null // LocalFilePath
+                null, // LocalFilePath
+                expectedMd5Hash, // ExpectedMd5Hash
+                null, // ActualMd5Hash
+                null // HashValidated
             );
             context.SetPayload(initialInfo);
 
@@ -169,12 +194,75 @@ internal sealed class NodeFileDownloadTaskExecutor
             // Get relative path (relative to DATA_DIRECTORY)
             var relativePath = Path.GetRelativePath(dataDirectory, localFilePath);
 
+            // Validate MD5 hash if expected hash is available
+            string? actualMd5Hash = null;
+            bool? hashValidated = null;
+
+            if (!string.IsNullOrEmpty(expectedMd5Hash))
+            {
+                _logger.LogInformation("Calculating MD5 hash of downloaded file...");
+
+                actualMd5Hash = await FileHashUtility.CalculateMd5HashAsync(
+                    localFilePath,
+                    cancellationToken
+                );
+
+                hashValidated = string.Equals(
+                    actualMd5Hash,
+                    expectedMd5Hash,
+                    StringComparison.OrdinalIgnoreCase
+                );
+
+                if (hashValidated == true)
+                {
+                    _logger.LogInformation(
+                        "MD5 hash validation successful. Hash: {Hash}",
+                        actualMd5Hash
+                    );
+                }
+                else
+                {
+                    _logger.LogError(
+                        "MD5 hash validation FAILED! Expected: {Expected}, Actual: {Actual}",
+                        expectedMd5Hash,
+                        actualMd5Hash
+                    );
+
+                    // Clean up the downloaded file since it's corrupted
+                    try
+                    {
+                        File.Delete(localFilePath);
+                        _logger.LogInformation("Deleted corrupted file: {LocalFilePath}", localFilePath);
+                    }
+                    catch (Exception deleteEx)
+                    {
+                        _logger.LogWarning(
+                            deleteEx,
+                            "Failed to delete corrupted file: {LocalFilePath}",
+                            localFilePath
+                        );
+                    }
+
+                    throw new InvalidOperationException(
+                        $"File integrity check failed. Expected MD5: {expectedMd5Hash}, " +
+                        $"Actual MD5: {actualMd5Hash}. The file may be corrupted during transfer."
+                    );
+                }
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Skipping MD5 validation - no expected hash available for this file."
+                );
+            }
+
             // Update file metadata from node version to local version
             await UpdateFileMetadataToLocalAsync(
                 task.NodeId,
                 task.RemoteFilePath,
                 task.LibraryId,
                 relativePath,
+                actualMd5Hash,
                 cancellationToken
             );
 
@@ -184,6 +272,8 @@ internal sealed class NodeFileDownloadTaskExecutor
                 DownloadedBytes = totalDownloaded,
                 CompletedTime = DateTime.UtcNow,
                 LocalFilePath = relativePath,
+                ActualMd5Hash = actualMd5Hash,
+                HashValidated = hashValidated,
             };
 
             context.SetPayload(completedInfo);
@@ -191,9 +281,10 @@ internal sealed class NodeFileDownloadTaskExecutor
             context.ReportStatus(BackgroundTaskStatus.Completed);
 
             _logger.LogInformation(
-                "Successfully downloaded file from node {NodeName} to {LocalFilePath}",
+                "Successfully downloaded file from node {NodeName} to {LocalFilePath}. Hash validated: {HashValidated}",
                 node.Name,
-                localFilePath
+                localFilePath,
+                hashValidated ?? false
             );
         }
         catch (HttpRequestException ex)
@@ -278,13 +369,14 @@ internal sealed class NodeFileDownloadTaskExecutor
     /// <summary>
     /// Updates file metadata from node version to local version after successful download.
     /// Finds the FileMetadata record with the matching NodeId and FilePath, then updates it to set NodeId to null,
-    /// LibraryId to the target library, and FilePath to the local path.
+    /// LibraryId to the target library, FilePath to the local path, and optionally updates the MD5 hash.
     /// </summary>
     private async Task UpdateFileMetadataToLocalAsync(
         string nodeId,
         string remoteFilePath,
         string libraryId,
         string localFilePath,
+        string? md5Hash,
         CancellationToken cancellationToken
     )
     {
@@ -313,6 +405,12 @@ internal sealed class NodeFileDownloadTaskExecutor
                 metadata.NodeId = null;
                 metadata.LibraryId = libraryId;
                 metadata.FilePath = localFilePath;
+                
+                // Update MD5 hash if provided (this ensures local hash matches what was validated)
+                if (!string.IsNullOrEmpty(md5Hash))
+                {
+                    metadata.Md5Hash = md5Hash;
+                }
 
                 var updated = await _metadataApi.UpdateFileMetadataAsync(metadata);
                 if (updated != null)

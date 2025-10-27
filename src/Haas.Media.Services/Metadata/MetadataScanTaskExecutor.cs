@@ -1,4 +1,5 @@
 using Haas.Media.Core.BackgroundTasks;
+using Haas.Media.Services.Utilities;
 using LiteDB;
 using TMDbLib.Client;
 using TMDbLib.Objects.General;
@@ -528,6 +529,30 @@ internal sealed class MetadataScanTaskExecutor
 
                 if (filePath != null)
                 {
+                    // Calculate MD5 hash of the file
+                    string? md5Hash = null;
+                    try
+                    {
+                        var fullFilePath = Path.Combine(_dataPath, filePath);
+                        md5Hash = await FileHashUtility.CalculateMd5HashAsync(
+                            fullFilePath,
+                            cancellationToken
+                        );
+                        _logger.LogDebug(
+                            "Calculated MD5 hash for {FilePath}: {Hash}",
+                            filePath,
+                            md5Hash
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(
+                            ex,
+                            "Failed to calculate MD5 hash for {FilePath}. File will be added without hash.",
+                            filePath
+                        );
+                    }
+
                     var fileMetadata = new FileMetadata
                     {
                         Id = Guid.CreateVersion7().ToString(),
@@ -535,6 +560,7 @@ internal sealed class MetadataScanTaskExecutor
                         MediaId = tmdbTvShowId,
                         MediaType = LibraryType.TVShows,
                         FilePath = filePath,
+                        Md5Hash = md5Hash,
                         SeasonNumber = season.SeasonNumber,
                         EpisodeNumber = episode.EpisodeNumber,
                         CreatedAt = DateTime.UtcNow,
@@ -877,10 +903,59 @@ internal sealed class MetadataScanTaskExecutor
                     {
                         existingFileMetadata.LibraryId = library.Id!;
                         existingFileMetadata.UpdatedAt = DateTime.UtcNow;
+                        
+                        // Calculate and update MD5 hash if not present
+                        if (string.IsNullOrEmpty(existingFileMetadata.Md5Hash))
+                        {
+                            try
+                            {
+                                existingFileMetadata.Md5Hash = await FileHashUtility.CalculateMd5HashAsync(
+                                    filePath,
+                                    context.CancellationToken
+                                );
+                                _logger.LogDebug(
+                                    "Calculated MD5 hash for existing file {FilePath}: {Hash}",
+                                    relativePath,
+                                    existingFileMetadata.Md5Hash
+                                );
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(
+                                    ex,
+                                    "Failed to calculate MD5 hash for existing file {FilePath}",
+                                    relativePath
+                                );
+                            }
+                        }
+                        
                         _fileMetadataCollection.Update(existingFileMetadata);
                     }
                     else
                     {
+                        // Calculate MD5 hash for new file
+                        string? md5Hash = null;
+                        try
+                        {
+                            md5Hash = await FileHashUtility.CalculateMd5HashAsync(
+                                filePath,
+                                context.CancellationToken
+                            );
+                            _logger.LogDebug(
+                                "Calculated MD5 hash for {FilePath}: {Hash}",
+                                relativePath,
+                                md5Hash
+                            );
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(
+                                ex,
+                                "Failed to calculate MD5 hash for {FilePath}. File will be added without hash.",
+                                relativePath
+                            );
+                        }
+
                         var fileMetadata = new FileMetadata
                         {
                             Id = Guid.CreateVersion7().ToString(),
@@ -888,6 +963,7 @@ internal sealed class MetadataScanTaskExecutor
                             MediaId = movieMetadata.Id,
                             MediaType = LibraryType.Movies,
                             FilePath = relativePath,
+                            Md5Hash = md5Hash,
                             CreatedAt = DateTime.UtcNow,
                             UpdatedAt = DateTime.UtcNow
                         };

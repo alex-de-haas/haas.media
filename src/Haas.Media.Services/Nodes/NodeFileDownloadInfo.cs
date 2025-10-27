@@ -10,5 +10,8 @@ public sealed record NodeFileDownloadInfo(
     long DownloadedBytes,
     DateTime StartTime,
     DateTime? CompletedTime,
-    string? LocalFilePath
+    string? LocalFilePath,
+    string? ExpectedMd5Hash,
+    string? ActualMd5Hash,
+    bool? HashValidated
 );

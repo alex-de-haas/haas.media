@@ -45,6 +45,13 @@ public class FileMetadata
     public required string FilePath { get; set; }
 
     /// <summary>
+    /// MD5 hash of the file content for integrity verification.
+    /// Calculated when file is added locally or fetched from nodes.
+    /// Used to validate downloaded files from nodes.
+    /// </summary>
+    public string? Md5Hash { get; set; }
+
+    /// <summary>
     /// For TV show episodes only: season number.
     /// </summary>
     public int? SeasonNumber { get; init; }

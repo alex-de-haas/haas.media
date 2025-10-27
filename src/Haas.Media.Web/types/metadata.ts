@@ -60,6 +60,7 @@ export interface FileMetadata {
   mediaId: string;
   mediaType: LibraryType;
   filePath: string;
+  md5Hash?: string | null;
   seasonNumber?: number | null;
   episodeNumber?: number | null;
   createdAt: string;
