@@ -1,3 +1,5 @@
+using Haas.Media.Services.Authentication;
+
 namespace Haas.Media.Services.Nodes;
 
 public static class NodesConfiguration
@@ -43,6 +45,7 @@ public static class NodesConfiguration
                 async (
                     ConnectNodeRequest request,
                     INodesApi nodesApi,
+                    IAuthenticationApi authApi,
                     HttpContext httpContext,
                     IConfiguration configuration
                 ) =>
@@ -58,8 +61,39 @@ public static class NodesConfiguration
                         return Results.BadRequest(new { error = "URL is required" });
                     }
 
-                    // ApiKey must be an external token (not a regular JWT)
-                    if (string.IsNullOrWhiteSpace(request.ApiKey))
+                    // Resolve API key from tokenId if provided
+                    string? apiKey = request.ApiKey;
+                    if (!string.IsNullOrWhiteSpace(request.TokenId))
+                    {
+                        // Get the current authenticated user
+                        var username = httpContext.User.Identity?.Name;
+                        if (string.IsNullOrWhiteSpace(username))
+                        {
+                            return Results.Unauthorized();
+                        }
+
+                        var user = authApi.GetUserByUsername(username);
+                        if (user == null)
+                        {
+                            return Results.Unauthorized();
+                        }
+
+                        // Get the user's external tokens
+                        var tokens = authApi.GetExternalTokens(user);
+                        var selectedToken = tokens.FirstOrDefault(t => t.Id == request.TokenId);
+                        
+                        if (selectedToken == null)
+                        {
+                            return Results.BadRequest(
+                                new { error = "Selected token not found or does not belong to current user" }
+                            );
+                        }
+
+                        apiKey = selectedToken.Token;
+                    }
+
+                    // ApiKey must be provided (either directly or via tokenId)
+                    if (string.IsNullOrWhiteSpace(apiKey))
                     {
                         return Results.BadRequest(
                             new
@@ -104,8 +138,16 @@ public static class NodesConfiguration
 
                     try
                     {
+                        // Create a modified request with the resolved API key
+                        var connectRequest = new ConnectNodeRequest
+                        {
+                            Name = request.Name,
+                            Url = request.Url,
+                            ApiKey = apiKey
+                        };
+                        
                         var node = await nodesApi.ConnectNodeAsync(
-                            request,
+                            connectRequest,
                             currentNodeUrl,
                             currentNodeApiKey
                         );

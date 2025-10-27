@@ -17,6 +17,7 @@ export interface ConnectNodeRequest {
   name: string;
   url: string;
   apiKey?: string;
+  tokenId?: string;
 }
 
 export interface UpdateNodeRequest {

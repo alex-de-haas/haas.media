@@ -54,6 +54,10 @@ public sealed record ConnectNodeRequest
     public required string Name { get; init; }
     public required string Url { get; init; }
     public string? ApiKey { get; init; }
+    /// <summary>
+    /// ID of an existing external token to use for authentication
+    /// </summary>
+    public string? TokenId { get; init; }
 }
 
 /// <summary>
