@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -58,6 +58,9 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
   const router = useRouter();
   const { notify } = useNotifications();
   const { deleteMovie, loading: deletingMovie } = useDeleteMovieMetadata();
+  
+  // Track previous download task IDs to detect newly completed downloads
+  const previousCompletedTaskIds = useRef<Set<string>>(new Set());
 
   const CREDIT_DISPLAY_LIMIT = 20;
 
@@ -151,13 +154,23 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
 
   // Refresh files when download tasks complete
   useEffect(() => {
-    const completedDownloads = downloadTasks.filter(
-      (task: BackgroundTaskInfo) => task.status === BackgroundTaskStatus.Completed
+    const currentCompletedTaskIds = new Set<string>(
+      downloadTasks
+        .filter((task: BackgroundTaskInfo) => task.status === BackgroundTaskStatus.Completed)
+        .map((task: BackgroundTaskInfo) => task.id)
     );
     
-    if (completedDownloads.length > 0) {
+    // Find newly completed tasks (tasks that just transitioned to completed)
+    const newlyCompletedTaskIds = Array.from(currentCompletedTaskIds).filter(
+      (id) => !previousCompletedTaskIds.current.has(id)
+    );
+    
+    if (newlyCompletedTaskIds.length > 0) {
       // Refetch files to show newly downloaded files
       refetchFiles();
+      
+      // Update the ref with current completed task IDs
+      previousCompletedTaskIds.current = currentCompletedTaskIds;
     }
   }, [downloadTasks, refetchFiles]);
 
