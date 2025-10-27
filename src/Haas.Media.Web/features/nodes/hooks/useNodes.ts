@@ -153,12 +153,13 @@ export function useNodes() {
       });
 
       if (response.ok) {
-        const metadata = await response.json();
-        const count = Array.isArray(metadata) ? metadata.length : 0;
+        const result = await response.json();
+        // New response format: { totalFetched, savedCount, skippedCount }
+        const { totalFetched = 0, savedCount = 0, skippedCount = 0 } = result;
         return { 
           success: true, 
-          message: `Successfully fetched ${count} file metadata record${count !== 1 ? 's' : ''}`,
-          count 
+          message: `Fetched ${totalFetched} files (${savedCount} saved, ${skippedCount} skipped)`,
+          count: savedCount
         };
       } else {
         const errorText = await response.text();

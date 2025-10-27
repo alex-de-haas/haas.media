@@ -1,4 +1,5 @@
 using Haas.Media.Services.Authentication;
+using Haas.Media.Services.Metadata;
 
 namespace Haas.Media.Services.Nodes;
 
@@ -284,12 +285,34 @@ public static class NodesConfiguration
         // Fetch files metadata from a connected node
         api.MapPost(
                 "/{id}/fetch-metadata",
-                async (string id, INodesApi nodesApi) =>
+                async (string id, INodesApi nodesApi, IMetadataApi metadataApi) =>
                 {
                     try
                     {
                         var filesMetadata = await nodesApi.FetchFilesMetadataFromNodeAsync(id);
-                        return Results.Ok(filesMetadata);
+                        
+                        // Save fetched metadata to local database
+                        var savedCount = 0;
+                        foreach (var fileMetadata in filesMetadata)
+                        {
+                            // Check if this file metadata already exists (same MediaId, NodeId, and FilePath)
+                            var existingFiles = await metadataApi.GetFileMetadataAsync(null, fileMetadata.MediaId);
+                            var exists = existingFiles.Any(f => 
+                                f.NodeId == fileMetadata.NodeId && 
+                                f.FilePath == fileMetadata.FilePath);
+                            
+                            if (!exists)
+                            {
+                                await metadataApi.AddFileMetadataAsync(fileMetadata);
+                                savedCount++;
+                            }
+                        }
+                        
+                        return Results.Ok(new { 
+                            totalFetched = filesMetadata.Count(), 
+                            savedCount,
+                            skippedCount = filesMetadata.Count() - savedCount
+                        });
                     }
                     catch (InvalidOperationException ex)
                     {
