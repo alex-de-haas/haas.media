@@ -367,9 +367,10 @@ internal sealed class NodeFileDownloadTaskExecutor
     }
 
     /// <summary>
-    /// Updates file metadata from node version to local version after successful download.
-    /// Finds the FileMetadata record with the matching NodeId and FilePath, then updates it to set NodeId to null,
-    /// LibraryId to the target library, FilePath to the local path, and optionally updates the MD5 hash.
+    /// Creates new local file metadata after successful download.
+    /// Finds the FileMetadata record with the matching NodeId and FilePath, then creates a new local version
+    /// with NodeId set to null, LibraryId to the target library, FilePath to the local path, and optionally the MD5 hash.
+    /// The original node file metadata is preserved.
     /// </summary>
     private async Task UpdateFileMetadataToLocalAsync(
         string nodeId,
@@ -399,26 +400,34 @@ internal sealed class NodeFileDownloadTaskExecutor
                 return;
             }
 
-            // Update each matching metadata record to make it local
-            foreach (var metadata in matchingMetadata)
+            // Create new local file metadata for each matching node metadata record
+            foreach (var nodeMetadata in matchingMetadata)
             {
-                metadata.NodeId = null;
-                metadata.LibraryId = libraryId;
-                metadata.FilePath = localFilePath;
-                
-                // Update MD5 hash if provided (this ensures local hash matches what was validated)
-                if (!string.IsNullOrEmpty(md5Hash))
+                // Create a new local file metadata based on the node metadata
+                var localMetadata = new FileMetadata
                 {
-                    metadata.Md5Hash = md5Hash;
-                }
+                    Id = Guid.NewGuid().ToString(), // New ID for the local file
+                    NodeId = null, // No longer associated with a node
+                    LibraryId = libraryId,
+                    FilePath = localFilePath,
+                    MediaId = nodeMetadata.MediaId,
+                    MediaType = nodeMetadata.MediaType,
+                    SeasonNumber = nodeMetadata.SeasonNumber,
+                    EpisodeNumber = nodeMetadata.EpisodeNumber,
+                    Md5Hash = !string.IsNullOrEmpty(md5Hash) ? md5Hash : nodeMetadata.Md5Hash,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
 
-                var updated = await _metadataApi.UpdateFileMetadataAsync(metadata);
-                if (updated != null)
+                var created = await _metadataApi.AddFileMetadataAsync(localMetadata);
+                if (created != null)
                 {
                     _logger.LogInformation(
-                        "Updated file metadata ID={Id} from node version (NodeId={OldNodeId}, FilePath={OldFilePath}) " +
-                        "to local version (LibraryId={LibraryId}, FilePath={NewFilePath})",
-                        metadata.Id,
+                        "Created new local file metadata ID={Id} based on node metadata ID={NodeMetadataId} " +
+                        "(NodeId={NodeId}, RemoteFilePath={RemoteFilePath}) " +
+                        "→ (LibraryId={LibraryId}, LocalFilePath={LocalFilePath})",
+                        created.Id,
+                        nodeMetadata.Id,
                         nodeId,
                         remoteFilePath,
                         libraryId,
@@ -428,8 +437,8 @@ internal sealed class NodeFileDownloadTaskExecutor
                 else
                 {
                     _logger.LogWarning(
-                        "Failed to update file metadata ID={Id} to local version",
-                        metadata.Id
+                        "Failed to create local file metadata based on node metadata ID={NodeMetadataId}",
+                        nodeMetadata.Id
                     );
                 }
             }
@@ -439,8 +448,8 @@ internal sealed class NodeFileDownloadTaskExecutor
             // Log the error but don't fail the download task
             _logger.LogError(
                 ex,
-                "Error updating file metadata to local version for NodeId={NodeId}, FilePath={FilePath}. " +
-                "The file was downloaded successfully, but metadata update failed.",
+                "Error creating local file metadata for NodeId={NodeId}, FilePath={FilePath}. " +
+                "The file was downloaded successfully, but metadata creation failed.",
                 nodeId,
                 remoteFilePath
             );
