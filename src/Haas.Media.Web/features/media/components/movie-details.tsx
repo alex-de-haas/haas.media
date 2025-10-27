@@ -87,12 +87,6 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
     return backgroundTasks.filter((task: BackgroundTaskInfo) => task.type === "NodeFileDownloadTask");
   }, [backgroundTasks]);
 
-  // Helper to extract filename from path
-  const getFileName = (filePath: string) => {
-    const parts = filePath.split("/");
-    return parts[parts.length - 1] || filePath;
-  };
-
   const handleCancelDownload = async (taskId: string) => {
     const result = await cancelTask(taskId);
     if (result.success) {
@@ -521,7 +515,6 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                       {movieFiles.length > 0 ? (
                         <div className="space-y-2">
                           {movieFiles.map((file) => {
-                            const fileName = getFileName(file.filePath);
                             const isRemote = Boolean(file.nodeId);
                             
                             // Find active download task for this file
@@ -551,16 +544,15 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                                 <div className="flex items-start justify-between gap-2">
                                   <div className="flex-1 space-y-1.5">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="font-medium text-sm">{fileName}</span>
+                                      <div className="font-mono text-xs text-muted-foreground break-all">
+                                        {file.filePath}
+                                      </div>
                                       {isRemote && file.nodeName && (
                                         <Badge variant="outline" className="text-xs">
                                           <Server className="mr-1 h-3 w-3" />
                                           {file.nodeName}
                                         </Badge>
                                       )}
-                                    </div>
-                                    <div className="font-mono text-xs text-muted-foreground break-all">
-                                      {file.filePath}
                                     </div>
                                     
                                     {isDownloading && activeDownload && (
