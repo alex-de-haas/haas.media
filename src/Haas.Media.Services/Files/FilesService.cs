@@ -1,5 +1,6 @@
 using Haas.Media.Core.BackgroundTasks;
 using Haas.Media.Core.Helpers;
+using Haas.Media.Services.Metadata;
 
 namespace Haas.Media.Services.Files;
 
@@ -8,11 +9,13 @@ public class FilesService : IFilesApi
     private readonly string _dataPath;
     private readonly ILogger<FilesService> _logger;
     private readonly IBackgroundTaskManager _backgroundTaskManager;
+    private readonly IMetadataApi _metadataApi;
 
     public FilesService(
         IConfiguration configuration,
         ILogger<FilesService> logger,
-        IBackgroundTaskManager backgroundTaskManager
+        IBackgroundTaskManager backgroundTaskManager,
+        IMetadataApi metadataApi
     )
     {
         _dataPath =
@@ -21,6 +24,7 @@ public class FilesService : IFilesApi
 
         _logger = logger;
         _backgroundTaskManager = backgroundTaskManager;
+        _metadataApi = metadataApi;
 
         // Ensure root directory exists
         Directory.CreateDirectory(_dataPath);
@@ -336,7 +340,7 @@ public class FilesService : IFilesApi
         }
     }
 
-    public void Delete(string relativePath)
+    public async Task DeleteAsync(string relativePath)
     {
         var fullPath = GetValidatedFullPath(relativePath);
 
@@ -350,11 +354,32 @@ public class FilesService : IFilesApi
 
         if (isDirectory)
         {
+            // For directories, delete metadata for all files within
+            var files = Directory.GetFiles(fullPath, "*", SearchOption.AllDirectories);
+            foreach (var file in files)
+            {
+                var fileRelativePath = Path.GetRelativePath(_dataPath, file);
+                await _metadataApi.DeleteFileMetadataByPathAsync(fileRelativePath);
+            }
+
             Directory.Delete(fullPath, recursive: true);
             _logger.LogInformation("Directory deleted: {Path}", relativePath);
         }
         else
         {
+            // Delete file metadata before deleting the file
+            var deletedMetadataCount = await _metadataApi.DeleteFileMetadataByPathAsync(
+                relativePath
+            );
+            if (deletedMetadataCount > 0)
+            {
+                _logger.LogInformation(
+                    "Deleted {Count} metadata record(s) associated with file: {Path}",
+                    deletedMetadataCount,
+                    relativePath
+                );
+            }
+
             File.Delete(fullPath);
             _logger.LogInformation("File deleted: {Path}", relativePath);
         }

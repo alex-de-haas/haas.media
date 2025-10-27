@@ -31,6 +31,7 @@ public interface IMetadataApi
     Task<FileMetadata> AddFileMetadataAsync(FileMetadata fileMetadata);
     Task<FileMetadata?> UpdateFileMetadataAsync(FileMetadata fileMetadata);
     Task<bool> DeleteFileMetadataAsync(string id);
+    Task<int> DeleteFileMetadataByPathAsync(string filePath);
     Task<IEnumerable<FileMetadata>> GetFilesByMediaIdAsync(int mediaId, LibraryType mediaType);
     Task<PaginatedResult<PersonMetadata>> GetPeopleMetadataAsync(
         int skip = 0,

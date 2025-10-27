@@ -732,6 +732,37 @@ public class MetadataService : IMetadataApi
         return Task.FromResult(false);
     }
 
+    public Task<int> DeleteFileMetadataByPathAsync(string filePath)
+    {
+        var fileMetadataList = _fileMetadataCollection
+            .Find(f => f.FilePath == filePath)
+            .ToList();
+
+        var deletedCount = 0;
+        foreach (var fileMetadata in fileMetadataList)
+        {
+            if (_fileMetadataCollection.Delete(new BsonValue(fileMetadata.Id)))
+            {
+                deletedCount++;
+            }
+        }
+
+        if (deletedCount > 0)
+        {
+            _logger.LogInformation(
+                "Deleted {Count} file metadata record(s) for path: {Path}",
+                deletedCount,
+                filePath
+            );
+        }
+        else
+        {
+            _logger.LogDebug("No file metadata found for path: {Path}", filePath);
+        }
+
+        return Task.FromResult(deletedCount);
+    }
+
     public Task<IEnumerable<FileMetadata>> GetFilesByMediaIdAsync(
         int mediaId,
         LibraryType mediaType

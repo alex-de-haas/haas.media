@@ -6,7 +6,7 @@ public interface IFilesApi
     Task<string> StartCopyAsync(string sourcePath, string destinationPath);
     void Move(string sourcePath, string destinationPath);
     void RenameFile(string relativePath, string newName);
-    void Delete(string relativePath);
+    Task DeleteAsync(string relativePath);
     void CreateDirectory(string relativePath);
     Task<FileUploadResult> UploadAsync(
         string? directoryPath,

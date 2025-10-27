@@ -168,9 +168,9 @@ public static class FilesConfiguration
 
         app.MapDelete(
                 "api/files",
-                (string path, IFilesApi filesApi) =>
+                async (string path, IFilesApi filesApi) =>
                 {
-                    filesApi.Delete(path);
+                    await filesApi.DeleteAsync(path);
                     return Results.Ok();
                 }
             )
