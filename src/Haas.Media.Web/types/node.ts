@@ -10,7 +10,6 @@ export interface NodeInfo {
   createdAt: string;
   lastValidatedAt?: string;
   isEnabled: boolean;
-  metadata: Record<string, string>;
 }
 
 export interface ConnectNodeRequest {

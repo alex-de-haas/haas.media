@@ -76,19 +76,6 @@ export function NodeList({ nodes, onEdit, onDelete }: NodeListProps) {
                 <span className="text-muted-foreground">Created:</span>
                 <span className="text-xs">{formatDistanceToNow(new Date(node.createdAt), { addSuffix: true })}</span>
               </div>
-
-              {node.metadata && Object.keys(node.metadata).length > 0 && (
-                <div className="pt-2 border-t">
-                  <span className="text-muted-foreground text-xs">Capabilities:</span>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {Object.entries(node.metadata).map(([key, value]) => (
-                      <Badge key={key} variant="outline" className="text-xs">
-                        {key}: {value}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="flex gap-2 mt-4">

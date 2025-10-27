@@ -39,11 +39,6 @@ public sealed class NodeInfo
     /// Whether the node is currently enabled
     /// </summary>
     public bool IsEnabled { get; set; } = true;
-
-    /// <summary>
-    /// Additional metadata about the node
-    /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new();
 }
 
 /// <summary>

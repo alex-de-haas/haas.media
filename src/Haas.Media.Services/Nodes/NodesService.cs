@@ -105,8 +105,7 @@ public sealed class NodesService : INodesApi
             Name = request.Name,
             Url = request.Url.TrimEnd('/'),
             ApiKey = request.DestinationApiKey,
-            LastValidatedAt = DateTime.UtcNow,
-            Metadata = validationResult.SystemInfo ?? new Dictionary<string, string>()
+            LastValidatedAt = DateTime.UtcNow
         };
 
         _nodesCollection.Insert(node);
@@ -138,11 +137,7 @@ public sealed class NodesService : INodesApi
             Name = data.Name,
             Url = data.Url.TrimEnd('/'),
             ApiKey = data.ApiKey,
-            LastValidatedAt = DateTime.UtcNow,
-            Metadata = new Dictionary<string, string>
-            {
-                ["registered_via"] = "incoming_connection"
-            }
+            LastValidatedAt = DateTime.UtcNow
         };
 
         _nodesCollection.Insert(node);
@@ -181,10 +176,6 @@ public sealed class NodesService : INodesApi
 
             node.Url = request.Url.TrimEnd('/');
             node.LastValidatedAt = DateTime.UtcNow;
-            if (validationResult.SystemInfo != null)
-            {
-                node.Metadata = validationResult.SystemInfo;
-            }
             hasChanges = true;
         }
 
