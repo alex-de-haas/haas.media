@@ -63,6 +63,9 @@ internal sealed class AddToLibraryTaskExecutor
         context.ReportProgress(1);
         context.SetPayload(payload);
 
+        // Apply preferred language to TMDb client for API requests
+        ApplyPreferredLanguage();
+
         try
         {
             var library = _librariesCollection.FindById(new BsonValue(task.LibraryId));
@@ -484,5 +487,14 @@ internal sealed class AddToLibraryTaskExecutor
         context.ReportProgress(95);
 
         return payload;
+    }
+
+    private void ApplyPreferredLanguage()
+    {
+        var language = _languageProvider.GetPreferredLanguage();
+        if (!string.IsNullOrWhiteSpace(language))
+        {
+            _tmdbClient.DefaultLanguage = language;
+        }
     }
 }
