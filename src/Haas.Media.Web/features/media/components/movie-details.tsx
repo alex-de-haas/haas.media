@@ -4,10 +4,12 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MoreVertical, Trash2, Star, ArrowLeft, Film, Heart, Play, Eye } from "lucide-react";
+import { MoreVertical, Trash2, Star, ArrowLeft, Film, Heart, Play, Eye, Download, Server } from "lucide-react";
 
 import { useMovie, useDeleteMovieMetadata, useMoviePlaybackInfo } from "@/features/media/hooks";
 import { useFilesByMediaId } from "@/features/media/hooks/useFileMetadata";
+import { useLibraries } from "@/features/libraries";
+import { useNodeFileDownload } from "@/features/nodes/hooks";
 import { LibraryType } from "@/types/library";
 import { Spinner } from "@/components/ui";
 import { getPosterUrl, getBackdropUrl, getLogoUrl } from "@/lib/tmdb";
@@ -31,6 +33,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PersonCard } from "@/features/media/components/person-card";
 import { ReleaseDateType } from "@/types";
 
@@ -40,15 +43,84 @@ interface MovieDetailsProps {
 
 export default function MovieDetails({ movieId }: MovieDetailsProps) {
   const { movie, loading, error } = useMovie(movieId);
-  const { files: movieFiles, loading: filesLoading } = useFilesByMediaId(movieId, LibraryType.Movies);
+  const { files: movieFiles, loading: filesLoading, refetch: refetchFiles } = useFilesByMediaId(movieId, LibraryType.Movies);
   const { playbackInfo, loading: playbackLoading } = useMoviePlaybackInfo(movieId);
+  const { libraries } = useLibraries();
+  const { downloadFile } = useNodeFileDownload();
   const [imageError, setImageError] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
+  const [selectedLibraryId, setSelectedLibraryId] = useState<string>("");
   const router = useRouter();
   const { notify } = useNotifications();
   const { deleteMovie, loading: deletingMovie } = useDeleteMovieMetadata();
 
   const CREDIT_DISPLAY_LIMIT = 20;
+
+  // Get movie libraries for download destination selection
+  const movieLibraries = useMemo(() => {
+    return libraries.filter((lib) => lib.type === LibraryType.Movies && Boolean(lib.id));
+  }, [libraries]);
+
+  // Set default library when libraries load
+  useMemo(() => {
+    const firstLibrary = movieLibraries[0];
+    if (movieLibraries.length > 0 && !selectedLibraryId && firstLibrary?.id) {
+      setSelectedLibraryId(firstLibrary.id);
+    }
+  }, [movieLibraries, selectedLibraryId]);
+
+  // Separate local and remote files
+  const { localFiles, remoteFiles } = useMemo(() => {
+    const local = movieFiles.filter((file) => !file.nodeId);
+    const remote = movieFiles.filter((file) => file.nodeId);
+    return { localFiles: local, remoteFiles: remote };
+  }, [movieFiles]);
+
+  const handleDownloadFile = async (fileId: string, nodeId: string, remoteFilePath: string) => {
+    if (!selectedLibraryId) {
+      notify({
+        type: "error",
+        title: "Download Failed",
+        message: "Please select a library for the download destination.",
+      });
+      return;
+    }
+
+    setDownloadingFileId(fileId);
+    try {
+      const result = await downloadFile({
+        nodeId,
+        remoteFilePath,
+        libraryId: selectedLibraryId,
+      });
+
+      if (result.success) {
+        notify({
+          type: "success",
+          title: "Download Complete",
+          message: `File downloaded to ${result.localFilePath}`,
+        });
+        // Refresh files to show the newly downloaded file
+        await refetchFiles();
+      } else {
+        notify({
+          type: "error",
+          title: "Download Failed",
+          message: result.message,
+        });
+      }
+    } catch (error) {
+      notify({
+        type: "error",
+        title: "Download Failed",
+        message: error instanceof Error ? error.message : "An unexpected error occurred",
+      });
+    } finally {
+      setDownloadingFileId(null);
+    }
+  };
+
   const showPlaybackBadges = useMemo(() => {
     if (!playbackInfo) {
       return false;
@@ -369,20 +441,95 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                       )}
                     </div>
                     <Separator />
-                    <div className="space-y-2">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Associated Files {filesLoading && <Spinner className="inline-block ml-2 size-3" />}
-                      </span>
-                      {movieFiles.length > 0 ? (
-                        <div className="space-y-1">
-                          {movieFiles.map((file) => (
-                            <p key={file.id} className="font-mono text-xs text-muted-foreground break-all">
-                              {file.filePath}
-                            </p>
-                          ))}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">
+                          Associated Files {filesLoading && <Spinner className="inline-block ml-2 size-3" />}
+                        </span>
+                        {remoteFiles.length > 0 && movieLibraries.length > 0 && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">Download to:</span>
+                            <Select value={selectedLibraryId} onValueChange={setSelectedLibraryId}>
+                              <SelectTrigger className="h-8 w-[180px]">
+                                <SelectValue placeholder="Select library" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {movieLibraries.map((lib) => (
+                                  <SelectItem key={lib.id} value={lib.id!}>
+                                    {lib.title}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </div>
+
+                      {localFiles.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                            <Film className="h-3.5 w-3.5" />
+                            Local Files
+                          </div>
+                          <div className="space-y-1">
+                            {localFiles.map((file) => (
+                              <div
+                                key={file.id}
+                                className="rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground break-all"
+                              >
+                                {file.filePath}
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      ) : (
-                        <p className="text-xs italic text-muted-foreground">No local files linked</p>
+                      )}
+
+                      {remoteFiles.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                            <Server className="h-3.5 w-3.5" />
+                            Remote Files (from connected nodes)
+                          </div>
+                          <div className="space-y-2">
+                            {remoteFiles.map((file) => (
+                              <div
+                                key={file.id}
+                                className="rounded-md border bg-muted/30 px-3 py-2 space-y-2"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1 space-y-1">
+                                    <div className="font-mono text-xs text-muted-foreground break-all">
+                                      {file.filePath}
+                                    </div>
+                                    {file.nodeName && (
+                                      <Badge variant="outline" className="text-xs">
+                                        <Server className="mr-1 h-3 w-3" />
+                                        {file.nodeName}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleDownloadFile(file.id!, file.nodeId!, file.filePath)}
+                                    disabled={downloadingFileId === file.id || !selectedLibraryId}
+                                    className="shrink-0"
+                                  >
+                                    {downloadingFileId === file.id ? (
+                                      <Spinner className="h-3.5 w-3.5" />
+                                    ) : (
+                                      <Download className="h-3.5 w-3.5" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {movieFiles.length === 0 && (
+                        <p className="text-xs italic text-muted-foreground">No files linked</p>
                       )}
                     </div>
                   </div>

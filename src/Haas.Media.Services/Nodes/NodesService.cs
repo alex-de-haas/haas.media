@@ -1,6 +1,7 @@
 using LiteDB;
 using System.Text;
 using System.Text.Json;
+using Haas.Media.Services.Metadata;
 
 namespace Haas.Media.Services.Nodes;
 
@@ -12,16 +13,22 @@ public sealed class NodesService : INodesApi
     private readonly ILiteCollection<NodeInfo> _nodesCollection;
     private readonly ILogger<NodesService> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IMetadataApi _metadataApi;
+    private readonly IConfiguration _configuration;
 
     public NodesService(
         LiteDatabase database,
         ILogger<NodesService> logger,
-        IHttpClientFactory httpClientFactory
+        IHttpClientFactory httpClientFactory,
+        IMetadataApi metadataApi,
+        IConfiguration configuration
     )
     {
         _nodesCollection = database.GetCollection<NodeInfo>("nodes");
         _logger = logger;
         _httpClientFactory = httpClientFactory;
+        _metadataApi = metadataApi;
+        _configuration = configuration;
 
         CreateIndexes();
 
@@ -336,5 +343,192 @@ public sealed class NodesService : INodesApi
         return Environment.GetEnvironmentVariable("NODE_NAME")
             ?? Environment.MachineName
             ?? "Haas.Media Node";
+    }
+
+    public async Task<IEnumerable<Metadata.FileMetadata>> FetchFilesMetadataFromNodeAsync(string nodeId)
+    {
+        _logger.LogInformation("Fetching files metadata from node: {NodeId}", nodeId);
+
+        var node = _nodesCollection.FindById(nodeId);
+        if (node == null)
+        {
+            _logger.LogWarning("Node not found: {NodeId}", nodeId);
+            throw new InvalidOperationException($"Node with ID {nodeId} not found");
+        }
+
+        if (!node.IsEnabled)
+        {
+            _logger.LogWarning("Node is disabled: {NodeId}", nodeId);
+            throw new InvalidOperationException($"Node {node.Name} is disabled");
+        }
+
+        var httpClient = _httpClientFactory.CreateClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(30);
+
+        if (!string.IsNullOrWhiteSpace(node.ApiKey))
+        {
+            httpClient.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", node.ApiKey);
+        }
+
+        var metadataEndpoint = $"{node.Url.TrimEnd('/')}/api/metadata/files";
+        
+        _logger.LogDebug("Fetching files metadata from {Endpoint}", metadataEndpoint);
+
+        try
+        {
+            var response = await httpClient.GetAsync(metadataEndpoint);
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync();
+            var filesMetadata = System.Text.Json.JsonSerializer.Deserialize<List<Metadata.FileMetadata>>(
+                content,
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            ) ?? new List<Metadata.FileMetadata>();
+
+            // Set NodeId for all fetched metadata
+            foreach (var fileMetadata in filesMetadata)
+            {
+                fileMetadata.NodeId = nodeId;
+            }
+
+            _logger.LogInformation(
+                "Successfully fetched {Count} file metadata records from node {NodeName}",
+                filesMetadata.Count,
+                node.Name
+            );
+
+            return filesMetadata;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Failed to fetch files metadata from node {NodeName}: {Message}", node.Name, ex.Message);
+            throw new InvalidOperationException($"Failed to fetch metadata from node {node.Name}: {ex.Message}", ex);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to parse files metadata from node {NodeName}", node.Name);
+            throw new InvalidOperationException($"Failed to parse metadata from node {node.Name}", ex);
+        }
+    }
+
+    public async Task<string> DownloadFileFromNodeAsync(string nodeId, string remoteFilePath, string libraryId)
+    {
+        _logger.LogInformation(
+            "Downloading file from node {NodeId}: {RemoteFilePath} to library {LibraryId}",
+            nodeId,
+            remoteFilePath,
+            libraryId
+        );
+
+        // Get the node
+        var node = _nodesCollection.FindById(nodeId);
+        if (node == null)
+        {
+            _logger.LogWarning("Node not found: {NodeId}", nodeId);
+            throw new InvalidOperationException($"Node with ID {nodeId} not found");
+        }
+
+        if (!node.IsEnabled)
+        {
+            _logger.LogWarning("Node is disabled: {NodeId}", nodeId);
+            throw new InvalidOperationException($"Node {node.Name} is disabled");
+        }
+
+        // Get the library
+        var library = await _metadataApi.GetLibraryAsync(libraryId);
+        if (library == null)
+        {
+            _logger.LogWarning("Library not found: {LibraryId}", libraryId);
+            throw new InvalidOperationException($"Library with ID {libraryId} not found");
+        }
+
+        // Get the DATA_DIRECTORY path
+        var dataDirectory =
+            _configuration["DATA_DIRECTORY"]
+            ?? throw new InvalidOperationException("DATA_DIRECTORY configuration is required");
+
+        // Build the local destination path
+        var libraryPath = Path.Combine(dataDirectory, library.DirectoryPath);
+        var fileName = Path.GetFileName(remoteFilePath);
+        var localFilePath = Path.Combine(libraryPath, fileName);
+
+        // Ensure the library directory exists
+        Directory.CreateDirectory(libraryPath);
+
+        // Download the file from the remote node
+        var httpClient = _httpClientFactory.CreateClient();
+        httpClient.Timeout = TimeSpan.FromMinutes(30); // Allow longer timeout for file downloads
+
+        if (!string.IsNullOrWhiteSpace(node.ApiKey))
+        {
+            httpClient.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", node.ApiKey);
+        }
+
+        // Build the URL to stream the file from the remote node
+        var streamEndpoint = $"{node.Url.TrimEnd('/')}/api/files/stream?path={Uri.EscapeDataString(remoteFilePath)}";
+
+        _logger.LogDebug("Downloading file from {Endpoint}", streamEndpoint);
+
+        try
+        {
+            var response = await httpClient.GetAsync(streamEndpoint, HttpCompletionOption.ResponseHeadersRead);
+            response.EnsureSuccessStatusCode();
+
+            // Stream the file to disk
+            await using var contentStream = await response.Content.ReadAsStreamAsync();
+            await using var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
+            
+            await contentStream.CopyToAsync(fileStream);
+
+            _logger.LogInformation(
+                "Successfully downloaded file from node {NodeName} to {LocalFilePath}",
+                node.Name,
+                localFilePath
+            );
+
+            // Return the relative path (relative to DATA_DIRECTORY)
+            var relativePath = Path.GetRelativePath(dataDirectory, localFilePath);
+            return relativePath;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Failed to download file from node {NodeName}: {Message}", node.Name, ex.Message);
+            
+            // Clean up partial file if it exists
+            if (File.Exists(localFilePath))
+            {
+                try
+                {
+                    File.Delete(localFilePath);
+                }
+                catch (Exception deleteEx)
+                {
+                    _logger.LogWarning(deleteEx, "Failed to delete partial file: {LocalFilePath}", localFilePath);
+                }
+            }
+            
+            throw new InvalidOperationException($"Failed to download file from node {node.Name}: {ex.Message}", ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error downloading file from node {NodeName}", node.Name);
+            
+            // Clean up partial file if it exists
+            if (File.Exists(localFilePath))
+            {
+                try
+                {
+                    File.Delete(localFilePath);
+                }
+                catch (Exception deleteEx)
+                {
+                    _logger.LogWarning(deleteEx, "Failed to delete partial file: {LocalFilePath}", localFilePath);
+                }
+            }
+            
+            throw new InvalidOperationException($"Unexpected error downloading file from node {node.Name}", ex);
+        }
     }
 }

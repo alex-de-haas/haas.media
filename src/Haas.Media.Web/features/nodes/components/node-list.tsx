@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Server, CheckCircle, XCircle } from "lucide-react";
+import { Edit, Trash2, Server, CheckCircle, XCircle, Download } from "lucide-react";
 import type { NodeInfo } from "@/types/node";
 import { formatDistanceToNow } from "date-fns";
 
@@ -11,9 +11,10 @@ interface NodeListProps {
   nodes: NodeInfo[];
   onEdit: (node: NodeInfo) => void;
   onDelete: (node: NodeInfo) => void;
+  onFetchMetadata?: (node: NodeInfo) => void;
 }
 
-export function NodeList({ nodes, onEdit, onDelete }: NodeListProps) {
+export function NodeList({ nodes, onEdit, onDelete, onFetchMetadata }: NodeListProps) {
   if (nodes.length === 0) {
     return (
       <Card>
@@ -79,6 +80,12 @@ export function NodeList({ nodes, onEdit, onDelete }: NodeListProps) {
             </div>
 
             <div className="flex gap-2 mt-4">
+              {onFetchMetadata && (
+                <Button variant="outline" size="sm" onClick={() => onFetchMetadata(node)} className="flex-1">
+                  <Download className="h-3 w-3 mr-1" />
+                  Fetch
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={() => onEdit(node)} className="flex-1">
                 <Edit className="h-3 w-3 mr-1" />
                 Edit

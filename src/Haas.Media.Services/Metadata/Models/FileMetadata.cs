@@ -20,6 +20,11 @@ public class FileMetadata
     public required string LibraryId { get; set; }
 
     /// <summary>
+    /// Optional: The ID of the node where this file is located (null if local).
+    /// </summary>
+    public string? NodeId { get; set; }
+
+    /// <summary>
     /// The TMDb ID of the associated media (Movie ID or TV Show ID).
     /// For movies: the MovieMetadata.Id
     /// For TV shows: the TVShowMetadata.Id

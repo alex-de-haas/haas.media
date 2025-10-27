@@ -1,3 +1,4 @@
+using Haas.Media.Services.Authentication;
 using Haas.Media.Services.Infrastructure.BackgroundTasks;
 
 namespace Haas.Media.Services.Files;
@@ -81,7 +82,7 @@ public static class FilesConfiguration
                 }
             )
             .WithName("StreamFile")
-            .RequireAuthorization();
+            .RequireAuthorization(AuthorizationPolicies.AllowExternalToken);
 
         app.MapPost(
                 "api/files/upload",

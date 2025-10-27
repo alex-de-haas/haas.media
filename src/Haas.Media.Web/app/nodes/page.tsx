@@ -28,7 +28,7 @@ export default function NodesPage() {
   const [selectedNode, setSelectedNode] = useState<NodeInfo | null>(null);
   const [nodeToDelete, setNodeToDelete] = useState<NodeInfo | null>(null);
 
-  const { nodes, loading, error, validateNode, connectNode, updateNode, deleteNode } = useNodes();
+  const { nodes, loading, error, validateNode, connectNode, updateNode, deleteNode, fetchNodeMetadata } = useNodes();
   const { notify } = useNotifications();
 
   const closeForm = () => {
@@ -82,6 +82,15 @@ export default function NodesPage() {
     return await validateNode({ url, ...(apiKey ? { apiKey } : {}) });
   };
 
+  const handleFetchMetadata = async (node: NodeInfo) => {
+    const result = await fetchNodeMetadata(node.id);
+    notify({
+      title: result.success ? "Metadata Fetched" : "Fetch Failed",
+      message: result.message,
+      type: result.success ? "success" : "error",
+    });
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -130,6 +139,7 @@ export default function NodesPage() {
               setIsFormOpen(true);
             }}
             onDelete={(node) => setNodeToDelete(node)}
+            onFetchMetadata={handleFetchMetadata}
           />
         </>
       )}

@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Security.Claims;
 using Haas.Media.Core.BackgroundTasks;
+using Haas.Media.Services.Authentication;
 using Haas.Media.Services.Infrastructure.BackgroundTasks;
 
 namespace Haas.Media.Services.Metadata;
@@ -278,7 +279,7 @@ public static class MetadataConfiguration
                 }
             )
             .WithName("GetFileMetadata")
-            .RequireAuthorization();
+            .RequireAuthorization(AuthorizationPolicies.AllowExternalToken);
 
         app.MapGet(
                 "api/metadata/files/{id}",

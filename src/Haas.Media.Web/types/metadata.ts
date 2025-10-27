@@ -64,6 +64,8 @@ export interface FileMetadata {
   episodeNumber?: number | null;
   createdAt: string;
   updatedAt: string;
+  nodeId?: string | null;
+  nodeName?: string | null;
 }
 
 export interface CrewMember {

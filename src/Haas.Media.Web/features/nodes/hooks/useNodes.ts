@@ -146,6 +146,39 @@ export function useNodes() {
     [fetchNodes],
   );
 
+  const fetchNodeMetadata = useCallback(async (nodeId: string): Promise<{ success: boolean; message: string; count?: number }> => {
+    try {
+      const response = await fetchWithAuth(`${downloaderApi}/api/nodes/${nodeId}/fetch-metadata`, {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        const metadata = await response.json();
+        const count = Array.isArray(metadata) ? metadata.length : 0;
+        return { 
+          success: true, 
+          message: `Successfully fetched ${count} file metadata record${count !== 1 ? 's' : ''}`,
+          count 
+        };
+      } else {
+        const errorText = await response.text();
+        let errorMessage = errorText || "Failed to fetch metadata";
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.error) {
+            errorMessage = errorJson.error;
+          }
+        } catch {
+          // Ignore JSON parse errors
+        }
+        return { success: false, message: errorMessage };
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Network error occurred";
+      return { success: false, message };
+    }
+  }, []);
+
   useEffect(() => {
     fetchNodes();
   }, [fetchNodes]);
@@ -159,5 +192,6 @@ export function useNodes() {
     connectNode,
     updateNode,
     deleteNode,
+    fetchNodeMetadata,
   };
 }

@@ -39,4 +39,18 @@ public interface INodesApi
     /// Validate connection to a node
     /// </summary>
     Task<NodeValidationResult> ValidateNodeAsync(string url, string? apiKey = null);
+
+    /// <summary>
+    /// Fetch files metadata from a connected node
+    /// </summary>
+    Task<IEnumerable<Metadata.FileMetadata>> FetchFilesMetadataFromNodeAsync(string nodeId);
+
+    /// <summary>
+    /// Download a file from a connected node to a local library directory
+    /// </summary>
+    /// <param name="nodeId">The ID of the node to download from</param>
+    /// <param name="remoteFilePath">The file path on the remote node</param>
+    /// <param name="libraryId">The local library ID where the file should be saved</param>
+    /// <returns>The local file path where the file was saved</returns>
+    Task<string> DownloadFileFromNodeAsync(string nodeId, string remoteFilePath, string libraryId);
 }

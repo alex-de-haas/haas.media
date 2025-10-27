@@ -158,7 +158,7 @@ public static class NodesConfiguration
             .RequireAuthorization();
 
         // Register an incoming node connection
-        api.MapPost(
+        _ = api.MapPost(
                 "/register",
                 async (NodeRegistrationData data, INodesApi nodesApi) =>
                 {
@@ -198,7 +198,7 @@ public static class NodesConfiguration
                 }
             )
             .WithName("RegisterNode")
-            .RequireAuthorization(Authentication.AuthorizationPolicies.AllowExternalToken);
+            .RequireAuthorization(AuthorizationPolicies.AllowExternalToken);
 
         // Update a node
         api.MapPut(
@@ -281,6 +281,58 @@ public static class NodesConfiguration
             .WithName("ValidateNode")
             .RequireAuthorization();
 
+        // Fetch files metadata from a connected node
+        api.MapPost(
+                "/{id}/fetch-metadata",
+                async (string id, INodesApi nodesApi) =>
+                {
+                    try
+                    {
+                        var filesMetadata = await nodesApi.FetchFilesMetadataFromNodeAsync(id);
+                        return Results.Ok(filesMetadata);
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        return Results.BadRequest(new { error = ex.Message });
+                    }
+                }
+            )
+            .WithName("FetchNodeMetadata")
+            .RequireAuthorization();
+
+        // Download a file from a connected node
+        api.MapPost(
+                "/{nodeId}/download-file",
+                async (string nodeId, DownloadFileRequest request, INodesApi nodesApi) =>
+                {
+                    if (string.IsNullOrWhiteSpace(request.RemoteFilePath))
+                    {
+                        return Results.BadRequest(new { error = "Remote file path is required" });
+                    }
+
+                    if (string.IsNullOrWhiteSpace(request.LibraryId))
+                    {
+                        return Results.BadRequest(new { error = "Library ID is required" });
+                    }
+
+                    try
+                    {
+                        var localFilePath = await nodesApi.DownloadFileFromNodeAsync(
+                            nodeId,
+                            request.RemoteFilePath,
+                            request.LibraryId
+                        );
+                        return Results.Ok(new { localFilePath });
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        return Results.BadRequest(new { error = ex.Message });
+                    }
+                }
+            )
+            .WithName("DownloadFileFromNode")
+            .RequireAuthorization();
+
         return app;
     }
 
@@ -319,4 +371,13 @@ public sealed record ValidateNodeRequest
 {
     public required string Url { get; init; }
     public string? ApiKey { get; init; }
+}
+
+/// <summary>
+/// Request to download a file from a connected node
+/// </summary>
+public sealed record DownloadFileRequest
+{
+    public required string RemoteFilePath { get; init; }
+    public required string LibraryId { get; init; }
 }
