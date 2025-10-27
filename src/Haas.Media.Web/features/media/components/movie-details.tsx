@@ -74,17 +74,21 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
     }
   }, [movieLibraries, selectedLibraryId]);
 
-  // Separate local and remote files
-  const { localFiles, remoteFiles } = useMemo(() => {
-    const local = movieFiles.filter((file) => !file.nodeId);
-    const remote = movieFiles.filter((file) => file.nodeId);
-    return { localFiles: local, remoteFiles: remote };
+  // Check if there are remote files for library selector
+  const hasRemoteFiles = useMemo(() => {
+    return movieFiles.some((file) => file.nodeId);
   }, [movieFiles]);
 
   // Track download tasks for remote files
   const downloadTasks = useMemo(() => {
     return backgroundTasks.filter((task: BackgroundTaskInfo) => task.type === "NodeFileDownloadTask");
   }, [backgroundTasks]);
+
+  // Helper to extract filename from path
+  const getFileName = (filePath: string) => {
+    const parts = filePath.split("/");
+    return parts[parts.length - 1] || filePath;
+  };
 
   const handleCancelDownload = async (taskId: string) => {
     const result = await cancelTask(taskId);
@@ -482,7 +486,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                         <span className="text-sm font-medium text-muted-foreground">
                           Associated Files {filesLoading && <Spinner className="inline-block ml-2 size-3" />}
                         </span>
-                        {remoteFiles.length > 0 && movieLibraries.length > 0 && (
+                        {hasRemoteFiles && movieLibraries.length > 0 && (
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-muted-foreground">Download to:</span>
                             <Select value={selectedLibraryId} onValueChange={setSelectedLibraryId}>
@@ -501,124 +505,96 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                         )}
                       </div>
 
-                      {localFiles.length > 0 && (
+                      {movieFiles.length > 0 ? (
                         <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                            <Film className="h-3.5 w-3.5" />
-                            Local Files
-                          </div>
-                          <div className="space-y-1">
-                            {localFiles.map((file) => (
-                              <div
-                                key={file.id}
-                                className="rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground break-all"
-                              >
-                                {file.filePath}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                          {movieFiles.map((file) => {
+                            const fileName = getFileName(file.filePath);
+                            const isRemote = Boolean(file.nodeId);
+                            
+                            // Find active download task for this file
+                            const activeDownload = downloadTasks.find((task: BackgroundTaskInfo) => {
+                              const payload = task.payload as Record<string, unknown>;
+                              return (payload?.remoteFilePath as string) === file.filePath;
+                            });
 
-                      {remoteFiles.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                            <Server className="h-3.5 w-3.5" />
-                            Remote Files (from connected nodes)
-                          </div>
-                          <div className="space-y-2">
-                            {remoteFiles.map((file) => (
+                            const isDownloading = Boolean(activeDownload || downloadingFileId === file.id);
+                            
+                            let downloadProgress = 0;
+                            let downloadedBytes = 0;
+                            let totalBytes = 0;
+                            
+                            if (activeDownload) {
+                              const payload = activeDownload.payload as Record<string, unknown>;
+                              downloadProgress = activeDownload.progress || 0;
+                              downloadedBytes = (payload?.downloadedBytes as number) || 0;
+                              totalBytes = (payload?.totalBytes as number) || 0;
+                            }
+
+                            return (
                               <div
                                 key={file.id}
                                 className="rounded-md border bg-muted/30 px-3 py-2 space-y-2"
                               >
                                 <div className="flex items-start justify-between gap-2">
-                                  <div className="flex-1 space-y-1">
+                                  <div className="flex-1 space-y-1.5">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="font-medium text-sm">{fileName}</span>
+                                      {isRemote && file.nodeName && (
+                                        <Badge variant="outline" className="text-xs">
+                                          <Server className="mr-1 h-3 w-3" />
+                                          {file.nodeName}
+                                        </Badge>
+                                      )}
+                                    </div>
                                     <div className="font-mono text-xs text-muted-foreground break-all">
                                       {file.filePath}
                                     </div>
-                                    {file.nodeName && (
-                                      <Badge variant="outline" className="text-xs">
-                                        <Server className="mr-1 h-3 w-3" />
-                                        {file.nodeName}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleDownloadFile(file.id!, file.nodeId!, file.filePath)}
-                                    disabled={downloadingFileId === file.id || !selectedLibraryId}
-                                    className="shrink-0"
-                                  >
-                                    {downloadingFileId === file.id ? (
-                                      <Spinner className="h-3.5 w-3.5" />
-                                    ) : (
-                                      <Download className="h-3.5 w-3.5" />
-                                    )}
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {downloadTasks.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                            <Download className="h-3.5 w-3.5" />
-                            Active Downloads
-                          </div>
-                          <div className="space-y-2">
-                            {downloadTasks.map((task: BackgroundTaskInfo) => {
-                              const payload = task.payload as Record<string, unknown>;
-                              const nodeName = (payload?.nodeName as string) || "Unknown node";
-                              const remoteFilePath = (payload?.remoteFilePath as string) || "Unknown file";
-                              const downloadedBytes = (payload?.downloadedBytes as number) || 0;
-                              const totalBytes = (payload?.totalBytes as number) || 0;
-                              const progress = task.progress || 0;
-
-                              return (
-                                <div key={task.id} className="rounded-md border bg-muted/30 px-3 py-2 space-y-2">
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="flex-1 space-y-1.5">
-                                      <div className="font-mono text-xs text-muted-foreground break-all">
-                                        {remoteFilePath}
-                                      </div>
-                                      <Badge variant="outline" className="text-xs">
-                                        <Server className="mr-1 h-3 w-3" />
-                                        {nodeName}
-                                      </Badge>
-                                      <div className="space-y-1">
-                                        <Progress value={progress} className="h-1.5" />
+                                    
+                                    {isDownloading && activeDownload && (
+                                      <div className="space-y-1 pt-1">
+                                        <Progress value={downloadProgress} className="h-1.5" />
                                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                                           <span>
                                             {downloadedBytes > 0
                                               ? `${(downloadedBytes / 1024 / 1024).toFixed(1)} MB / ${(totalBytes / 1024 / 1024).toFixed(1)} MB`
                                               : "Preparing..."}
                                           </span>
-                                          <span>{progress.toFixed(0)}%</span>
+                                          <span>{downloadProgress.toFixed(0)}%</span>
                                         </div>
                                       </div>
-                                    </div>
+                                    )}
+                                  </div>
+                                  
+                                  {isRemote && (
                                     <Button
                                       size="sm"
                                       variant="ghost"
-                                      onClick={() => handleCancelDownload(task.id)}
+                                      onClick={() => {
+                                        if (activeDownload) {
+                                          void handleCancelDownload(activeDownload.id);
+                                        } else {
+                                          void handleDownloadFile(file.id!, file.nodeId!, file.filePath);
+                                        }
+                                      }}
+                                      disabled={downloadingFileId === file.id || (!activeDownload && !selectedLibraryId)}
                                       className="shrink-0"
+                                      title={activeDownload ? "Cancel download" : "Download file"}
                                     >
-                                      <X className="h-3.5 w-3.5" />
+                                      {activeDownload ? (
+                                        <X className="h-3.5 w-3.5" />
+                                      ) : downloadingFileId === file.id ? (
+                                        <Spinner className="h-3.5 w-3.5" />
+                                      ) : (
+                                        <Download className="h-3.5 w-3.5" />
+                                      )}
                                     </Button>
-                                  </div>
+                                  )}
                                 </div>
-                              );
-                            })}
-                          </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      )}
-
-                      {movieFiles.length === 0 && (
+                      ) : (
                         <p className="text-xs italic text-muted-foreground">No files linked</p>
                       )}
                     </div>
