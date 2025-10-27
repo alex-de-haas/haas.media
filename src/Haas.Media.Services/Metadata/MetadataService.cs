@@ -691,6 +691,34 @@ public class MetadataService : IMetadataApi
         return Task.FromResult(fileMetadata);
     }
 
+    public Task<FileMetadata?> UpdateFileMetadataAsync(FileMetadata fileMetadata)
+    {
+        if (string.IsNullOrWhiteSpace(fileMetadata.Id))
+        {
+            _logger.LogWarning("Invalid file metadata ID");
+            return Task.FromResult<FileMetadata?>(null);
+        }
+
+        fileMetadata.UpdatedAt = DateTime.UtcNow;
+
+        var updated = _fileMetadataCollection.Update(fileMetadata);
+
+        if (!updated)
+        {
+            _logger.LogWarning("File metadata not found with ID: {Id}", fileMetadata.Id);
+            return Task.FromResult<FileMetadata?>(null);
+        }
+
+        _logger.LogInformation(
+            "Updated file metadata: ID={Id}, MediaId={MediaId}, FilePath={FilePath}, NodeId={NodeId}",
+            fileMetadata.Id,
+            fileMetadata.MediaId,
+            fileMetadata.FilePath,
+            fileMetadata.NodeId ?? "local"
+        );
+        return Task.FromResult<FileMetadata?>(fileMetadata);
+    }
+
     public Task<bool> DeleteFileMetadataAsync(string id)
     {
         var deleted = _fileMetadataCollection.Delete(new BsonValue(id));

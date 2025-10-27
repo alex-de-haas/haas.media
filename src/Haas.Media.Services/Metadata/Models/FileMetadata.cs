@@ -16,8 +16,10 @@ public class FileMetadata
 
     /// <summary>
     /// The library that owns this media file.
+    /// Null for files from connected nodes (not yet downloaded locally).
+    /// Set when the file is downloaded to a local library.
     /// </summary>
-    public required string LibraryId { get; set; }
+    public string? LibraryId { get; set; }
 
     /// <summary>
     /// Optional: The ID of the node where this file is located (null if local).
@@ -38,8 +40,9 @@ public class FileMetadata
 
     /// <summary>
     /// Relative path to the media file (relative to DATA_DIRECTORY).
+    /// Note: This is settable to allow updating from node paths to local paths after download.
     /// </summary>
-    public required string FilePath { get; init; }
+    public required string FilePath { get; set; }
 
     /// <summary>
     /// For TV show episodes only: season number.

@@ -390,10 +390,12 @@ public sealed class NodesService : INodesApi
                 new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }
             ) ?? new List<Metadata.FileMetadata>();
 
-            // Set NodeId for all fetched metadata
+            // Set NodeId and clear LibraryId for all fetched metadata from nodes
+            // LibraryId will be set when the file is downloaded to a local library
             foreach (var fileMetadata in filesMetadata)
             {
                 fileMetadata.NodeId = nodeId;
+                fileMetadata.LibraryId = null;
             }
 
             _logger.LogInformation(

@@ -169,6 +169,15 @@ internal sealed class NodeFileDownloadTaskExecutor
             // Get relative path (relative to DATA_DIRECTORY)
             var relativePath = Path.GetRelativePath(dataDirectory, localFilePath);
 
+            // Update file metadata from node version to local version
+            await UpdateFileMetadataToLocalAsync(
+                task.NodeId,
+                task.RemoteFilePath,
+                task.LibraryId,
+                relativePath,
+                cancellationToken
+            );
+
             // Complete the task
             var completedInfo = initialInfo with
             {
@@ -263,6 +272,80 @@ internal sealed class NodeFileDownloadTaskExecutor
 
             context.ReportStatus(BackgroundTaskStatus.Failed);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Updates file metadata from node version to local version after successful download.
+    /// Finds the FileMetadata record with the matching NodeId and FilePath, then updates it to set NodeId to null,
+    /// LibraryId to the target library, and FilePath to the local path.
+    /// </summary>
+    private async Task UpdateFileMetadataToLocalAsync(
+        string nodeId,
+        string remoteFilePath,
+        string libraryId,
+        string localFilePath,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            // Find file metadata records that match the node ID and remote file path
+            var allFileMetadata = await _metadataApi.GetFileMetadataAsync();
+            var matchingMetadata = allFileMetadata
+                .Where(fm => fm.NodeId == nodeId && fm.FilePath == remoteFilePath)
+                .ToList();
+
+            if (matchingMetadata.Count == 0)
+            {
+                _logger.LogWarning(
+                    "No file metadata found for NodeId={NodeId}, FilePath={FilePath}. " +
+                    "The metadata may need to be created manually or will be discovered in the next library scan.",
+                    nodeId,
+                    remoteFilePath
+                );
+                return;
+            }
+
+            // Update each matching metadata record to make it local
+            foreach (var metadata in matchingMetadata)
+            {
+                metadata.NodeId = null;
+                metadata.LibraryId = libraryId;
+                metadata.FilePath = localFilePath;
+
+                var updated = await _metadataApi.UpdateFileMetadataAsync(metadata);
+                if (updated != null)
+                {
+                    _logger.LogInformation(
+                        "Updated file metadata ID={Id} from node version (NodeId={OldNodeId}, FilePath={OldFilePath}) " +
+                        "to local version (LibraryId={LibraryId}, FilePath={NewFilePath})",
+                        metadata.Id,
+                        nodeId,
+                        remoteFilePath,
+                        libraryId,
+                        localFilePath
+                    );
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Failed to update file metadata ID={Id} to local version",
+                        metadata.Id
+                    );
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log the error but don't fail the download task
+            _logger.LogError(
+                ex,
+                "Error updating file metadata to local version for NodeId={NodeId}, FilePath={FilePath}. " +
+                "The file was downloaded successfully, but metadata update failed.",
+                nodeId,
+                remoteFilePath
+            );
         }
     }
 }
