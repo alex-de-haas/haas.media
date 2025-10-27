@@ -1,5 +1,18 @@
 # Nodes API - Quick Start Examples
 
+## Configuration
+
+Before connecting nodes, configure the current node's public URL:
+
+```bash
+# .env file or environment variables
+NODE_URL=http://192.168.1.50:8000      # This node's public URL
+NODE_NAME="Main Media Server"          # Optional: Custom name for this node
+NODE_API_KEY="your-api-key"            # Optional: API key for this node
+```
+
+**Important:** `NODE_URL` must be accessible from other nodes. Don't use `localhost` or `127.0.0.1`.
+
 ## Testing with cURL
 
 These examples assume you're running the API at `http://localhost:8000` and have a valid JWT token.
@@ -30,9 +43,12 @@ curl -X POST http://localhost:8000/api/nodes/validate \
 
 ### 2. Connect to a Node
 
-Once validated, add the node:
+Once validated, add the node. This will automatically register your node with the remote server:
 
 ```bash
+# Make sure NODE_URL is configured first!
+export NODE_URL=http://192.168.1.50:8000
+
 curl -X POST http://localhost:8000/api/nodes \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
@@ -42,6 +58,11 @@ curl -X POST http://localhost:8000/api/nodes \
     "apiKey": "optional-api-key-here"
   }'
 ```
+
+**What happens:**
+1. Validates connection to `http://192.168.1.100:8000`
+2. Calls `http://192.168.1.100:8000/api/nodes/register` to register this node
+3. Stores the remote node locally
 
 **Expected Response:**
 ```json
@@ -152,6 +173,26 @@ curl -X POST http://localhost:8000/api/nodes \
 }
 ```
 
+### Missing NODE_URL Configuration
+
+```bash
+# If NODE_URL is not set and request is from localhost
+curl -X POST http://localhost:8000/api/nodes \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Remote Server",
+    "url": "http://192.168.1.100:8000"
+  }'
+```
+
+**Response:** `400 Bad Request`
+```json
+{
+  "error": "Cannot determine current node URL. Set NODE_URL environment variable or configure public URL."
+}
+```
+
 ### Connection Timeout
 
 ```bash
@@ -175,6 +216,7 @@ curl -X POST http://localhost:8000/api/nodes/validate \
 ### Duplicate Node
 
 ```bash
+# Trying to connect to a node that's already connected
 curl -X POST http://localhost:8000/api/nodes \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
@@ -188,6 +230,26 @@ curl -X POST http://localhost:8000/api/nodes \
 ```json
 {
   "error": "A node with URL http://192.168.1.100:8000 already exists"
+}
+```
+
+### Registration Failed
+
+```bash
+# If the remote node rejects the registration
+curl -X POST http://localhost:8000/api/nodes \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Remote Server",
+    "url": "http://192.168.1.100:8000"
+  }'
+```
+
+**Response:** `400 Bad Request`
+```json
+{
+  "error": "Connected to node but failed to register: <error details>"
 }
 ```
 
@@ -380,6 +442,24 @@ if result["isValid"]:
 
 ### Complete Node Management Workflow
 
+**Setup: Configure both nodes**
+
+Node A (192.168.1.50:8000):
+```bash
+export NODE_URL=http://192.168.1.50:8000
+export NODE_NAME="Main Server"
+export NODE_API_KEY="main-server-key"
+```
+
+Node B (192.168.1.100:8000):
+```bash
+export NODE_URL=http://192.168.1.100:8000
+export NODE_NAME="Living Room Server"
+export NODE_API_KEY="living-room-key"
+```
+
+**From Node A, connect to Node B:**
+
 1. **Validate Connection**
    ```bash
    curl -X POST http://localhost:8000/api/nodes/validate \
@@ -388,19 +468,38 @@ if result["isValid"]:
      -d '{"url": "http://192.168.1.100:8000"}'
    ```
 
-2. **Connect if Valid**
+2. **Connect if Valid (creates bidirectional connection)**
    ```bash
-   curl -X POST http://localhost:8000/api/nodes \
-     -H "Authorization: Bearer $TOKEN" \
+   # On Node A
+   curl -X POST http://192.168.1.50:8000/api/nodes \
+     -H "Authorization: Bearer $TOKEN_A" \
      -H "Content-Type: application/json" \
-     -d '{"name": "Remote Server", "url": "http://192.168.1.100:8000"}'
+     -d '{
+       "name": "Living Room Server",
+       "url": "http://192.168.1.100:8000",
+       "apiKey": "living-room-key"
+     }'
    ```
+   
+   This will:
+   - Validate Node B is accessible
+   - Register Node A on Node B (via /api/nodes/register)
+   - Store Node B on Node A
+   
+   **Result:** Both nodes now have each other in their node list!
 
-3. **List and Verify**
+3. **List and Verify on Both Nodes**
    ```bash
-   curl http://localhost:8000/api/nodes \
-     -H "Authorization: Bearer $TOKEN"
+   # On Node A
+   curl http://192.168.1.50:8000/api/nodes \
+     -H "Authorization: Bearer $TOKEN_A"
+   
+   # On Node B  
+   curl http://192.168.1.100:8000/api/nodes \
+     -H "Authorization: Bearer $TOKEN_B"
    ```
+   
+   Both should show the other node in their list!
 
 4. **Update Configuration**
    ```bash

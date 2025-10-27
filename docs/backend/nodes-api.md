@@ -54,7 +54,7 @@ Get a specific node by ID.
 **Response:** `200 OK` or `404 Not Found`
 
 ### POST /api/nodes
-Connect to a new node. Validates the connection before storing.
+Connect to a new node. Validates the connection and automatically registers this node with the remote node (bidirectional handshake).
 
 **Request Body:**
 ```json
@@ -70,6 +70,31 @@ Connect to a new node. Validates the connection before storing.
 - URL is required and must be valid HTTP/HTTPS
 - Connection is tested against `/health` endpoint
 - Duplicate URLs are rejected
+- Current node URL must be configured (via `NODE_URL` env var or inferred from request)
+
+**Bidirectional Connection:**
+When connecting to a remote node, this endpoint automatically:
+1. Validates the remote node is accessible
+2. Calls `/api/nodes/register` on the remote node to register this node
+3. Stores the remote node locally
+
+This creates a bidirectional connection where both nodes know about each other.
+
+**Configuration:**
+Set `NODE_URL` environment variable to define this node's public URL for node-to-node communication:
+```bash
+NODE_URL=http://192.168.1.50:8000
+```
+
+Optionally set `NODE_NAME` to customize this node's display name when registering with remote nodes:
+```bash
+NODE_NAME="Main Media Server"
+```
+
+Optionally set `NODE_API_KEY` if this node requires authentication:
+```bash
+NODE_API_KEY="your-api-key-for-this-node"
+```
 
 **Response:** `201 Created` or `400 Bad Request`
 
@@ -92,6 +117,25 @@ Update an existing node. Re-validates connection if URL changes.
 Delete a node.
 
 **Response:** `200 OK` or `404 Not Found`
+
+### POST /api/nodes/register
+Register an incoming node connection. This endpoint is called automatically by remote nodes when they connect to this node.
+
+**Request Body:**
+```json
+{
+  "name": "Remote Server",
+  "url": "http://192.168.1.100:8000",
+  "apiKey": "optional-api-key"
+}
+```
+
+**Behavior:**
+- If the node URL already exists, updates the last validated time
+- If it's a new node, creates a new entry with metadata indicating it was registered via incoming connection
+- Requires authentication (same as other endpoints)
+
+**Response:** `201 Created` or `400 Bad Request`
 
 ### POST /api/nodes/validate
 Validate a connection to a node without saving it. Useful for testing connectivity before adding a node.
@@ -132,6 +176,7 @@ When connecting to or updating a node, the service validates the connection by:
 2. **Authentication:** Uses Bearer token if `apiKey` is provided
 3. **Verification:** Optionally checks `/api/metadata/libraries` to confirm it's a Haas.Media instance
 4. **Metadata Collection:** Stores system information for reference
+5. **Bidirectional Registration:** When connecting (POST /api/nodes), automatically registers this node with the remote node
 
 ### Validation Errors
 
@@ -140,6 +185,7 @@ Common validation failures:
 - `Health check returned status code: 401` - Invalid API key
 - `Connection failed: No such host is known` - Invalid hostname/IP
 - `A node with URL {url} already exists` - Duplicate URL
+- `Cannot determine current node URL` - NODE_URL not configured and request is from localhost
 
 ## Usage Examples
 

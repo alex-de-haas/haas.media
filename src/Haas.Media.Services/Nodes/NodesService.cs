@@ -1,4 +1,6 @@
 using LiteDB;
+using System.Text;
+using System.Text.Json;
 
 namespace Haas.Media.Services.Nodes;
 
@@ -50,7 +52,7 @@ public sealed class NodesService : INodesApi
         return Task.FromResult(node);
     }
 
-    public async Task<NodeInfo> ConnectNodeAsync(ConnectNodeRequest request)
+    public async Task<NodeInfo> ConnectNodeAsync(ConnectNodeRequest request, string currentNodeUrl, string? currentNodeApiKey = null)
     {
         _logger.LogInformation("Connecting to new node: {Name} at {Url}", request.Name, request.Url);
 
@@ -75,6 +77,29 @@ public sealed class NodesService : INodesApi
             throw new InvalidOperationException($"A node with URL {request.Url} already exists");
         }
 
+        // Register this node with the remote node
+        try
+        {
+            await RegisterWithRemoteNodeAsync(
+                request.Url,
+                request.ApiKey,
+                new NodeRegistrationData
+                {
+                    Name = GetCurrentNodeName(),
+                    Url = currentNodeUrl.TrimEnd('/'),
+                    ApiKey = currentNodeApiKey
+                }
+            );
+            _logger.LogInformation("Successfully registered with remote node: {Url}", request.Url);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to register with remote node: {Url}", request.Url);
+            throw new InvalidOperationException(
+                $"Connected to node but failed to register: {ex.Message}"
+            );
+        }
+
         var node = new NodeInfo
         {
             Name = request.Name,
@@ -88,6 +113,42 @@ public sealed class NodesService : INodesApi
         _logger.LogInformation("Successfully connected to node: {Id} ({Name})", node.Id, node.Name);
 
         return node;
+    }
+
+    public Task<NodeInfo> RegisterIncomingNodeAsync(NodeRegistrationData data)
+    {
+        _logger.LogInformation("Registering incoming node: {Name} at {Url}", data.Name, data.Url);
+
+        // Check if a node with this URL already exists
+        var existingNode = _nodesCollection.FindOne(x => x.Url == data.Url);
+        if (existingNode != null)
+        {
+            _logger.LogInformation("Incoming node {Url} already registered, updating last validated time", data.Url);
+            existingNode.LastValidatedAt = DateTime.UtcNow;
+            if (!string.IsNullOrWhiteSpace(data.ApiKey) && data.ApiKey != existingNode.ApiKey)
+            {
+                existingNode.ApiKey = data.ApiKey;
+            }
+            _nodesCollection.Update(existingNode);
+            return Task.FromResult(existingNode);
+        }
+
+        var node = new NodeInfo
+        {
+            Name = data.Name,
+            Url = data.Url.TrimEnd('/'),
+            ApiKey = data.ApiKey,
+            LastValidatedAt = DateTime.UtcNow,
+            Metadata = new Dictionary<string, string>
+            {
+                ["registered_via"] = "incoming_connection"
+            }
+        };
+
+        _nodesCollection.Insert(node);
+        _logger.LogInformation("Successfully registered incoming node: {Id} ({Name})", node.Id, node.Name);
+
+        return Task.FromResult(node);
     }
 
     public async Task<NodeInfo?> UpdateNodeAsync(string id, UpdateNodeRequest request)
@@ -246,5 +307,43 @@ public sealed class NodesService : INodesApi
                 ErrorMessage = $"Unexpected error: {ex.Message}"
             };
         }
+    }
+
+    private async Task RegisterWithRemoteNodeAsync(
+        string remoteNodeUrl,
+        string? remoteNodeApiKey,
+        NodeRegistrationData registrationData
+    )
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(10);
+
+        if (!string.IsNullOrWhiteSpace(remoteNodeApiKey))
+        {
+            httpClient.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", remoteNodeApiKey);
+        }
+
+        var registerEndpoint = $"{remoteNodeUrl.TrimEnd('/')}/api/nodes/register";
+        var jsonContent = new StringContent(
+            System.Text.Json.JsonSerializer.Serialize(registrationData),
+            Encoding.UTF8,
+            new System.Net.Http.Headers.MediaTypeHeaderValue("application/json")
+        );
+
+        _logger.LogDebug("Registering with remote node at {Endpoint}", registerEndpoint);
+
+        var response = await httpClient.PostAsync(registerEndpoint, jsonContent);
+        response.EnsureSuccessStatusCode();
+
+        _logger.LogInformation("Successfully registered with remote node: {Url}", remoteNodeUrl);
+    }
+
+    private string GetCurrentNodeName()
+    {
+        // Try to get a friendly name, fallback to hostname
+        return Environment.GetEnvironmentVariable("NODE_NAME")
+            ?? Environment.MachineName
+            ?? "Haas.Media Node";
     }
 }

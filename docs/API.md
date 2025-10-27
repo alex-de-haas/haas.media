@@ -104,9 +104,12 @@ The system uses `FileMetadata` records to link physical files to media items, en
 
 Connect to and manage other Haas.Media server instances for distributed media management. See `/docs/backend/nodes-api.md` for details.
 
+**Configuration:** Set `NODE_URL` environment variable to define this node's public URL for node-to-node communication.
+
 - `GET /api/nodes` — list all connected nodes.
 - `GET /api/nodes/{id}` — get a specific node by ID.
-- `POST /api/nodes` — connect to a new node. Validates connection before storing. Body: `{ "name": "...", "url": "...", "apiKey": "..." }`.
+- `POST /api/nodes` — connect to a new node. Validates connection and automatically registers this node with the remote server (bidirectional handshake). Body: `{ "name": "...", "url": "...", "apiKey": "..." }`.
+- `POST /api/nodes/register` — register an incoming node connection (called automatically by remote nodes during bidirectional handshake). Body: `{ "name": "...", "url": "...", "apiKey": "..." }`.
 - `PUT /api/nodes/{id}` — update node configuration. Re-validates if URL changes. Body: `{ "name": "...", "url": "...", "apiKey": "...", "isEnabled": true }`.
 - `DELETE /api/nodes/{id}` — remove a node connection.
 - `POST /api/nodes/validate` — test connection to a node without saving. Body: `{ "url": "...", "apiKey": "..." }`.

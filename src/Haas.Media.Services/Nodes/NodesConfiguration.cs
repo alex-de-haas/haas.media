@@ -40,7 +40,12 @@ public static class NodesConfiguration
         // Connect to a new node
         api.MapPost(
                 "/",
-                async (ConnectNodeRequest request, INodesApi nodesApi) =>
+                async (
+                    ConnectNodeRequest request,
+                    INodesApi nodesApi,
+                    HttpContext httpContext,
+                    IConfiguration configuration
+                ) =>
                 {
                     // Validate request
                     if (string.IsNullOrWhiteSpace(request.Name))
@@ -66,9 +71,29 @@ public static class NodesConfiguration
                         );
                     }
 
+                    // Get current node URL
+                    var currentNodeUrl = GetCurrentNodeUrl(httpContext, configuration);
+                    if (string.IsNullOrWhiteSpace(currentNodeUrl))
+                    {
+                        return Results.BadRequest(
+                            new
+                            {
+                                error =
+                                    "Cannot determine current node URL. Set NODE_URL environment variable or configure public URL."
+                            }
+                        );
+                    }
+
+                    // Get current node API key (optional)
+                    var currentNodeApiKey = configuration["NODE_API_KEY"];
+
                     try
                     {
-                        var node = await nodesApi.ConnectNodeAsync(request);
+                        var node = await nodesApi.ConnectNodeAsync(
+                            request,
+                            currentNodeUrl,
+                            currentNodeApiKey
+                        );
                         return Results.Created($"/api/nodes/{node.Id}", node);
                     }
                     catch (InvalidOperationException ex)
@@ -78,6 +103,49 @@ public static class NodesConfiguration
                 }
             )
             .WithName("ConnectNode")
+            .RequireAuthorization();
+
+        // Register an incoming node connection
+        api.MapPost(
+                "/register",
+                async (NodeRegistrationData data, INodesApi nodesApi) =>
+                {
+                    // Validate request
+                    if (string.IsNullOrWhiteSpace(data.Name))
+                    {
+                        return Results.BadRequest(new { error = "Name is required" });
+                    }
+
+                    if (string.IsNullOrWhiteSpace(data.Url))
+                    {
+                        return Results.BadRequest(new { error = "URL is required" });
+                    }
+
+                    // Validate URL format
+                    if (!Uri.TryCreate(data.Url, UriKind.Absolute, out var uri))
+                    {
+                        return Results.BadRequest(new { error = "Invalid URL format" });
+                    }
+
+                    if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+                    {
+                        return Results.BadRequest(
+                            new { error = "URL must use HTTP or HTTPS scheme" }
+                        );
+                    }
+
+                    try
+                    {
+                        var node = await nodesApi.RegisterIncomingNodeAsync(data);
+                        return Results.Created($"/api/nodes/{node.Id}", node);
+                    }
+                    catch (Exception ex)
+                    {
+                        return Results.BadRequest(new { error = ex.Message });
+                    }
+                }
+            )
+            .WithName("RegisterNode")
             .RequireAuthorization();
 
         // Update a node
@@ -162,6 +230,33 @@ public static class NodesConfiguration
             .RequireAuthorization();
 
         return app;
+    }
+
+    private static string? GetCurrentNodeUrl(HttpContext httpContext, IConfiguration configuration)
+    {
+        // Priority order:
+        // 1. NODE_URL environment variable (explicitly configured)
+        // 2. Inferred from current request
+        var configuredUrl = configuration["NODE_URL"];
+        if (!string.IsNullOrWhiteSpace(configuredUrl))
+        {
+            return configuredUrl.TrimEnd('/');
+        }
+
+        // Try to infer from the current request
+        var request = httpContext.Request;
+        var scheme = request.Scheme;
+        var host = request.Host.Value;
+
+        // Don't use localhost for node-to-node communication
+        if (!string.IsNullOrWhiteSpace(host)
+            && (host.StartsWith("localhost", StringComparison.OrdinalIgnoreCase)
+                || host.StartsWith("127.0.0.1")))
+        {
+            return null;
+        }
+
+        return $"{scheme}://{host}";
     }
 }
 

@@ -57,6 +57,16 @@ public sealed record ConnectNodeRequest
 }
 
 /// <summary>
+/// Data sent when registering this node with a remote node
+/// </summary>
+public sealed record NodeRegistrationData
+{
+    public required string Name { get; init; }
+    public required string Url { get; init; }
+    public string? ApiKey { get; init; }
+}
+
+/// <summary>
 /// Request to update a node
 /// </summary>
 public sealed record UpdateNodeRequest

@@ -16,9 +16,14 @@ public interface INodesApi
     Task<NodeInfo?> GetNodeAsync(string id);
 
     /// <summary>
-    /// Connect to a new node
+    /// Connect to a new node (also registers this node with the remote node)
     /// </summary>
-    Task<NodeInfo> ConnectNodeAsync(ConnectNodeRequest request);
+    Task<NodeInfo> ConnectNodeAsync(ConnectNodeRequest request, string currentNodeUrl, string? currentNodeApiKey = null);
+
+    /// <summary>
+    /// Register an incoming node connection (called by remote nodes)
+    /// </summary>
+    Task<NodeInfo> RegisterIncomingNodeAsync(NodeRegistrationData data);
 
     /// <summary>
     /// Update an existing node
