@@ -100,6 +100,17 @@ The system uses `FileMetadata` records to link physical files to media items, en
   Responses include the created `MovieMetadata` or `TVShowMetadata` document. Duplicate insertions return `409 Conflict`.
 - SignalR: connect to `/hub/background-tasks?type=MetadataScanTask` for live scan updates delivered through `TaskUpdated` payloads.
 
+## Node Management
+
+Connect to and manage other Haas.Media server instances for distributed media management. See `/docs/backend/nodes-api.md` for details.
+
+- `GET /api/nodes` — list all connected nodes.
+- `GET /api/nodes/{id}` — get a specific node by ID.
+- `POST /api/nodes` — connect to a new node. Validates connection before storing. Body: `{ "name": "...", "url": "...", "apiKey": "..." }`.
+- `PUT /api/nodes/{id}` — update node configuration. Re-validates if URL changes. Body: `{ "name": "...", "url": "...", "apiKey": "...", "isEnabled": true }`.
+- `DELETE /api/nodes/{id}` — remove a node connection.
+- `POST /api/nodes/validate` — test connection to a node without saving. Body: `{ "url": "...", "apiKey": "..." }`.
+
 ## Error Payload Shape
 
 Errors follow a basic JSON contract:
