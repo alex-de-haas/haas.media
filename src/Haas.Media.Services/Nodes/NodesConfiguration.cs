@@ -1,4 +1,5 @@
 using Haas.Media.Services.Authentication;
+using Haas.Media.Services.Infrastructure.BackgroundTasks;
 using Haas.Media.Services.Metadata;
 
 namespace Haas.Media.Services.Nodes;
@@ -8,6 +9,12 @@ public static class NodesConfiguration
     public static WebApplicationBuilder AddNodes(this WebApplicationBuilder builder)
     {
         builder.Services.AddSingleton<INodesApi, NodesService>();
+
+        builder.Services.AddBackgroundTask<
+            NodeFileDownloadTask,
+            NodeFileDownloadInfo,
+            NodeFileDownloadTaskExecutor
+        >();
 
         return builder;
     }
@@ -340,12 +347,12 @@ public static class NodesConfiguration
 
                     try
                     {
-                        var localFilePath = await nodesApi.DownloadFileFromNodeAsync(
+                        var taskId = await nodesApi.StartDownloadFileFromNodeAsync(
                             nodeId,
                             request.RemoteFilePath,
                             request.LibraryId
                         );
-                        return Results.Ok(new { localFilePath });
+                        return Results.Ok(new { taskId });
                     }
                     catch (InvalidOperationException ex)
                     {

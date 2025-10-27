@@ -46,11 +46,11 @@ public interface INodesApi
     Task<IEnumerable<Metadata.FileMetadata>> FetchFilesMetadataFromNodeAsync(string nodeId);
 
     /// <summary>
-    /// Download a file from a connected node to a local library directory
+    /// Start downloading a file from a connected node to a local library directory as a background task
     /// </summary>
     /// <param name="nodeId">The ID of the node to download from</param>
     /// <param name="remoteFilePath">The file path on the remote node</param>
     /// <param name="libraryId">The local library ID where the file should be saved</param>
-    /// <returns>The local file path where the file was saved</returns>
-    Task<string> DownloadFileFromNodeAsync(string nodeId, string remoteFilePath, string libraryId);
+    /// <returns>The background task ID for tracking the download</returns>
+    Task<string> StartDownloadFileFromNodeAsync(string nodeId, string remoteFilePath, string libraryId);
 }

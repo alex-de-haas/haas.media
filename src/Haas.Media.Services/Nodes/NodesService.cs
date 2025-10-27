@@ -1,6 +1,7 @@
 using LiteDB;
 using System.Text;
 using System.Text.Json;
+using Haas.Media.Core.BackgroundTasks;
 using Haas.Media.Services.Metadata;
 
 namespace Haas.Media.Services.Nodes;
@@ -15,13 +16,15 @@ public sealed class NodesService : INodesApi
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IMetadataApi _metadataApi;
     private readonly IConfiguration _configuration;
+    private readonly IBackgroundTaskManager _backgroundTaskManager;
 
     public NodesService(
         LiteDatabase database,
         ILogger<NodesService> logger,
         IHttpClientFactory httpClientFactory,
         IMetadataApi metadataApi,
-        IConfiguration configuration
+        IConfiguration configuration,
+        IBackgroundTaskManager backgroundTaskManager
     )
     {
         _nodesCollection = database.GetCollection<NodeInfo>("nodes");
@@ -29,6 +32,7 @@ public sealed class NodesService : INodesApi
         _httpClientFactory = httpClientFactory;
         _metadataApi = metadataApi;
         _configuration = configuration;
+        _backgroundTaskManager = backgroundTaskManager;
 
         CreateIndexes();
 
@@ -412,123 +416,18 @@ public sealed class NodesService : INodesApi
         }
     }
 
-    public async Task<string> DownloadFileFromNodeAsync(string nodeId, string remoteFilePath, string libraryId)
+    public Task<string> StartDownloadFileFromNodeAsync(string nodeId, string remoteFilePath, string libraryId)
     {
         _logger.LogInformation(
-            "Downloading file from node {NodeId}: {RemoteFilePath} to library {LibraryId}",
+            "Starting file download from node {NodeId}: {RemoteFilePath} to library {LibraryId}",
             nodeId,
             remoteFilePath,
             libraryId
         );
 
-        // Get the node
-        var node = _nodesCollection.FindById(nodeId);
-        if (node == null)
-        {
-            _logger.LogWarning("Node not found: {NodeId}", nodeId);
-            throw new InvalidOperationException($"Node with ID {nodeId} not found");
-        }
+        var task = new NodeFileDownloadTask(nodeId, remoteFilePath, libraryId);
+        var taskId = _backgroundTaskManager.RunTask<NodeFileDownloadTask, NodeFileDownloadInfo>(task);
 
-        if (!node.IsEnabled)
-        {
-            _logger.LogWarning("Node is disabled: {NodeId}", nodeId);
-            throw new InvalidOperationException($"Node {node.Name} is disabled");
-        }
-
-        // Get the library
-        var library = await _metadataApi.GetLibraryAsync(libraryId);
-        if (library == null)
-        {
-            _logger.LogWarning("Library not found: {LibraryId}", libraryId);
-            throw new InvalidOperationException($"Library with ID {libraryId} not found");
-        }
-
-        // Get the DATA_DIRECTORY path
-        var dataDirectory =
-            _configuration["DATA_DIRECTORY"]
-            ?? throw new InvalidOperationException("DATA_DIRECTORY configuration is required");
-
-        // Build the local destination path
-        var libraryPath = Path.Combine(dataDirectory, library.DirectoryPath);
-        var fileName = Path.GetFileName(remoteFilePath);
-        var localFilePath = Path.Combine(libraryPath, fileName);
-
-        // Ensure the library directory exists
-        Directory.CreateDirectory(libraryPath);
-
-        // Download the file from the remote node
-        var httpClient = _httpClientFactory.CreateClient();
-        httpClient.Timeout = TimeSpan.FromMinutes(30); // Allow longer timeout for file downloads
-
-        if (!string.IsNullOrWhiteSpace(node.ApiKey))
-        {
-            httpClient.DefaultRequestHeaders.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", node.ApiKey);
-        }
-
-        // Build the URL to stream the file from the remote node
-        var streamEndpoint = $"{node.Url.TrimEnd('/')}/api/files/stream?path={Uri.EscapeDataString(remoteFilePath)}";
-
-        _logger.LogDebug("Downloading file from {Endpoint}", streamEndpoint);
-
-        try
-        {
-            var response = await httpClient.GetAsync(streamEndpoint, HttpCompletionOption.ResponseHeadersRead);
-            response.EnsureSuccessStatusCode();
-
-            // Stream the file to disk
-            await using var contentStream = await response.Content.ReadAsStreamAsync();
-            await using var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
-            
-            await contentStream.CopyToAsync(fileStream);
-
-            _logger.LogInformation(
-                "Successfully downloaded file from node {NodeName} to {LocalFilePath}",
-                node.Name,
-                localFilePath
-            );
-
-            // Return the relative path (relative to DATA_DIRECTORY)
-            var relativePath = Path.GetRelativePath(dataDirectory, localFilePath);
-            return relativePath;
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError(ex, "Failed to download file from node {NodeName}: {Message}", node.Name, ex.Message);
-            
-            // Clean up partial file if it exists
-            if (File.Exists(localFilePath))
-            {
-                try
-                {
-                    File.Delete(localFilePath);
-                }
-                catch (Exception deleteEx)
-                {
-                    _logger.LogWarning(deleteEx, "Failed to delete partial file: {LocalFilePath}", localFilePath);
-                }
-            }
-            
-            throw new InvalidOperationException($"Failed to download file from node {node.Name}: {ex.Message}", ex);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error downloading file from node {NodeName}", node.Name);
-            
-            // Clean up partial file if it exists
-            if (File.Exists(localFilePath))
-            {
-                try
-                {
-                    File.Delete(localFilePath);
-                }
-                catch (Exception deleteEx)
-                {
-                    _logger.LogWarning(deleteEx, "Failed to delete partial file: {LocalFilePath}", localFilePath);
-                }
-            }
-            
-            throw new InvalidOperationException($"Unexpected error downloading file from node {node.Name}", ex);
-        }
+        return Task.FromResult(taskId.ToString());
     }
 }

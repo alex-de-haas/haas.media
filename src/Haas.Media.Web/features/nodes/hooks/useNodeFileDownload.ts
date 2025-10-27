@@ -14,7 +14,7 @@ export function useNodeFileDownload() {
   const [downloading, setDownloading] = useState(false);
 
   const downloadFile = useCallback(
-    async (request: DownloadFileFromNodeRequest): Promise<{ success: boolean; message: string; localFilePath?: string }> => {
+    async (request: DownloadFileFromNodeRequest): Promise<{ success: boolean; message: string; taskId?: string }> => {
       setDownloading(true);
       try {
         const response = await fetchWithAuth(`${downloaderApi}/api/nodes/${request.nodeId}/download-file`, {
@@ -30,8 +30,8 @@ export function useNodeFileDownload() {
           const result = await response.json();
           return {
             success: true,
-            message: "File downloaded successfully",
-            localFilePath: result.localFilePath,
+            message: "Download started successfully",
+            taskId: result.taskId,
           };
         } else {
           const errorData = await response.json().catch(() => ({}));

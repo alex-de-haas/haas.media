@@ -1,16 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MoreVertical, Trash2, Star, ArrowLeft, Film, Heart, Play, Eye, Download, Server } from "lucide-react";
+import { MoreVertical, Trash2, Star, ArrowLeft, Film, Heart, Play, Eye, Download, Server, X } from "lucide-react";
 
 import { useMovie, useDeleteMovieMetadata, useMoviePlaybackInfo } from "@/features/media/hooks";
 import { useFilesByMediaId } from "@/features/media/hooks/useFileMetadata";
 import { useLibraries } from "@/features/libraries";
 import { useNodeFileDownload } from "@/features/nodes/hooks";
+import { useBackgroundTasks } from "@/features/background-tasks/hooks";
 import { LibraryType } from "@/types/library";
+import type { BackgroundTaskInfo } from "@/types";
 import { Spinner } from "@/components/ui";
 import { getPosterUrl, getBackdropUrl, getLogoUrl } from "@/lib/tmdb";
 import { formatCurrency } from "@/lib/utils";
@@ -34,8 +36,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import { PersonCard } from "@/features/media/components/person-card";
-import { ReleaseDateType } from "@/types";
+import { ReleaseDateType, BackgroundTaskStatus } from "@/types";
 
 interface MovieDetailsProps {
   movieId: number;
@@ -47,6 +50,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
   const { playbackInfo, loading: playbackLoading } = useMoviePlaybackInfo(movieId);
   const { libraries } = useLibraries();
   const { downloadFile } = useNodeFileDownload();
+  const { tasks: backgroundTasks, cancelTask } = useBackgroundTasks();
   const [imageError, setImageError] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
@@ -77,6 +81,28 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
     return { localFiles: local, remoteFiles: remote };
   }, [movieFiles]);
 
+  // Track download tasks for remote files
+  const downloadTasks = useMemo(() => {
+    return backgroundTasks.filter((task: BackgroundTaskInfo) => task.type === "NodeFileDownloadTask");
+  }, [backgroundTasks]);
+
+  const handleCancelDownload = async (taskId: string) => {
+    const result = await cancelTask(taskId);
+    if (result.success) {
+      notify({
+        type: "success",
+        title: "Download Cancelled",
+        message: "The download has been cancelled.",
+      });
+    } else {
+      notify({
+        type: "error",
+        title: "Cancellation Failed",
+        message: result.message || "Failed to cancel the download.",
+      });
+    }
+  };
+
   const handleDownloadFile = async (fileId: string, nodeId: string, remoteFilePath: string) => {
     if (!selectedLibraryId) {
       notify({
@@ -95,14 +121,12 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
         libraryId: selectedLibraryId,
       });
 
-      if (result.success) {
+      if (result.success && result.taskId) {
         notify({
           type: "success",
-          title: "Download Complete",
-          message: `File downloaded to ${result.localFilePath}`,
+          title: "Download Started",
+          message: "File download has been queued. Check progress below.",
         });
-        // Refresh files to show the newly downloaded file
-        await refetchFiles();
       } else {
         notify({
           type: "error",
@@ -120,6 +144,18 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
       setDownloadingFileId(null);
     }
   };
+
+  // Refresh files when download tasks complete
+  useEffect(() => {
+    const completedDownloads = downloadTasks.filter(
+      (task: BackgroundTaskInfo) => task.status === BackgroundTaskStatus.Completed
+    );
+    
+    if (completedDownloads.length > 0) {
+      // Refetch files to show newly downloaded files
+      refetchFiles();
+    }
+  }, [downloadTasks, refetchFiles]);
 
   const showPlaybackBadges = useMemo(() => {
     if (!playbackInfo) {
@@ -524,6 +560,60 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                                 </div>
                               </div>
                             ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {downloadTasks.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                            <Download className="h-3.5 w-3.5" />
+                            Active Downloads
+                          </div>
+                          <div className="space-y-2">
+                            {downloadTasks.map((task: BackgroundTaskInfo) => {
+                              const payload = task.payload as Record<string, unknown>;
+                              const nodeName = (payload?.nodeName as string) || "Unknown node";
+                              const remoteFilePath = (payload?.remoteFilePath as string) || "Unknown file";
+                              const downloadedBytes = (payload?.downloadedBytes as number) || 0;
+                              const totalBytes = (payload?.totalBytes as number) || 0;
+                              const progress = task.progress || 0;
+
+                              return (
+                                <div key={task.id} className="rounded-md border bg-muted/30 px-3 py-2 space-y-2">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 space-y-1.5">
+                                      <div className="font-mono text-xs text-muted-foreground break-all">
+                                        {remoteFilePath}
+                                      </div>
+                                      <Badge variant="outline" className="text-xs">
+                                        <Server className="mr-1 h-3 w-3" />
+                                        {nodeName}
+                                      </Badge>
+                                      <div className="space-y-1">
+                                        <Progress value={progress} className="h-1.5" />
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                          <span>
+                                            {downloadedBytes > 0
+                                              ? `${(downloadedBytes / 1024 / 1024).toFixed(1)} MB / ${(totalBytes / 1024 / 1024).toFixed(1)} MB`
+                                              : "Preparing..."}
+                                          </span>
+                                          <span>{progress.toFixed(0)}%</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleCancelDownload(task.id)}
+                                      className="shrink-0"
+                                    >
+                                      <X className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
