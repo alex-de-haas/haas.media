@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchWithAuth } from "@/lib/auth/fetch-with-auth";
 import { getApiUrl } from "@/lib/env";
+import { downloaderApi } from "@/lib/api";
 import type { FileMetadata } from "@/types/metadata";
+import type { NodeInfo } from "@/types/node";
 import { LibraryType } from "@/types/library";
 
 /**
  * Hook to fetch all file metadata with optional filtering
+ * Automatically loads node information and maps NodeName for files with NodeId
  */
 export function useFileMetadata(libraryId?: string, mediaId?: string) {
   const [files, setFiles] = useState<FileMetadata[]>([]);
@@ -26,8 +29,36 @@ export function useFileMetadata(libraryId?: string, mediaId?: string) {
       }
 
       const response = await fetchWithAuth(url.toString());
-      const filesData = await response.json();
-      setFiles(filesData);
+      const filesData: FileMetadata[] = await response.json();
+
+      // Check if any files have NodeId set
+      const hasRemoteFiles = filesData.some((file) => file.nodeId);
+
+      if (hasRemoteFiles) {
+        // Fetch nodes to map NodeId -> NodeName
+        try {
+          const nodesResponse = await fetchWithAuth(`${downloaderApi}/api/nodes`);
+          const nodes: NodeInfo[] = await nodesResponse.json();
+
+          // Create a map of NodeId -> NodeName
+          const nodeMap = new Map(nodes.map((node) => [node.id, node.name]));
+
+          // Enrich files with NodeName
+          const enrichedFiles = filesData.map((file) => ({
+            ...file,
+            nodeName: file.nodeId ? nodeMap.get(file.nodeId) || null : null,
+          }));
+
+          setFiles(enrichedFiles);
+        } catch (nodeErr) {
+          // If fetching nodes fails, just use the files without NodeName
+          console.error("Failed to fetch nodes for NodeName mapping:", nodeErr);
+          setFiles(filesData);
+        }
+      } else {
+        // No remote files, no need to fetch nodes
+        setFiles(filesData);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load files");
     } finally {
@@ -44,6 +75,7 @@ export function useFileMetadata(libraryId?: string, mediaId?: string) {
 
 /**
  * Hook to fetch a single file metadata by ID
+ * Automatically loads node information and maps NodeName if file has NodeId
  */
 export function useFileMetadataById(id: string | null) {
   const [file, setFile] = useState<FileMetadata | null>(null);
@@ -62,7 +94,25 @@ export function useFileMetadataById(id: string | null) {
       setError(null);
 
       const response = await fetchWithAuth(`${getApiUrl()}/api/metadata/files/${id}`);
-      const fileData = await response.json();
+      const fileData: FileMetadata = await response.json();
+
+      // If file has NodeId, fetch node to get NodeName
+      if (fileData.nodeId) {
+        try {
+          const nodesResponse = await fetchWithAuth(`${downloaderApi}/api/nodes`);
+          const nodes: NodeInfo[] = await nodesResponse.json();
+
+          // Find the node with matching ID
+          const node = nodes.find((n) => n.id === fileData.nodeId);
+          if (node) {
+            fileData.nodeName = node.name;
+          }
+        } catch (nodeErr) {
+          // If fetching nodes fails, just use the file without NodeName
+          console.error("Failed to fetch nodes for NodeName mapping:", nodeErr);
+        }
+      }
+
       setFile(fileData);
     } catch (err) {
       if (err instanceof Error && err.message.includes("404")) {
@@ -84,6 +134,7 @@ export function useFileMetadataById(id: string | null) {
 
 /**
  * Hook to fetch files associated with a specific media item (movie or TV show)
+ * Automatically loads node information and maps NodeName for files with NodeId
  */
 export function useFilesByMediaId(mediaId: string | number | null, mediaType: LibraryType) {
   const [files, setFiles] = useState<FileMetadata[]>([]);
@@ -103,8 +154,36 @@ export function useFilesByMediaId(mediaId: string | number | null, mediaType: Li
 
       const endpoint = mediaType === LibraryType.Movies ? "movies" : "tvshows";
       const response = await fetchWithAuth(`${getApiUrl()}/api/metadata/${endpoint}/${mediaId}/files`);
-      const filesData = await response.json();
-      setFiles(filesData);
+      const filesData: FileMetadata[] = await response.json();
+
+      // Check if any files have NodeId set
+      const hasRemoteFiles = filesData.some((file) => file.nodeId);
+
+      if (hasRemoteFiles) {
+        // Fetch nodes to map NodeId -> NodeName
+        try {
+          const nodesResponse = await fetchWithAuth(`${downloaderApi}/api/nodes`);
+          const nodes: NodeInfo[] = await nodesResponse.json();
+
+          // Create a map of NodeId -> NodeName
+          const nodeMap = new Map(nodes.map((node) => [node.id, node.name]));
+
+          // Enrich files with NodeName
+          const enrichedFiles = filesData.map((file) => ({
+            ...file,
+            nodeName: file.nodeId ? nodeMap.get(file.nodeId) || null : null,
+          }));
+
+          setFiles(enrichedFiles);
+        } catch (nodeErr) {
+          // If fetching nodes fails, just use the files without NodeName
+          console.error("Failed to fetch nodes for NodeName mapping:", nodeErr);
+          setFiles(filesData);
+        }
+      } else {
+        // No remote files, no need to fetch nodes
+        setFiles(filesData);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load files for media");
     } finally {

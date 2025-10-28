@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MoreVertical, Trash2, Star, ArrowLeft, Film, Heart, Play, Eye, Download, Server, X } from "lucide-react";
+import { MoreVertical, Trash2, Star, ArrowLeft, Film, Heart, Play, Eye, Download, Server, X, HardDrive } from "lucide-react";
 
 import { useMovie, useDeleteMovieMetadata, useMoviePlaybackInfo } from "@/features/media/hooks";
 import { useFilesByMediaId } from "@/features/media/hooks/useFileMetadata";
@@ -539,20 +539,26 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                             return (
                               <div
                                 key={file.id}
-                                className="rounded-md border bg-muted/30 px-3 py-2 space-y-2"
+                                className="rounded-md border bg-muted/30 px-3 py-2 space-y-2 min-h-[60px] flex flex-col justify-center"
                               >
-                                <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center justify-between gap-2">
                                   <div className="flex-1 space-y-1.5">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                      <div className="font-mono text-xs text-muted-foreground break-all">
-                                        {file.filePath}
-                                      </div>
                                       {isRemote && file.nodeName && (
                                         <Badge variant="outline" className="text-xs">
                                           <Server className="mr-1 h-3 w-3" />
                                           {file.nodeName}
                                         </Badge>
                                       )}
+                                      {!isRemote && (
+                                        <Badge variant="outline" className="text-xs">
+                                          <HardDrive className="mr-1 h-3 w-3" />
+                                          Local
+                                        </Badge>
+                                      )}
+                                      <div className="font-mono text-xs text-muted-foreground break-all">
+                                        {file.filePath}
+                                      </div>
                                     </div>
                                     
                                     {isDownloading && activeDownload && (
