@@ -25,18 +25,12 @@ export interface AddToLibraryOperationInfo {
   failedPeople?: number;
 }
 
-export interface ScanOperationInfo {
-  id: string;
-  libraryPath: string;
-  libraryTitle: string;
-  totalFiles: number;
-  processedFiles: number;
-  foundMetadata: number;
-  startTime: string;
-  currentFile?: string | null;
-  totalPeople?: number;
-  syncedPeople?: number;
-  failedPeople?: number;
+export interface LibraryScanRequest {
+  scanForNewFiles?: boolean;
+  updateFileMetadata?: boolean;
+  updateMovies?: boolean;
+  updateTvShows?: boolean;
+  updatePeople?: boolean;
 }
 
 export interface SearchResult {
@@ -211,22 +205,23 @@ export interface TVEpisodeMetadata {
   filePath?: string | null;
 }
 
-export interface MetadataRefreshOperationInfo {
+export interface MetadataSyncOperationInfo {
   id: string;
-  totalItems: number;
-  processedItems: number;
+  startTime: string;
+  stage: string;
+  currentItem?: string | null;
+  totalNewFiles: number;
+  processedNewFiles: number;
   totalMovies: number;
   processedMovies: number;
   totalTvShows: number;
   processedTvShows: number;
-  stage: string;
-  currentTitle?: string | null;
-  startedAt?: string | null;
-  completedAt?: string | null;
+  totalPeople: number;
+  processedPeople: number;
+  syncedPeople: number;
+  failedPeople: number;
   lastError?: string | null;
-  totalPeople?: number;
-  syncedPeople?: number;
-  failedPeople?: number;
+  completedAt?: string | null;
 }
 
 export interface PersonCleanupOperationInfo {

@@ -410,8 +410,8 @@ internal sealed class NodeFileDownloadTaskExecutor
                     NodeId = null, // No longer associated with a node
                     LibraryId = libraryId,
                     FilePath = localFilePath,
-                    MediaId = nodeMetadata.MediaId,
-                    MediaType = nodeMetadata.MediaType,
+                    TmdbId = nodeMetadata.TmdbId,
+                    LibraryType = nodeMetadata.LibraryType,
                     SeasonNumber = nodeMetadata.SeasonNumber,
                     EpisodeNumber = nodeMetadata.EpisodeNumber,
                     Md5Hash = !string.IsNullOrEmpty(md5Hash) ? md5Hash : nodeMetadata.Md5Hash,

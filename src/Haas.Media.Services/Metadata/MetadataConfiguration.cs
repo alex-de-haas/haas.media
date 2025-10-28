@@ -37,21 +37,15 @@ public static class MetadataConfiguration
         builder.Services.AddSingleton<IMetadataApi, MetadataService>();
 
         builder.Services.AddBackgroundTask<
-            MetadataScanTask,
-            ScanOperationInfo,
-            MetadataScanTaskExecutor
+            MetadataSyncTask,
+            MetadataSyncOperationInfo,
+            MetadataSyncTaskExecutor
         >();
 
         builder.Services.AddBackgroundTask<
             AddToLibraryTask,
             AddToLibraryOperationInfo,
             AddToLibraryTaskExecutor
-        >();
-
-        builder.Services.AddBackgroundTask<
-            MetadataRefreshTask,
-            MetadataRefreshOperationInfo,
-            MetadataRefreshTaskExecutor
         >();
 
         builder.Services.AddBackgroundTask<
@@ -139,34 +133,44 @@ public static class MetadataConfiguration
             .WithName("DeleteLibrary")
             .RequireAuthorization();
 
-        // Start background scan operation
+        // New unified metadata sync endpoint
         app.MapPost(
-                "api/metadata/scan/start",
-                async (IMetadataApi metadataService) =>
+                "api/metadata/sync",
+                async (IMetadataApi metadataService, MetadataSyncRequest? request) =>
                 {
-                    var operationId = await metadataService.StartScanLibrariesAsync();
-                    return Results.Ok(new { operationId, message = "Background scan started" });
-                }
-            )
-            .WithName("StartBackgroundScan")
-            .RequireAuthorization();
-
-        app.MapPost(
-                "api/metadata/refresh/start",
-                async (IMetadataApi metadataService, RefreshMetadataRequest? request) =>
-                {
-                    var options = request ?? new RefreshMetadataRequest(true, true, true);
-                    var operationId = await metadataService.StartRefreshMetadataAsync(
+                    var options = request ?? new MetadataSyncRequest();
+                    var operationId = await metadataService.StartMetadataSyncAsync(
+                        options.LibraryIds,
                         options.RefreshMovies,
                         options.RefreshTvShows,
                         options.RefreshPeople
                     );
                     return Results.Ok(
-                        new { operationId, message = "Metadata refresh task started" }
+                        new { operationId, message = "Metadata sync task started" }
                     );
                 }
             )
-            .WithName("StartMetadataRefresh")
+            .WithName("StartMetadataSync")
+            .RequireAuthorization();
+
+        app.MapPost(
+                "api/metadata/libraries/scan",
+                async (IMetadataApi metadataService, LibraryScanRequest? request) =>
+                {
+                    var options = request ?? new LibraryScanRequest();
+                    var operationId = await metadataService.StartLibraryScanAsync(
+                        options.ScanForNewFiles,
+                        options.UpdateFileMetadata,
+                        options.UpdateMovies,
+                        options.UpdateTvShows,
+                        options.UpdatePeople
+                    );
+                    return Results.Ok(
+                        new { operationId, message = "Library scan task started" }
+                    );
+                }
+            )
+            .WithName("StartLibraryScan")
             .RequireAuthorization();
 
         app.MapGet(
@@ -602,6 +606,21 @@ public record RefreshMetadataRequest(
     bool RefreshMovies = true,
     bool RefreshTvShows = true,
     bool RefreshPeople = true
+);
+
+public record MetadataSyncRequest(
+    List<string>? LibraryIds = null,
+    bool RefreshMovies = true,
+    bool RefreshTvShows = true,
+    bool RefreshPeople = true
+);
+
+public record LibraryScanRequest(
+    bool ScanForNewFiles = true,
+    bool UpdateFileMetadata = false,
+    bool UpdateMovies = false,
+    bool UpdateTvShows = false,
+    bool UpdatePeople = false
 );
 
 public record SavePlaybackInfoRequest(

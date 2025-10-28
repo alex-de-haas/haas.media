@@ -375,18 +375,18 @@ public static class JellyfinConfiguration
                         }
 
                         string? itemId = null;
-                        if (fileMetadata.MediaType == LibraryType.Movies)
+                        if (fileMetadata.LibraryType == LibraryType.Movies)
                         {
-                            itemId = JellyfinIdHelper.CreateMovieId(fileMetadata.MediaId);
+                            itemId = JellyfinIdHelper.CreateMovieId(fileMetadata.TmdbId);
                         }
                         else if (
-                            fileMetadata.MediaType == LibraryType.TVShows
+                            fileMetadata.LibraryType == LibraryType.TVShows
                             && fileMetadata.SeasonNumber.HasValue
                             && fileMetadata.EpisodeNumber.HasValue
                         )
                         {
                             itemId = JellyfinIdHelper.CreateEpisodeId(
-                                fileMetadata.MediaId,
+                                fileMetadata.TmdbId,
                                 fileMetadata.SeasonNumber.Value,
                                 fileMetadata.EpisodeNumber.Value
                             );

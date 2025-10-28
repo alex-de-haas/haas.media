@@ -94,56 +94,69 @@ export function useLibraries() {
     [fetchLibraries],
   );
 
-  const startBackgroundScan = useCallback(async (): Promise<{ success: boolean; message: string; operationId?: string }> => {
-    try {
-      const response = await fetchWithAuth(`${downloaderApi}/api/metadata/scan/start`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return {
-          success: true,
-          message: "Background scan started successfully",
-          operationId: data.operationId,
-        };
-      } else {
-        const errorText = await response.text();
-        return { success: false, message: errorText || "Failed to start background scan" };
-      }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Network error occurred while starting background scan";
-      return { success: false, message };
-    }
-  }, []);
-
-  const startMetadataRefresh = useCallback(
+  const startMetadataSync = useCallback(
     async (options?: {
+      libraryIds?: string[];
       refreshMovies?: boolean;
       refreshTvShows?: boolean;
       refreshPeople?: boolean;
     }): Promise<{ success: boolean; message: string; operationId?: string }> => {
       try {
-        const response = await fetchWithAuth(`${downloaderApi}/api/metadata/refresh/start`, {
+        const response = await fetchWithAuth(`${downloaderApi}/api/metadata/sync`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(options ?? { refreshMovies: true, refreshTvShows: true, refreshPeople: true }),
+          body: JSON.stringify(
+            options ?? { libraryIds: null, refreshMovies: true, refreshTvShows: true, refreshPeople: true },
+          ),
         });
 
         if (response.ok) {
           const data = await response.json();
           return {
             success: true,
-            message: data.message ?? "Metadata refresh started successfully",
+            message: data.message ?? "Metadata sync started successfully",
             operationId: data.operationId,
           };
         }
 
         const errorText = await response.text();
-        return { success: false, message: errorText || "Failed to start metadata refresh" };
+        return { success: false, message: errorText || "Failed to start metadata sync" };
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : "Network error occurred while starting metadata refresh";
+        const message = error instanceof Error ? error.message : "Network error occurred while starting metadata sync";
+        return { success: false, message };
+      }
+    },
+    [],
+  );
+
+  const startLibraryScan = useCallback(
+    async (options?: {
+      scanForNewFiles?: boolean;
+      updateFileMetadata?: boolean;
+      updateMovies?: boolean;
+      updateTvShows?: boolean;
+      updatePeople?: boolean;
+    }): Promise<{ success: boolean; message: string; operationId?: string }> => {
+      try {
+        const response = await fetchWithAuth(`${downloaderApi}/api/metadata/libraries/scan`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(options ?? { scanForNewFiles: true }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            success: true,
+            message: data.message ?? "Library scan started successfully",
+            operationId: data.operationId,
+          };
+        }
+
+        const errorText = await response.text();
+        return { success: false, message: errorText || "Failed to start library scan" };
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Network error occurred while starting library scan";
         return { success: false, message };
       }
     },
@@ -162,7 +175,7 @@ export function useLibraries() {
     createLibrary,
     updateLibrary,
     deleteLibrary,
-    startBackgroundScan,
-    startMetadataRefresh,
+    startMetadataSync,
+    startLibraryScan,
   };
 }

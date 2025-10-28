@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useBackgroundTasks } from "../hooks/useBackgroundTasks";
 import { useNotifications } from "@/lib/notifications";
 import { BackgroundTaskStatus, type BackgroundTaskInfo } from "@/types";
-import type { AddToLibraryOperationInfo, MetadataRefreshOperationInfo, ScanOperationInfo } from "@/types/metadata";
+import type { AddToLibraryOperationInfo } from "@/types/metadata";
 import { LibraryType } from "@/types/library";
 import { useLocalAuth } from "@/features/auth/local-auth-context";
 
@@ -28,54 +28,6 @@ const formatPeopleSummary = (total?: number, synced?: number, failed?: number): 
   const failedSafe = Math.max(0, toNumber(failed));
 
   return failedSafe > 0 ? `People ${syncedSafe}/${total} (${failedSafe} failed)` : `People ${syncedSafe}/${total}`;
-};
-
-const parseScanOperation = (task: BackgroundTaskInfo): ScanOperationInfo | null => {
-  if (!task.payload || typeof task.payload !== "object") {
-    return null;
-  }
-
-  const raw = task.payload as Record<string, unknown>;
-
-  return {
-    id: toOptionalString(raw.id) ?? task.id,
-    libraryPath: toOptionalString(raw.libraryPath) ?? "All Libraries",
-    libraryTitle: toOptionalString(raw.libraryTitle) ?? "Library scan",
-    totalFiles: toNumber(raw.totalFiles),
-    processedFiles: toNumber(raw.processedFiles),
-    foundMetadata: toNumber(raw.foundMetadata),
-    startTime: toOptionalString(raw.startTime) ?? task.startedAt ?? task.createdAt,
-    currentFile: toOptionalString(raw.currentFile),
-    totalPeople: toNumber(raw.totalPeople),
-    syncedPeople: toNumber(raw.syncedPeople),
-    failedPeople: toNumber(raw.failedPeople),
-  };
-};
-
-const parseRefreshOperation = (task: BackgroundTaskInfo): MetadataRefreshOperationInfo | null => {
-  if (!task.payload || typeof task.payload !== "object") {
-    return null;
-  }
-
-  const raw = task.payload as Record<string, unknown>;
-
-  return {
-    id: toOptionalString(raw.id) ?? task.id,
-    totalItems: toNumber(raw.totalItems),
-    processedItems: toNumber(raw.processedItems),
-    totalMovies: toNumber(raw.totalMovies),
-    processedMovies: toNumber(raw.processedMovies),
-    totalTvShows: toNumber(raw.totalTvShows),
-    processedTvShows: toNumber(raw.processedTvShows),
-    stage: toOptionalString(raw.stage) ?? "Completed",
-    currentTitle: toOptionalString(raw.currentTitle),
-    startedAt: toOptionalString(raw.startedAt),
-    completedAt: toOptionalString(raw.completedAt),
-    lastError: toOptionalString(raw.lastError),
-    totalPeople: toNumber(raw.totalPeople),
-    syncedPeople: toNumber(raw.syncedPeople),
-    failedPeople: toNumber(raw.failedPeople),
-  };
 };
 
 const parseAddToLibraryOperation = (task: BackgroundTaskInfo): AddToLibraryOperationInfo | null => {
@@ -118,64 +70,6 @@ const getLibraryTypeLabel = (libraryType: LibraryType): string => {
   }
 };
 
-const handleScanCompleted = (task: BackgroundTaskInfo, notify: ReturnType<typeof useNotifications>["notify"]) => {
-  const payload = parseScanOperation(task);
-  const messageParts: string[] = [];
-
-  if (payload) {
-    if (payload.totalFiles > 0) {
-      messageParts.push(`${payload.processedFiles}/${payload.totalFiles} files processed`);
-    } else if (payload.processedFiles > 0) {
-      messageParts.push(`${payload.processedFiles} files processed`);
-    }
-
-    if (payload.foundMetadata > 0) {
-      messageParts.push(`${payload.foundMetadata} metadata matches`);
-    }
-
-    const peopleSummary = formatPeopleSummary(payload.totalPeople, payload.syncedPeople, payload.failedPeople);
-    if (peopleSummary) {
-      messageParts.push(peopleSummary);
-    }
-  }
-
-  notify({
-    title: "Library scan complete",
-    message: messageParts.length > 0 ? messageParts.join(" • ") : "Library scanning finished successfully.",
-    type: "success",
-  });
-};
-
-const handleRefreshCompleted = (task: BackgroundTaskInfo, notify: ReturnType<typeof useNotifications>["notify"]) => {
-  const payload = parseRefreshOperation(task);
-  const messageParts: string[] = [];
-
-  if (payload) {
-    if (payload.totalMovies > 0) {
-      messageParts.push(`Movies ${payload.processedMovies}/${payload.totalMovies}`);
-    }
-
-    if (payload.totalTvShows > 0) {
-      messageParts.push(`TV shows ${payload.processedTvShows}/${payload.totalTvShows}`);
-    }
-
-    if (payload.totalItems > 0) {
-      messageParts.push(`Items ${payload.processedItems}/${payload.totalItems}`);
-    }
-
-    const peopleSummary = formatPeopleSummary(payload.totalPeople, payload.syncedPeople, payload.failedPeople);
-    if (peopleSummary) {
-      messageParts.push(peopleSummary);
-    }
-  }
-
-  notify({
-    title: "Metadata refresh complete",
-    message: messageParts.length > 0 ? messageParts.join(" • ") : "Metadata refresh finished successfully.",
-    type: "success",
-  });
-};
-
 const handleAddToLibraryCompleted = (task: BackgroundTaskInfo, notify: ReturnType<typeof useNotifications>["notify"]) => {
   const payload = parseAddToLibraryOperation(task);
   const title = payload?.title ?? task.name ?? "Item";
@@ -213,12 +107,6 @@ const handleAddToLibraryCompleted = (task: BackgroundTaskInfo, notify: ReturnTyp
 
 const handleTaskCompletion = (task: BackgroundTaskInfo, notify: ReturnType<typeof useNotifications>["notify"]) => {
   switch (task.type) {
-    case "MetadataScanTask":
-      handleScanCompleted(task, notify);
-      break;
-    case "MetadataRefreshTask":
-      handleRefreshCompleted(task, notify);
-      break;
     case "AddToLibraryTask":
       handleAddToLibraryCompleted(task, notify);
       break;

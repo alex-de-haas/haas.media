@@ -131,8 +131,8 @@ public class MetadataService : IMetadataApi
         else
         {
             var movieIds = _fileMetadataCollection
-                .Find(f => f.LibraryId == libraryId && f.MediaType == LibraryType.Movies)
-                .Select(f => f.MediaId)
+                .Find(f => f.LibraryId == libraryId && f.LibraryType == LibraryType.Movies)
+                .Select(f => f.TmdbId)
                 .Distinct()
                 .ToList();
 
@@ -216,8 +216,8 @@ public class MetadataService : IMetadataApi
         else
         {
             var tvShowIds = _fileMetadataCollection
-                .Find(f => f.LibraryId == libraryId && f.MediaType == LibraryType.TVShows)
-                .Select(f => f.MediaId)
+                .Find(f => f.LibraryId == libraryId && f.LibraryType == LibraryType.TVShows)
+                .Select(f => f.TmdbId)
                 .Distinct()
                 .ToList();
 
@@ -548,10 +548,10 @@ public class MetadataService : IMetadataApi
         _tvShowMetadataCollection.EnsureIndex(x => x.Title);
 
         _fileMetadataCollection.EnsureIndex(x => x.LibraryId);
-        _fileMetadataCollection.EnsureIndex(x => x.MediaId);
+        _fileMetadataCollection.EnsureIndex(x => x.TmdbId);
         _fileMetadataCollection.EnsureIndex(x => x.FilePath);
-        _fileMetadataCollection.EnsureIndex(x => x.MediaType);
-        _fileMetadataCollection.EnsureIndex(x => new { x.LibraryId, x.MediaId });
+        _fileMetadataCollection.EnsureIndex(x => x.LibraryType);
+        _fileMetadataCollection.EnsureIndex(x => new { x.LibraryId, x.TmdbId });
         _personMetadataCollection.EnsureIndex(x => x.Name);
 
         _playbackInfoCollection.EnsureIndex("idx_userId", x => x.UserId, false);
@@ -567,24 +567,40 @@ public class MetadataService : IMetadataApi
         );
     }
 
-    public Task<string> StartScanLibrariesAsync()
+    public Task<string> StartMetadataSyncAsync(
+        List<string>? libraryIds = null,
+        bool refreshMovies = true,
+        bool refreshTvShows = true,
+        bool refreshPeople = true
+    )
     {
-        var task = new MetadataScanTask();
+        var task = new MetadataSyncTask
+        {
+            LibraryIds = libraryIds ?? new List<string>(),
+            RefreshMovies = refreshMovies,
+            RefreshTvShows = refreshTvShows,
+            RefreshPeople = refreshPeople
+        };
         var operationId = task.Id.ToString();
+
         _logger.LogInformation(
-            "Starting background scan operation with ID: {OperationId}",
-            operationId
+            "Starting metadata sync operation with ID: {OperationId} (Libraries: {LibraryCount}, Movies: {RefreshMovies}, TV Shows: {RefreshTvShows}, People: {RefreshPeople})",
+            operationId,
+            task.LibraryIds.Count > 0 ? string.Join(", ", task.LibraryIds) : "All",
+            refreshMovies,
+            refreshTvShows,
+            refreshPeople
         );
 
         try
         {
-            _backgroundTaskManager.RunTask<MetadataScanTask, ScanOperationInfo>(task);
+            _backgroundTaskManager.RunTask<MetadataSyncTask, MetadataSyncOperationInfo>(task);
         }
         catch (Exception ex)
         {
             _logger.LogError(
                 ex,
-                "Failed to enqueue scan operation with ID: {OperationId}",
+                "Failed to enqueue metadata sync operation with ID: {OperationId}",
                 operationId
             );
             throw;
@@ -593,37 +609,43 @@ public class MetadataService : IMetadataApi
         return Task.FromResult(operationId);
     }
 
-    public Task<string> StartRefreshMetadataAsync(
-        bool refreshMovies = true,
-        bool refreshTvShows = true,
-        bool refreshPeople = true
+    public Task<string> StartLibraryScanAsync(
+        bool scanForNewFiles = true,
+        bool updateFileMetadata = false,
+        bool updateMovies = false,
+        bool updateTvShows = false,
+        bool updatePeople = false
     )
     {
-        var task = new MetadataRefreshTask
+        var task = new LibraryScanTask
         {
-            RefreshMovies = refreshMovies,
-            RefreshTvShows = refreshTvShows,
-            RefreshPeople = refreshPeople
+            ScanForNewFiles = scanForNewFiles,
+            UpdateFileMetadata = updateFileMetadata,
+            UpdateMovies = updateMovies,
+            UpdateTvShows = updateTvShows,
+            UpdatePeople = updatePeople
         };
         var operationId = task.Id.ToString();
 
         _logger.LogInformation(
-            "Starting metadata refresh operation with ID: {OperationId} (Movies: {RefreshMovies}, TV Shows: {RefreshTvShows}, People: {RefreshPeople})",
+            "Starting library scan operation with ID: {OperationId} (ScanForNewFiles: {ScanForNewFiles}, UpdateFileMetadata: {UpdateFileMetadata}, UpdateMovies: {UpdateMovies}, UpdateTvShows: {UpdateTvShows}, UpdatePeople: {UpdatePeople})",
             operationId,
-            refreshMovies,
-            refreshTvShows,
-            refreshPeople
+            scanForNewFiles,
+            updateFileMetadata,
+            updateMovies,
+            updateTvShows,
+            updatePeople
         );
 
         try
         {
-            _backgroundTaskManager.RunTask<MetadataRefreshTask, MetadataRefreshOperationInfo>(task);
+            _backgroundTaskManager.RunTask<LibraryScanTask, LibraryScanOperationInfo>(task);
         }
         catch (Exception ex)
         {
             _logger.LogError(
                 ex,
-                "Failed to enqueue metadata refresh operation with ID: {OperationId}",
+                "Failed to enqueue library scan operation with ID: {OperationId}",
                 operationId
             );
             throw;
@@ -643,7 +665,7 @@ public class MetadataService : IMetadataApi
         if (!string.IsNullOrWhiteSpace(libraryId) && mediaId.HasValue)
         {
             results = _fileMetadataCollection.Find(f =>
-                f.LibraryId == libraryId && f.MediaId == mediaId.Value
+                f.LibraryId == libraryId && f.TmdbId == mediaId.Value
             );
         }
         else if (!string.IsNullOrWhiteSpace(libraryId))
@@ -652,7 +674,7 @@ public class MetadataService : IMetadataApi
         }
         else if (mediaId.HasValue)
         {
-            results = _fileMetadataCollection.Find(f => f.MediaId == mediaId.Value);
+            results = _fileMetadataCollection.Find(f => f.TmdbId == mediaId.Value);
         }
         else
         {
@@ -685,7 +707,7 @@ public class MetadataService : IMetadataApi
         _fileMetadataCollection.Insert(fileMetadata);
         _logger.LogInformation(
             "Added new file metadata: MediaId={MediaId}, FilePath={FilePath}",
-            fileMetadata.MediaId,
+            fileMetadata.TmdbId,
             fileMetadata.FilePath
         );
         return Task.FromResult(fileMetadata);
@@ -712,7 +734,7 @@ public class MetadataService : IMetadataApi
         _logger.LogInformation(
             "Updated file metadata: ID={Id}, MediaId={MediaId}, FilePath={FilePath}, NodeId={NodeId}",
             fileMetadata.Id,
-            fileMetadata.MediaId,
+            fileMetadata.TmdbId,
             fileMetadata.FilePath,
             fileMetadata.NodeId ?? "local"
         );
@@ -769,7 +791,7 @@ public class MetadataService : IMetadataApi
     )
     {
         var results = _fileMetadataCollection.Find(f =>
-            f.MediaId == mediaId && f.MediaType == mediaType
+            f.TmdbId == mediaId && f.LibraryType == mediaType
         );
         var fileMetadata = results.ToList();
         _logger.LogDebug(

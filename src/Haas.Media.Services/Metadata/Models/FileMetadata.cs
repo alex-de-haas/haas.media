@@ -28,15 +28,13 @@ public class FileMetadata
 
     /// <summary>
     /// The TMDb ID of the associated media (Movie ID or TV Show ID).
-    /// For movies: the MovieMetadata.Id
-    /// For TV shows: the TVShowMetadata.Id
     /// </summary>
-    public required int MediaId { get; init; }
+    public required int TmdbId { get; init; }
 
     /// <summary>
     /// The media type this file is associated with.
     /// </summary>
-    public required LibraryType MediaType { get; init; }
+    public required LibraryType LibraryType { get; init; }
 
     /// <summary>
     /// Relative path to the media file (relative to DATA_DIRECTORY).
