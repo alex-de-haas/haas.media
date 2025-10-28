@@ -1,20 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { SearchResult } from "@/types/metadata";
 import { LibraryType } from "@/types/library";
 import { useSearch, useAddToLibrary } from "@/features/media/hooks/useMetadata";
-import { useLibraries } from "@/features/libraries/hooks/useLibraries";
 import { getPosterUrl } from "@/lib/tmdb";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Library } from "@/types/library";
 import { Film, Search, Star, Tv } from "lucide-react";
 import { Loader2, PlusCircle } from "lucide-react";
 
@@ -28,15 +25,11 @@ interface SearchModalProps {
 export default function SearchModal({ isOpen, onClose, mediaType, title }: SearchModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [selectedLibraryId, setSelectedLibraryId] = useState<string>("");
   const [isAdding, setIsAdding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const { libraries } = useLibraries();
   const { search, loading: isSearching } = useSearch();
   const { addToLibrary } = useAddToLibrary();
-
-  const filteredLibraries = useMemo(() => libraries.filter((library) => library.type === mediaType), [libraries, mediaType]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -44,14 +37,7 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
     setSearchQuery("");
     setSearchResults([]);
     setError(null);
-
-    if (filteredLibraries.length === 1) {
-      const [library] = filteredLibraries;
-      if (library?.id) {
-        setSelectedLibraryId(library.id);
-      }
-    }
-  }, [filteredLibraries, isOpen]);
+  }, [isOpen]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -66,17 +52,11 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
   };
 
   const handleAddToLibrary = async (result: SearchResult) => {
-    if (!selectedLibraryId) {
-      setError("Choose a library before adding content");
-      return;
-    }
-
     setIsAdding(result.id.toString());
     setError(null);
     try {
       await addToLibrary({
         type: mediaType,
-        libraryId: selectedLibraryId,
         id: result.id,
       });
       onClose();
@@ -96,21 +76,11 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
 
   const libraryIcon = mediaType === LibraryType.Movies ? <Film className="h-4 w-4" /> : <Tv className="h-4 w-4" />;
 
-  const handleLibraryChange = (value: string) => {
-    setSelectedLibraryId(value);
-  };
-
   const handleDialogChange = (open: boolean) => {
     if (!open) {
       onClose();
     }
   };
-
-  const renderLibraryOption = (library: Library) => (
-    <SelectItem key={library.id} value={library.id ?? ""}>
-      {library.title}
-    </SelectItem>
-  );
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogChange}>
@@ -119,30 +89,11 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="flex items-center gap-2 text-sm">
             {libraryIcon}
-            <span>Search The Movie Database and add items directly to your selected library.</span>
+            <span>Search The Movie Database and add items to your library.</span>
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
-          {filteredLibraries.length > 1 && (
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">Destination library</label>
-              <Select value={selectedLibraryId} onValueChange={handleLibraryChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a library" />
-                </SelectTrigger>
-                <SelectContent>{filteredLibraries.map(renderLibraryOption)}</SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {filteredLibraries.length === 1 && selectedLibraryId && (
-            <Badge variant="outline" className="w-fit gap-2">
-              <PlusCircle className="h-3.5 w-3.5" />
-              Adding to {filteredLibraries[0]?.title}
-            </Badge>
-          )}
-
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <Input
               value={searchQuery}
@@ -216,11 +167,7 @@ export default function SearchModal({ isOpen, onClose, mediaType, title }: Searc
                         {result.releaseDate && <span>Released {new Date(result.releaseDate).toLocaleDateString()}</span>}
                         {result.originalLanguage && <span className="uppercase">{result.originalLanguage}</span>}
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={() => handleAddToLibrary(result)}
-                        disabled={!selectedLibraryId || isAdding === result.id.toString()}
-                      >
+                      <Button size="sm" onClick={() => handleAddToLibrary(result)} disabled={isAdding === result.id.toString()}>
                         {isAdding === result.id.toString() ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (

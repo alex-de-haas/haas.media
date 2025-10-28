@@ -7,7 +7,7 @@ import { downloaderApi } from "@/lib/api";
 export interface DownloadFileFromNodeRequest {
   nodeId: string;
   remoteFilePath: string;
-  libraryId: string;
+  destinationDirectory: string;
 }
 
 export function useNodeFileDownload() {
@@ -22,7 +22,7 @@ export function useNodeFileDownload() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             remoteFilePath: request.remoteFilePath,
-            libraryId: request.libraryId,
+            destinationDirectory: request.destinationDirectory,
           }),
         });
 

@@ -2,9 +2,7 @@ namespace Haas.Media.Services.Metadata;
 
 public record AddToLibraryOperationInfo(
     int Id,
-    string LibraryId,
     LibraryType LibraryType,
-    string? LibraryTitle,
     string Stage,
     DateTime StartTime,
     string? Title = null,

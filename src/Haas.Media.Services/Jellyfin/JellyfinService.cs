@@ -11,6 +11,10 @@ public class JellyfinService
     private readonly string _dataDirectory;
     private readonly string _serverId;
     private const string ImageBaseUrl = "https://image.tmdb.org/t/p/";
+    
+    // Hardcoded library IDs for Jellyfin compatibility
+    private const string MoviesLibraryId = "movies";
+    private const string TvShowsLibraryId = "tvshows";
 
     // Helper method to get first file for a media item
     private async Task<FileMetadata?> GetFirstFileForMediaAsync(int mediaId, LibraryType mediaType)
@@ -91,28 +95,29 @@ public class JellyfinService
         CancellationToken cancellationToken = default
     )
     {
-        var libraries = (await _metadataApi.GetLibrariesAsync()).ToList();
-        var items = new List<JellyfinLibraryItem>(libraries.Count);
+        // Return hardcoded libraries for movies and TV shows
+        var moviesCount = await CountMoviesAsync();
+        var tvShowsCount = await CountTvShowsAsync();
 
-        foreach (var library in libraries)
+        var items = new List<JellyfinLibraryItem>
         {
-            var collectionType = library.Type == LibraryType.Movies ? "movies" : "tvshows";
-            var childCount =
-                library.Type == LibraryType.Movies
-                    ? await CountMoviesAsync(library.Id)
-                    : await CountTvShowsAsync(library.Id);
-
-            items.Add(
-                new JellyfinLibraryItem
-                {
-                    Id = JellyfinIdHelper.CreateLibraryId(library.Id ?? string.Empty),
-                    Name = library.Title,
-                    CollectionType = collectionType,
-                    ServerId = _serverId,
-                    ChildCount = childCount,
-                }
-            );
-        }
+            new JellyfinLibraryItem
+            {
+                Id = JellyfinIdHelper.CreateLibraryId(MoviesLibraryId),
+                Name = "Movies",
+                CollectionType = "movies",
+                ServerId = _serverId,
+                ChildCount = moviesCount,
+            },
+            new JellyfinLibraryItem
+            {
+                Id = JellyfinIdHelper.CreateLibraryId(TvShowsLibraryId),
+                Name = "TV Shows",
+                CollectionType = "tvshows",
+                ServerId = _serverId,
+                ChildCount = tvShowsCount,
+            }
+        };
 
         return new JellyfinLibraryEnvelope
         {
@@ -135,19 +140,30 @@ public class JellyfinService
         CancellationToken cancellationToken = default
     )
     {
-        var libraries = await _metadataApi.GetLibrariesAsync();
-        return libraries
-            .Select(library => new JellyfinVirtualFolderInfo
+        // Return hardcoded virtual folders for movies and TV shows
+        return new[]
+        {
+            new JellyfinVirtualFolderInfo
             {
-                Name = library.Title,
-                Locations = new[] { library.DirectoryPath },
-                CollectionType = library.Type == LibraryType.Movies ? "movies" : "tvshows",
-                ItemId = JellyfinIdHelper.CreateLibraryId(library.Id ?? string.Empty),
+                Name = "Movies",
+                Locations = new[] { "Movies" },
+                CollectionType = "movies",
+                ItemId = JellyfinIdHelper.CreateLibraryId(MoviesLibraryId),
                 PrimaryImageItemId = null,
                 RefreshProgress = null,
                 RefreshStatus = null
-            })
-            .ToArray();
+            },
+            new JellyfinVirtualFolderInfo
+            {
+                Name = "TV Shows",
+                Locations = new[] { "Shows" },
+                CollectionType = "tvshows",
+                ItemId = JellyfinIdHelper.CreateLibraryId(TvShowsLibraryId),
+                PrimaryImageItemId = null,
+                RefreshProgress = null,
+                RefreshStatus = null
+            }
+        };
     }
 
     public async Task<JellyfinItemsEnvelope> GetItemsAsync(
@@ -168,13 +184,19 @@ public class JellyfinService
 
         if (JellyfinIdHelper.TryParseLibraryId(query.ParentId, out var libraryId))
         {
-            var library = await _metadataApi.GetLibraryAsync(libraryId);
-            if (library is null)
+            // Determine library type from hardcoded library ID
+            if (libraryId == MoviesLibraryId)
+            {
+                return await BuildLibraryItemsAsync(libraryId, LibraryType.Movies, query, userId);
+            }
+            else if (libraryId == TvShowsLibraryId)
+            {
+                return await BuildLibraryItemsAsync(libraryId, LibraryType.TVShows, query, userId);
+            }
+            else
             {
                 return EmptyItems();
             }
-
-            return await BuildLibraryItemsAsync(library, query, userId);
         }
 
         if (JellyfinIdHelper.TryParseSeriesId(query.ParentId, out var seriesId))
@@ -216,26 +238,38 @@ public class JellyfinService
     {
         if (JellyfinIdHelper.TryParseLibraryId(itemId, out var libraryId))
         {
-            var library = await _metadataApi.GetLibraryAsync(libraryId);
-            if (library is null)
+            // Determine library details from hardcoded library ID
+            string name, description, collectionType;
+            if (libraryId == MoviesLibraryId)
+            {
+                name = "Movies";
+                description = "Movie collection";
+                collectionType = "movies";
+            }
+            else if (libraryId == TvShowsLibraryId)
+            {
+                name = "TV Shows";
+                description = "TV show collection";
+                collectionType = "tvshows";
+            }
+            else
             {
                 return null;
             }
 
-            var libraryCollectionType = library.Type == LibraryType.Movies ? "movies" : "tvshows";
             return new JellyfinItem
             {
                 Id = JellyfinIdHelper.CreateLibraryId(libraryId),
-                Name = library.Title,
-                OriginalTitle = library.Title,
-                SortName = library.Title,
+                Name = name,
+                OriginalTitle = name,
+                SortName = name,
                 Type = "CollectionFolder",
                 DisplayPreferencesId = JellyfinIdHelper.CreateLibraryId(libraryId),
-                CollectionType = libraryCollectionType,
+                CollectionType = collectionType,
                 MediaType = "Folder",
                 ParentId = null,
                 IsFolder = true,
-                Overview = library.Description,
+                Overview = description,
                 ServerId = _serverId,
                 Genres = null,
                 UserData = new JellyfinUserData { Played = false },
@@ -451,17 +485,18 @@ public class JellyfinService
     }
 
     private async Task<JellyfinItemsEnvelope> BuildLibraryItemsAsync(
-        LibraryInfo library,
+        string libraryId,
+        LibraryType libraryType,
         JellyfinItemsQuery query,
         string? userId = null
     )
     {
-        if (library.Type == LibraryType.Movies)
+        if (libraryType == LibraryType.Movies)
         {
-            var movies = (await _metadataApi.GetMovieMetadataAsync(library.Id)).ToList();
+            var movies = (await _metadataApi.GetMovieMetadataAsync()).ToList();
             var filtered = FilterByName(movies, query.SearchTerm, movie => movie.Title);
             var mappingTasks = filtered.Select(async movie =>
-                await MapMovieAsync(movie, library.Id, userId)
+                await MapMovieAsync(movie, libraryId, userId)
             );
             var allItems = await Task.WhenAll(mappingTasks);
             var items = allItems.Where(item => MatchesType(item, query)).ToArray();
@@ -475,10 +510,10 @@ public class JellyfinService
         }
         else
         {
-            var shows = (await _metadataApi.GetTVShowMetadataAsync(library.Id)).ToList();
+            var shows = (await _metadataApi.GetTVShowMetadataAsync()).ToList();
             var filtered = FilterByName(shows, query.SearchTerm, show => show.Title);
             var mappingTasks = filtered.Select(async show =>
-                await MapSeriesAsync(show, library.Id, userId)
+                await MapSeriesAsync(show, libraryId, userId)
             );
             var allItems = await Task.WhenAll(mappingTasks);
             var items = allItems.Where(item => MatchesType(item, query)).ToList();
@@ -488,7 +523,7 @@ public class JellyfinService
                 var additional = new List<JellyfinItem>();
                 foreach (var show in filtered)
                 {
-                    additional.AddRange(await MapAllEpisodesAsync(show, query, library.Id, userId));
+                    additional.AddRange(await MapAllEpisodesAsync(show, query, libraryId, userId));
                 }
                 items.AddRange(additional);
             }
@@ -1349,25 +1384,15 @@ public class JellyfinService
         return false;
     }
 
-    private async Task<int> CountMoviesAsync(string? libraryId)
+    private async Task<int> CountMoviesAsync()
     {
-        if (string.IsNullOrWhiteSpace(libraryId))
-        {
-            return 0;
-        }
-
-        var movies = await _metadataApi.GetMovieMetadataAsync(libraryId);
+        var movies = await _metadataApi.GetMovieMetadataAsync();
         return movies.Count();
     }
 
-    private async Task<int> CountTvShowsAsync(string? libraryId)
+    private async Task<int> CountTvShowsAsync()
     {
-        if (string.IsNullOrWhiteSpace(libraryId))
-        {
-            return 0;
-        }
-
-        var shows = await _metadataApi.GetTVShowMetadataAsync(libraryId);
+        var shows = await _metadataApi.GetTVShowMetadataAsync();
         return shows.Count();
     }
 
@@ -1420,17 +1445,8 @@ public class JellyfinService
     {
         var nextUpItems = new List<JellyfinItem>();
 
-        // Get all TV shows (optionally filtered by library)
-        string? libraryId = null;
-        if (
-            !string.IsNullOrWhiteSpace(parentId)
-            && JellyfinIdHelper.TryParseLibraryId(parentId, out var libId)
-        )
-        {
-            libraryId = libId;
-        }
-
-        var tvShows = (await metadataApi.GetTVShowMetadataAsync(libraryId)).ToList();
+        // Get all TV shows
+        var tvShows = (await metadataApi.GetTVShowMetadataAsync()).ToList();
 
         foreach (var show in tvShows)
         {
@@ -1522,7 +1538,7 @@ public class JellyfinService
                     var mappedEpisode = await MapEpisodeAsync(
                         show,
                         episodeMetadata,
-                        libraryId,
+                        TvShowsLibraryId,
                         userId
                     );
                     nextUpItems.Add(mappedEpisode);

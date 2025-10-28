@@ -8,11 +8,6 @@ public sealed class MetadataSyncTask : BackgroundTaskBase
         : base(id) { }
 
     /// <summary>
-    /// IDs of libraries to sync. If empty or null, all libraries will be synced.
-    /// </summary>
-    public List<string> LibraryIds { get; init; } = new();
-
-    /// <summary>
     /// Whether to refresh movie metadata from TMDb for new and existing movies
     /// </summary>
     public bool RefreshMovies { get; init; } = true;

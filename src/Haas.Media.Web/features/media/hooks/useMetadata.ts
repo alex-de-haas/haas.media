@@ -17,7 +17,6 @@ import { useBackgroundTasks } from "@/features/background-tasks/hooks/useBackgro
 
 export interface AddToLibraryRequest {
   type: LibraryType;
-  libraryId: string;
   id: number;
 }
 

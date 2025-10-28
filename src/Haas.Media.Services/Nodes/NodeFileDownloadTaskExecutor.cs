@@ -38,10 +38,10 @@ internal sealed class NodeFileDownloadTaskExecutor
         var cancellationToken = context.CancellationToken;
 
         _logger.LogInformation(
-            "Starting file download from node {NodeId}: {RemoteFilePath} to library {LibraryId}",
+            "Starting file download from node {NodeId}: {RemoteFilePath} to directory {DestinationDirectory}",
             task.NodeId,
             task.RemoteFilePath,
-            task.LibraryId
+            task.DestinationDirectory
         );
 
         // Get the node
@@ -58,26 +58,18 @@ internal sealed class NodeFileDownloadTaskExecutor
             throw new InvalidOperationException($"Node {node.Name} is disabled");
         }
 
-        // Get the library
-        var library = await _metadataApi.GetLibraryAsync(task.LibraryId);
-        if (library == null)
-        {
-            _logger.LogWarning("Library not found: {LibraryId}", task.LibraryId);
-            throw new InvalidOperationException($"Library with ID {task.LibraryId} not found");
-        }
-
         // Get the DATA_DIRECTORY path
         var dataDirectory =
             _configuration["DATA_DIRECTORY"]
             ?? throw new InvalidOperationException("DATA_DIRECTORY configuration is required");
 
         // Build the local destination path
-        var libraryPath = Path.Combine(dataDirectory, library.DirectoryPath);
+        var destinationPath = Path.Combine(dataDirectory, task.DestinationDirectory);
         var fileName = Path.GetFileName(task.RemoteFilePath);
-        var localFilePath = Path.Combine(libraryPath, fileName);
+        var localFilePath = Path.Combine(destinationPath, fileName);
 
-        // Ensure the library directory exists
-        Directory.CreateDirectory(libraryPath);
+        // Ensure the destination directory exists
+        Directory.CreateDirectory(destinationPath);
 
         // Create HTTP client
         var httpClient = _httpClientFactory.CreateClient();
@@ -134,7 +126,7 @@ internal sealed class NodeFileDownloadTaskExecutor
                 task.NodeId,
                 node.Name,
                 task.RemoteFilePath,
-                task.LibraryId,
+                task.DestinationDirectory,
                 totalBytes,
                 0, // DownloadedBytes
                 DateTime.UtcNow,
@@ -260,7 +252,6 @@ internal sealed class NodeFileDownloadTaskExecutor
             await UpdateFileMetadataToLocalAsync(
                 task.NodeId,
                 task.RemoteFilePath,
-                task.LibraryId,
                 relativePath,
                 actualMd5Hash,
                 cancellationToken
@@ -369,13 +360,12 @@ internal sealed class NodeFileDownloadTaskExecutor
     /// <summary>
     /// Creates new local file metadata after successful download.
     /// Finds the FileMetadata record with the matching NodeId and FilePath, then creates a new local version
-    /// with NodeId set to null, LibraryId to the target library, FilePath to the local path, and optionally the MD5 hash.
+    /// with NodeId set to null and FilePath to the local path, and optionally the MD5 hash.
     /// The original node file metadata is preserved.
     /// </summary>
     private async Task UpdateFileMetadataToLocalAsync(
         string nodeId,
         string remoteFilePath,
-        string libraryId,
         string localFilePath,
         string? md5Hash,
         CancellationToken cancellationToken
@@ -393,7 +383,7 @@ internal sealed class NodeFileDownloadTaskExecutor
             {
                 _logger.LogWarning(
                     "No file metadata found for NodeId={NodeId}, FilePath={FilePath}. " +
-                    "The metadata may need to be created manually or will be discovered in the next library scan.",
+                    "The metadata may need to be created manually or will be discovered in the next metadata scan.",
                     nodeId,
                     remoteFilePath
                 );
@@ -408,7 +398,7 @@ internal sealed class NodeFileDownloadTaskExecutor
                 {
                     Id = Guid.NewGuid().ToString(), // New ID for the local file
                     NodeId = null, // No longer associated with a node
-                    LibraryId = libraryId,
+                    LibraryId = null, // Not associated with a library (will be set during next metadata scan if needed)
                     FilePath = localFilePath,
                     TmdbId = nodeMetadata.TmdbId,
                     LibraryType = nodeMetadata.LibraryType,
@@ -425,12 +415,11 @@ internal sealed class NodeFileDownloadTaskExecutor
                     _logger.LogInformation(
                         "Created new local file metadata ID={Id} based on node metadata ID={NodeMetadataId} " +
                         "(NodeId={NodeId}, RemoteFilePath={RemoteFilePath}) " +
-                        "→ (LibraryId={LibraryId}, LocalFilePath={LocalFilePath})",
+                        "→ (LocalFilePath={LocalFilePath})",
                         created.Id,
                         nodeMetadata.Id,
                         nodeId,
                         remoteFilePath,
-                        libraryId,
                         localFilePath
                     );
                 }

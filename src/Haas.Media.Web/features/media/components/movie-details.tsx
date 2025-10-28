@@ -8,15 +8,17 @@ import { MoreVertical, Trash2, Star, ArrowLeft, Film, Heart, Play, Eye, Download
 
 import { useMovie, useDeleteMovieMetadata, useMoviePlaybackInfo } from "@/features/media/hooks";
 import { useFilesByMediaId } from "@/features/media/hooks/useFileMetadata";
-import { useLibraries } from "@/features/libraries";
 import { useNodeFileDownload } from "@/features/nodes/hooks";
 import { useBackgroundTasks } from "@/features/background-tasks/hooks";
 import { LibraryType } from "@/types/library";
 import type { BackgroundTaskInfo } from "@/types";
+import type { GlobalSettings } from "@/types/global-settings";
 import { Spinner } from "@/components/ui";
 import { getPosterUrl, getBackdropUrl, getLogoUrl } from "@/lib/tmdb";
 import { formatCurrency } from "@/lib/utils";
 import { useNotifications } from "@/lib/notifications";
+import { downloaderApi } from "@/lib/api";
+import { fetchWithAuth } from "@/lib/auth/fetch-with-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,7 +37,6 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { PersonCard } from "@/features/media/components/person-card";
 import { ReleaseDateType, BackgroundTaskStatus } from "@/types";
@@ -48,13 +49,12 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
   const { movie, loading, error } = useMovie(movieId);
   const { files: movieFiles, loading: filesLoading, refetch: refetchFiles } = useFilesByMediaId(movieId, LibraryType.Movies);
   const { playbackInfo, loading: playbackLoading } = useMoviePlaybackInfo(movieId);
-  const { libraries } = useLibraries();
   const { downloadFile } = useNodeFileDownload();
   const { tasks: backgroundTasks, cancelTask } = useBackgroundTasks();
   const [imageError, setImageError] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
-  const [selectedLibraryId, setSelectedLibraryId] = useState<string>("");
+  const [globalSettings, setGlobalSettings] = useState<GlobalSettings | null>(null);
   const router = useRouter();
   const { notify } = useNotifications();
   const { deleteMovie, loading: deletingMovie } = useDeleteMovieMetadata();
@@ -64,23 +64,26 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
 
   const CREDIT_DISPLAY_LIMIT = 20;
 
-  // Get movie libraries for download destination selection
-  const movieLibraries = useMemo(() => {
-    return libraries.filter((lib) => lib.type === LibraryType.Movies && Boolean(lib.id));
-  }, [libraries]);
+  // Fetch global settings for movie directories
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetchWithAuth(`${downloaderApi}/api/global-settings`);
+        if (response.ok) {
+          const settings = await response.json();
+          setGlobalSettings(settings);
+        }
+      } catch (error) {
+        console.error("Failed to fetch global settings:", error);
+      }
+    };
+    fetchSettings();
+  }, []);
 
-  // Set default library when libraries load
-  useMemo(() => {
-    const firstLibrary = movieLibraries[0];
-    if (movieLibraries.length > 0 && !selectedLibraryId && firstLibrary?.id) {
-      setSelectedLibraryId(firstLibrary.id);
-    }
-  }, [movieLibraries, selectedLibraryId]);
-
-  // Check if there are remote files for library selector
-  const hasRemoteFiles = useMemo(() => {
-    return movieFiles.some((file) => file.nodeId);
-  }, [movieFiles]);
+  // Get first movie directory for downloads
+  const movieDownloadDirectory = useMemo(() => {
+    return globalSettings?.movieDirectories?.[0] || "";
+  }, [globalSettings]);
 
   // Track download tasks for remote files
   const downloadTasks = useMemo(() => {
@@ -105,11 +108,11 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
   };
 
   const handleDownloadFile = async (fileId: string, nodeId: string, remoteFilePath: string) => {
-    if (!selectedLibraryId) {
+    if (!movieDownloadDirectory) {
       notify({
         type: "error",
         title: "Download Failed",
-        message: "Please select a library for the download destination.",
+        message: "No movie directory configured. Please configure a movie directory in settings.",
       });
       return;
     }
@@ -119,7 +122,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
       const result = await downloadFile({
         nodeId,
         remoteFilePath,
-        libraryId: selectedLibraryId,
+        destinationDirectory: movieDownloadDirectory,
       });
 
       if (result.success && result.taskId) {
@@ -493,23 +496,6 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                         <span className="text-sm font-medium text-muted-foreground">
                           Associated Files {filesLoading && <Spinner className="inline-block ml-2 size-3" />}
                         </span>
-                        {hasRemoteFiles && movieLibraries.length > 0 && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">Download to:</span>
-                            <Select value={selectedLibraryId} onValueChange={setSelectedLibraryId}>
-                              <SelectTrigger className="h-8 w-[180px]">
-                                <SelectValue placeholder="Select library" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {movieLibraries.map((lib) => (
-                                  <SelectItem key={lib.id} value={lib.id!}>
-                                    {lib.title}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
                       </div>
 
                       {movieFiles.length > 0 ? (
@@ -587,7 +573,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                                           void handleDownloadFile(file.id!, file.nodeId!, file.filePath);
                                         }
                                       }}
-                                      disabled={downloadingFileId === file.id || (!activeDownload && !selectedLibraryId)}
+                                      disabled={downloadingFileId === file.id || (!activeDownload && !movieDownloadDirectory)}
                                       className="shrink-0"
                                       title={activeDownload ? "Cancel download" : "Download file"}
                                     >

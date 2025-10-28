@@ -19,5 +19,17 @@ public class GlobalSettings
     /// </summary>
     public required string CountryCode { get; set; } = "US";
 
+    /// <summary>
+    /// List of directories to scan for movies.
+    /// Each path should be absolute and accessible.
+    /// </summary>
+    public List<string> MovieDirectories { get; set; } = new();
+
+    /// <summary>
+    /// List of directories to scan for TV shows.
+    /// Each path should be absolute and accessible.
+    /// </summary>
+    public List<string> TvShowDirectories { get; set; } = new();
+
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

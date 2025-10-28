@@ -5,7 +5,7 @@ public sealed record NodeFileDownloadInfo(
     string NodeId,
     string NodeName,
     string RemoteFilePath,
-    string LibraryId,
+    string DestinationDirectory,
     long TotalBytes,
     long DownloadedBytes,
     DateTime StartTime,

@@ -258,20 +258,20 @@ public sealed class NodesService : INodesApi
                 };
             }
 
-            // Try to get system info from /api/metadata/libraries to verify it's a Haas.Media instance
+            // Try to get system info from /api/global-settings to verify it's a Haas.Media instance
             var systemInfo = new Dictionary<string, string>();
             try
             {
-                var librariesEndpoint = $"{normalizedUrl}/api/metadata/libraries";
-                var librariesResponse = await httpClient.GetAsync(librariesEndpoint);
-                if (librariesResponse.IsSuccessStatusCode)
+                var settingsEndpoint = $"{normalizedUrl}/api/global-settings";
+                var settingsResponse = await httpClient.GetAsync(settingsEndpoint);
+                if (settingsResponse.IsSuccessStatusCode)
                 {
                     systemInfo["hasMetadataApi"] = "true";
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogDebug("Could not fetch libraries from node: {Message}", ex.Message);
+                _logger.LogDebug("Could not fetch global settings from node: {Message}", ex.Message);
             }
 
             _logger.LogInformation("Successfully validated node connection to {Url}", normalizedUrl);
@@ -391,7 +391,6 @@ public sealed class NodesService : INodesApi
             ) ?? new List<Metadata.FileMetadata>();
 
             // Set NodeId and clear LibraryId for all fetched metadata from nodes
-            // LibraryId will be set when the file is downloaded to a local library
             foreach (var fileMetadata in filesMetadata)
             {
                 fileMetadata.NodeId = nodeId;
@@ -418,16 +417,16 @@ public sealed class NodesService : INodesApi
         }
     }
 
-    public Task<string> StartDownloadFileFromNodeAsync(string nodeId, string remoteFilePath, string libraryId)
+    public Task<string> StartDownloadFileFromNodeAsync(string nodeId, string remoteFilePath, string destinationDirectory)
     {
         _logger.LogInformation(
-            "Starting file download from node {NodeId}: {RemoteFilePath} to library {LibraryId}",
+            "Starting file download from node {NodeId}: {RemoteFilePath} to directory {DestinationDirectory}",
             nodeId,
             remoteFilePath,
-            libraryId
+            destinationDirectory
         );
 
-        var task = new NodeFileDownloadTask(nodeId, remoteFilePath, libraryId);
+        var task = new NodeFileDownloadTask(nodeId, remoteFilePath, destinationDirectory);
         var taskId = _backgroundTaskManager.RunTask<NodeFileDownloadTask, NodeFileDownloadInfo>(task);
 
         return Task.FromResult(taskId.ToString());

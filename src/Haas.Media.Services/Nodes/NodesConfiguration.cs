@@ -303,7 +303,7 @@ public static class NodesConfiguration
                         foreach (var fileMetadata in filesMetadata)
                         {
                             // Check if this file metadata already exists (same MediaId, NodeId, and FilePath)
-                            var existingFiles = await metadataApi.GetFileMetadataAsync(null, fileMetadata.TmdbId);
+                            var existingFiles = await metadataApi.GetFileMetadataAsync(fileMetadata.TmdbId);
                             var exists = existingFiles.Any(f => 
                                 f.NodeId == fileMetadata.NodeId && 
                                 f.FilePath == fileMetadata.FilePath);

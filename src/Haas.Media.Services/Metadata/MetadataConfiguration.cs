@@ -59,88 +59,13 @@ public static class MetadataConfiguration
 
     public static WebApplication UseMetadata(this WebApplication app)
     {
-        app.MapGet(
-                "api/metadata/libraries",
-                async (IMetadataApi metadataService) =>
-                {
-                    var libraries = await metadataService.GetLibrariesAsync();
-                    return Results.Ok(libraries);
-                }
-            )
-            .WithName("GetLibraries")
-            .RequireAuthorization();
-
-        app.MapGet(
-                "api/metadata/libraries/{id}",
-                async (IMetadataApi metadataService, string id) =>
-                {
-                    var library = await metadataService.GetLibraryAsync(id);
-                    return library != null ? Results.Ok(library) : Results.NotFound();
-                }
-            )
-            .WithName("GetLibrary")
-            .RequireAuthorization();
-
-        app.MapPost(
-                "api/metadata/libraries",
-                async (CreateLibraryRequest request, IMetadataApi metadataService) =>
-                {
-                    var library = new LibraryInfo
-                    {
-                        Type = request.Type,
-                        DirectoryPath = request.DirectoryPath,
-                        Title = request.Title,
-                        Description = request.Description,
-                    };
-
-                    var createdLibrary = await metadataService.AddLibraryAsync(library);
-                    return Results.Created(
-                        $"api/metadata/libraries/{createdLibrary.Id}",
-                        createdLibrary
-                    );
-                }
-            )
-            .WithName("AddLibrary")
-            .RequireAuthorization();
-
-        app.MapPut(
-                "api/metadata/libraries/{id}",
-                async (string id, UpdateLibraryRequest request, IMetadataApi metadataService) =>
-                {
-                    var library = new LibraryInfo
-                    {
-                        Type = request.Type,
-                        DirectoryPath = request.DirectoryPath,
-                        Title = request.Title,
-                        Description = request.Description,
-                    };
-
-                    var updatedLibrary = await metadataService.UpdateLibraryAsync(id, library);
-                    return updatedLibrary != null ? Results.Ok(updatedLibrary) : Results.NotFound();
-                }
-            )
-            .WithName("UpdateLibrary")
-            .RequireAuthorization();
-
-        app.MapDelete(
-                "api/metadata/libraries/{id}",
-                async (IMetadataApi metadataService, string id) =>
-                {
-                    var deleted = await metadataService.DeleteLibraryAsync(id);
-                    return deleted ? Results.Ok() : Results.NotFound();
-                }
-            )
-            .WithName("DeleteLibrary")
-            .RequireAuthorization();
-
-        // New unified metadata sync endpoint
+        // Metadata sync endpoint
         app.MapPost(
                 "api/metadata/sync",
                 async (IMetadataApi metadataService, MetadataSyncRequest? request) =>
                 {
                     var options = request ?? new MetadataSyncRequest();
                     var operationId = await metadataService.StartMetadataSyncAsync(
-                        options.LibraryIds,
                         options.RefreshMovies,
                         options.RefreshTvShows,
                         options.RefreshPeople
@@ -175,14 +100,10 @@ public static class MetadataConfiguration
 
         app.MapGet(
                 "api/metadata/movies",
-                async (
-                    HttpContext context,
-                    IMetadataApi metadataService,
-                    string? libraryId = null
-                ) =>
+                async (HttpContext context, IMetadataApi metadataService) =>
                 {
                     var movieMetadata = (
-                        await metadataService.GetMovieMetadataAsync(libraryId)
+                        await metadataService.GetMovieMetadataAsync()
                     ).ToList();
                     var preferredCountry = ResolvePreferredCountryCode(context.User);
 
@@ -235,9 +156,9 @@ public static class MetadataConfiguration
 
         app.MapGet(
                 "api/metadata/tvshows",
-                async (IMetadataApi metadataService, string? libraryId = null) =>
+                async (IMetadataApi metadataService) =>
                 {
-                    var tvShowMetadata = await metadataService.GetTVShowMetadataAsync(libraryId);
+                    var tvShowMetadata = await metadataService.GetTVShowMetadataAsync();
                     return Results.Ok(tvShowMetadata);
                 }
             )
@@ -269,16 +190,9 @@ public static class MetadataConfiguration
         // FileMetadata endpoints
         app.MapGet(
                 "api/metadata/files",
-                async (
-                    IMetadataApi metadataService,
-                    string? libraryId = null,
-                    int? mediaId = null
-                ) =>
+                async (IMetadataApi metadataService, int? mediaId = null) =>
                 {
-                    var fileMetadata = await metadataService.GetFileMetadataAsync(
-                        libraryId,
-                        mediaId
-                    );
+                    var fileMetadata = await metadataService.GetFileMetadataAsync(mediaId);
                     return Results.Ok(fileMetadata);
                 }
             )
@@ -609,7 +523,6 @@ public record RefreshMetadataRequest(
 );
 
 public record MetadataSyncRequest(
-    List<string>? LibraryIds = null,
     bool RefreshMovies = true,
     bool RefreshTvShows = true,
     bool RefreshPeople = true

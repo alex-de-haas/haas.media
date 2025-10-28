@@ -24,6 +24,8 @@ internal sealed class GlobalSettingsService : IGlobalSettingsApi
                 Id = 1,
                 PreferredMetadataLanguage = "en",
                 CountryCode = "US",
+                MovieDirectories = [],
+                TvShowDirectories = [],
                 UpdatedAt = DateTime.UtcNow
             };
             _settings.Insert(settings);
@@ -43,6 +45,8 @@ internal sealed class GlobalSettingsService : IGlobalSettingsApi
                 Id = 1,
                 PreferredMetadataLanguage = request.PreferredMetadataLanguage,
                 CountryCode = request.CountryCode,
+                MovieDirectories = request.MovieDirectories,
+                TvShowDirectories = request.TvShowDirectories,
                 UpdatedAt = DateTime.UtcNow
             };
             _settings.Insert(settings);
@@ -52,6 +56,8 @@ internal sealed class GlobalSettingsService : IGlobalSettingsApi
         {
             settings.PreferredMetadataLanguage = request.PreferredMetadataLanguage;
             settings.CountryCode = request.CountryCode;
+            settings.MovieDirectories = request.MovieDirectories;
+            settings.TvShowDirectories = request.TvShowDirectories;
             settings.UpdatedAt = DateTime.UtcNow;
             _settings.Update(settings);
             _logger.LogInformation("Updated global settings");

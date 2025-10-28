@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Haas.Media.Core.BackgroundTasks;
+using Haas.Media.Services.GlobalSettings;
 using LiteDB;
 using TMDbLib.Client;
 using TMDbLib.Objects.Movies;
@@ -13,7 +14,7 @@ namespace Haas.Media.Services.Metadata;
 internal sealed class AddToLibraryTaskExecutor
     : IBackgroundTaskExecutor<AddToLibraryTask, AddToLibraryOperationInfo>
 {
-    private readonly ILiteCollection<LibraryInfo> _librariesCollection;
+    private readonly ILiteCollection<GlobalSettings.GlobalSettings> _globalSettingsCollection;
     private readonly ILiteCollection<MovieMetadata> _movieMetadataCollection;
     private readonly ILiteCollection<TVShowMetadata> _tvShowMetadataCollection;
     private readonly ILiteCollection<FileMetadata> _fileMetadataCollection;
@@ -22,16 +23,18 @@ internal sealed class AddToLibraryTaskExecutor
     private readonly ILogger<AddToLibraryTaskExecutor> _logger;
     private readonly ITmdbLanguageProvider _languageProvider;
     private readonly ITmdbCountryProvider _countryProvider;
+    private readonly IConfiguration _configuration;
 
     public AddToLibraryTaskExecutor(
         LiteDatabase database,
         TMDbClient tmdbClient,
         ILogger<AddToLibraryTaskExecutor> logger,
         ITmdbLanguageProvider languageProvider,
-        ITmdbCountryProvider countryProvider
+        ITmdbCountryProvider countryProvider,
+        IConfiguration configuration
     )
     {
-        _librariesCollection = database.GetCollection<LibraryInfo>("libraries");
+        _globalSettingsCollection = database.GetCollection<GlobalSettings.GlobalSettings>("globalSettings");
         _movieMetadataCollection = database.GetCollection<MovieMetadata>("movieMetadata");
         _tvShowMetadataCollection = database.GetCollection<TVShowMetadata>("tvShowMetadata");
         _fileMetadataCollection = database.GetCollection<FileMetadata>("fileMetadata");
@@ -40,6 +43,7 @@ internal sealed class AddToLibraryTaskExecutor
         _logger = logger;
         _languageProvider = languageProvider;
         _countryProvider = countryProvider;
+        _configuration = configuration;
     }
 
     public async Task ExecuteAsync(
@@ -51,9 +55,7 @@ internal sealed class AddToLibraryTaskExecutor
 
         var payload = new AddToLibraryOperationInfo(
             task.TmdbId,
-            task.LibraryId,
             task.LibraryType,
-            task.LibraryTitle,
             Stage: "Queued",
             StartTime: DateTime.UtcNow
         );
@@ -68,27 +70,20 @@ internal sealed class AddToLibraryTaskExecutor
 
         try
         {
-            var library = _librariesCollection.FindById(new BsonValue(task.LibraryId));
-            if (library is null)
+            var globalSettings = _globalSettingsCollection.FindById(1);
+            if (globalSettings == null)
             {
-                throw new ArgumentException($"Library with ID '{task.LibraryId}' not found.");
+                throw new InvalidOperationException("Global settings not found.");
             }
 
-            if (library.Type != task.LibraryType)
-            {
-                throw new ArgumentException(
-                    $"Library type mismatch. Library is {library.Type}, request is {task.LibraryType}."
-                );
-            }
-
-            payload = payload with { LibraryTitle = library.Title, Stage = "Validating request" };
+            payload = payload with { Stage = "Validating request" };
             context.SetPayload(payload);
             context.ReportProgress(5);
 
             payload = task.LibraryType switch
             {
-                LibraryType.Movies => await ProcessMovieAsync(context, library, payload),
-                LibraryType.TVShows => await ProcessTvShowAsync(context, library, payload),
+                LibraryType.Movies => await ProcessMovieAsync(context, globalSettings, payload),
+                LibraryType.TVShows => await ProcessTvShowAsync(context, globalSettings, payload),
                 _ => throw new ArgumentException($"Unsupported library type: {task.LibraryType}"),
             };
 
@@ -127,7 +122,7 @@ internal sealed class AddToLibraryTaskExecutor
 
     private async Task<AddToLibraryOperationInfo> ProcessMovieAsync(
         BackgroundWorkerContext<AddToLibraryTask, AddToLibraryOperationInfo> context,
-        LibraryInfo library,
+        GlobalSettings.GlobalSettings globalSettings,
         AddToLibraryOperationInfo payload
     )
     {
@@ -203,10 +198,9 @@ internal sealed class AddToLibraryTaskExecutor
             }
 
             _logger.LogInformation(
-                "Updated movie '{Title}' (TMDB ID: {TmdbId}) metadata for library {LibraryId}",
+                "Updated movie '{Title}' (TMDB ID: {TmdbId}) metadata",
                 existingMovie.Title,
-                tmdbId,
-                library.Id
+                tmdbId
             );
 
             payload = payload with
@@ -227,10 +221,9 @@ internal sealed class AddToLibraryTaskExecutor
             _movieMetadataCollection.Insert(movieMetadata);
 
             _logger.LogInformation(
-                "Successfully added movie '{Title}' (TMDB ID: {TmdbId}) to library {LibraryId}",
+                "Successfully added movie '{Title}' (TMDB ID: {TmdbId})",
                 movieMetadata.Title,
-                tmdbId,
-                library.Id
+                tmdbId
             );
 
             payload = payload with
@@ -252,7 +245,7 @@ internal sealed class AddToLibraryTaskExecutor
 
     private async Task<AddToLibraryOperationInfo> ProcessTvShowAsync(
         BackgroundWorkerContext<AddToLibraryTask, AddToLibraryOperationInfo> context,
-        LibraryInfo library,
+        GlobalSettings.GlobalSettings globalSettings,
         AddToLibraryOperationInfo payload
     )
     {
@@ -433,10 +426,9 @@ internal sealed class AddToLibraryTaskExecutor
             }
 
             _logger.LogInformation(
-                "Updated TV show '{Title}' (TMDB ID: {TmdbId}) metadata for library {LibraryId}",
+                "Updated TV show '{Title}' (TMDB ID: {TmdbId}) metadata",
                 existingTVShow.Title,
-                tmdbId,
-                library.Id
+                tmdbId
             );
 
             payload = payload with
@@ -462,10 +454,9 @@ internal sealed class AddToLibraryTaskExecutor
             _tvShowMetadataCollection.Insert(tvShowMetadata);
 
             _logger.LogInformation(
-                "Successfully added TV show '{Title}' (TMDB ID: {TmdbId}) to library {LibraryId}",
+                "Successfully added TV show '{Title}' (TMDB ID: {TmdbId})",
                 tvShowMetadata.Title,
-                tmdbId,
-                library.Id
+                tmdbId
             );
 
             payload = payload with

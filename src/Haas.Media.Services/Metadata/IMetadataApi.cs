@@ -2,13 +2,7 @@ namespace Haas.Media.Services.Metadata;
 
 public interface IMetadataApi
 {
-    Task<IEnumerable<LibraryInfo>> GetLibrariesAsync();
-    Task<LibraryInfo?> GetLibraryAsync(string id);
-    Task<LibraryInfo> AddLibraryAsync(LibraryInfo library);
-    Task<LibraryInfo?> UpdateLibraryAsync(string id, LibraryInfo library);
-    Task<bool> DeleteLibraryAsync(string id);
     Task<string> StartMetadataSyncAsync(
-        List<string>? libraryIds = null,
         bool refreshMovies = true,
         bool refreshTvShows = true,
         bool refreshPeople = true
@@ -20,20 +14,17 @@ public interface IMetadataApi
         bool updateTvShows = false,
         bool updatePeople = false
     );
-    Task<IEnumerable<MovieMetadata>> GetMovieMetadataAsync(string? libraryId = null);
+    Task<IEnumerable<MovieMetadata>> GetMovieMetadataAsync();
     Task<MovieMetadata?> GetMovieMetadataByIdAsync(int id);
     Task<bool> DeleteMovieMetadataAsync(int id);
-    Task<IEnumerable<TVShowMetadata>> GetTVShowMetadataAsync(string? libraryId = null);
+    Task<IEnumerable<TVShowMetadata>> GetTVShowMetadataAsync();
     Task<TVShowMetadata?> GetTVShowMetadataByIdAsync(int id);
     Task<bool> DeleteTVShowMetadataAsync(int id);
     Task<IEnumerable<SearchResult>> SearchAsync(string query, LibraryType? libraryType = null);
     Task<AddToLibraryResponse> AddToLibraryAsync(AddToLibraryRequest request);
 
     // File Metadata operations
-    Task<IEnumerable<FileMetadata>> GetFileMetadataAsync(
-        string? libraryId = null,
-        int? mediaId = null
-    );
+    Task<IEnumerable<FileMetadata>> GetFileMetadataAsync(int? mediaId = null);
     Task<FileMetadata?> GetFileMetadataByIdAsync(string id);
     Task<FileMetadata> AddFileMetadataAsync(FileMetadata fileMetadata);
     Task<FileMetadata?> UpdateFileMetadataAsync(FileMetadata fileMetadata);

@@ -6,7 +6,6 @@ namespace Haas.Media.Services.Metadata;
 
 public class MetadataService : IMetadataApi
 {
-    private readonly ILiteCollection<LibraryInfo> _librariesCollection;
     private readonly ILiteCollection<MovieMetadata> _movieMetadataCollection;
     private readonly ILiteCollection<TVShowMetadata> _tvShowMetadataCollection;
     private readonly ILiteCollection<FileMetadata> _fileMetadataCollection;
@@ -25,7 +24,6 @@ public class MetadataService : IMetadataApi
         ITmdbLanguageProvider languageProvider
     )
     {
-        _librariesCollection = database.GetCollection<LibraryInfo>("libraries");
         _movieMetadataCollection = database.GetCollection<MovieMetadata>("movieMetadata");
         _tvShowMetadataCollection = database.GetCollection<TVShowMetadata>("tvShowMetadata");
         _fileMetadataCollection = database.GetCollection<FileMetadata>("fileMetadata");
@@ -42,112 +40,9 @@ public class MetadataService : IMetadataApi
         _logger.LogInformation("MetadataService initialized");
     }
 
-    public Task<IEnumerable<LibraryInfo>> GetLibrariesAsync()
+    public Task<IEnumerable<MovieMetadata>> GetMovieMetadataAsync()
     {
-        var libraries = _librariesCollection.FindAll().ToList();
-        _logger.LogDebug("Retrieved {Count} libraries", libraries.Count);
-        return Task.FromResult<IEnumerable<LibraryInfo>>(libraries);
-    }
-
-    public Task<LibraryInfo?> GetLibraryAsync(string id)
-    {
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            _logger.LogWarning("Invalid ID format: {Id}", id);
-            return Task.FromResult<LibraryInfo?>(null);
-        }
-
-        var library = _librariesCollection.FindById(new BsonValue(id));
-        _logger.LogDebug("Retrieved library with ID: {Id}", id);
-        return Task.FromResult<LibraryInfo?>(library);
-    }
-
-    public Task<LibraryInfo> AddLibraryAsync(LibraryInfo library)
-    {
-        library.Id = ObjectId.NewObjectId().ToString();
-        library.CreatedAt = DateTime.UtcNow;
-        library.UpdatedAt = DateTime.UtcNow;
-
-        _librariesCollection.Insert(library);
-        _logger.LogInformation(
-            "Added new library: {Title} at {DirectoryPath}",
-            library.Title,
-            library.DirectoryPath
-        );
-        return Task.FromResult(library);
-    }
-
-    public Task<LibraryInfo?> UpdateLibraryAsync(string id, LibraryInfo library)
-    {
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            _logger.LogWarning("Invalid ID format: {Id}", id);
-            return Task.FromResult<LibraryInfo?>(null);
-        }
-
-        library.Id = id;
-        library.UpdatedAt = DateTime.UtcNow;
-
-        var updated = _librariesCollection.Update(library);
-
-        if (!updated)
-        {
-            _logger.LogWarning("Library not found with ID: {Id}", id);
-            return Task.FromResult<LibraryInfo?>(null);
-        }
-
-        _logger.LogInformation("Updated library: {Title} with ID: {Id}", library.Title, id);
-        return Task.FromResult<LibraryInfo?>(library);
-    }
-
-    public Task<bool> DeleteLibraryAsync(string id)
-    {
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            _logger.LogWarning("Invalid ID format: {Id}", id);
-            return Task.FromResult(false);
-        }
-
-        var deleted = _librariesCollection.Delete(new BsonValue(id));
-
-        if (deleted)
-        {
-            _logger.LogInformation("Deleted library with ID: {Id}", id);
-            return Task.FromResult(true);
-        }
-
-        _logger.LogWarning("Library not found with ID: {Id}", id);
-        return Task.FromResult(false);
-    }
-
-    public Task<IEnumerable<MovieMetadata>> GetMovieMetadataAsync(string? libraryId = null)
-    {
-        List<MovieMetadata> movieMetadata;
-
-        if (string.IsNullOrWhiteSpace(libraryId))
-        {
-            movieMetadata = _movieMetadataCollection.FindAll().ToList();
-        }
-        else
-        {
-            var movieIds = _fileMetadataCollection
-                .Find(f => f.LibraryId == libraryId && f.LibraryType == LibraryType.Movies)
-                .Select(f => f.TmdbId)
-                .Distinct()
-                .ToList();
-
-            movieMetadata = new List<MovieMetadata>(movieIds.Count);
-
-            foreach (var movieId in movieIds)
-            {
-                var movie = _movieMetadataCollection.FindById(new BsonValue(movieId));
-                if (movie is not null)
-                {
-                    movieMetadata.Add(movie);
-                }
-            }
-        }
-
+        var movieMetadata = _movieMetadataCollection.FindAll().ToList();
         _logger.LogDebug("Retrieved {Count} movie metadata records", movieMetadata.Count);
         return Task.FromResult<IEnumerable<MovieMetadata>>(movieMetadata);
     }
@@ -205,34 +100,9 @@ public class MetadataService : IMetadataApi
         return Task.FromResult(false);
     }
 
-    public Task<IEnumerable<TVShowMetadata>> GetTVShowMetadataAsync(string? libraryId = null)
+    public Task<IEnumerable<TVShowMetadata>> GetTVShowMetadataAsync()
     {
-        List<TVShowMetadata> tvShowMetadata;
-
-        if (string.IsNullOrWhiteSpace(libraryId))
-        {
-            tvShowMetadata = _tvShowMetadataCollection.FindAll().ToList();
-        }
-        else
-        {
-            var tvShowIds = _fileMetadataCollection
-                .Find(f => f.LibraryId == libraryId && f.LibraryType == LibraryType.TVShows)
-                .Select(f => f.TmdbId)
-                .Distinct()
-                .ToList();
-
-            tvShowMetadata = new List<TVShowMetadata>(tvShowIds.Count);
-
-            foreach (var tvShowId in tvShowIds)
-            {
-                var tvShow = _tvShowMetadataCollection.FindById(new BsonValue(tvShowId));
-                if (tvShow is not null)
-                {
-                    tvShowMetadata.Add(tvShow);
-                }
-            }
-        }
-
+        var tvShowMetadata = _tvShowMetadataCollection.FindAll().ToList();
         _logger.LogDebug("Retrieved {Count} TV show metadata records", tvShowMetadata.Count);
         return Task.FromResult<IEnumerable<TVShowMetadata>>(tvShowMetadata);
     }
@@ -387,42 +257,20 @@ public class MetadataService : IMetadataApi
     public async Task<AddToLibraryResponse> AddToLibraryAsync(AddToLibraryRequest request)
     {
         _logger.LogDebug(
-            "Queueing add-to-library request: LibraryId={LibraryId}, Type={Type}, TmdbId={TmdbId}",
-            request.LibraryId,
+            "Queueing add-to-library request: Type={Type}, TmdbId={TmdbId}",
             request.Type,
             request.Id
         );
 
-        var library = await GetLibraryAsync(request.LibraryId);
-        if (library is null)
-        {
-            throw new ArgumentException($"Library with ID '{request.LibraryId}' not found.");
-        }
-
-        if (library.Type != request.Type)
-        {
-            throw new ArgumentException(
-                $"Library type mismatch. Library is of type {library.Type}, but request is for {request.Type}."
-            );
-        }
-
-        if (string.IsNullOrWhiteSpace(library.Id))
-        {
-            throw new InvalidOperationException(
-                $"Library '{library.Title}' is missing a valid identifier."
-            );
-        }
-
-        var task = new AddToLibraryTask(library.Id, library.Type, request.Id, library.Title);
+        var task = new AddToLibraryTask(request.Type, request.Id);
         var taskId = _backgroundTaskManager.RunTask<AddToLibraryTask, AddToLibraryOperationInfo>(
             task
         );
 
         _logger.LogInformation(
-            "Queued add-to-library task {TaskId} for TMDB {TmdbId} in library {LibraryId}",
+            "Queued add-to-library task {TaskId} for TMDB {TmdbId}",
             taskId,
-            request.Id,
-            library.Id
+            request.Id
         );
 
         return new AddToLibraryResponse(
@@ -540,18 +388,13 @@ public class MetadataService : IMetadataApi
 
     private void CreateIndexes()
     {
-        _librariesCollection.EnsureIndex(x => x.DirectoryPath, true);
-        _librariesCollection.EnsureIndex(x => x.Title);
-
         _movieMetadataCollection.EnsureIndex(x => x.Title);
 
         _tvShowMetadataCollection.EnsureIndex(x => x.Title);
 
-        _fileMetadataCollection.EnsureIndex(x => x.LibraryId);
         _fileMetadataCollection.EnsureIndex(x => x.TmdbId);
         _fileMetadataCollection.EnsureIndex(x => x.FilePath);
         _fileMetadataCollection.EnsureIndex(x => x.LibraryType);
-        _fileMetadataCollection.EnsureIndex(x => new { x.LibraryId, x.TmdbId });
         _personMetadataCollection.EnsureIndex(x => x.Name);
 
         _playbackInfoCollection.EnsureIndex("idx_userId", x => x.UserId, false);
@@ -563,12 +406,11 @@ public class MetadataService : IMetadataApi
         );
 
         _logger.LogDebug(
-            "Created indexes for libraries, movie metadata, TV show metadata, person metadata, file metadata, and playback info collections"
+            "Created indexes for movie metadata, TV show metadata, person metadata, file metadata, and playback info collections"
         );
     }
 
     public Task<string> StartMetadataSyncAsync(
-        List<string>? libraryIds = null,
         bool refreshMovies = true,
         bool refreshTvShows = true,
         bool refreshPeople = true
@@ -576,7 +418,6 @@ public class MetadataService : IMetadataApi
     {
         var task = new MetadataSyncTask
         {
-            LibraryIds = libraryIds ?? new List<string>(),
             RefreshMovies = refreshMovies,
             RefreshTvShows = refreshTvShows,
             RefreshPeople = refreshPeople
@@ -584,9 +425,8 @@ public class MetadataService : IMetadataApi
         var operationId = task.Id.ToString();
 
         _logger.LogInformation(
-            "Starting metadata sync operation with ID: {OperationId} (Libraries: {LibraryCount}, Movies: {RefreshMovies}, TV Shows: {RefreshTvShows}, People: {RefreshPeople})",
+            "Starting metadata sync operation with ID: {OperationId} (Movies: {RefreshMovies}, TV Shows: {RefreshTvShows}, People: {RefreshPeople})",
             operationId,
-            task.LibraryIds.Count > 0 ? string.Join(", ", task.LibraryIds) : "All",
             refreshMovies,
             refreshTvShows,
             refreshPeople
@@ -617,62 +457,20 @@ public class MetadataService : IMetadataApi
         bool updatePeople = false
     )
     {
-        var task = new LibraryScanTask
-        {
-            ScanForNewFiles = scanForNewFiles,
-            UpdateFileMetadata = updateFileMetadata,
-            UpdateMovies = updateMovies,
-            UpdateTvShows = updateTvShows,
-            UpdatePeople = updatePeople
-        };
-        var operationId = task.Id.ToString();
-
-        _logger.LogInformation(
-            "Starting library scan operation with ID: {OperationId} (ScanForNewFiles: {ScanForNewFiles}, UpdateFileMetadata: {UpdateFileMetadata}, UpdateMovies: {UpdateMovies}, UpdateTvShows: {UpdateTvShows}, UpdatePeople: {UpdatePeople})",
-            operationId,
-            scanForNewFiles,
-            updateFileMetadata,
-            updateMovies,
-            updateTvShows,
-            updatePeople
+        // Library scan is now handled by metadata sync since we removed the library concept
+        return StartMetadataSyncAsync(
+            refreshMovies: updateMovies || scanForNewFiles,
+            refreshTvShows: updateTvShows || scanForNewFiles,
+            refreshPeople: updatePeople
         );
-
-        try
-        {
-            _backgroundTaskManager.RunTask<LibraryScanTask, LibraryScanOperationInfo>(task);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Failed to enqueue library scan operation with ID: {OperationId}",
-                operationId
-            );
-            throw;
-        }
-
-        return Task.FromResult(operationId);
     }
 
     // File Metadata operations
-    public Task<IEnumerable<FileMetadata>> GetFileMetadataAsync(
-        string? libraryId = null,
-        int? mediaId = null
-    )
+    public Task<IEnumerable<FileMetadata>> GetFileMetadataAsync(int? mediaId = null)
     {
         IEnumerable<FileMetadata> results;
 
-        if (!string.IsNullOrWhiteSpace(libraryId) && mediaId.HasValue)
-        {
-            results = _fileMetadataCollection.Find(f =>
-                f.LibraryId == libraryId && f.TmdbId == mediaId.Value
-            );
-        }
-        else if (!string.IsNullOrWhiteSpace(libraryId))
-        {
-            results = _fileMetadataCollection.Find(f => f.LibraryId == libraryId);
-        }
-        else if (mediaId.HasValue)
+        if (mediaId.HasValue)
         {
             results = _fileMetadataCollection.Find(f => f.TmdbId == mediaId.Value);
         }

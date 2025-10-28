@@ -9,7 +9,6 @@ import {
   Settings,
   Settings2,
   Folder,
-  Library,
   Clapperboard,
   TvMinimalPlay,
   Menu,
@@ -66,11 +65,6 @@ const navigationItems = [
     name: "Files",
     href: "/files",
     icon: Folder,
-  },
-  {
-    name: "Libraries",
-    href: "/libraries",
-    icon: Library,
   },
   {
     name: "Movies",

@@ -14,4 +14,9 @@ public interface IGlobalSettingsApi
     Task<GlobalSettings> UpdateSettingsAsync(UpdateGlobalSettingsRequest request);
 }
 
-public record UpdateGlobalSettingsRequest(string PreferredMetadataLanguage, string CountryCode);
+public record UpdateGlobalSettingsRequest(
+    string PreferredMetadataLanguage,
+    string CountryCode,
+    List<string> MovieDirectories,
+    List<string> TvShowDirectories
+);

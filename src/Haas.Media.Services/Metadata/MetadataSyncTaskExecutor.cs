@@ -1,4 +1,5 @@
 using Haas.Media.Core.BackgroundTasks;
+using Haas.Media.Services.GlobalSettings;
 using Haas.Media.Services.Utilities;
 using LiteDB;
 using TMDbLib.Client;
@@ -13,7 +14,7 @@ internal sealed class MetadataSyncTaskExecutor
     : IBackgroundTaskExecutor<MetadataSyncTask, MetadataSyncOperationInfo>
 {
     private readonly string _dataPath;
-    private readonly ILiteCollection<LibraryInfo> _librariesCollection;
+    private readonly ILiteCollection<GlobalSettings.GlobalSettings> _globalSettingsCollection;
     private readonly ILiteCollection<MovieMetadata> _movieMetadataCollection;
     private readonly ILiteCollection<TVShowMetadata> _tvShowMetadataCollection;
     private readonly ILiteCollection<FileMetadata> _fileMetadataCollection;
@@ -35,7 +36,7 @@ internal sealed class MetadataSyncTaskExecutor
         _dataPath =
             configuration["DATA_DIRECTORY"]
             ?? throw new ArgumentException("DATA_DIRECTORY configuration is required.");
-        _librariesCollection = database.GetCollection<LibraryInfo>("libraries");
+        _globalSettingsCollection = database.GetCollection<GlobalSettings.GlobalSettings>("globalSettings");
         _movieMetadataCollection = database.GetCollection<MovieMetadata>("movieMetadata");
         _tvShowMetadataCollection = database.GetCollection<TVShowMetadata>("tvShowMetadata");
         _fileMetadataCollection = database.GetCollection<FileMetadata>("fileMetadata");
@@ -65,9 +66,8 @@ internal sealed class MetadataSyncTaskExecutor
         try
         {
             _logger.LogInformation(
-                "Starting metadata sync operation: {OperationId} (Libraries: {LibraryCount}, RefreshMovies: {RefreshMovies}, RefreshTvShows: {RefreshTvShows}, RefreshPeople: {RefreshPeople})",
+                "Starting metadata sync operation: {OperationId} (RefreshMovies: {RefreshMovies}, RefreshTvShows: {RefreshTvShows}, RefreshPeople: {RefreshPeople})",
                 operationId,
-                task.LibraryIds.Count > 0 ? string.Join(", ", task.LibraryIds) : "All",
                 task.RefreshMovies,
                 task.RefreshTvShows,
                 task.RefreshPeople
@@ -76,13 +76,13 @@ internal sealed class MetadataSyncTaskExecutor
             // Apply preferred language
             ApplyPreferredLanguage();
 
-            // Step 1: Get libraries to sync
-            var libraries = await GetLibrariesToSyncAsync(task.LibraryIds);
-            if (libraries.Count == 0)
+            // Step 1: Get directories from global settings
+            var globalSettings = _globalSettingsCollection.FindById(1);
+            if (globalSettings == null)
             {
                 payload = payload with
                 {
-                    Stage = "No libraries found to sync",
+                    Stage = "No global settings found",
                     CompletedAt = DateTime.UtcNow
                 };
                 context.SetPayload(payload);
@@ -91,7 +91,23 @@ internal sealed class MetadataSyncTaskExecutor
                 return;
             }
 
-            // Step 2: Read existing file metadata from database for selected libraries
+            var movieDirectories = globalSettings.MovieDirectories ?? new List<string>();
+            var tvShowDirectories = globalSettings.TvShowDirectories ?? new List<string>();
+
+            if (movieDirectories.Count == 0 && tvShowDirectories.Count == 0)
+            {
+                payload = payload with
+                {
+                    Stage = "No directories configured",
+                    CompletedAt = DateTime.UtcNow
+                };
+                context.SetPayload(payload);
+                context.ReportProgress(100);
+                context.ReportStatus(BackgroundTaskStatus.Completed);
+                return;
+            }
+
+            // Step 2: Read existing file metadata from database
             payload = payload with
             {
                 Stage = "Loading existing file metadata"
@@ -99,17 +115,10 @@ internal sealed class MetadataSyncTaskExecutor
             context.SetPayload(payload);
 
             var existingFileMetadata = new Dictionary<string, FileMetadata>();
-            foreach (var library in libraries)
+            var allFiles = _fileMetadataCollection.FindAll().ToList();
+            foreach (var file in allFiles)
             {
-                var filesInLibrary = _fileMetadataCollection
-                    .Query()
-                    .Where(f => f.LibraryId == library.Id)
-                    .ToList();
-
-                foreach (var file in filesInLibrary)
-                {
-                    existingFileMetadata[file.FilePath] = file;
-                }
+                existingFileMetadata[file.FilePath] = file;
             }
 
             // Step 3: Scan for new files and detect changes
@@ -119,17 +128,18 @@ internal sealed class MetadataSyncTaskExecutor
             };
             context.SetPayload(payload);
 
-            var newFiles = new List<(LibraryInfo library, string filePath, string relativePath)>();
+            var newFiles = new List<(LibraryType type, string filePath, string relativePath)>();
 
-            foreach (var library in libraries)
+            // Scan movie directories
+            foreach (var directory in movieDirectories)
             {
                 context.ThrowIfCancellationRequested();
 
-                var fullDirectoryPath = Path.Combine(_dataPath, library.DirectoryPath);
+                var fullDirectoryPath = Path.Combine(_dataPath, directory);
                 if (!Directory.Exists(fullDirectoryPath))
                 {
                     _logger.LogWarning(
-                        "Library directory does not exist: {DirectoryPath}",
+                        "Movie directory does not exist: {DirectoryPath}",
                         fullDirectoryPath
                     );
                     continue;
@@ -141,7 +151,33 @@ internal sealed class MetadataSyncTaskExecutor
                     var relativePath = Path.GetRelativePath(_dataPath, filePath);
                     if (!existingFileMetadata.ContainsKey(relativePath))
                     {
-                        newFiles.Add((library, filePath, relativePath));
+                        newFiles.Add((LibraryType.Movies, filePath, relativePath));
+                    }
+                }
+            }
+
+            // Scan TV show directories
+            foreach (var directory in tvShowDirectories)
+            {
+                context.ThrowIfCancellationRequested();
+
+                var fullDirectoryPath = Path.Combine(_dataPath, directory);
+                if (!Directory.Exists(fullDirectoryPath))
+                {
+                    _logger.LogWarning(
+                        "TV show directory does not exist: {DirectoryPath}",
+                        fullDirectoryPath
+                    );
+                    continue;
+                }
+
+                var mediaFiles = ScanDirectoryForMediaFiles(fullDirectoryPath);
+                foreach (var filePath in mediaFiles)
+                {
+                    var relativePath = Path.GetRelativePath(_dataPath, filePath);
+                    if (!existingFileMetadata.ContainsKey(relativePath))
+                    {
+                        newFiles.Add((LibraryType.TVShows, filePath, relativePath));
                     }
                 }
             }
@@ -158,7 +194,7 @@ internal sealed class MetadataSyncTaskExecutor
             var newTvShows = new List<TVShowMetadata>();
             var processedNewFiles = 0;
 
-            foreach (var (library, filePath, relativePath) in newFiles)
+            foreach (var (type, filePath, relativePath) in newFiles)
             {
                 context.ThrowIfCancellationRequested();
 
@@ -174,10 +210,9 @@ internal sealed class MetadataSyncTaskExecutor
 
                 try
                 {
-                    if (library.Type == LibraryType.Movies)
+                    if (type == LibraryType.Movies)
                     {
                         var fileMetadata = await ProcessNewMovieFileAsync(
-                            library,
                             filePath,
                             relativePath,
                             context.CancellationToken
@@ -194,7 +229,7 @@ internal sealed class MetadataSyncTaskExecutor
                             );
                         }
                     }
-                    else if (library.Type == LibraryType.TVShows)
+                    else if (type == LibraryType.TVShows)
                     {
                         // For TV shows, we process by directory (show level)
                         // Skip individual episode processing here
@@ -210,11 +245,16 @@ internal sealed class MetadataSyncTaskExecutor
 
             // Process new TV shows by directory
             var processedTvShowDirectories = new HashSet<string>();
-            foreach (var library in libraries.Where(l => l.Type == LibraryType.TVShows))
+            foreach (var directory in tvShowDirectories)
             {
                 context.ThrowIfCancellationRequested();
 
-                var fullDirectoryPath = Path.Combine(_dataPath, library.DirectoryPath);
+                var fullDirectoryPath = Path.Combine(_dataPath, directory);
+                if (!Directory.Exists(fullDirectoryPath))
+                {
+                    continue;
+                }
+
                 var showDirectories = Directory.GetDirectories(
                     fullDirectoryPath,
                     "*",
@@ -256,7 +296,6 @@ internal sealed class MetadataSyncTaskExecutor
                         context.SetPayload(payload);
 
                         var tvShowMetadata = await ProcessNewTvShowDirectoryAsync(
-                            library,
                             showDirectory,
                             context.CancellationToken
                         );
@@ -520,26 +559,6 @@ internal sealed class MetadataSyncTaskExecutor
         }
     }
 
-    private async Task<List<LibraryInfo>> GetLibrariesToSyncAsync(List<string> libraryIds)
-    {
-        if (libraryIds.Count == 0)
-        {
-            return _librariesCollection.FindAll().ToList();
-        }
-
-        var libraries = new List<LibraryInfo>();
-        foreach (var id in libraryIds)
-        {
-            var library = _librariesCollection.FindById(new BsonValue(id));
-            if (library != null)
-            {
-                libraries.Add(library);
-            }
-        }
-
-        return libraries;
-    }
-
     private List<string> ScanDirectoryForMediaFiles(string directoryPath)
     {
         var mediaExtensions = new[]
@@ -573,7 +592,6 @@ internal sealed class MetadataSyncTaskExecutor
     }
 
     private async Task<FileMetadata?> ProcessNewMovieFileAsync(
-        LibraryInfo library,
         string filePath,
         string relativePath,
         CancellationToken cancellationToken
@@ -627,7 +645,7 @@ internal sealed class MetadataSyncTaskExecutor
                 var fileMetadata = new FileMetadata
                 {
                     Id = Guid.CreateVersion7().ToString(),
-                    LibraryId = library.Id!,
+                    LibraryId = null, // No library concept anymore
                     TmdbId = movieResult.Id,
                     LibraryType = LibraryType.Movies,
                     FilePath = relativePath,
@@ -649,7 +667,6 @@ internal sealed class MetadataSyncTaskExecutor
     }
 
     private async Task<TVShowMetadata?> ProcessNewTvShowDirectoryAsync(
-        LibraryInfo library,
         string showDirectory,
         CancellationToken cancellationToken
     )
@@ -742,7 +759,7 @@ internal sealed class MetadataSyncTaskExecutor
                         var fileMetadata = new FileMetadata
                         {
                             Id = Guid.CreateVersion7().ToString(),
-                            LibraryId = library.Id!,
+                            LibraryId = null, // No library concept anymore
                             TmdbId = searchResults.Id,
                             LibraryType = LibraryType.TVShows,
                             FilePath = relativePath,
