@@ -23,6 +23,8 @@ interface FileListProps {
   selectionMode?: boolean;
   selectedPaths?: Set<string>;
   onToggleSelect?: (item: FileItem) => void;
+  disabledPaths?: Set<string>;
+  disabledMessage?: string;
 }
 
 function FileIcon({ item }: { item: FileItem }) {
@@ -59,11 +61,18 @@ export default function FileList({
   selectionMode = false,
   selectedPaths,
   onToggleSelect,
+  disabledPaths,
+  disabledMessage = "Already selected",
 }: FileListProps) {
   const pathParts = currentPath ? currentPath.split("/").filter(Boolean) : [];
   const maxHeightClass = scrollable ? (maxHeightClassName ?? "max-h-[60vh]") : undefined;
 
   const handleItemClick = (item: FileItem) => {
+    const isDisabled = disabledPaths?.has(item.relativePath) ?? false;
+    if (isDisabled) {
+      return;
+    }
+
     if (selectionMode) {
       onToggleSelect?.(item);
       return;
@@ -111,28 +120,31 @@ export default function FileList({
           <div className="divide-y">
             {files.map((item) => {
               const isSelected = selectedPaths?.has(item.relativePath) ?? false;
+              const isDisabled = disabledPaths?.has(item.relativePath) ?? false;
               return (
                 <div
                   key={item.relativePath}
                   className={cn(
                     "flex items-center justify-between gap-4 px-4 py-3 sm:px-6",
-                    selectionMode && "hover:bg-muted/40",
+                    selectionMode && !isDisabled && "hover:bg-muted/40",
                     isSelected && "bg-muted/40",
+                    isDisabled && "opacity-50 cursor-not-allowed",
                   )}
                   onClick={() => handleItemClick(item)}
                 >
                   <div
                     className={cn(
                       "flex flex-1 items-center gap-3 overflow-hidden",
-                      !selectionMode && item.type === FileItemType.Directory && "cursor-pointer hover:text-foreground",
-                      selectionMode && "cursor-pointer",
+                      !selectionMode && item.type === FileItemType.Directory && !isDisabled && "cursor-pointer hover:text-foreground",
+                      selectionMode && !isDisabled && "cursor-pointer",
                     )}
                   >
                     {selectionMode ? (
                       <div onClick={(event) => event.stopPropagation()} className="flex items-center justify-center">
                         <Checkbox
                           checked={isSelected}
-                          onCheckedChange={() => onToggleSelect?.(item)}
+                          disabled={isDisabled}
+                          onCheckedChange={() => !isDisabled && onToggleSelect?.(item)}
                           aria-label={isSelected ? `Deselect ${item.name}` : `Select ${item.name}`}
                         />
                       </div>
@@ -142,7 +154,7 @@ export default function FileList({
                       <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         {item.type === FileItemType.Directory ? (
-                          <></>
+                          isDisabled ? <span className="text-xs italic">{disabledMessage}</span> : <></>
                         ) : (
                           <>
                             <span>{formatFileSize(item.size || 0)}</span>

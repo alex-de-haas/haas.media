@@ -208,6 +208,16 @@ export default function SettingsPage() {
     return !preferredLanguage || !countryCode || isSaving || isLoading;
   }, [preferredLanguage, countryCode, isSaving, isLoading]);
 
+  const disabledDirectoryPaths = useMemo(() => {
+    // Combine both movie and TV show directories to prevent mixing
+    const allSelectedDirs = [...movieDirectories, ...tvShowDirectories];
+    return new Set(allSelectedDirs);
+  }, [movieDirectories, tvShowDirectories]);
+
+  const disabledDirectoryMessage = useMemo(() => {
+    return "Already used for movies or TV shows";
+  }, []);
+
   if (isLoading) {
     return (
       <div className="container mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
@@ -439,6 +449,8 @@ export default function SettingsPage() {
               currentPath={currentPath}
               onNavigate={navigateToPath}
               loading={filesLoading}
+              disabledPaths={disabledDirectoryPaths}
+              disabledMessage={disabledDirectoryMessage}
             />
 
             <Separator />
