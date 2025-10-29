@@ -26,6 +26,8 @@ internal sealed class GlobalSettingsService : IGlobalSettingsApi
                 CountryCode = "US",
                 MovieDirectories = [],
                 TvShowDirectories = [],
+                TopCastCount = 20,
+                TopCrewCount = 12,
                 UpdatedAt = DateTime.UtcNow
             };
             _settings.Insert(settings);
@@ -47,6 +49,8 @@ internal sealed class GlobalSettingsService : IGlobalSettingsApi
                 CountryCode = request.CountryCode,
                 MovieDirectories = request.MovieDirectories,
                 TvShowDirectories = request.TvShowDirectories,
+                TopCastCount = request.TopCastCount,
+                TopCrewCount = request.TopCrewCount,
                 UpdatedAt = DateTime.UtcNow
             };
             _settings.Insert(settings);
@@ -58,6 +62,8 @@ internal sealed class GlobalSettingsService : IGlobalSettingsApi
             settings.CountryCode = request.CountryCode;
             settings.MovieDirectories = request.MovieDirectories;
             settings.TvShowDirectories = request.TvShowDirectories;
+            settings.TopCastCount = request.TopCastCount;
+            settings.TopCrewCount = request.TopCrewCount;
             settings.UpdatedAt = DateTime.UtcNow;
             _settings.Update(settings);
             _logger.LogInformation("Updated global settings");

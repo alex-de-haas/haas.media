@@ -39,6 +39,8 @@ static class TVShowMetadataMapper
 {
     public static TVShowMetadata Create(
         this TvShow tvShow,
+        int topCastCount,
+        int topCrewCount,
         string? preferredCountryCode = null,
         string? preferredLanguage = null
     )
@@ -56,8 +58,8 @@ static class TVShowMetadataMapper
             BackdropPath = tvShow.BackdropPath,
             LogoPath = GetBestLogo(tvShow.Images, preferredLanguage),
             Genres = MapGenres(tvShow),
-            Crew = MapCrew(tvShow),
-            Cast = MapCast(tvShow),
+            Crew = CreditsSelector.SelectTopCrewForTv(tvShow.Credits, tvShow.CreatedBy, topCrewCount),
+            Cast = CreditsSelector.SelectTopCastForTv(tvShow.Credits, topCastCount),
             Networks = MapNetworks(tvShow),
             OfficialRating = GetOfficialRating(tvShow, preferredCountryCode),
             FirstAirDate = tvShow.FirstAirDate,
@@ -70,6 +72,8 @@ static class TVShowMetadataMapper
     public static void Update(
         this TvShow source,
         TVShowMetadata target,
+        int topCastCount,
+        int topCrewCount,
         string? preferredCountryCode = null,
         string? preferredLanguage = null
     )
@@ -84,23 +88,13 @@ static class TVShowMetadataMapper
         target.BackdropPath = source.BackdropPath;
         target.LogoPath = GetBestLogo(source.Images, preferredLanguage);
         target.Genres = MapGenres(source);
-        target.Crew = MapCrew(source);
-        target.Cast = MapCast(source);
+        target.Crew = CreditsSelector.SelectTopCrewForTv(source.Credits, source.CreatedBy, topCrewCount);
+        target.Cast = CreditsSelector.SelectTopCastForTv(source.Credits, topCastCount);
         target.Networks = MapNetworks(source);
         target.OfficialRating = GetOfficialRating(source, preferredCountryCode);
         target.FirstAirDate = source.FirstAirDate;
         target.Status = source.Status;
         target.UpdatedAt = DateTime.UtcNow;
-    }
-
-    private static CrewMember[] MapCrew(TvShow tvShow)
-    {
-        return tvShow.Credits.Crew.Select(c => c.Map()).ToArray();
-    }
-
-    private static CastMember[] MapCast(TvShow tvShow)
-    {
-        return tvShow.Credits.Cast.Select(c => c.Map()).ToArray();
     }
 
     private static string[] MapGenres(TvShow source)

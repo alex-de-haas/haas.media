@@ -4,6 +4,8 @@ export interface GlobalSettings {
   countryCode: string;
   movieDirectories: string[];
   tvShowDirectories: string[];
+  topCastCount: number;
+  topCrewCount: number;
   updatedAt: string;
 }
 
@@ -12,4 +14,6 @@ export interface UpdateGlobalSettingsRequest {
   countryCode: string;
   movieDirectories: string[];
   tvShowDirectories: string[];
+  topCastCount: number;
+  topCrewCount: number;
 }

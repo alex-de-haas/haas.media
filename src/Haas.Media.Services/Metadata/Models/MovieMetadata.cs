@@ -39,6 +39,8 @@ static class MovieMetadataMapper
 {
     public static MovieMetadata Create(
         this Movie source,
+        int topCastCount,
+        int topCrewCount,
         string? preferredCountryCode = null,
         string? preferredLanguage = null
     )
@@ -59,8 +61,8 @@ static class MovieMetadataMapper
             BackdropPath = source.BackdropPath,
             LogoPath = GetBestLogo(source.Images, preferredLanguage),
             Genres = MapGenres(source),
-            Crew = MapCrew(source.Credits),
-            Cast = MapCast(source.Credits),
+            Crew = CreditsSelector.SelectTopCrew(source.Credits, topCrewCount),
+            Cast = CreditsSelector.SelectTopCast(source.Credits, topCastCount),
             ReleaseDates = MovieReleaseDateHelper.GetReleaseDates(source, preferredCountryCode),
             OfficialRating = GetOfficialRating(source, preferredCountryCode),
             CreatedAt = DateTime.UtcNow,
@@ -71,6 +73,8 @@ static class MovieMetadataMapper
     public static void Update(
         this Movie source,
         MovieMetadata target,
+        int topCastCount,
+        int topCrewCount,
         string? preferredCountryCode = null,
         string? preferredLanguage = null
     )
@@ -89,21 +93,11 @@ static class MovieMetadataMapper
         target.LogoPath = GetBestLogo(source.Images, preferredLanguage);
         target.UpdatedAt = DateTime.UtcNow;
         target.Genres = MapGenres(source);
-        target.Crew = MapCrew(source.Credits);
-        target.Cast = MapCast(source.Credits);
+        target.Crew = CreditsSelector.SelectTopCrew(source.Credits, topCrewCount);
+        target.Cast = CreditsSelector.SelectTopCast(source.Credits, topCastCount);
         target.ReleaseDates = MovieReleaseDateHelper.GetReleaseDates(source, preferredCountryCode);
         target.OfficialRating = GetOfficialRating(source, preferredCountryCode);
         target.UpdatedAt = DateTime.UtcNow;
-    }
-
-    private static CrewMember[] MapCrew(Credits credits)
-    {
-        return credits.Crew.Select(c => c.Map()).ToArray();
-    }
-
-    private static CastMember[] MapCast(Credits credits)
-    {
-        return credits.Cast.Select(c => c.Map()).ToArray();
     }
 
     private static string[] MapGenres(Movie source)

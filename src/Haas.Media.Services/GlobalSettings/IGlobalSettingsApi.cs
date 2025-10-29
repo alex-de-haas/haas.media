@@ -18,5 +18,7 @@ public record UpdateGlobalSettingsRequest(
     string PreferredMetadataLanguage,
     string CountryCode,
     List<string> MovieDirectories,
-    List<string> TvShowDirectories
+    List<string> TvShowDirectories,
+    int TopCastCount,
+    int TopCrewCount
 );

@@ -31,5 +31,17 @@ public class GlobalSettings
     /// </summary>
     public List<string> TvShowDirectories { get; set; } = new();
 
+    /// <summary>
+    /// Maximum number of top cast members to store for movies and TV shows.
+    /// Default: 20
+    /// </summary>
+    public int TopCastCount { get; set; } = 20;
+
+    /// <summary>
+    /// Maximum number of top crew members to store for movies and TV shows.
+    /// Default: 12
+    /// </summary>
+    public int TopCrewCount { get; set; } = 12;
+
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

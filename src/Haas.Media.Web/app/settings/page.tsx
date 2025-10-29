@@ -32,6 +32,8 @@ export default function SettingsPage() {
   const [countryCode, setCountryCode] = useState("US");
   const [movieDirectories, setMovieDirectories] = useState<string[]>([]);
   const [tvShowDirectories, setTvShowDirectories] = useState<string[]>([]);
+  const [topCastCount, setTopCastCount] = useState(20);
+  const [topCrewCount, setTopCrewCount] = useState(12);
   const [newMovieDir, setNewMovieDir] = useState("");
   const [newTvShowDir, setNewTvShowDir] = useState("");
   const [showDirectoryPicker, setShowDirectoryPicker] = useState(false);
@@ -82,6 +84,8 @@ export default function SettingsPage() {
         setCountryCode((settings.countryCode ?? "US").toUpperCase());
         setMovieDirectories(settings.movieDirectories ?? []);
         setTvShowDirectories(settings.tvShowDirectories ?? []);
+        setTopCastCount(settings.topCastCount ?? 20);
+        setTopCrewCount(settings.topCrewCount ?? 12);
       } catch (error) {
         console.error("Error fetching settings:", error);
         notify({ message: "Failed to load settings", type: "error" });
@@ -106,6 +110,8 @@ export default function SettingsPage() {
         countryCode: countryCode.toUpperCase(),
         movieDirectories,
         tvShowDirectories,
+        topCastCount,
+        topCrewCount,
       };
 
       const response = await fetch(`${getApiUrl()}/api/global-settings`, {
@@ -276,6 +282,38 @@ export default function SettingsPage() {
                       <Label htmlFor="countryCode">Preferred Country (ISO 3166-1 alpha-2)</Label>
                       <CountrySelect id="countryCode" value={countryCode} onChange={setCountryCode} disabled={isSaving} />
                       <p className="text-sm text-muted-foreground">Default country for release dates and regional content</p>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="topCastCount">Top Cast Count</Label>
+                      <Input
+                        id="topCastCount"
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={topCastCount}
+                        onChange={(e) => setTopCastCount(parseInt(e.target.value) || 20)}
+                        disabled={isSaving}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Maximum number of cast members to store per movie/TV show (default: 20)
+                      </p>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="topCrewCount">Top Crew Count</Label>
+                      <Input
+                        id="topCrewCount"
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={topCrewCount}
+                        onChange={(e) => setTopCrewCount(parseInt(e.target.value) || 12)}
+                        disabled={isSaving}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Maximum number of crew members to store per movie/TV show (default: 12)
+                      </p>
                     </div>
                   </div>
                 </div>

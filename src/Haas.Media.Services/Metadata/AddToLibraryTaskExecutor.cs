@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Haas.Media.Core.BackgroundTasks;
-using Haas.Media.Services.GlobalSettings;
 using LiteDB;
 using TMDbLib.Client;
 using TMDbLib.Objects.Movies;
@@ -17,33 +13,28 @@ internal sealed class AddToLibraryTaskExecutor
     private readonly ILiteCollection<GlobalSettings.GlobalSettings> _globalSettingsCollection;
     private readonly ILiteCollection<MovieMetadata> _movieMetadataCollection;
     private readonly ILiteCollection<TVShowMetadata> _tvShowMetadataCollection;
-    private readonly ILiteCollection<FileMetadata> _fileMetadataCollection;
     private readonly ILiteCollection<PersonMetadata> _personMetadataCollection;
     private readonly TMDbClient _tmdbClient;
     private readonly ILogger<AddToLibraryTaskExecutor> _logger;
     private readonly ITmdbLanguageProvider _languageProvider;
     private readonly ITmdbCountryProvider _countryProvider;
-    private readonly IConfiguration _configuration;
 
     public AddToLibraryTaskExecutor(
         LiteDatabase database,
         TMDbClient tmdbClient,
         ILogger<AddToLibraryTaskExecutor> logger,
         ITmdbLanguageProvider languageProvider,
-        ITmdbCountryProvider countryProvider,
-        IConfiguration configuration
+        ITmdbCountryProvider countryProvider
     )
     {
         _globalSettingsCollection = database.GetCollection<GlobalSettings.GlobalSettings>("globalSettings");
         _movieMetadataCollection = database.GetCollection<MovieMetadata>("movieMetadata");
         _tvShowMetadataCollection = database.GetCollection<TVShowMetadata>("tvShowMetadata");
-        _fileMetadataCollection = database.GetCollection<FileMetadata>("fileMetadata");
         _personMetadataCollection = database.GetCollection<PersonMetadata>("personMetadata");
         _tmdbClient = tmdbClient;
         _logger = logger;
         _languageProvider = languageProvider;
         _countryProvider = countryProvider;
-        _configuration = configuration;
     }
 
     public async Task ExecuteAsync(
@@ -190,7 +181,13 @@ internal sealed class AddToLibraryTaskExecutor
         MovieMetadata movieMetadata;
         if (existingMovie is not null)
         {
-            movieDetails.Update(existingMovie, preferredCountry, preferredLanguage);
+            movieDetails.Update(
+                existingMovie,
+                globalSettings.TopCastCount,
+                globalSettings.TopCrewCount,
+                preferredCountry,
+                preferredLanguage
+            );
 
             if (!_movieMetadataCollection.Update(existingMovie))
             {
@@ -217,7 +214,12 @@ internal sealed class AddToLibraryTaskExecutor
         }
         else
         {
-            movieMetadata = movieDetails.Create(preferredCountry, preferredLanguage);
+            movieMetadata = movieDetails.Create(
+                globalSettings.TopCastCount,
+                globalSettings.TopCrewCount,
+                preferredCountry,
+                preferredLanguage
+            );
             _movieMetadataCollection.Insert(movieMetadata);
 
             _logger.LogInformation(
@@ -417,7 +419,13 @@ internal sealed class AddToLibraryTaskExecutor
         TVShowMetadata tvShowMetadata;
         if (existingTVShow is not null)
         {
-            tvShowDetails.Update(existingTVShow, preferredCountry, preferredLanguage);
+            tvShowDetails.Update(
+                existingTVShow,
+                globalSettings.TopCastCount,
+                globalSettings.TopCrewCount,
+                preferredCountry,
+                preferredLanguage
+            );
             existingTVShow.Seasons = seasons.ToArray();
 
             if (!_tvShowMetadataCollection.Update(existingTVShow))
@@ -449,7 +457,12 @@ internal sealed class AddToLibraryTaskExecutor
         }
         else
         {
-            tvShowMetadata = tvShowDetails.Create(preferredCountry, preferredLanguage);
+            tvShowMetadata = tvShowDetails.Create(
+                globalSettings.TopCastCount,
+                globalSettings.TopCrewCount,
+                preferredCountry,
+                preferredLanguage
+            );
             tvShowMetadata.Seasons = seasons.ToArray();
             _tvShowMetadataCollection.Insert(tvShowMetadata);
 

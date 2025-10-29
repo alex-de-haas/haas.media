@@ -1,6 +1,4 @@
 using Haas.Media.Core.BackgroundTasks;
-using Haas.Media.Services.GlobalSettings;
-using Haas.Media.Services.Utilities;
 using LiteDB;
 using TMDbLib.Client;
 using TMDbLib.Objects.General;
@@ -213,6 +211,7 @@ internal sealed class MetadataSyncTaskExecutor
                         var fileMetadata = await ProcessNewMovieFileAsync(
                             filePath,
                             relativePath,
+                            globalSettings,
                             context.CancellationToken
                         );
                         if (fileMetadata != null)
@@ -295,6 +294,7 @@ internal sealed class MetadataSyncTaskExecutor
 
                         var tvShowMetadata = await ProcessNewTvShowDirectoryAsync(
                             showDirectory,
+                            globalSettings,
                             context.CancellationToken
                         );
                         if (tvShowMetadata != null)
@@ -339,8 +339,8 @@ internal sealed class MetadataSyncTaskExecutor
             var missingMovieIds = allMovieIds.Except(existingMovieIds).ToArray();
             var missingTvShowIds = allTvShowIds.Except(existingTvShowIds).ToArray();
 
-            await SyncMissingMoviesAsync(missingMovieIds);
-            await SyncMissingTvShowsAsync(missingTvShowIds);
+            await SyncMissingMoviesAsync(missingMovieIds, globalSettings);
+            await SyncMissingTvShowsAsync(missingTvShowIds, globalSettings);
 
             var allMoviesToRefresh = _movieMetadataCollection
                 .Query()
@@ -406,7 +406,7 @@ internal sealed class MetadataSyncTaskExecutor
 
                 try
                 {
-                    await RefreshMovieAsync(movie, context.CancellationToken);
+                    await RefreshMovieAsync(movie, globalSettings, context.CancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -445,7 +445,7 @@ internal sealed class MetadataSyncTaskExecutor
 
                 try
                 {
-                    await RefreshTvShowAsync(tvShow, context.CancellationToken);
+                    await RefreshTvShowAsync(tvShow, globalSettings, context.CancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -592,6 +592,7 @@ internal sealed class MetadataSyncTaskExecutor
     private async Task<FileMetadata?> ProcessNewMovieFileAsync(
         string filePath,
         string relativePath,
+        GlobalSettings.GlobalSettings globalSettings,
         CancellationToken cancellationToken
     )
     {
@@ -666,6 +667,7 @@ internal sealed class MetadataSyncTaskExecutor
 
     private async Task<TVShowMetadata?> ProcessNewTvShowDirectoryAsync(
         string showDirectory,
+        GlobalSettings.GlobalSettings globalSettings,
         CancellationToken cancellationToken
     )
     {
@@ -701,7 +703,12 @@ internal sealed class MetadataSyncTaskExecutor
 
             var preferredCountry = _countryProvider.GetPreferredCountryCode();
             var preferredLanguage = _languageProvider.GetPreferredLanguage();
-            var tvShowMetadata = tvShowDetails.Create(preferredCountry, preferredLanguage);
+            var tvShowMetadata = tvShowDetails.Create(
+                globalSettings.TopCastCount,
+                globalSettings.TopCrewCount,
+                preferredCountry,
+                preferredLanguage
+            );
 
             // Process seasons and episodes
             var seasons = new List<TVSeasonMetadata>();
@@ -869,7 +876,11 @@ internal sealed class MetadataSyncTaskExecutor
         }
     }
 
-    private async Task RefreshMovieAsync(MovieMetadata movie, CancellationToken cancellationToken)
+    private async Task RefreshMovieAsync(
+        MovieMetadata movie,
+        GlobalSettings.GlobalSettings globalSettings,
+        CancellationToken cancellationToken
+    )
     {
         var tmdbId = movie.Id;
         var movieDetails = await _tmdbClient.GetMovieAsync(
@@ -885,13 +896,20 @@ internal sealed class MetadataSyncTaskExecutor
 
         var preferredCountry = _countryProvider.GetPreferredCountryCode();
         var preferredLanguage = _languageProvider.GetPreferredLanguage();
-        movieDetails.Update(movie, preferredCountry, preferredLanguage);
+        movieDetails.Update(
+            movie,
+            globalSettings.TopCastCount,
+            globalSettings.TopCrewCount,
+            preferredCountry,
+            preferredLanguage
+        );
 
         _movieMetadataCollection.Update(movie);
     }
 
     private async Task RefreshTvShowAsync(
         TVShowMetadata tvShow,
+        GlobalSettings.GlobalSettings globalSettings,
         CancellationToken cancellationToken
     )
     {
@@ -954,14 +972,20 @@ internal sealed class MetadataSyncTaskExecutor
 
         var preferredCountry = _countryProvider.GetPreferredCountryCode();
         var preferredLanguage = _languageProvider.GetPreferredLanguage();
-        tvShowDetails.Update(tvShow, preferredCountry, preferredLanguage);
+        tvShowDetails.Update(
+            tvShow,
+            globalSettings.TopCastCount,
+            globalSettings.TopCrewCount,
+            preferredCountry,
+            preferredLanguage
+        );
 
         tvShow.Seasons = seasons.ToArray();
 
         _tvShowMetadataCollection.Update(tvShow);
     }
 
-    private async Task SyncMissingMoviesAsync(int[] ids)
+    private async Task SyncMissingMoviesAsync(int[] ids, GlobalSettings.GlobalSettings globalSettings)
     {
         foreach (var tmdbId in ids)
         {
@@ -978,13 +1002,18 @@ internal sealed class MetadataSyncTaskExecutor
 
             var preferredCountry = _countryProvider.GetPreferredCountryCode();
             var preferredLanguage = _languageProvider.GetPreferredLanguage();
-            var movieMetadata = movieDetails.Create(preferredCountry, preferredLanguage);
+            var movieMetadata = movieDetails.Create(
+                globalSettings.TopCastCount,
+                globalSettings.TopCrewCount,
+                preferredCountry,
+                preferredLanguage
+            );
 
             _movieMetadataCollection.Insert(movieMetadata);
         }
     }
 
-    private async Task SyncMissingTvShowsAsync(int[] ids)
+    private async Task SyncMissingTvShowsAsync(int[] ids, GlobalSettings.GlobalSettings globalSettings)
     {
         foreach (var tmdbId in ids)
         {
@@ -1001,7 +1030,12 @@ internal sealed class MetadataSyncTaskExecutor
 
             var preferredCountry = _countryProvider.GetPreferredCountryCode();
             var preferredLanguage = _languageProvider.GetPreferredLanguage();
-            var tvShowMetadata = tvShowDetails.Create(preferredCountry, preferredLanguage);
+            var tvShowMetadata = tvShowDetails.Create(
+                globalSettings.TopCastCount,
+                globalSettings.TopCrewCount,
+                preferredCountry,
+                preferredLanguage
+            );
 
             // Fetch seasons and episodes
             var seasons = new List<TVSeasonMetadata>();
