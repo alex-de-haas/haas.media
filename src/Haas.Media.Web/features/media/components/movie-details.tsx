@@ -55,7 +55,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
   const { tasks: backgroundTasks, cancelTask } = useBackgroundTasks();
   const [imageError, setImageError] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
+  const [initiatingDownloadFileId, setInitiatingDownloadFileId] = useState<string | null>(null);
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [selectedFileForDownload, setSelectedFileForDownload] = useState<FileMetadata | null>(null);
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings | null>(null);
@@ -84,8 +84,16 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
     fetchSettings();
   }, []);
 
-  // Track download tasks for remote files
+  // Track download tasks for remote files (only active ones for progress display)
   const downloadTasks = useMemo(() => {
+    return backgroundTasks.filter((task: BackgroundTaskInfo) => 
+      task.type === "NodeFileDownloadTask" && 
+      (task.status === BackgroundTaskStatus.Pending || task.status === BackgroundTaskStatus.Running)
+    );
+  }, [backgroundTasks]);
+
+  // Track all download tasks (including completed) for completion detection
+  const allDownloadTasks = useMemo(() => {
     return backgroundTasks.filter((task: BackgroundTaskInfo) => task.type === "NodeFileDownloadTask");
   }, [backgroundTasks]);
 
@@ -125,7 +133,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
       return;
     }
 
-    setDownloadingFileId(selectedFileForDownload.id!);
+    setInitiatingDownloadFileId(selectedFileForDownload.id!);
     try {
       const result = await downloadFile({
         nodeId: selectedFileForDownload.nodeId,
@@ -156,14 +164,14 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
         message: error instanceof Error ? error.message : "An unexpected error occurred",
       });
     } finally {
-      setDownloadingFileId(null);
+      setInitiatingDownloadFileId(null);
     }
   };
 
   // Refresh files when download tasks complete
   useEffect(() => {
     const currentCompletedTaskIds = new Set<string>(
-      downloadTasks
+      allDownloadTasks
         .filter((task: BackgroundTaskInfo) => task.status === BackgroundTaskStatus.Completed)
         .map((task: BackgroundTaskInfo) => task.id)
     );
@@ -180,7 +188,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
       // Update the ref with current completed task IDs
       previousCompletedTaskIds.current = currentCompletedTaskIds;
     }
-  }, [downloadTasks, refetchFiles]);
+  }, [allDownloadTasks, refetchFiles]);
 
   const showPlaybackBadges = useMemo(() => {
     if (!playbackInfo) {
@@ -520,7 +528,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                               return (payload?.remoteFilePath as string) === file.filePath;
                             });
 
-                            const isDownloading = Boolean(activeDownload || downloadingFileId === file.id);
+                            const isDownloading = Boolean(activeDownload || initiatingDownloadFileId === file.id);
                             
                             let downloadProgress = 0;
                             let downloadedBytes = 0;
@@ -584,13 +592,13 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                                           handleOpenDownloadDialog(file);
                                         }
                                       }}
-                                      disabled={downloadingFileId === file.id}
+                                      disabled={initiatingDownloadFileId === file.id}
                                       className="shrink-0"
                                       title={activeDownload ? "Cancel download" : "Download file"}
                                     >
                                       {activeDownload ? (
                                         <X className="h-3.5 w-3.5" />
-                                      ) : downloadingFileId === file.id ? (
+                                      ) : initiatingDownloadFileId === file.id ? (
                                         <Spinner className="h-3.5 w-3.5" />
                                       ) : (
                                         <Download className="h-3.5 w-3.5" />
@@ -700,7 +708,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
         defaultFileName={selectedFileForDownload ? selectedFileForDownload.filePath.split('/').pop() || '' : ''}
         mediaType={LibraryType.Movies}
         globalSettings={globalSettings}
-        isDownloading={downloadingFileId !== null}
+        isDownloading={initiatingDownloadFileId !== null}
       />
     </div>
   );
