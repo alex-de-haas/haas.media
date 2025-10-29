@@ -355,7 +355,14 @@ public class MetadataService : IMetadataApi
         var associatedTvShows = _tvShowMetadataCollection
             .FindAll()
             .Where(show =>
-                show.Cast.Any(member => member.Id == id) || show.Crew.Any(member => member.Id == id)
+                show.Cast.Any(member => member.Id == id) 
+                || show.Crew.Any(member => member.Id == id)
+                || show.Seasons.Any(season => 
+                    season.Episodes.Any(episode =>
+                        episode.Cast.Any(member => member.Id == id)
+                        || episode.Crew.Any(member => member.Id == id)
+                    )
+                )
             )
             .OrderByDescending(show => show.VoteAverage)
             .ThenBy(show => show.Title)

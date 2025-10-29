@@ -157,6 +157,78 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
     setExpandedSeasons([]);
   };
 
+  // Aggregate all episode cast and crew
+  const allEpisodeCastAndCrew = useMemo(() => {
+    if (!tvShow?.seasons) {
+      return { cast: [], crew: [] };
+    }
+
+    const castMap = new Map<number, { person: TVEpisodeMetadata["cast"][number]; appearances: number }>();
+    const crewMap = new Map<number, { person: TVEpisodeMetadata["crew"][number]; appearances: number; maxWeight: number }>();
+
+    tvShow.seasons.forEach((season) => {
+      season.episodes?.forEach((episode) => {
+        // Aggregate cast
+        episode.cast?.forEach((castMember) => {
+          const existing = castMap.get(castMember.id);
+          if (existing) {
+            existing.appearances++;
+            // Keep the best order (lowest number)
+            if (castMember.order < existing.person.order) {
+              existing.person = castMember;
+            }
+          } else {
+            castMap.set(castMember.id, { person: castMember, appearances: 1 });
+          }
+        });
+
+        // Aggregate crew
+        episode.crew?.forEach((crewMember) => {
+          const existing = crewMap.get(crewMember.id);
+          if (existing) {
+            existing.appearances++;
+            // Keep the highest weight
+            if (crewMember.weight > existing.maxWeight) {
+              existing.maxWeight = crewMember.weight;
+              existing.person = crewMember;
+            }
+          } else {
+            crewMap.set(crewMember.id, { 
+              person: crewMember, 
+              appearances: 1,
+              maxWeight: crewMember.weight
+            });
+          }
+        });
+      });
+    });
+
+    const cast = Array.from(castMap.values())
+      .map(({ person, appearances }) => ({ ...person, appearances }))
+      .sort((a, b) => {
+        // Sort by appearances first (most to least), then by order
+        if (b.appearances !== a.appearances) {
+          return b.appearances - a.appearances;
+        }
+        return a.order - b.order;
+      });
+
+    const crew = Array.from(crewMap.values())
+      .map(({ person, appearances }) => ({ ...person, appearances }))
+      .sort((a, b) => {
+        // Sort by weight first (highest to lowest), then by appearances
+        if (b.weight !== a.weight) {
+          return b.weight - a.weight;
+        }
+        return b.appearances - a.appearances;
+      });
+
+    return { cast, crew };
+  }, [tvShow?.seasons]);
+
+  const hasEpisodeCast = allEpisodeCastAndCrew.cast.length > 0;
+  const hasEpisodeCrew = allEpisodeCastAndCrew.crew.length > 0;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -450,17 +522,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                           <CarouselContent className="-ml-2 sm:-ml-4">
                             {tvShow.crew
                               ?.slice()
-                              .sort((a, b) => {
-                                const importantJobs = ["Creator", "Director", "Producer", "Executive Producer", "Writer", "Screenplay"];
-                                const aIndex = importantJobs.indexOf(a.job);
-                                const bIndex = importantJobs.indexOf(b.job);
-
-                                if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-                                if (aIndex !== -1) return -1;
-                                if (bIndex !== -1) return 1;
-
-                                return a.name.localeCompare(b.name);
-                              })
+                              .sort((a, b) => b.weight - a.weight)
                               .slice(0, CREDIT_DISPLAY_LIMIT)
                               .map((crewMember) => (
                                 <CarouselItem
@@ -487,6 +549,93 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                           </p>
                         )}
                       </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {(hasEpisodeCast || hasEpisodeCrew) && (
+                <Card>
+                  <CardHeader className="space-y-4">
+                    <div>
+                      <CardTitle className="text-lg">Episode Cast & Crew</CardTitle>
+                      <CardDescription>People appearing across all episodes</CardDescription>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {hasEpisodeCast && (
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-semibold">Recurring Guest Stars</h3>
+                        <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
+                          <CarouselContent className="-ml-2 sm:-ml-4">
+                            {allEpisodeCastAndCrew.cast
+                              .slice(0, CREDIT_DISPLAY_LIMIT)
+                              .map((castMember) => (
+                                <CarouselItem
+                                  key={`episode-cast-${castMember.id}`}
+                                  className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                                >
+                                  <PersonCard
+                                    name={castMember.name}
+                                    {...(castMember.character ? { description: castMember.character } : {})}
+                                    {...(castMember.appearances > 1 ? { meta: `${castMember.appearances} episodes` } : {})}
+                                    profilePath={castMember.profilePath ?? null}
+                                    href={`/people/${castMember.id}`}
+                                    className="mx-auto h-full"
+                                  />
+                                </CarouselItem>
+                              ))}
+                          </CarouselContent>
+                          <CarouselPrevious className="hidden md:flex -left-8" />
+                          <CarouselNext className="hidden md:flex -right-8" />
+                        </Carousel>
+                        {allEpisodeCastAndCrew.cast.length > CREDIT_DISPLAY_LIMIT && (
+                          <p className="text-xs text-muted-foreground">
+                            Showing {CREDIT_DISPLAY_LIMIT} of {allEpisodeCastAndCrew.cast.length} guest stars
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {hasEpisodeCrew && (
+                      <>
+                        {hasEpisodeCast && <Separator />}
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-semibold">Episode Crew</h3>
+                          <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
+                            <CarouselContent className="-ml-2 sm:-ml-4">
+                              {allEpisodeCastAndCrew.crew
+                                .slice(0, CREDIT_DISPLAY_LIMIT)
+                                .map((crewMember) => (
+                                  <CarouselItem
+                                    key={`episode-crew-${crewMember.id}`}
+                                    className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                                  >
+                                    <PersonCard
+                                      name={crewMember.name}
+                                      description={crewMember.job}
+                                      {...(crewMember.appearances > 1 
+                                        ? { meta: `${crewMember.appearances} episodes` }
+                                        : crewMember.department 
+                                        ? { meta: crewMember.department }
+                                        : {})}
+                                      profilePath={crewMember.profilePath ?? null}
+                                      href={`/people/${crewMember.id}`}
+                                      className="mx-auto h-full"
+                                    />
+                                  </CarouselItem>
+                                ))}
+                            </CarouselContent>
+                            <CarouselPrevious className="hidden md:flex -left-8" />
+                            <CarouselNext className="hidden md:flex -right-8" />
+                          </Carousel>
+                          {allEpisodeCastAndCrew.crew.length > CREDIT_DISPLAY_LIMIT && (
+                            <p className="text-xs text-muted-foreground">
+                              Showing {CREDIT_DISPLAY_LIMIT} of {allEpisodeCastAndCrew.crew.length} crew members
+                            </p>
+                          )}
+                        </div>
+                      </>
                     )}
                   </CardContent>
                 </Card>

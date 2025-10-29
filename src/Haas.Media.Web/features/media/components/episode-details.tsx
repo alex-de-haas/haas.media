@@ -246,17 +246,7 @@ export default function EpisodeDetails({ tvShowId, seasonNumber, episodeNumber }
                         <CarouselContent className="-ml-2 sm:-ml-4">
                           {episode.crew
                             ?.slice()
-                            .sort((a, b) => {
-                              const importantJobs = ["Director", "Writer", "Screenplay", "Story"];
-                              const aIndex = importantJobs.indexOf(a.job);
-                              const bIndex = importantJobs.indexOf(b.job);
-
-                              if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-                              if (aIndex !== -1) return -1;
-                              if (bIndex !== -1) return 1;
-
-                              return a.name.localeCompare(b.name);
-                            })
+                            .sort((a, b) => b.weight - a.weight)
                             .slice(0, CREDIT_DISPLAY_LIMIT)
                             .map((crewMember) => (
                               <CarouselItem

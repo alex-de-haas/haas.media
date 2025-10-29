@@ -9,6 +9,7 @@ public class CrewMember
     public required string Job { get; set; }
     public required string Department { get; set; }
     public string? ProfilePath { get; set; }
+    public int Weight { get; set; }
 }
 
 static class CrewMemberMapper
@@ -21,7 +22,8 @@ static class CrewMemberMapper
             Name = crew.Name,
             Job = crew.Job,
             Department = crew.Department,
-            ProfilePath = crew.ProfilePath
+            ProfilePath = crew.ProfilePath,
+            Weight = 0 // Default weight when not calculated by CreditsSelector
         };
     }
 }

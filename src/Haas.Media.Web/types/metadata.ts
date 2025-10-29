@@ -69,6 +69,7 @@ export interface CrewMember {
   job: string;
   department: string;
   profilePath?: string;
+  weight: number;
 }
 
 export interface CastMember {

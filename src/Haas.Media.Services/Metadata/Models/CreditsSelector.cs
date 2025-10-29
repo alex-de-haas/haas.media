@@ -193,7 +193,8 @@ internal static class CreditsSelector
                 Name = x.Name,
                 Job = x.PrimaryJob,
                 Department = x.Department,
-                ProfilePath = x.ProfilePath
+                ProfilePath = x.ProfilePath,
+                Weight = GetJobWeight(x.PrimaryJob)
             })
             .ToArray();
     }
@@ -259,7 +260,8 @@ internal static class CreditsSelector
                 Name = x.Name,
                 Job = x.PrimaryJob,
                 Department = x.Department,
-                ProfilePath = x.ProfilePath
+                ProfilePath = x.ProfilePath,
+                Weight = GetJobWeight(x.PrimaryJob)
             })
             .ToArray();
     }
@@ -352,7 +354,8 @@ internal static class CreditsSelector
                 Name = x.Name,
                 Job = x.PrimaryJob,
                 Department = x.Department,
-                ProfilePath = x.ProfilePath
+                ProfilePath = x.ProfilePath,
+                Weight = GetJobWeight(x.PrimaryJob)
             })
             .ToArray();
     }

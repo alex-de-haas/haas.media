@@ -667,7 +667,11 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                       <div className="space-y-2">
                         <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
                           <CarouselContent className="-ml-2 sm:-ml-4">
-                            {movie.crew.slice(0, CREDIT_DISPLAY_LIMIT).map((crewMember) => (
+                            {movie.crew
+                              .slice()
+                              .sort((a, b) => b.weight - a.weight)
+                              .slice(0, CREDIT_DISPLAY_LIMIT)
+                              .map((crewMember) => (
                               <CarouselItem
                                 key={`${crewMember.id}-${crewMember.job}`}
                                 className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
