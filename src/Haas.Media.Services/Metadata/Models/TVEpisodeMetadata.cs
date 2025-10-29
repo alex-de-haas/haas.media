@@ -20,7 +20,13 @@ public class TVEpisodeMetadata
 
 static class TVEpisodeMetadataMapper
 {
-    public static TVEpisodeMetadata Create(this TvEpisode tvEpisode)
+    private const int DefaultTopGuestStarsCount = 20;
+    private const int DefaultTopCrewCount = 12;
+
+    public static TVEpisodeMetadata Create(
+        this TvEpisode tvEpisode, 
+        int topGuestStarsCount = DefaultTopGuestStarsCount,
+        int topCrewCount = DefaultTopCrewCount)
     {
         return new TVEpisodeMetadata
         {
@@ -33,46 +39,8 @@ static class TVEpisodeMetadataMapper
             AirDate = tvEpisode.AirDate,
             Runtime = tvEpisode.Runtime,
             StillPath = tvEpisode.StillPath,
-            Cast = MapGuestStars(tvEpisode),
-            Crew = MapCrew(tvEpisode)
+            Cast = CreditsSelector.SelectTopGuestStars(tvEpisode.GuestStars, topGuestStarsCount),
+            Crew = CreditsSelector.SelectTopCrewForEpisode(tvEpisode.Crew, topCrewCount)
         };
-    }
-
-    private static CastMember[] MapGuestStars(TvEpisode tvEpisode)
-    {
-        if (tvEpisode.GuestStars is null)
-        {
-            return [];
-        }
-
-        return tvEpisode
-            .GuestStars.Select(guest => new CastMember
-            {
-                Id = guest.Id,
-                Name = guest.Name,
-                Character = guest.Character,
-                Order = guest.Order,
-                ProfilePath = guest.ProfilePath
-            })
-            .ToArray();
-    }
-
-    private static CrewMember[] MapCrew(TvEpisode tvEpisode)
-    {
-        if (tvEpisode.Crew is null)
-        {
-            return [];
-        }
-
-        return tvEpisode
-            .Crew.Select(crew => new CrewMember
-            {
-                Id = crew.Id,
-                Name = crew.Name,
-                Job = crew.Job,
-                Department = crew.Department,
-                ProfilePath = crew.ProfilePath
-            })
-            .ToArray();
     }
 }

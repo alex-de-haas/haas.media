@@ -263,4 +263,97 @@ internal static class CreditsSelector
             })
             .ToArray();
     }
+
+    /// <summary>
+    /// Selects top guest stars from TV episode credits
+    /// </summary>
+    public static CastMember[] SelectTopGuestStars(List<Cast>? guestStars, int topCount)
+    {
+        if (guestStars == null || guestStars.Count == 0)
+        {
+            return [];
+        }
+
+        return guestStars
+            .GroupBy(c => c.Id) // Deduplicate by person ID
+            .Select(g =>
+            {
+                var first = g.First();
+                var hasProfile = !string.IsNullOrEmpty(first.ProfilePath);
+                var popularity = first.Popularity;
+
+                // Score: order (lower is better) + profile boost + popularity
+                var score = -first.Order // Negative because lower order is better
+                          + (hasProfile ? 5 : 0)
+                          + Math.Min(popularity, 50) * 0.1; // Cap and scale popularity
+
+                return new
+                {
+                    Cast = first,
+                    Score = score
+                };
+            })
+            .OrderByDescending(x => x.Score)
+            .Take(topCount)
+            .Select(x => x.Cast.Map())
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Selects top crew members from TV episode credits
+    /// </summary>
+    public static CrewMember[] SelectTopCrewForEpisode(List<Crew>? crew, int topCount)
+    {
+        if (crew == null || crew.Count == 0)
+        {
+            return [];
+        }
+
+        return crew
+            .GroupBy(c => c.Id) // Deduplicate by person ID
+            .Select(g =>
+            {
+                var person = g.First();
+                
+                // Choose the best job instance for scoring
+                var bestJob = g.Select(c => new
+                {
+                    Job = NormalizeJob(c.Job),
+                    RawJob = c.Job,
+                    Weight = GetJobWeight(c.Job),
+                    Department = c.Department
+                })
+                .OrderByDescending(x => x.Weight)
+                .First();
+
+                var hasProfile = !string.IsNullOrEmpty(person.ProfilePath);
+                var popularity = person.Popularity;
+                var popularityScaled = Math.Min(popularity, 50); // Cap to avoid outliers
+
+                var score = bestJob.Weight
+                          + (hasProfile ? 5 : 0)
+                          + popularityScaled;
+
+                return new
+                {
+                    PersonId = person.Id,
+                    Name = person.Name,
+                    PrimaryJob = bestJob.Job,
+                    Department = bestJob.Department,
+                    ProfilePath = person.ProfilePath,
+                    Score = score
+                };
+            })
+            .OrderByDescending(x => x.Score)
+            .Take(topCount)
+            .Select(x => new CrewMember
+            {
+                Id = x.PersonId,
+                Name = x.Name,
+                Job = x.PrimaryJob,
+                Department = x.Department,
+                ProfilePath = x.ProfilePath
+            })
+            .ToArray();
+    }
 }
