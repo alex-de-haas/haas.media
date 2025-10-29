@@ -411,25 +411,19 @@ public class MetadataService : IMetadataApi
     }
 
     public Task<string> StartMetadataSyncAsync(
-        bool refreshMovies = true,
-        bool refreshTvShows = true,
-        bool refreshPeople = true
+        bool refreshExistingData = true
     )
     {
         var task = new MetadataSyncTask
         {
-            RefreshMovies = refreshMovies,
-            RefreshTvShows = refreshTvShows,
-            RefreshPeople = refreshPeople
+            RefreshExistingData = refreshExistingData
         };
         var operationId = task.Id.ToString();
 
         _logger.LogInformation(
-            "Starting metadata sync operation with ID: {OperationId} (Movies: {RefreshMovies}, TV Shows: {RefreshTvShows}, People: {RefreshPeople})",
+            "Starting metadata sync operation with ID: {OperationId} (RefreshExistingData: {RefreshExistingData})",
             operationId,
-            refreshMovies,
-            refreshTvShows,
-            refreshPeople
+            refreshExistingData
         );
 
         try
@@ -458,10 +452,9 @@ public class MetadataService : IMetadataApi
     )
     {
         // Library scan is now handled by metadata sync since we removed the library concept
+        // Refresh existing data if any update flag is set or scanning for new files
         return StartMetadataSyncAsync(
-            refreshMovies: updateMovies || scanForNewFiles,
-            refreshTvShows: updateTvShows || scanForNewFiles,
-            refreshPeople: updatePeople
+            refreshExistingData: updateMovies || updateTvShows || updatePeople || scanForNewFiles
         );
     }
 

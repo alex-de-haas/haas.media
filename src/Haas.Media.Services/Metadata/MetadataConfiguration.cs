@@ -66,9 +66,7 @@ public static class MetadataConfiguration
                 {
                     var options = request ?? new MetadataSyncRequest();
                     var operationId = await metadataService.StartMetadataSyncAsync(
-                        options.RefreshMovies,
-                        options.RefreshTvShows,
-                        options.RefreshPeople
+                        options.RefreshExistingData
                     );
                     return Results.Ok(
                         new { operationId, message = "Metadata sync task started" }
@@ -523,9 +521,7 @@ public record RefreshMetadataRequest(
 );
 
 public record MetadataSyncRequest(
-    bool RefreshMovies = true,
-    bool RefreshTvShows = true,
-    bool RefreshPeople = true
+    bool RefreshExistingData = true
 );
 
 public record LibraryScanRequest(

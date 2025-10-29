@@ -66,11 +66,9 @@ internal sealed class MetadataSyncTaskExecutor
         try
         {
             _logger.LogInformation(
-                "Starting metadata sync operation: {OperationId} (RefreshMovies: {RefreshMovies}, RefreshTvShows: {RefreshTvShows}, RefreshPeople: {RefreshPeople})",
+                "Starting metadata sync operation: {OperationId} (RefreshExistingData: {RefreshExistingData})",
                 operationId,
-                task.RefreshMovies,
-                task.RefreshTvShows,
-                task.RefreshPeople
+                task.RefreshExistingData
             );
 
             // Apply preferred language
@@ -314,14 +312,14 @@ internal sealed class MetadataSyncTaskExecutor
             };
             context.SetPayload(payload);
 
-            var allMovieIds = task.RefreshMovies
+            var allMovieIds = task.RefreshExistingData
                 ? existingFileMetadata
                     .Where(x => x.Value.LibraryType == LibraryType.Movies)
                     .Select(x => x.Value.TmdbId)
                     .Distinct()
                     .ToArray()
                 : [];
-            var allTvShowIds = task.RefreshTvShows
+            var allTvShowIds = task.RefreshExistingData
                 ? existingFileMetadata
                     .Where(x => x.Value.LibraryType == LibraryType.TVShows)
                     .Select(x => x.Value.TmdbId)
@@ -362,11 +360,11 @@ internal sealed class MetadataSyncTaskExecutor
                 .ToArray();
 
             var allPeopleIdsToRefresh = GetPeopleIdsFromMovies(
-                    task.RefreshPeople ? allMoviesToRefresh : missingMovies
+                    task.RefreshExistingData ? allMoviesToRefresh : missingMovies
                 )
                 .Concat(
                     GetPeopleIdsFromTvShows(
-                        task.RefreshPeople ? allTvShowsToRefresh : missingTvShows
+                        task.RefreshExistingData ? allTvShowsToRefresh : missingTvShows
                     )
                 )
                 .Distinct()

@@ -8,19 +8,10 @@ public sealed class MetadataSyncTask : BackgroundTaskBase
         : base(id) { }
 
     /// <summary>
-    /// Whether to refresh movie metadata from TMDb for new and existing movies
+    /// Whether to refresh metadata from TMDb for existing movies, TV shows, and people.
+    /// When false, only new items are added to the library.
     /// </summary>
-    public bool RefreshMovies { get; init; } = true;
-
-    /// <summary>
-    /// Whether to refresh TV show metadata from TMDb for new and existing shows
-    /// </summary>
-    public bool RefreshTvShows { get; init; } = true;
-
-    /// <summary>
-    /// Whether to refresh people metadata from TMDb for new and existing people
-    /// </summary>
-    public bool RefreshPeople { get; init; } = true;
+    public bool RefreshExistingData { get; init; } = true;
 
     public override string Name => "Metadata sync";
 }

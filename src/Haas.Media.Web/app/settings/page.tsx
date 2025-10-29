@@ -19,6 +19,8 @@ import { BackgroundTaskCard } from "@/features/background-tasks/components/backg
 import { useFiles } from "@/features/files";
 import FileList from "@/features/files/components/file-list";
 import { FileItemType } from "@/types/file";
+import { isActiveBackgroundTask } from "@/types";
+import MetadataSyncModal from "./metadata-sync-modal";
 
 export default function SettingsPage() {
   const { notify } = useNotifications();
@@ -34,14 +36,30 @@ export default function SettingsPage() {
   const [newTvShowDir, setNewTvShowDir] = useState("");
   const [showDirectoryPicker, setShowDirectoryPicker] = useState(false);
   const [directoryPickerType, setDirectoryPickerType] = useState<"movie" | "tvshow">("movie");
+  const [showSyncModal, setShowSyncModal] = useState(false);
 
   const { files, currentPath, loading: filesLoading, navigateToPath } = useFiles("");
   const { tasks: backgroundTasks, cancelTask } = useBackgroundTasks({ enabled: true });
 
   const currentSyncTask = useMemo(() => {
-    if (!currentSyncTaskId) return null;
-    return backgroundTasks.find((task) => task.id === currentSyncTaskId) ?? null;
+    // First check if we have a tracked task ID
+    if (currentSyncTaskId) {
+      const tracked = backgroundTasks.find((task) => task.id === currentSyncTaskId);
+      if (tracked) return tracked;
+    }
+    
+    // If no tracked task or it's not found, look for any active metadata sync task
+    return backgroundTasks.find((task) => 
+      task.type === "MetadataSyncTask" && isActiveBackgroundTask(task)
+    ) ?? null;
   }, [currentSyncTaskId, backgroundTasks]);
+
+  // Sync the currentSyncTaskId when an active sync task is found
+  useEffect(() => {
+    if (currentSyncTask && currentSyncTask.id !== currentSyncTaskId) {
+      setCurrentSyncTaskId(currentSyncTask.id);
+    }
+  }, [currentSyncTask, currentSyncTaskId]);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -116,7 +134,7 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSyncMetadata = async () => {
+  const handleSyncMetadata = async (refreshExistingData: boolean) => {
     if (isSyncing) return;
 
     setIsSyncing(true);
@@ -129,9 +147,7 @@ export default function SettingsPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          refreshMovies: true,
-          refreshTvShows: true,
-          refreshPeople: true,
+          refreshExistingData,
         }),
       });
 
@@ -141,6 +157,7 @@ export default function SettingsPage() {
 
       const data = await response.json();
       setCurrentSyncTaskId(data.operationId);
+      setShowSyncModal(false);
       notify({ 
         message: "Metadata sync started", 
         type: "success" 
@@ -423,7 +440,7 @@ export default function SettingsPage() {
               </p>
 
               {!currentSyncTask && (
-                <Button onClick={handleSyncMetadata} disabled={isSyncing}>
+                <Button onClick={() => setShowSyncModal(true)} disabled={isSyncing}>
                   <RefreshCw className="h-4 w-4" />
                   Sync Metadata
                 </Button>
@@ -478,6 +495,13 @@ export default function SettingsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <MetadataSyncModal
+        isOpen={showSyncModal}
+        onClose={() => setShowSyncModal(false)}
+        onConfirm={handleSyncMetadata}
+        isSyncing={isSyncing}
+      />
     </div>
   );
 }
