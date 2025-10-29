@@ -87,8 +87,8 @@ internal sealed class MetadataSyncTaskExecutor
                 return;
             }
 
-            var movieDirectories = globalSettings.MovieDirectories ?? new List<string>();
-            var tvShowDirectories = globalSettings.TvShowDirectories ?? new List<string>();
+            var movieDirectories = globalSettings.MovieDirectories ?? [];
+            var tvShowDirectories = globalSettings.TvShowDirectories ?? [];
 
             if (movieDirectories.Count == 0 && tvShowDirectories.Count == 0)
             {
@@ -111,7 +111,7 @@ internal sealed class MetadataSyncTaskExecutor
             context.SetPayload(payload);
 
             var existingFileMetadata = new Dictionary<string, FileMetadata>();
-            var allFiles = _fileMetadataCollection.FindAll().ToList();
+            var allFiles = _fileMetadataCollection.Query().Where(x => x.NodeId == null).ToList();
             foreach (var file in allFiles)
             {
                 existingFileMetadata[file.FilePath] = file;
