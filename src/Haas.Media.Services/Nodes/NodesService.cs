@@ -417,16 +417,17 @@ public sealed class NodesService : INodesApi
         }
     }
 
-    public Task<string> StartDownloadFileFromNodeAsync(string nodeId, string remoteFilePath, string destinationDirectory)
+    public Task<string> StartDownloadFileFromNodeAsync(string nodeId, string remoteFilePath, string destinationDirectory, string? customFileName = null)
     {
         _logger.LogInformation(
-            "Starting file download from node {NodeId}: {RemoteFilePath} to directory {DestinationDirectory}",
+            "Starting file download from node {NodeId}: {RemoteFilePath} to directory {DestinationDirectory} with custom file name {CustomFileName}",
             nodeId,
             remoteFilePath,
-            destinationDirectory
+            destinationDirectory,
+            customFileName ?? "(original)"
         );
 
-        var task = new NodeFileDownloadTask(nodeId, remoteFilePath, destinationDirectory);
+        var task = new NodeFileDownloadTask(nodeId, remoteFilePath, destinationDirectory, customFileName);
         var taskId = _backgroundTaskManager.RunTask<NodeFileDownloadTask, NodeFileDownloadInfo>(task);
 
         return Task.FromResult(taskId.ToString());

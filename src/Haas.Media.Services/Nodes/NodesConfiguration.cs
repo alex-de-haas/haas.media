@@ -350,7 +350,8 @@ public static class NodesConfiguration
                         var taskId = await nodesApi.StartDownloadFileFromNodeAsync(
                             nodeId,
                             request.RemoteFilePath,
-                            request.LibraryId
+                            request.LibraryId,
+                            request.CustomFileName
                         );
                         return Results.Ok(new { taskId });
                     }
@@ -410,4 +411,5 @@ public sealed record DownloadFileRequest
 {
     public required string RemoteFilePath { get; init; }
     public required string LibraryId { get; init; }
+    public string? CustomFileName { get; init; }
 }

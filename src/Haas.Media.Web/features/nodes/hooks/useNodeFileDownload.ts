@@ -8,6 +8,7 @@ export interface DownloadFileFromNodeRequest {
   nodeId: string;
   remoteFilePath: string;
   destinationDirectory: string;
+  customFileName?: string;
 }
 
 export function useNodeFileDownload() {
@@ -22,7 +23,8 @@ export function useNodeFileDownload() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             remoteFilePath: request.remoteFilePath,
-            destinationDirectory: request.destinationDirectory,
+            libraryId: request.destinationDirectory,
+            customFileName: request.customFileName,
           }),
         });
 

@@ -9,10 +9,12 @@ import { MoreVertical, Trash2, Star, ArrowLeft, Film, Heart, Play, Eye, Download
 import { useMovie, useDeleteMovieMetadata, useMoviePlaybackInfo } from "@/features/media/hooks";
 import { useFilesByMediaId } from "@/features/media/hooks/useFileMetadata";
 import { useNodeFileDownload } from "@/features/nodes/hooks";
+import { DownloadFileDialog } from "@/features/nodes/components";
 import { useBackgroundTasks } from "@/features/background-tasks/hooks";
 import { LibraryType } from "@/types/library";
 import type { BackgroundTaskInfo } from "@/types";
 import type { GlobalSettings } from "@/types/global-settings";
+import type { FileMetadata } from "@/types/metadata";
 import { Spinner } from "@/components/ui";
 import { getPosterUrl, getBackdropUrl, getLogoUrl } from "@/lib/tmdb";
 import { formatCurrency } from "@/lib/utils";
@@ -54,6 +56,8 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
   const [imageError, setImageError] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const [selectedFileForDownload, setSelectedFileForDownload] = useState<FileMetadata | null>(null);
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings | null>(null);
   const router = useRouter();
   const { notify } = useNotifications();
@@ -80,11 +84,6 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
     fetchSettings();
   }, []);
 
-  // Get first movie directory for downloads
-  const movieDownloadDirectory = useMemo(() => {
-    return globalSettings?.movieDirectories?.[0] || "";
-  }, [globalSettings]);
-
   // Track download tasks for remote files
   const downloadTasks = useMemo(() => {
     return backgroundTasks.filter((task: BackgroundTaskInfo) => task.type === "NodeFileDownloadTask");
@@ -107,22 +106,32 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
     }
   };
 
-  const handleDownloadFile = async (fileId: string, nodeId: string, remoteFilePath: string) => {
-    if (!movieDownloadDirectory) {
+  const handleOpenDownloadDialog = (file: FileMetadata) => {
+    if (!globalSettings?.movieDirectories || globalSettings.movieDirectories.length === 0) {
       notify({
         type: "error",
         title: "Download Failed",
-        message: "No movie directory configured. Please configure a movie directory in settings.",
+        message: "No movie directories configured. Please configure movie directories in settings.",
       });
       return;
     }
+    
+    setSelectedFileForDownload(file);
+    setDownloadDialogOpen(true);
+  };
 
-    setDownloadingFileId(fileId);
+  const handleConfirmDownload = async (destinationDirectory: string, fileName: string) => {
+    if (!selectedFileForDownload || !selectedFileForDownload.nodeId) {
+      return;
+    }
+
+    setDownloadingFileId(selectedFileForDownload.id!);
     try {
       const result = await downloadFile({
-        nodeId,
-        remoteFilePath,
-        destinationDirectory: movieDownloadDirectory,
+        nodeId: selectedFileForDownload.nodeId,
+        remoteFilePath: selectedFileForDownload.filePath,
+        destinationDirectory,
+        customFileName: fileName,
       });
 
       if (result.success && result.taskId) {
@@ -131,6 +140,8 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
           title: "Download Started",
           message: "File download has been queued. Check progress below.",
         });
+        setDownloadDialogOpen(false);
+        setSelectedFileForDownload(null);
       } else {
         notify({
           type: "error",
@@ -570,10 +581,10 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                                         if (activeDownload) {
                                           void handleCancelDownload(activeDownload.id);
                                         } else {
-                                          void handleDownloadFile(file.id!, file.nodeId!, file.filePath);
+                                          handleOpenDownloadDialog(file);
                                         }
                                       }}
-                                      disabled={downloadingFileId === file.id || (!activeDownload && !movieDownloadDirectory)}
+                                      disabled={downloadingFileId === file.id}
                                       className="shrink-0"
                                       title={activeDownload ? "Cancel download" : "Download file"}
                                     >
@@ -681,6 +692,16 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
           </div>
         </div>
       </div>
+
+      <DownloadFileDialog
+        open={downloadDialogOpen}
+        onOpenChange={setDownloadDialogOpen}
+        onConfirm={handleConfirmDownload}
+        defaultFileName={selectedFileForDownload ? selectedFileForDownload.filePath.split('/').pop() || '' : ''}
+        mediaType={LibraryType.Movies}
+        globalSettings={globalSettings}
+        isDownloading={downloadingFileId !== null}
+      />
     </div>
   );
 }

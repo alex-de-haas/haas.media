@@ -51,6 +51,7 @@ public interface INodesApi
     /// <param name="nodeId">The ID of the node to download from</param>
     /// <param name="remoteFilePath">The file path on the remote node</param>
     /// <param name="destinationDirectory">The local destination directory path (relative to DATA_DIRECTORY) where the file should be saved</param>
+    /// <param name="customFileName">Optional custom file name. If not provided, the original file name will be used</param>
     /// <returns>The background task ID for tracking the download</returns>
-    Task<string> StartDownloadFileFromNodeAsync(string nodeId, string remoteFilePath, string destinationDirectory);
+    Task<string> StartDownloadFileFromNodeAsync(string nodeId, string remoteFilePath, string destinationDirectory, string? customFileName = null);
 }

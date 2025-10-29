@@ -65,7 +65,12 @@ internal sealed class NodeFileDownloadTaskExecutor
 
         // Build the local destination path
         var destinationPath = Path.Combine(dataDirectory, task.DestinationDirectory);
-        var fileName = Path.GetFileName(task.RemoteFilePath);
+        
+        // Use custom file name if provided, otherwise use original file name
+        var fileName = !string.IsNullOrWhiteSpace(task.CustomFileName) 
+            ? task.CustomFileName 
+            : Path.GetFileName(task.RemoteFilePath);
+        
         var localFilePath = Path.Combine(destinationPath, fileName);
 
         // Ensure the destination directory exists
