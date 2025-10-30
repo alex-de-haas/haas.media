@@ -601,7 +601,17 @@
     "metadataFetched": "Metadata opgehaald",
     "fetchFailed": "Ophalen mislukt",
     "error": "Fout",
-    "loading": "Laden..."
+    "loading": "Laden...",
+    "noNodesConnected": "Geen nodes verbonden",
+    "noNodesDescription": "Verbind met andere Haas.Media servers om te beginnen",
+    "enabled": "Ingeschakeld",
+    "disabled": "Uitgeschakeld",
+    "status": "Status",
+    "active": "Actief",
+    "inactive": "Inactief",
+    "lastValidated": "Laatst gevalideerd",
+    "created": "Aangemaakt",
+    "fetch": "Ophalen"
   },
   "errors": {
     "notFound": "Niet gevonden",

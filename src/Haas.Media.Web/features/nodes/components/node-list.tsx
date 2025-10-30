@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Server, CheckCircle, XCircle, Download } from "lucide-react";
 import type { NodeInfo } from "@/types/node";
 import { formatDistanceToNow } from "date-fns";
+import { useTranslations } from "next-intl";
 
 interface NodeListProps {
   nodes: NodeInfo[];
@@ -15,13 +16,15 @@ interface NodeListProps {
 }
 
 export function NodeList({ nodes, onEdit, onDelete, onFetchMetadata }: NodeListProps) {
+  const t = useTranslations("nodes");
+  const tCommon = useTranslations("common");
   if (nodes.length === 0) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
           <Server className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">No nodes connected</p>
-          <p className="text-sm text-muted-foreground mt-1">Connect to other Haas.Media servers to get started</p>
+          <p className="text-muted-foreground">{t("noNodesConnected")}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t("noNodesDescription")}</p>
         </CardContent>
       </Card>
     );
@@ -41,24 +44,24 @@ export function NodeList({ nodes, onEdit, onDelete, onFetchMetadata }: NodeListP
                 </div>
               </div>
               <Badge variant={node.isEnabled ? "default" : "secondary"} className="ml-2 flex-shrink-0">
-                {node.isEnabled ? "Enabled" : "Disabled"}
+                {node.isEnabled ? t("enabled") : t("disabled")}
               </Badge>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Status:</span>
+                <span className="text-muted-foreground">{t("status")}:</span>
                 <div className="flex items-center gap-1">
                   {node.isEnabled ? (
                     <>
                       <CheckCircle className="h-3 w-3 text-green-600" />
-                      <span className="text-green-600">Active</span>
+                      <span className="text-green-600">{t("active")}</span>
                     </>
                   ) : (
                     <>
                       <XCircle className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-muted-foreground">Inactive</span>
+                      <span className="text-muted-foreground">{t("inactive")}</span>
                     </>
                   )}
                 </div>
@@ -66,13 +69,13 @@ export function NodeList({ nodes, onEdit, onDelete, onFetchMetadata }: NodeListP
 
               {node.lastValidatedAt && (
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Last validated:</span>
+                  <span className="text-muted-foreground">{t("lastValidated")}:</span>
                   <span className="text-xs">{formatDistanceToNow(new Date(node.lastValidatedAt), { addSuffix: true })}</span>
                 </div>
               )}
 
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Created:</span>
+                <span className="text-muted-foreground">{t("created")}:</span>
                 <span className="text-xs">{formatDistanceToNow(new Date(node.createdAt), { addSuffix: true })}</span>
               </div>
             </div>
@@ -81,16 +84,16 @@ export function NodeList({ nodes, onEdit, onDelete, onFetchMetadata }: NodeListP
               {onFetchMetadata && (
                 <Button variant="outline" size="sm" onClick={() => onFetchMetadata(node)} className="flex-1">
                   <Download className="h-3 w-3 mr-1" />
-                  Fetch
+                  {t("fetch")}
                 </Button>
               )}
               <Button variant="outline" size="sm" onClick={() => onEdit(node)} className="flex-1">
                 <Edit className="h-3 w-3 mr-1" />
-                Edit
+                {tCommon("edit")}
               </Button>
               <Button variant="outline" size="sm" onClick={() => onDelete(node)} className="flex-1">
                 <Trash2 className="h-3 w-3 mr-1" />
-                Delete
+                {tCommon("delete")}
               </Button>
             </div>
           </CardContent>

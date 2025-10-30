@@ -601,7 +601,17 @@
     "metadataFetched": "メタデータを取得しました",
     "fetchFailed": "取得に失敗しました",
     "error": "エラー",
-    "loading": "読み込み中..."
+    "loading": "読み込み中...",
+    "noNodesConnected": "接続されたノードがありません",
+    "noNodesDescription": "他のHaas.Mediaサーバーに接続して開始してください",
+    "enabled": "有効",
+    "disabled": "無効",
+    "status": "ステータス",
+    "active": "アクティブ",
+    "inactive": "非アクティブ",
+    "lastValidated": "最終検証",
+    "created": "作成日時",
+    "fetch": "取得"
   },
   "errors": {
     "notFound": "見つかりません",

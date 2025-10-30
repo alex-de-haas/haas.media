@@ -601,7 +601,17 @@
     "metadataFetched": "Метаданные получены",
     "fetchFailed": "Получение не удалось",
     "error": "Ошибка",
-    "loading": "Загрузка..."
+    "loading": "Загрузка...",
+    "noNodesConnected": "Нет подключенных узлов",
+    "noNodesDescription": "Подключитесь к другим серверам Haas.Media, чтобы начать",
+    "enabled": "Включен",
+    "disabled": "Отключен",
+    "status": "Статус",
+    "active": "Активен",
+    "inactive": "Неактивен",
+    "lastValidated": "Последняя проверка",
+    "created": "Создан",
+    "fetch": "Получить"
   },
   "errors": {
     "notFound": "Не найдено",

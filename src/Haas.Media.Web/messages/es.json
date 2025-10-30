@@ -601,7 +601,17 @@
     "metadataFetched": "Metadatos obtenidos",
     "fetchFailed": "Obtención fallida",
     "error": "Error",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "noNodesConnected": "No hay nodos conectados",
+    "noNodesDescription": "Conéctese a otros servidores Haas.Media para comenzar",
+    "enabled": "Habilitado",
+    "disabled": "Deshabilitado",
+    "status": "Estado",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "lastValidated": "Última validación",
+    "created": "Creado",
+    "fetch": "Obtener"
   },
   "errors": {
     "notFound": "No encontrado",
