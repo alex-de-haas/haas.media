@@ -240,8 +240,28 @@ internal sealed class MetadataSyncTaskExecutor
                 processedNewFiles++;
             }
 
-            // Process new TV shows by directory
+            // Process new TV shows by directory and new episodes for existing shows
             var processedTvShowDirectories = new HashSet<string>();
+            
+            // First, identify which show directories have new files
+            var showDirectoriesWithNewFiles = newFiles
+                .Where(x => x.type == LibraryType.TVShows)
+                .Select(x =>
+                {
+                    var fullPath = Path.Combine(_dataPath, x.relativePath);
+                    var fileInfo = new FileInfo(fullPath);
+                    // Navigate up to the show directory (e.g., from "Shows/Show Name/Season 01/episode.mkv" to "Shows/Show Name")
+                    var showDir = fileInfo.Directory?.Parent?.Parent?.FullName;
+                    if (showDir != null && showDir.StartsWith(Path.Combine(_dataPath, "Shows")))
+                    {
+                        return fileInfo.Directory?.Parent?.FullName; // Return the show directory
+                    }
+                    return null;
+                })
+                .Where(x => x != null)
+                .Distinct()
+                .ToHashSet();
+
             foreach (var directory in tvShowDirectories)
             {
                 context.ThrowIfCancellationRequested();
@@ -301,6 +321,22 @@ internal sealed class MetadataSyncTaskExecutor
                         {
                             newTvShows.Add(tvShowMetadata);
                         }
+                    }
+                    else if (showDirectoriesWithNewFiles.Contains(showDirectory))
+                    {
+                        // Existing show with new episode files - add file metadata only
+                        payload = payload with
+                        {
+                            Stage = "Processing new episodes for existing TV show",
+                            CurrentItem = showTitle
+                        };
+                        context.SetPayload(payload);
+
+                        await ProcessNewEpisodeFilesForExistingShowAsync(
+                            showDirectory,
+                            existingShow,
+                            context.CancellationToken
+                        );
                     }
                 }
             }
@@ -761,20 +797,32 @@ internal sealed class MetadataSyncTaskExecutor
                     if (filePath != null)
                     {
                         var relativePath = Path.GetRelativePath(_dataPath, filePath);
-                        var fileMetadata = new FileMetadata
+                        
+                        // Check if file metadata already exists to prevent duplicates
+                        var existingFileMetadata = _fileMetadataCollection.FindOne(f =>
+                            f.FilePath == relativePath &&
+                            f.TmdbId == searchResults.Id &&
+                            f.SeasonNumber == season.SeasonNumber &&
+                            f.EpisodeNumber == episode.EpisodeNumber
+                        );
+
+                        if (existingFileMetadata == null)
                         {
-                            Id = Guid.CreateVersion7().ToString(),
-                            LibraryId = null, // No library concept anymore
-                            TmdbId = searchResults.Id,
-                            LibraryType = LibraryType.TVShows,
-                            FilePath = relativePath,
-                            Md5Hash = null, // No MD5 hash calculation
-                            SeasonNumber = season.SeasonNumber,
-                            EpisodeNumber = episode.EpisodeNumber,
-                            CreatedAt = DateTime.UtcNow,
-                            UpdatedAt = DateTime.UtcNow
-                        };
-                        _fileMetadataCollection.Insert(fileMetadata);
+                            var fileMetadata = new FileMetadata
+                            {
+                                Id = Guid.CreateVersion7().ToString(),
+                                LibraryId = null, // No library concept anymore
+                                TmdbId = searchResults.Id,
+                                LibraryType = LibraryType.TVShows,
+                                FilePath = relativePath,
+                                Md5Hash = null, // No MD5 hash calculation
+                                SeasonNumber = season.SeasonNumber,
+                                EpisodeNumber = episode.EpisodeNumber,
+                                CreatedAt = DateTime.UtcNow,
+                                UpdatedAt = DateTime.UtcNow
+                            };
+                            _fileMetadataCollection.Insert(fileMetadata);
+                        }
                     }
                 }
 
@@ -797,6 +845,85 @@ internal sealed class MetadataSyncTaskExecutor
         }
 
         return null;
+    }
+
+    private async Task ProcessNewEpisodeFilesForExistingShowAsync(
+        string showDirectory,
+        TVShowMetadata existingShow,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            // Scan the show directory for episode files
+            var files = Directory.GetFiles(showDirectory, "*.*", SearchOption.AllDirectories);
+            
+            foreach (var filePath in files)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                
+                // Try to extract season and episode numbers from filename
+                var fileName = Path.GetFileName(filePath);
+                var match = System.Text.RegularExpressions.Regex.Match(
+                    fileName,
+                    @"S(\d{2})E(\d{2})",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase
+                );
+
+                if (!match.Success)
+                {
+                    continue;
+                }
+
+                var seasonNumber = int.Parse(match.Groups[1].Value);
+                var episodeNumber = int.Parse(match.Groups[2].Value);
+                
+                var relativePath = Path.GetRelativePath(_dataPath, filePath);
+                
+                // Check if file metadata already exists
+                var existingFileMetadata = _fileMetadataCollection.FindOne(f =>
+                    f.FilePath == relativePath &&
+                    f.TmdbId == existingShow.Id &&
+                    f.SeasonNumber == seasonNumber &&
+                    f.EpisodeNumber == episodeNumber
+                );
+
+                if (existingFileMetadata == null)
+                {
+                    // Create new file metadata
+                    var fileMetadata = new FileMetadata
+                    {
+                        Id = Guid.CreateVersion7().ToString(),
+                        LibraryId = null,
+                        TmdbId = existingShow.Id,
+                        LibraryType = LibraryType.TVShows,
+                        FilePath = relativePath,
+                        Md5Hash = null,
+                        SeasonNumber = seasonNumber,
+                        EpisodeNumber = episodeNumber,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    _fileMetadataCollection.Insert(fileMetadata);
+                    
+                    _logger.LogInformation(
+                        "Added file metadata for {ShowTitle} S{Season:D2}E{Episode:D2}: {FilePath}",
+                        existingShow.Title,
+                        seasonNumber,
+                        episodeNumber,
+                        relativePath
+                    );
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Failed to process new episode files for show: {Directory}",
+                showDirectory
+            );
+        }
     }
 
     private async Task<SearchTv?> SearchTMDbForTVShow(

@@ -235,6 +235,17 @@ public static class MetadataConfiguration
             .WithName("DeleteFileMetadata")
             .RequireAuthorization();
 
+        app.MapPost(
+                "api/metadata/files/cleanup-duplicates",
+                async (IMetadataApi metadataService) =>
+                {
+                    var deletedCount = await metadataService.CleanupDuplicateFileMetadataAsync();
+                    return Results.Ok(new { deletedCount, message = $"Cleaned up {deletedCount} duplicate file metadata record(s)" });
+                }
+            )
+            .WithName("CleanupDuplicateFileMetadata")
+            .RequireAuthorization();
+
         app.MapGet(
                 "api/metadata/movies/{id}/files",
                 async (IMetadataApi metadataService, int id) =>

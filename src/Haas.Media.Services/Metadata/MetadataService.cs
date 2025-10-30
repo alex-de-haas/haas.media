@@ -583,6 +583,61 @@ public class MetadataService : IMetadataApi
         return Task.FromResult(deletedCount);
     }
 
+    public Task<int> CleanupDuplicateFileMetadataAsync()
+    {
+        _logger.LogInformation("Starting duplicate file metadata cleanup");
+        
+        // Get all file metadata records
+        var allFiles = _fileMetadataCollection.FindAll().ToList();
+        
+        // Group by unique identifier (TmdbId, FilePath, SeasonNumber, EpisodeNumber)
+        var groups = allFiles
+            .GroupBy(f => new
+            {
+                f.TmdbId,
+                f.FilePath,
+                f.SeasonNumber,
+                f.EpisodeNumber
+            })
+            .Where(g => g.Count() > 1) // Only duplicates
+            .ToList();
+        
+        var deletedCount = 0;
+        
+        foreach (var group in groups)
+        {
+            // Keep the oldest record (by CreatedAt), delete the rest
+            var toDelete = group
+                .OrderBy(f => f.CreatedAt)
+                .Skip(1)
+                .ToList();
+            
+            foreach (var duplicate in toDelete)
+            {
+                if (_fileMetadataCollection.Delete(new BsonValue(duplicate.Id)))
+                {
+                    deletedCount++;
+                    _logger.LogDebug(
+                        "Deleted duplicate file metadata: TmdbId={TmdbId}, Path={Path}, S{Season}E{Episode}, Id={Id}",
+                        duplicate.TmdbId,
+                        duplicate.FilePath,
+                        duplicate.SeasonNumber,
+                        duplicate.EpisodeNumber,
+                        duplicate.Id
+                    );
+                }
+            }
+        }
+        
+        _logger.LogInformation(
+            "Duplicate cleanup complete. Removed {Count} duplicate(s) from {GroupCount} group(s)",
+            deletedCount,
+            groups.Count
+        );
+        
+        return Task.FromResult(deletedCount);
+    }
+
     public Task<IEnumerable<FileMetadata>> GetFilesByMediaIdAsync(
         int mediaId,
         LibraryType mediaType
