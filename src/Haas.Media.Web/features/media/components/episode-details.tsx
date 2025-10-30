@@ -111,98 +111,101 @@ export default function EpisodeDetails({ tvShowId, seasonNumber, episodeNumber }
       {/* Content */}
       <div className="relative z-10 -mt-32 px-4 py-8">
         <div className="mx-auto w-full max-w-screen-xl">
-          <Card className="shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex flex-col gap-6 lg:flex-row">
-                {/* Episode Still Preview - Left Side */}
-                {stillUrl && (
-                  <div className="flex-shrink-0">
-                    <div className="relative aspect-video w-full overflow-hidden rounded-lg lg:w-80">
-                      <Image
-                        src={stillUrl}
-                        alt={`${episode.name} preview`}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 1024px) 100vw, 320px"
-                      />
-                    </div>
+          <div className="flex w-full flex-col gap-8 lg:flex-row">
+            {/* Episode Still - Left Side (Separate Card) */}
+            {stillUrl && (
+              <div className="flex-shrink-0">
+                <Card className="overflow-hidden shadow-2xl lg:w-80">
+                  <div className="relative aspect-video w-full">
+                    <Image
+                      src={stillUrl}
+                      alt={`${episode.name} still`}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 1024px) 100vw, 320px"
+                      priority
+                    />
                   </div>
-                )}
-
-                {/* Main Details - Right Side */}
-                <div className="flex-1 space-y-6">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="text-sm text-muted-foreground">
-                        {tvShow.title} • Season {seasonNumber} • Episode {episodeNumber}
-                      </div>
-                      <CardTitle className="text-3xl md:text-4xl">{episode.name}</CardTitle>
-                    </div>
-
-                    {/* Meta Information */}
-                    <div className="flex flex-wrap items-center gap-4 text-sm">
-                      {episode.voteAverage > 0 && (
-                        <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1">
-                          <Star className="h-4 w-4 text-yellow-500" />
-                          <span className="font-semibold text-foreground">{episode.voteAverage.toFixed(1)}</span>
-                        </Badge>
-                      )}
-                      {episode.voteCount > 0 && <span className="text-muted-foreground">{episode.voteCount.toLocaleString()} votes</span>}
-                      {formattedAirDate && (
-                        <Badge variant="outline" className="flex items-center gap-2 px-3 py-1">
-                          <Calendar className="h-4 w-4" />
-                          {formattedAirDate}
-                        </Badge>
-                      )}
-                      {episode.runtime && (
-                        <Badge variant="outline" className="flex items-center gap-2 px-3 py-1">
-                          <Clock className="h-4 w-4" />
-                          {episode.runtime} min
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Overview */}
-                  {episode.overview && (
-                    <div className="space-y-2">
-                      <h2 className="text-lg font-semibold">Overview</h2>
-                      <p className="text-muted-foreground leading-relaxed">{episode.overview}</p>
-                    </div>
-                  )}
-
-                  {/* Files */}
-                  {episodeFiles.length > 0 && (
-                    <>
-                      <Separator />
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-semibold">Local Files</h3>
-                        <div className="space-y-1">
-                          {episodeFiles.map((file) => (
-                            <p key={file.id} className="break-all font-mono text-xs text-muted-foreground">
-                              {file.filePath}
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
+                </Card>
               </div>
-            </CardContent>
-          </Card>
+            )}
 
-          {/* Credits */}
-          {(hasCast || hasCrew) && (
-            <Card className="mt-6">
-              <CardHeader className="space-y-4">
-                <div>
-                  <CardTitle className="text-lg">Episode Credits</CardTitle>
-                  <CardDescription>Guest stars and crew for this episode</CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {hasCast && (
+            {/* Main Details - Right Side */}
+            <div className="flex-1 space-y-6 w-full lg:max-w-4xl">
+              <Card className="shadow-lg">
+                <CardContent className="p-6">
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="text-sm text-muted-foreground">
+                          {tvShow.title} • Season {seasonNumber} • Episode {episodeNumber}
+                        </div>
+                        <CardTitle className="text-3xl md:text-4xl">{episode.name}</CardTitle>
+                      </div>
+
+                      {/* Meta Information */}
+                      <div className="flex flex-wrap items-center gap-4 text-sm">
+                        {episode.voteAverage > 0 && (
+                          <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1">
+                            <Star className="h-4 w-4 text-yellow-500" />
+                            <span className="font-semibold text-foreground">{episode.voteAverage.toFixed(1)}</span>
+                          </Badge>
+                        )}
+                        {episode.voteCount > 0 && <span className="text-muted-foreground">{episode.voteCount.toLocaleString()} votes</span>}
+                        {formattedAirDate && (
+                          <Badge variant="outline" className="flex items-center gap-2 px-3 py-1">
+                            <Calendar className="h-4 w-4" />
+                            {formattedAirDate}
+                          </Badge>
+                        )}
+                        {episode.runtime && (
+                          <Badge variant="outline" className="flex items-center gap-2 px-3 py-1">
+                            <Clock className="h-4 w-4" />
+                            {episode.runtime} min
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Overview */}
+                    {episode.overview && (
+                      <div className="space-y-2">
+                        <h2 className="text-lg font-semibold">Overview</h2>
+                        <p className="text-muted-foreground leading-relaxed">{episode.overview}</p>
+                      </div>
+                    )}
+
+                    {/* Files */}
+                    {episodeFiles.length > 0 && (
+                      <>
+                        <Separator />
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-semibold">Local Files</h3>
+                          <div className="space-y-1">
+                            {episodeFiles.map((file) => (
+                              <p key={file.id} className="break-all font-mono text-xs text-muted-foreground">
+                                {file.filePath}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Credits */}
+              {(hasCast || hasCrew) && (
+                <Card className="shadow-lg">
+                  <CardHeader className="space-y-4">
+                    <div>
+                      <CardTitle className="text-lg">Episode Credits</CardTitle>
+                      <CardDescription>Guest stars and crew for this episode</CardDescription>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {hasCast && (
                   <div className="space-y-2">
                     <h3 className="text-sm font-semibold">Guest Stars</h3>
                     <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
@@ -275,9 +278,11 @@ export default function EpisodeDetails({ tvShowId, seasonNumber, episodeNumber }
                     </div>
                   </>
                 )}
-              </CardContent>
-            </Card>
-          )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
