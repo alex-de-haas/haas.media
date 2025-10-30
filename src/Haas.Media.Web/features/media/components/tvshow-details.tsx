@@ -11,7 +11,7 @@ import { useFilesByMediaId } from "@/features/media/hooks/useFileMetadata";
 import { LibraryType } from "@/types/library";
 import { Spinner } from "@/components/ui";
 import { getPosterUrl, getBackdropUrl, getLogoUrl } from "@/lib/tmdb";
-import type { TVEpisodeMetadata, FileMetadata } from "@/types/metadata";
+import type { TVEpisodeMetadata, FileMetadata, CastMember, CrewMember } from "@/types/metadata";
 import { useNotifications } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -157,77 +157,111 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
     setExpandedSeasons([]);
   };
 
-  // Aggregate all episode cast and crew
-  const allEpisodeCastAndCrew = useMemo(() => {
-    if (!tvShow?.seasons) {
-      return { cast: [], crew: [] };
-    }
+  // Merge show credits with episode cast and crew
+  const mergedCredits = useMemo(() => {
+    const castMap = new Map<number, { 
+      person: CastMember; 
+      isMainCast: boolean; 
+      order: number;
+      character?: string;
+      episodeAppearances?: number;
+    }>();
+    const crewMap = new Map<number, { 
+      person: CrewMember; 
+      isMainCrew: boolean; 
+      weight: number;
+      job: string;
+      department?: string;
+      episodeAppearances?: number;
+    }>();
 
-    const castMap = new Map<number, { person: TVEpisodeMetadata["cast"][number]; appearances: number }>();
-    const crewMap = new Map<number, { person: TVEpisodeMetadata["crew"][number]; appearances: number; maxWeight: number }>();
+    // Add main show cast
+    tvShow?.cast?.forEach((castMember) => {
+      castMap.set(castMember.id, {
+        person: castMember,
+        isMainCast: true,
+        order: castMember.order,
+        character: castMember.character,
+      });
+    });
 
-    tvShow.seasons.forEach((season) => {
+    // Add main show crew
+    tvShow?.crew?.forEach((crewMember) => {
+      crewMap.set(crewMember.id, {
+        person: crewMember,
+        isMainCrew: true,
+        weight: crewMember.weight,
+        job: crewMember.job,
+        department: crewMember.department,
+      });
+    });
+
+    // Add episode cast and crew
+    tvShow?.seasons?.forEach((season) => {
       season.episodes?.forEach((episode) => {
-        // Aggregate cast
+        // Aggregate episode cast
         episode.cast?.forEach((castMember) => {
           const existing = castMap.get(castMember.id);
           if (existing) {
-            existing.appearances++;
+            // Update episode appearances count if not main cast
+            if (!existing.isMainCast) {
+              existing.episodeAppearances = (existing.episodeAppearances || 0) + 1;
+            }
             // Keep the best order (lowest number)
-            if (castMember.order < existing.person.order) {
-              existing.person = castMember;
+            if (castMember.order < existing.order) {
+              existing.order = castMember.order;
+              existing.character = castMember.character;
             }
           } else {
-            castMap.set(castMember.id, { person: castMember, appearances: 1 });
+            // Add as guest star
+            castMap.set(castMember.id, {
+              person: castMember,
+              isMainCast: false,
+              order: castMember.order,
+              character: castMember.character,
+              episodeAppearances: 1,
+            });
           }
         });
 
-        // Aggregate crew
+        // Aggregate episode crew
         episode.crew?.forEach((crewMember) => {
           const existing = crewMap.get(crewMember.id);
           if (existing) {
-            existing.appearances++;
+            // Update episode appearances count if not main crew
+            if (!existing.isMainCrew) {
+              existing.episodeAppearances = (existing.episodeAppearances || 0) + 1;
+            }
             // Keep the highest weight
-            if (crewMember.weight > existing.maxWeight) {
-              existing.maxWeight = crewMember.weight;
-              existing.person = crewMember;
+            if (crewMember.weight > existing.weight) {
+              existing.weight = crewMember.weight;
+              existing.job = crewMember.job;
+              existing.department = crewMember.department;
             }
           } else {
-            crewMap.set(crewMember.id, { 
-              person: crewMember, 
-              appearances: 1,
-              maxWeight: crewMember.weight
+            // Add as episode crew
+            crewMap.set(crewMember.id, {
+              person: crewMember,
+              isMainCrew: false,
+              weight: crewMember.weight,
+              job: crewMember.job,
+              department: crewMember.department,
+              episodeAppearances: 1,
             });
           }
         });
       });
     });
 
+    // Convert to arrays and sort
     const cast = Array.from(castMap.values())
-      .map(({ person, appearances }) => ({ ...person, appearances }))
-      .sort((a, b) => {
-        // Sort by appearances first (most to least), then by order
-        if (b.appearances !== a.appearances) {
-          return b.appearances - a.appearances;
-        }
-        return a.order - b.order;
-      });
+      .sort((a, b) => a.order - b.order);
 
     const crew = Array.from(crewMap.values())
-      .map(({ person, appearances }) => ({ ...person, appearances }))
-      .sort((a, b) => {
-        // Sort by weight first (highest to lowest), then by appearances
-        if (b.weight !== a.weight) {
-          return b.weight - a.weight;
-        }
-        return b.appearances - a.appearances;
-      });
+      .sort((a, b) => b.weight - a.weight);
 
     return { cast, crew };
-  }, [tvShow?.seasons]);
-
-  const hasEpisodeCast = allEpisodeCastAndCrew.cast.length > 0;
-  const hasEpisodeCrew = allEpisodeCastAndCrew.crew.length > 0;
+  }, [tvShow?.cast, tvShow?.crew, tvShow?.seasons]);
 
   if (loading) {
     return (
@@ -258,8 +292,8 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
   const logoUrl = getLogoUrl(tvShow.logoPath, "w500");
   const seasonCount = tvShow.seasons?.length ?? 0;
   const CREDIT_DISPLAY_LIMIT = 20;
-  const hasCast = Boolean(tvShow.cast && tvShow.cast.length > 0);
-  const hasCrew = Boolean(tvShow.crew && tvShow.crew.length > 0);
+  const hasMergedCast = mergedCredits.cast.length > 0;
+  const hasMergedCrew = mergedCredits.crew.length > 0;
 
   return (
     <div>
@@ -473,33 +507,37 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
             </Card>
 
             <div className="space-y-6">
-              {(hasCast || hasCrew) && (
+              {(hasMergedCast || hasMergedCrew) && (
                 <Card>
                   <CardHeader className="space-y-4">
                     <div>
                       <CardTitle className="text-lg">Credits</CardTitle>
-                      <CardDescription>Browse cast and crew details</CardDescription>
+                      <CardDescription>Cast and crew from show and episodes</CardDescription>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {hasCast && (
+                    {hasMergedCast && (
                       <div className="space-y-2">
+                        <h3 className="text-sm font-semibold">Cast</h3>
                         <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
                           <CarouselContent className="-ml-2 sm:-ml-4">
-                            {tvShow.cast
-                              ?.slice()
-                              .sort((a, b) => a.order - b.order)
+                            {mergedCredits.cast
                               .slice(0, CREDIT_DISPLAY_LIMIT)
-                              .map((castMember) => (
+                              .map((item) => (
                                 <CarouselItem
-                                  key={`${castMember.id}-${castMember.order}`}
+                                  key={`cast-${item.person.id}`}
                                   className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
                                 >
                                   <PersonCard
-                                    name={castMember.name}
-                                    {...(castMember.character ? { description: castMember.character } : {})}
-                                    profilePath={castMember.profilePath ?? null}
-                                    href={`/people/${castMember.id}`}
+                                    name={item.person.name}
+                                    {...(item.character ? { description: item.character } : {})}
+                                    {...(item.episodeAppearances 
+                                      ? { meta: `${item.episodeAppearances} episode${item.episodeAppearances > 1 ? 's' : ''}` } 
+                                      : item.isMainCast 
+                                      ? { meta: 'Main cast' } 
+                                      : {})}
+                                    profilePath={item.person.profilePath ?? null}
+                                    href={`/people/${item.person.id}`}
                                     className="mx-auto h-full"
                                   />
                                 </CarouselItem>
@@ -508,119 +546,38 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                           <CarouselPrevious className="hidden md:flex -left-8" />
                           <CarouselNext className="hidden md:flex -right-8" />
                         </Carousel>
-                        {(tvShow.cast?.length ?? 0) > CREDIT_DISPLAY_LIMIT && (
+                        {mergedCredits.cast.length > CREDIT_DISPLAY_LIMIT && (
                           <p className="text-xs text-muted-foreground">
-                            Showing {CREDIT_DISPLAY_LIMIT} of {tvShow.cast?.length ?? 0} cast members
+                            Showing {CREDIT_DISPLAY_LIMIT} of {mergedCredits.cast.length} cast members
                           </p>
                         )}
                       </div>
                     )}
 
-                    {hasCrew && (
-                      <div className="space-y-2">
-                        <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
-                          <CarouselContent className="-ml-2 sm:-ml-4">
-                            {tvShow.crew
-                              ?.slice()
-                              .sort((a, b) => b.weight - a.weight)
-                              .slice(0, CREDIT_DISPLAY_LIMIT)
-                              .map((crewMember) => (
-                                <CarouselItem
-                                  key={`${crewMember.id}-${crewMember.job}`}
-                                  className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
-                                >
-                                  <PersonCard
-                                    name={crewMember.name}
-                                    description={crewMember.job}
-                                    {...(crewMember.department ? { meta: crewMember.department } : {})}
-                                    profilePath={crewMember.profilePath ?? null}
-                                    href={`/people/${crewMember.id}`}
-                                    className="mx-auto h-full"
-                                  />
-                                </CarouselItem>
-                              ))}
-                          </CarouselContent>
-                          <CarouselPrevious className="hidden md:flex -left-8" />
-                          <CarouselNext className="hidden md:flex -right-8" />
-                        </Carousel>
-                        {(tvShow.crew?.length ?? 0) > CREDIT_DISPLAY_LIMIT && (
-                          <p className="text-xs text-muted-foreground">
-                            Showing {CREDIT_DISPLAY_LIMIT} of {tvShow.crew?.length ?? 0} crew members
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {(hasEpisodeCast || hasEpisodeCrew) && (
-                <Card>
-                  <CardHeader className="space-y-4">
-                    <div>
-                      <CardTitle className="text-lg">Episode Cast & Crew</CardTitle>
-                      <CardDescription>People appearing across all episodes</CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {hasEpisodeCast && (
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-semibold">Recurring Guest Stars</h3>
-                        <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
-                          <CarouselContent className="-ml-2 sm:-ml-4">
-                            {allEpisodeCastAndCrew.cast
-                              .slice(0, CREDIT_DISPLAY_LIMIT)
-                              .map((castMember) => (
-                                <CarouselItem
-                                  key={`episode-cast-${castMember.id}`}
-                                  className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
-                                >
-                                  <PersonCard
-                                    name={castMember.name}
-                                    {...(castMember.character ? { description: castMember.character } : {})}
-                                    {...(castMember.appearances > 1 ? { meta: `${castMember.appearances} episodes` } : {})}
-                                    profilePath={castMember.profilePath ?? null}
-                                    href={`/people/${castMember.id}`}
-                                    className="mx-auto h-full"
-                                  />
-                                </CarouselItem>
-                              ))}
-                          </CarouselContent>
-                          <CarouselPrevious className="hidden md:flex -left-8" />
-                          <CarouselNext className="hidden md:flex -right-8" />
-                        </Carousel>
-                        {allEpisodeCastAndCrew.cast.length > CREDIT_DISPLAY_LIMIT && (
-                          <p className="text-xs text-muted-foreground">
-                            Showing {CREDIT_DISPLAY_LIMIT} of {allEpisodeCastAndCrew.cast.length} guest stars
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {hasEpisodeCrew && (
+                    {hasMergedCrew && (
                       <>
-                        {hasEpisodeCast && <Separator />}
+                        {hasMergedCast && <Separator />}
                         <div className="space-y-2">
-                          <h3 className="text-sm font-semibold">Episode Crew</h3>
+                          <h3 className="text-sm font-semibold">Crew</h3>
                           <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
                             <CarouselContent className="-ml-2 sm:-ml-4">
-                              {allEpisodeCastAndCrew.crew
+                              {mergedCredits.crew
                                 .slice(0, CREDIT_DISPLAY_LIMIT)
-                                .map((crewMember) => (
+                                .map((item) => (
                                   <CarouselItem
-                                    key={`episode-crew-${crewMember.id}`}
+                                    key={`crew-${item.person.id}-${item.job}`}
                                     className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
                                   >
                                     <PersonCard
-                                      name={crewMember.name}
-                                      description={crewMember.job}
-                                      {...(crewMember.appearances > 1 
-                                        ? { meta: `${crewMember.appearances} episodes` }
-                                        : crewMember.department 
-                                        ? { meta: crewMember.department }
+                                      name={item.person.name}
+                                      description={item.job}
+                                      {...(item.episodeAppearances 
+                                        ? { meta: `${item.episodeAppearances} episode${item.episodeAppearances > 1 ? 's' : ''}` }
+                                        : item.department 
+                                        ? { meta: item.department }
                                         : {})}
-                                      profilePath={crewMember.profilePath ?? null}
-                                      href={`/people/${crewMember.id}`}
+                                      profilePath={item.person.profilePath ?? null}
+                                      href={`/people/${item.person.id}`}
                                       className="mx-auto h-full"
                                     />
                                   </CarouselItem>
@@ -629,9 +586,9 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                             <CarouselPrevious className="hidden md:flex -left-8" />
                             <CarouselNext className="hidden md:flex -right-8" />
                           </Carousel>
-                          {allEpisodeCastAndCrew.crew.length > CREDIT_DISPLAY_LIMIT && (
+                          {mergedCredits.crew.length > CREDIT_DISPLAY_LIMIT && (
                             <p className="text-xs text-muted-foreground">
-                              Showing {CREDIT_DISPLAY_LIMIT} of {allEpisodeCastAndCrew.crew.length} crew members
+                              Showing {CREDIT_DISPLAY_LIMIT} of {mergedCredits.crew.length} crew members
                             </p>
                           )}
                         </div>
