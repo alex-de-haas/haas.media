@@ -133,13 +133,13 @@ curl -X POST http://node-a:8000/api/nodes \
 ### JavaScript/TypeScript
 
 ```typescript
-const EXTERNAL_TOKEN = 'your-external-token-here';
+const EXTERNAL_TOKEN = "your-external-token-here";
 
 async function fetchFiles() {
-  const response = await fetch('http://localhost:8000/api/files', {
+  const response = await fetch("http://localhost:8000/api/files", {
     headers: {
-      'Authorization': `Bearer ${EXTERNAL_TOKEN}`
-    }
+      Authorization: `Bearer ${EXTERNAL_TOKEN}`,
+    },
   });
   return response.json();
 }
@@ -198,8 +198,8 @@ Make sure you're using the `token` value from the creation response, not the `id
 
 ```json
 {
-  "id": "abc123",           // ❌ NOT this
-  "token": "qP8x7v...",     // ✅ Use this
+  "id": "abc123", // ❌ NOT this
+  "token": "qP8x7v...", // ✅ Use this
   "name": "My Token"
 }
 ```

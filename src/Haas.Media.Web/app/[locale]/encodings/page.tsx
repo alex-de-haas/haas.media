@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { getValidToken } from "@/lib/auth/token";
 import { fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 import { downloaderApi } from "@/lib/api";
@@ -15,6 +16,7 @@ import { EncodingOverview, EncodingQueue } from "@/components/encoding";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function EncodingsPage() {
+  const t = useTranslations("encodings");
   const [encodings, setEncodings] = React.useState<EncodingProcessInfo[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -122,7 +124,7 @@ export default function EncodingsPage() {
     };
   }, []);
 
-  usePageTitle("Encodings");
+  usePageTitle(t("title"));
 
   return (
     <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
@@ -131,14 +133,14 @@ export default function EncodingsPage() {
       <div className="space-y-4">
         {error && (
           <Alert variant="destructive">
-            <AlertTitle>Unable to load encodings</AlertTitle>
+            <AlertTitle>{t("unableToLoad")}</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
         {actionError && (
           <Alert variant="destructive">
-            <AlertTitle>Failed to stop encoding</AlertTitle>
+            <AlertTitle>{t("failedToStop")}</AlertTitle>
             <AlertDescription>{actionError}</AlertDescription>
           </Alert>
         )}

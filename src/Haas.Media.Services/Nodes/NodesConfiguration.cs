@@ -98,12 +98,17 @@ public static class NodesConfiguration
                     if (!string.IsNullOrWhiteSpace(request.CurrentNodeTokenId))
                     {
                         var tokens = authApi.GetExternalTokens(user);
-                        var selectedToken = tokens.FirstOrDefault(t => t.Id == request.CurrentNodeTokenId);
-                        
+                        var selectedToken = tokens.FirstOrDefault(t =>
+                            t.Id == request.CurrentNodeTokenId
+                        );
+
                         if (selectedToken == null)
                         {
                             return Results.BadRequest(
-                                new { error = "Current node token not found or does not belong to current user" }
+                                new
+                                {
+                                    error = "Current node token not found or does not belong to current user"
+                                }
                             );
                         }
 
@@ -141,8 +146,7 @@ public static class NodesConfiguration
                         return Results.BadRequest(
                             new
                             {
-                                error =
-                                    "Cannot determine current node URL. Set NODE_URL environment variable or configure public URL."
+                                error = "Cannot determine current node URL. Set NODE_URL environment variable or configure public URL."
                             }
                         );
                     }
@@ -297,29 +301,35 @@ public static class NodesConfiguration
                     try
                     {
                         var filesMetadata = await nodesApi.FetchFilesMetadataFromNodeAsync(id);
-                        
+
                         // Save fetched metadata to local database
                         var savedCount = 0;
                         foreach (var fileMetadata in filesMetadata)
                         {
                             // Check if this file metadata already exists (same MediaId, NodeId, and FilePath)
-                            var existingFiles = await metadataApi.GetFileMetadataAsync(fileMetadata.TmdbId);
-                            var exists = existingFiles.Any(f => 
-                                f.NodeId == fileMetadata.NodeId && 
-                                f.FilePath == fileMetadata.FilePath);
-                            
+                            var existingFiles = await metadataApi.GetFileMetadataAsync(
+                                fileMetadata.TmdbId
+                            );
+                            var exists = existingFiles.Any(f =>
+                                f.NodeId == fileMetadata.NodeId
+                                && f.FilePath == fileMetadata.FilePath
+                            );
+
                             if (!exists)
                             {
                                 await metadataApi.AddFileMetadataAsync(fileMetadata);
                                 savedCount++;
                             }
                         }
-                        
-                        return Results.Ok(new { 
-                            totalFetched = filesMetadata.Count(), 
-                            savedCount,
-                            skippedCount = filesMetadata.Count() - savedCount
-                        });
+
+                        return Results.Ok(
+                            new
+                            {
+                                totalFetched = filesMetadata.Count(),
+                                savedCount,
+                                skippedCount = filesMetadata.Count() - savedCount
+                            }
+                        );
                     }
                     catch (InvalidOperationException ex)
                     {
@@ -384,9 +394,13 @@ public static class NodesConfiguration
         var host = request.Host.Value;
 
         // Don't use localhost for node-to-node communication
-        if (!string.IsNullOrWhiteSpace(host)
-            && (host.StartsWith("localhost", StringComparison.OrdinalIgnoreCase)
-                || host.StartsWith("127.0.0.1")))
+        if (
+            !string.IsNullOrWhiteSpace(host)
+            && (
+                host.StartsWith("localhost", StringComparison.OrdinalIgnoreCase)
+                || host.StartsWith("127.0.0.1")
+            )
+        )
         {
             return null;
         }

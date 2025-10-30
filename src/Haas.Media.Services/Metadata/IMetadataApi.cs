@@ -2,9 +2,7 @@ namespace Haas.Media.Services.Metadata;
 
 public interface IMetadataApi
 {
-    Task<string> StartMetadataSyncAsync(
-        bool refreshExistingData = true
-    );
+    Task<string> StartMetadataSyncAsync(bool refreshExistingData = true);
     Task<string> StartLibraryScanAsync(
         bool scanForNewFiles = true,
         bool updateFileMetadata = false,

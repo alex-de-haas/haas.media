@@ -18,7 +18,11 @@ public interface INodesApi
     /// <summary>
     /// Connect to a new node (also registers this node with the remote node)
     /// </summary>
-    Task<NodeInfo> ConnectNodeAsync(ConnectNodeRequest request, string currentNodeUrl, string? currentNodeApiKey = null);
+    Task<NodeInfo> ConnectNodeAsync(
+        ConnectNodeRequest request,
+        string currentNodeUrl,
+        string? currentNodeApiKey = null
+    );
 
     /// <summary>
     /// Register an incoming node connection (called by remote nodes)
@@ -53,5 +57,10 @@ public interface INodesApi
     /// <param name="destinationDirectory">The local destination directory path (relative to DATA_DIRECTORY) where the file should be saved</param>
     /// <param name="customFileName">Optional custom file name. If not provided, the original file name will be used</param>
     /// <returns>The background task ID for tracking the download</returns>
-    Task<string> StartDownloadFileFromNodeAsync(string nodeId, string remoteFilePath, string destinationDirectory, string? customFileName = null);
+    Task<string> StartDownloadFileFromNodeAsync(
+        string nodeId,
+        string remoteFilePath,
+        string destinationDirectory,
+        string? customFileName = null
+    );
 }

@@ -101,8 +101,7 @@ public static class JellyfinConfiguration
         group
             .MapGet(
                 "/Users/Public",
-                (JellyfinAuthService authService) =>
-                    JellyfinJson(authService.GetPublicUsers())
+                (JellyfinAuthService authService) => JellyfinJson(authService.GetPublicUsers())
             )
             .AllowAnonymous()
             .WithName("JellyfinPublicUsers");
@@ -354,9 +353,7 @@ public static class JellyfinConfiguration
                         .ToList();
 
                     var totalCount = playbackInfos.Count;
-                    var pagedPlaybackInfos = playbackInfos
-                        .Skip(Math.Max(startIndex, 0))
-                        .ToList();
+                    var pagedPlaybackInfos = playbackInfos.Skip(Math.Max(startIndex, 0)).ToList();
                     if (limit > 0)
                     {
                         pagedPlaybackInfos = pagedPlaybackInfos.Take(limit).ToList();

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import type { EncodingProcessInfo } from "@/types/encoding";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -18,6 +19,7 @@ interface EncodingQueueProps {
 }
 
 export function EncodingQueue({ encodings, loading, stoppingId, onStop }: EncodingQueueProps) {
+  const t = useTranslations("encodings");
   const hasData = Boolean(encodings && encodings.length > 0);
   const showSkeleton = loading && !hasData;
 
@@ -25,12 +27,12 @@ export function EncodingQueue({ encodings, loading, stoppingId, onStop }: Encodi
     <Card>
       <CardHeader className="flex flex-col gap-2 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <CardTitle className="text-lg font-semibold">Encoding queue</CardTitle>
-          <CardDescription>Live view of encodings managed by the downloader.</CardDescription>
+          <CardTitle className="text-lg font-semibold">{t("encodingQueue")}</CardTitle>
+          <CardDescription>{t("encodingQueueDescription")}</CardDescription>
         </div>
         {hasData && (
           <Badge variant="secondary" className="self-start sm:self-auto">
-            {encodings!.length} active
+            {t("active", { count: encodings!.length })}
           </Badge>
         )}
       </CardHeader>
@@ -54,21 +56,24 @@ interface EncodingTableProps {
 }
 
 function EncodingTable({ encodings, stoppingId, onStop }: EncodingTableProps) {
+  const t = useTranslations("encodings");
+  const tCommon = useTranslations("common");
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Output</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="hidden md:table-cell">Elapsed</TableHead>
-          <TableHead className="hidden md:table-cell">ETA</TableHead>
-          <TableHead className="w-[120px] text-right">Actions</TableHead>
+          <TableHead>{t("output")}</TableHead>
+          <TableHead>{t("status")}</TableHead>
+          <TableHead className="hidden md:table-cell">{t("elapsed")}</TableHead>
+          <TableHead className="hidden md:table-cell">{t("eta")}</TableHead>
+          <TableHead className="w-[120px] text-right">{t("actions")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {encodings.map((encoding) => {
           const progress = clampProgress(encoding.progress);
-          const status = getStatus(progress);
+          const status = getStatus(progress, t);
           const isStopping = stoppingId === encoding.id;
           const hasEta = progress > 0 && encoding.estimatedTimeSeconds > 0;
 
@@ -78,10 +83,10 @@ function EncodingTable({ encodings, stoppingId, onStop }: EncodingTableProps) {
                 <div className="flex flex-col gap-1">
                   <span className="truncate font-medium">{getFileName(encoding.outputPath)}</span>
                   <span className="truncate text-xs text-muted-foreground" title={encoding.sourcePath}>
-                    Source: {encoding.sourcePath}
+                    {t("source")}: {encoding.sourcePath}
                   </span>
                   <span className="truncate text-xs text-muted-foreground" title={encoding.outputPath}>
-                    Output: {encoding.outputPath}
+                    {t("output")}: {encoding.outputPath}
                   </span>
                 </div>
               </TableCell>
@@ -91,28 +96,28 @@ function EncodingTable({ encodings, stoppingId, onStop }: EncodingTableProps) {
                     {status.label}
                   </Badge>
                   <div className="space-y-1">
-                    <Progress value={progress} aria-label={`Progress for ${encoding.outputPath}`} />
+                    <Progress value={progress} aria-label={`${tCommon("progress")} for ${encoding.outputPath}`} />
                     <p className="text-xs text-muted-foreground">{progress.toFixed(1)}%</p>
                   </div>
                 </div>
               </TableCell>
               <TableCell className="hidden align-top md:table-cell">
                 <div className="text-sm font-medium">{formatDuration(encoding.elapsedTimeSeconds)}</div>
-                <div className="text-xs text-muted-foreground">elapsed</div>
+                <div className="text-xs text-muted-foreground">{t("elapsedTime")}</div>
               </TableCell>
               <TableCell className="hidden align-top md:table-cell">
                 {hasEta ? (
                   <>
                     <div className="text-sm font-medium">{formatDuration(encoding.estimatedTimeSeconds)}</div>
-                    <div className="text-xs text-muted-foreground">remaining</div>
+                    <div className="text-xs text-muted-foreground">{t("remainingTime")}</div>
                   </>
                 ) : (
-                  <span className="text-xs text-muted-foreground">calculating…</span>
+                  <span className="text-xs text-muted-foreground">{t("calculating")}</span>
                 )}
               </TableCell>
               <TableCell className="align-top text-right">
                 <Button variant="destructive" size="sm" disabled={isStopping} onClick={() => onStop(encoding.id)}>
-                  {isStopping ? "Stopping…" : "Stop"}
+                  {isStopping ? t("stopping") : t("stop")}
                 </Button>
               </TableCell>
             </TableRow>
@@ -147,10 +152,12 @@ function EncodingQueueSkeleton() {
 }
 
 function EmptyState() {
+  const t = useTranslations("encodings");
+
   return (
     <div className="flex flex-col items-center gap-2 px-6 py-12 text-center text-sm text-muted-foreground">
-      <p className="font-medium text-foreground">No active encodings</p>
-      <p className="max-w-sm">Start an encoding job from the media library. Running tasks will appear here with live progress updates.</p>
+      <p className="font-medium text-foreground">{t("noActiveEncodings")}</p>
+      <p className="max-w-sm">{t("noActiveEncodingsDescription")}</p>
     </div>
   );
 }
@@ -165,12 +172,12 @@ function clampProgress(value: number) {
   return Math.max(0, Math.min(100, value));
 }
 
-function getStatus(progress: number) {
+function getStatus(progress: number, t: (key: string) => string) {
   if (progress === 0) {
-    return { label: "Queued", variant: "secondary" as const };
+    return { label: t("queued"), variant: "secondary" as const };
   }
   if (progress >= 99.5) {
-    return { label: "Finalizing", variant: "outline" as const };
+    return { label: t("finalizing"), variant: "outline" as const };
   }
-  return { label: "Encoding", variant: "default" as const };
+  return { label: t("encoding"), variant: "default" as const };
 }

@@ -1,8 +1,8 @@
-using LiteDB;
 using System.Text;
 using System.Text.Json;
 using Haas.Media.Core.BackgroundTasks;
 using Haas.Media.Services.Metadata;
+using LiteDB;
 
 namespace Haas.Media.Services.Nodes;
 
@@ -63,9 +63,17 @@ public sealed class NodesService : INodesApi
         return Task.FromResult(node);
     }
 
-    public async Task<NodeInfo> ConnectNodeAsync(ConnectNodeRequest request, string currentNodeUrl, string? currentNodeApiKey = null)
+    public async Task<NodeInfo> ConnectNodeAsync(
+        ConnectNodeRequest request,
+        string currentNodeUrl,
+        string? currentNodeApiKey = null
+    )
     {
-        _logger.LogInformation("Connecting to new node: {Name} at {Url}", request.Name, request.Url);
+        _logger.LogInformation(
+            "Connecting to new node: {Name} at {Url}",
+            request.Name,
+            request.Url
+        );
 
         // Validate the connection first
         var validationResult = await ValidateNodeAsync(request.Url, request.DestinationApiKey);
@@ -133,7 +141,10 @@ public sealed class NodesService : INodesApi
         var existingNode = _nodesCollection.FindOne(x => x.Url == data.Url);
         if (existingNode != null)
         {
-            _logger.LogInformation("Incoming node {Url} already registered, updating last validated time", data.Url);
+            _logger.LogInformation(
+                "Incoming node {Url} already registered, updating last validated time",
+                data.Url
+            );
             existingNode.LastValidatedAt = DateTime.UtcNow;
             if (!string.IsNullOrWhiteSpace(data.ApiKey) && data.ApiKey != existingNode.ApiKey)
             {
@@ -152,7 +163,11 @@ public sealed class NodesService : INodesApi
         };
 
         _nodesCollection.Insert(node);
-        _logger.LogInformation("Successfully registered incoming node: {Id} ({Name})", node.Id, node.Name);
+        _logger.LogInformation(
+            "Successfully registered incoming node: {Id} ({Name})",
+            node.Id,
+            node.Name
+        );
 
         return Task.FromResult(node);
     }
@@ -177,7 +192,10 @@ public sealed class NodesService : INodesApi
         if (request.Url != null && request.Url != node.Url)
         {
             // Validate new URL
-            var validationResult = await ValidateNodeAsync(request.Url, request.ApiKey ?? node.ApiKey);
+            var validationResult = await ValidateNodeAsync(
+                request.Url,
+                request.ApiKey ?? node.ApiKey
+            );
             if (!validationResult.IsValid)
             {
                 throw new InvalidOperationException(
@@ -271,16 +289,18 @@ public sealed class NodesService : INodesApi
             }
             catch (Exception ex)
             {
-                _logger.LogDebug("Could not fetch global settings from node: {Message}", ex.Message);
+                _logger.LogDebug(
+                    "Could not fetch global settings from node: {Message}",
+                    ex.Message
+                );
             }
 
-            _logger.LogInformation("Successfully validated node connection to {Url}", normalizedUrl);
+            _logger.LogInformation(
+                "Successfully validated node connection to {Url}",
+                normalizedUrl
+            );
 
-            return new NodeValidationResult
-            {
-                IsValid = true,
-                SystemInfo = systemInfo
-            };
+            return new NodeValidationResult { IsValid = true, SystemInfo = systemInfo };
         }
         catch (HttpRequestException ex)
         {
@@ -349,7 +369,9 @@ public sealed class NodesService : INodesApi
             ?? "Haas.Media Node";
     }
 
-    public async Task<IEnumerable<Metadata.FileMetadata>> FetchFilesMetadataFromNodeAsync(string nodeId)
+    public async Task<IEnumerable<Metadata.FileMetadata>> FetchFilesMetadataFromNodeAsync(
+        string nodeId
+    )
     {
         _logger.LogInformation("Fetching files metadata from node: {NodeId}", nodeId);
 
@@ -376,7 +398,7 @@ public sealed class NodesService : INodesApi
         }
 
         var metadataEndpoint = $"{node.Url.TrimEnd('/')}/api/metadata/files";
-        
+
         _logger.LogDebug("Fetching files metadata from {Endpoint}", metadataEndpoint);
 
         try
@@ -385,10 +407,14 @@ public sealed class NodesService : INodesApi
             response.EnsureSuccessStatusCode();
 
             var content = await response.Content.ReadAsStringAsync();
-            var filesMetadata = System.Text.Json.JsonSerializer.Deserialize<List<Metadata.FileMetadata>>(
-                content,
-                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-            ) ?? new List<Metadata.FileMetadata>();
+            var filesMetadata =
+                System.Text.Json.JsonSerializer.Deserialize<List<Metadata.FileMetadata>>(
+                    content,
+                    new System.Text.Json.JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    }
+                ) ?? new List<Metadata.FileMetadata>();
 
             // Set NodeId and clear LibraryId for all fetched metadata from nodes
             foreach (var fileMetadata in filesMetadata)
@@ -407,17 +433,33 @@ public sealed class NodesService : INodesApi
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Failed to fetch files metadata from node {NodeName}: {Message}", node.Name, ex.Message);
-            throw new InvalidOperationException($"Failed to fetch metadata from node {node.Name}: {ex.Message}", ex);
+            _logger.LogError(
+                ex,
+                "Failed to fetch files metadata from node {NodeName}: {Message}",
+                node.Name,
+                ex.Message
+            );
+            throw new InvalidOperationException(
+                $"Failed to fetch metadata from node {node.Name}: {ex.Message}",
+                ex
+            );
         }
         catch (JsonException ex)
         {
             _logger.LogError(ex, "Failed to parse files metadata from node {NodeName}", node.Name);
-            throw new InvalidOperationException($"Failed to parse metadata from node {node.Name}", ex);
+            throw new InvalidOperationException(
+                $"Failed to parse metadata from node {node.Name}",
+                ex
+            );
         }
     }
 
-    public Task<string> StartDownloadFileFromNodeAsync(string nodeId, string remoteFilePath, string destinationDirectory, string? customFileName = null)
+    public Task<string> StartDownloadFileFromNodeAsync(
+        string nodeId,
+        string remoteFilePath,
+        string destinationDirectory,
+        string? customFileName = null
+    )
     {
         _logger.LogInformation(
             "Starting file download from node {NodeId}: {RemoteFilePath} to directory {DestinationDirectory} with custom file name {CustomFileName}",
@@ -427,8 +469,15 @@ public sealed class NodesService : INodesApi
             customFileName ?? "(original)"
         );
 
-        var task = new NodeFileDownloadTask(nodeId, remoteFilePath, destinationDirectory, customFileName);
-        var taskId = _backgroundTaskManager.RunTask<NodeFileDownloadTask, NodeFileDownloadInfo>(task);
+        var task = new NodeFileDownloadTask(
+            nodeId,
+            remoteFilePath,
+            destinationDirectory,
+            customFileName
+        );
+        var taskId = _backgroundTaskManager.RunTask<NodeFileDownloadTask, NodeFileDownloadInfo>(
+            task
+        );
 
         return Task.FromResult(taskId.ToString());
     }

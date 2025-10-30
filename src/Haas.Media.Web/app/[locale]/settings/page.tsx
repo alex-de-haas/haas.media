@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,8 @@ import { isActiveBackgroundTask } from "@/types";
 import MetadataSyncModal from "./metadata-sync-modal";
 
 export default function SettingsPage() {
+  const t = useTranslations("settings");
+  const tCommon = useTranslations("common");
   const { notify } = useNotifications();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -49,11 +52,9 @@ export default function SettingsPage() {
       const tracked = backgroundTasks.find((task) => task.id === currentSyncTaskId);
       if (tracked) return tracked;
     }
-    
+
     // If no tracked task or it's not found, look for any active metadata sync task
-    return backgroundTasks.find((task) => 
-      task.type === "MetadataSyncTask" && isActiveBackgroundTask(task)
-    ) ?? null;
+    return backgroundTasks.find((task) => task.type === "MetadataSyncTask" && isActiveBackgroundTask(task)) ?? null;
   }, [currentSyncTaskId, backgroundTasks]);
 
   // Sync the currentSyncTaskId when an active sync task is found
@@ -88,7 +89,7 @@ export default function SettingsPage() {
         setTopCrewCount(settings.topCrewCount ?? 12);
       } catch (error) {
         console.error("Error fetching settings:", error);
-        notify({ message: "Failed to load settings", type: "error" });
+        notify({ message: t("failedToLoadSettings"), type: "error" });
       } finally {
         setIsLoading(false);
       }
@@ -125,14 +126,14 @@ export default function SettingsPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || "Failed to update settings");
+        throw new Error(errorData?.error || t("failedToUpdateSettings"));
       }
 
-      notify({ message: "Settings updated successfully", type: "success" });
+      notify({ message: t("settingsUpdatedSuccessfully"), type: "success" });
     } catch (error) {
       console.error("Error updating settings:", error);
       notify({
-        message: error instanceof Error ? error.message : "Failed to update settings",
+        message: error instanceof Error ? error.message : t("failedToUpdateSettings"),
         type: "error",
       });
     } finally {
@@ -158,20 +159,20 @@ export default function SettingsPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to start metadata sync");
+        throw new Error(t("failedToStartMetadataSync"));
       }
 
       const data = await response.json();
       setCurrentSyncTaskId(data.operationId);
       setShowSyncModal(false);
-      notify({ 
-        message: "Metadata sync started", 
-        type: "success" 
+      notify({
+        message: t("metadataSyncStarted"),
+        type: "success",
       });
     } catch (error) {
       console.error("Error syncing metadata:", error);
       notify({
-        message: error instanceof Error ? error.message : "Failed to sync metadata",
+        message: error instanceof Error ? error.message : t("failedToStartMetadataSync"),
         type: "error",
       });
     } finally {
@@ -238,8 +239,8 @@ export default function SettingsPage() {
   }, [movieDirectories, tvShowDirectories]);
 
   const disabledDirectoryMessage = useMemo(() => {
-    return "Already used for movies or TV shows";
-  }, []);
+    return t("alreadyUsedForMedia");
+  }, [t]);
 
   if (isLoading) {
     return (
@@ -254,38 +255,41 @@ export default function SettingsPage() {
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">Manage global application settings</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t("pageTitle")}</h1>
+        <p className="text-muted-foreground">{t("pageDescription")}</p>
       </div>
 
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Global Settings</CardTitle>
-            <CardDescription>
-              Configure metadata preferences and media directories.
-            </CardDescription>
+            <CardTitle>{t("globalSettings")}</CardTitle>
+            <CardDescription>{t("globalSettingsDescription")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
               <div className="space-y-6">
                 <div>
-                  <h3 className="mb-4 text-lg font-medium">Metadata Preferences</h3>
+                  <h3 className="mb-4 text-lg font-medium">{t("metadataPreferences")}</h3>
                   <div className="grid gap-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="preferredLanguage">Preferred TMDB Language</Label>
-                      <LanguageSelect id="preferredLanguage" value={preferredLanguage} onChange={setPreferredLanguage} disabled={isSaving} />
-                      <p className="text-sm text-muted-foreground">Default language for fetching movie and TV show metadata from TMDB</p>
+                      <Label htmlFor="preferredLanguage">{t("preferredTmdbLanguage")}</Label>
+                      <LanguageSelect
+                        id="preferredLanguage"
+                        value={preferredLanguage}
+                        onChange={setPreferredLanguage}
+                        disabled={isSaving}
+                      />
+                      <p className="text-sm text-muted-foreground">{t("preferredTmdbLanguageDescription")}</p>
                     </div>
 
                     <div className="grid gap-2">
-                      <Label htmlFor="countryCode">Preferred Country (ISO 3166-1 alpha-2)</Label>
+                      <Label htmlFor="countryCode">{t("preferredCountry")}</Label>
                       <CountrySelect id="countryCode" value={countryCode} onChange={setCountryCode} disabled={isSaving} />
-                      <p className="text-sm text-muted-foreground">Default country for release dates and regional content</p>
+                      <p className="text-sm text-muted-foreground">{t("preferredCountryDescription")}</p>
                     </div>
 
                     <div className="grid gap-2">
-                      <Label htmlFor="topCastCount">Top Cast Count</Label>
+                      <Label htmlFor="topCastCount">{t("topCastCountLabel")}</Label>
                       <Input
                         id="topCastCount"
                         type="number"
@@ -295,13 +299,11 @@ export default function SettingsPage() {
                         onChange={(e) => setTopCastCount(parseInt(e.target.value) || 20)}
                         disabled={isSaving}
                       />
-                      <p className="text-sm text-muted-foreground">
-                        Maximum number of cast members to store per movie/TV show (default: 20)
-                      </p>
+                      <p className="text-sm text-muted-foreground">{t("topCastCountDescription")}</p>
                     </div>
 
                     <div className="grid gap-2">
-                      <Label htmlFor="topCrewCount">Top Crew Count</Label>
+                      <Label htmlFor="topCrewCount">{t("topCrewCountLabel")}</Label>
                       <Input
                         id="topCrewCount"
                         type="number"
@@ -311,21 +313,17 @@ export default function SettingsPage() {
                         onChange={(e) => setTopCrewCount(parseInt(e.target.value) || 12)}
                         disabled={isSaving}
                       />
-                      <p className="text-sm text-muted-foreground">
-                        Maximum number of crew members to store per movie/TV show (default: 12)
-                      </p>
+                      <p className="text-sm text-muted-foreground">{t("topCrewCountDescription")}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="border-t pt-6">
-                  <h3 className="mb-4 text-lg font-medium">Media Directories</h3>
-                  <p className="mb-4 text-sm text-muted-foreground">
-                    Configure directories to scan for movies and TV shows. Paths are relative to the DATA_DIRECTORY.
-                  </p>
+                  <h3 className="mb-4 text-lg font-medium">{t("mediaDirectories")}</h3>
+                  <p className="mb-4 text-sm text-muted-foreground">{t("mediaDirectoriesDescription")}</p>
                   <div className="grid gap-6">
                     <div className="grid gap-3">
-                      <Label>Movie Directories</Label>
+                      <Label>{t("movieDirectoriesLabel")}</Label>
                       <div className="space-y-2">
                         {movieDirectories.map((dir, index) => (
                           <div key={index} className="flex items-center gap-2">
@@ -343,7 +341,7 @@ export default function SettingsPage() {
                         ))}
                         <div className="flex flex-col gap-2 sm:flex-row">
                           <Input
-                            placeholder="Movies"
+                            placeholder={t("movieDirectoryPlaceholder")}
                             value={newMovieDir}
                             onChange={(e) => setNewMovieDir(e.target.value)}
                             onKeyDown={(e) => {
@@ -364,7 +362,7 @@ export default function SettingsPage() {
                               className="sm:w-[120px]"
                             >
                               <FolderOpen className="mr-2 h-4 w-4" />
-                              Browse
+                              {t("browse")}
                             </Button>
                             <Button
                               type="button"
@@ -378,13 +376,11 @@ export default function SettingsPage() {
                           </div>
                         </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Directories to scan for movie files (e.g., &quot;Movies&quot;, &quot;Films&quot;)
-                      </p>
+                      <p className="text-sm text-muted-foreground">{t("movieDirectoriesHelp")}</p>
                     </div>
 
                     <div className="grid gap-3">
-                      <Label>TV Show Directories</Label>
+                      <Label>{t("tvShowDirectoriesLabel")}</Label>
                       <div className="space-y-2">
                         {tvShowDirectories.map((dir, index) => (
                           <div key={index} className="flex items-center gap-2">
@@ -402,7 +398,7 @@ export default function SettingsPage() {
                         ))}
                         <div className="flex flex-col gap-2 sm:flex-row">
                           <Input
-                            placeholder="Shows"
+                            placeholder={t("tvShowDirectoryPlaceholder")}
                             value={newTvShowDir}
                             onChange={(e) => setNewTvShowDir(e.target.value)}
                             onKeyDown={(e) => {
@@ -423,7 +419,7 @@ export default function SettingsPage() {
                               className="sm:w-[120px]"
                             >
                               <FolderOpen className="mr-2 h-4 w-4" />
-                              Browse
+                              {t("browse")}
                             </Button>
                             <Button
                               type="button"
@@ -437,9 +433,7 @@ export default function SettingsPage() {
                           </div>
                         </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Directories to scan for TV show files (e.g., &quot;Shows&quot;, &quot;TV&quot;)
-                      </p>
+                      <p className="text-sm text-muted-foreground">{t("tvShowDirectoriesHelp")}</p>
                     </div>
                   </div>
                 </div>
@@ -450,12 +444,12 @@ export default function SettingsPage() {
                   {isSaving ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Saving...
+                      {t("saving")}
                     </>
                   ) : (
                     <>
                       <Save className="h-4 w-4" />
-                      Save Settings
+                      {t("saveSettings")}
                     </>
                   )}
                 </Button>
@@ -466,27 +460,21 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Metadata Sync</CardTitle>
-            <CardDescription>
-              Scan configured directories for new media files and refresh metadata from TMDB.
-            </CardDescription>
+            <CardTitle>{t("metadataSyncTitle")}</CardTitle>
+            <CardDescription>{t("metadataSyncDescription")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                This will scan all configured movie and TV show directories for new files and update metadata for existing media.
-              </p>
+              <p className="text-sm text-muted-foreground">{t("metadataSyncInfo")}</p>
 
               {!currentSyncTask && (
                 <Button onClick={() => setShowSyncModal(true)} disabled={isSyncing}>
                   <RefreshCw className="h-4 w-4" />
-                  Sync Metadata
+                  {t("syncMetadata")}
                 </Button>
               )}
 
-              {currentSyncTask && (
-                <BackgroundTaskCard task={currentSyncTask} onCancel={cancelTask} />
-              )}
+              {currentSyncTask && <BackgroundTaskCard task={currentSyncTask} onCancel={cancelTask} />}
             </div>
           </CardContent>
         </Card>
@@ -495,7 +483,7 @@ export default function SettingsPage() {
       <Dialog open={showDirectoryPicker} onOpenChange={setShowDirectoryPicker}>
         <DialogContent className="max-w-4xl">
           <DialogHeader className="text-left">
-            <DialogTitle>Select Directory</DialogTitle>
+            <DialogTitle>{t("selectDirectoryTitle")}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -514,19 +502,16 @@ export default function SettingsPage() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <FolderPlus className="h-4 w-4" />
                 <span>
-                  Current path:
-                  <span className="ml-1 font-medium text-foreground">{currentPath || "Root"}</span>
+                  {t("currentPath")}
+                  <span className="ml-1 font-medium text-foreground">{currentPath || t("currentPathRoot")}</span>
                 </span>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" onClick={() => setShowDirectoryPicker(false)}>
-                  Cancel
+                  {tCommon("cancel")}
                 </Button>
-                <Button
-                  onClick={handleDirectorySelect}
-                  disabled={!currentPath}
-                >
-                  Use This Directory
+                <Button onClick={handleDirectorySelect} disabled={!currentPath}>
+                  {t("useThisDirectory")}
                 </Button>
               </div>
             </div>

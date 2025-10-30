@@ -109,10 +109,17 @@ if (!string.IsNullOrWhiteSpace(jwtSecret))
         );
 
     // Configure authorization policies
-    builder.Services.AddAuthorizationBuilder()
+    builder
+        .Services.AddAuthorizationBuilder()
         .AddPolicy(AuthorizationPolicies.Authenticated, policy => policy.RequireAuthenticatedUser())
-        .AddPolicy(AuthorizationPolicies.JwtOnly, policy => policy.AddRequirements(new JwtOnlyRequirement()))
-        .AddPolicy(AuthorizationPolicies.AllowExternalToken, policy => policy.RequireAuthenticatedUser());
+        .AddPolicy(
+            AuthorizationPolicies.JwtOnly,
+            policy => policy.AddRequirements(new JwtOnlyRequirement())
+        )
+        .AddPolicy(
+            AuthorizationPolicies.AllowExternalToken,
+            policy => policy.RequireAuthenticatedUser()
+        );
 
     // Register authorization handlers
     builder.Services.AddSingleton<IAuthorizationHandler, JwtOnlyRequirementHandler>();

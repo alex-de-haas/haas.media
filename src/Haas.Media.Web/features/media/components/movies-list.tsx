@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useMovies } from "@/features/media/hooks";
 import type { MovieMetadata } from "@/types/metadata";
 import { MultiSelect, type Option, Spinner } from "@/components/ui";
@@ -18,6 +19,7 @@ interface MovieCardProps {
 }
 
 function MovieCard({ movie }: MovieCardProps) {
+  const t = useTranslations("movies");
   const releaseYear = movie.releaseDate ? new Date(movie.releaseDate).getFullYear() : null;
   const posterUrl = getPosterUrl(movie.posterPath);
   const hasLocalFile = Boolean(movie.filePath);
@@ -44,7 +46,7 @@ function MovieCard({ movie }: MovieCardProps) {
           {hasLocalFile && (
             <Badge className="absolute left-3 top-3 flex items-center gap-1 bg-emerald-500 text-white shadow">
               <HardDrive className="h-3.5 w-3.5" />
-              Local file
+              {t("localFile")}
             </Badge>
           )}
         </div>
@@ -52,7 +54,7 @@ function MovieCard({ movie }: MovieCardProps) {
         <CardContent className="space-y-3 p-4">
           <div className="space-y-1">
             <h3 className="line-clamp-2 text-base font-semibold leading-tight text-foreground">{movie.title}</h3>
-            {releaseYear && <p className="text-xs text-muted-foreground">Released {releaseYear}</p>}
+            {releaseYear && <p className="text-xs text-muted-foreground">{t("released", { year: releaseYear })}</p>}
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -62,7 +64,7 @@ function MovieCard({ movie }: MovieCardProps) {
                 {movie.voteAverage.toFixed(1)}
               </Badge>
             )}
-            {movie.voteCount > 0 && <span>({movie.voteCount} votes)</span>}
+            {movie.voteCount > 0 && <span>{t("votes", { count: movie.voteCount })}</span>}
           </div>
         </CardContent>
       </Card>
@@ -76,6 +78,7 @@ interface MoviesListProps {
 }
 
 export default function MoviesList(_props: MoviesListProps) {
+  const t = useTranslations("movies");
   const { movies, loading, error, refetch } = useMovies();
 
   const [selectedPeople, setSelectedPeople] = useState<string[]>([]);
@@ -139,12 +142,12 @@ export default function MoviesList(_props: MoviesListProps) {
   if (error) {
     return (
       <Alert variant="destructive">
-        <AlertTitle>Unable to load movies</AlertTitle>
+        <AlertTitle>{t("unableToLoad")}</AlertTitle>
         <AlertDescription className="flex items-center justify-between gap-4">
           <span>{error}</span>
           <Button variant="outline" size="sm" onClick={refetch} className="border-destructive text-destructive hover:bg-destructive/10">
             <RefreshCw className="mr-2 h-3.5 w-3.5" />
-            Retry
+            {t("retry")}
           </Button>
         </AlertDescription>
       </Alert>
@@ -157,8 +160,8 @@ export default function MoviesList(_props: MoviesListProps) {
         <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center text-muted-foreground">
           <PackageOpen className="h-12 w-12 text-muted-foreground/40" />
           <div className="space-y-1">
-            <p className="text-sm font-medium">No movies found</p>
-            <p className="text-xs">Movies will appear after your libraries finish scanning.</p>
+            <p className="text-sm font-medium">{t("noMovies")}</p>
+            <p className="text-xs">{t("afterScanning")}</p>
           </div>
         </CardContent>
       </Card>
@@ -178,10 +181,10 @@ export default function MoviesList(_props: MoviesListProps) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold tracking-tight">Movies</h2>
+        <h2 className="text-lg font-semibold tracking-tight">{t("title")}</h2>
         <Badge variant="outline" className="gap-1 text-xs">
           <Film className="h-3.5 w-3.5" />
-          {filteredMovies.length} {hasActivePeopleFilter && `of ${movies.length}`} titles
+          {t("titlesCount", { count: filteredMovies.length, filtered: hasActivePeopleFilter ? `${t("of")} ${movies.length}` : "" })}
         </Badge>
       </div>
 
@@ -190,13 +193,13 @@ export default function MoviesList(_props: MoviesListProps) {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
           <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
             <Filter className="h-4 w-4 text-primary" />
-            Filters
+            {t("filters")}
             {filtersApplied ? (
               <Badge variant="secondary" className="gap-1 text-xs">
-                {activeFilterCount} active
+                {t("activeFilters", { count: activeFilterCount })}
               </Badge>
             ) : (
-              <span className="text-xs font-normal text-muted-foreground/80">Refine the library with quick filters</span>
+              <span className="text-xs font-normal text-muted-foreground/80">{t("refineLibrary")}</span>
             )}
           </div>
           {filtersApplied && (
@@ -208,7 +211,7 @@ export default function MoviesList(_props: MoviesListProps) {
               className="gap-2 px-3 text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               <CircleX className="h-4 w-4" />
-              Clear filters
+              {t("clearFilters")}
             </Button>
           )}
         </div>
@@ -218,16 +221,16 @@ export default function MoviesList(_props: MoviesListProps) {
             <div className="space-y-1">
               <span className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <Users className="h-4 w-4 text-muted-foreground" />
-                Filter by people
+                {t("filterByPeople")}
               </span>
-              <span className="text-xs text-muted-foreground">Combine cast and crew to surface the perfect picks.</span>
+              <span className="text-xs text-muted-foreground">{t("combineCastCrew")}</span>
             </div>
             <MultiSelect
               options={peopleOptions}
               selected={selectedPeople}
               onChange={setSelectedPeople}
-              placeholder="Search cast and crew..."
-              emptyMessage="No person found."
+              placeholder={t("searchCastCrew")}
+              emptyMessage={t("noPersonFound")}
               className="h-11 w-full"
             />
           </div>
@@ -239,8 +242,8 @@ export default function MoviesList(_props: MoviesListProps) {
           <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center text-muted-foreground">
             <PackageOpen className="h-12 w-12 text-muted-foreground/40" />
             <div className="space-y-1">
-              <p className="text-sm font-medium">No movies match the selected filters</p>
-              <p className="text-xs">Try adjusting your filter criteria.</p>
+              <p className="text-sm font-medium">{t("noMatchingFilters")}</p>
+              <p className="text-xs">{t("adjustFilters")}</p>
             </div>
           </CardContent>
         </Card>

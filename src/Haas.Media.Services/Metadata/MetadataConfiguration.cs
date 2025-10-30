@@ -68,9 +68,7 @@ public static class MetadataConfiguration
                     var operationId = await metadataService.StartMetadataSyncAsync(
                         options.RefreshExistingData
                     );
-                    return Results.Ok(
-                        new { operationId, message = "Metadata sync task started" }
-                    );
+                    return Results.Ok(new { operationId, message = "Metadata sync task started" });
                 }
             )
             .WithName("StartMetadataSync")
@@ -88,9 +86,7 @@ public static class MetadataConfiguration
                         options.UpdateTvShows,
                         options.UpdatePeople
                     );
-                    return Results.Ok(
-                        new { operationId, message = "Library scan task started" }
-                    );
+                    return Results.Ok(new { operationId, message = "Library scan task started" });
                 }
             )
             .WithName("StartLibraryScan")
@@ -100,9 +96,7 @@ public static class MetadataConfiguration
                 "api/metadata/movies",
                 async (HttpContext context, IMetadataApi metadataService) =>
                 {
-                    var movieMetadata = (
-                        await metadataService.GetMovieMetadataAsync()
-                    ).ToList();
+                    var movieMetadata = (await metadataService.GetMovieMetadataAsync()).ToList();
                     var preferredCountry = ResolvePreferredCountryCode(context.User);
 
                     foreach (var metadata in movieMetadata)
@@ -240,7 +234,13 @@ public static class MetadataConfiguration
                 async (IMetadataApi metadataService) =>
                 {
                     var deletedCount = await metadataService.CleanupDuplicateFileMetadataAsync();
-                    return Results.Ok(new { deletedCount, message = $"Cleaned up {deletedCount} duplicate file metadata record(s)" });
+                    return Results.Ok(
+                        new
+                        {
+                            deletedCount,
+                            message = $"Cleaned up {deletedCount} duplicate file metadata record(s)"
+                        }
+                    );
                 }
             )
             .WithName("CleanupDuplicateFileMetadata")
@@ -531,9 +531,7 @@ public record RefreshMetadataRequest(
     bool RefreshPeople = true
 );
 
-public record MetadataSyncRequest(
-    bool RefreshExistingData = true
-);
+public record MetadataSyncRequest(bool RefreshExistingData = true);
 
 public record LibraryScanRequest(
     bool ScanForNewFiles = true,

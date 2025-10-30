@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import { usePathname } from "next/navigation";
 import { Fragment, type MouseEventHandler } from "react";
 import {
@@ -26,6 +26,7 @@ import { useLayout } from "./layout-provider";
 import { useLocalAuth } from "../../features/auth/local-auth-context";
 import { useRouter } from "next/navigation";
 import ThemeSwitch from "../ui/theme-switch";
+import { LanguageSwitcher } from "../language-switcher";
 import { Button } from "../ui/button";
 import { Sheet, SheetContent, SheetTitle } from "../ui/sheet";
 import { ScrollArea } from "../ui/scroll-area";
@@ -40,6 +41,7 @@ import {
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { cn } from "@/lib/utils";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { useTranslations } from "next-intl";
 
 interface SidebarProps {
   children?: React.ReactNode;
@@ -47,52 +49,52 @@ interface SidebarProps {
 
 const navigationItems = [
   {
-    name: "Dashboard",
+    translationKey: "dashboard",
     href: "/",
     icon: LayoutDashboard,
   },
   {
-    name: "Torrents",
+    translationKey: "torrents",
     href: "/torrent",
     icon: CloudDownload,
   },
   {
-    name: "Encodings",
+    translationKey: "encodings",
     href: "/encodings",
     icon: Settings2,
   },
   {
-    name: "Files",
+    translationKey: "files",
     href: "/files",
     icon: Folder,
   },
   {
-    name: "Movies",
+    translationKey: "movies",
     href: "/movies",
     icon: Clapperboard,
   },
   {
-    name: "TV Shows",
+    translationKey: "tvShows",
     href: "/tvshows",
     icon: TvMinimalPlay,
   },
   {
-    name: "People",
+    translationKey: "people",
     href: "/people",
     icon: Users,
   },
   {
-    name: "Releases Calendar",
+    translationKey: "releasesCalendar",
     href: "/releases",
     icon: CalendarDays,
   },
   {
-    name: "Connected Nodes",
+    translationKey: "connectedNodes",
     href: "/nodes",
     icon: Network,
   },
   {
-    name: "Settings",
+    translationKey: "settings",
     href: "/settings",
     icon: Settings,
   },
@@ -109,6 +111,8 @@ function getInitials(name?: string | null) {
 }
 
 function NavigationList({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+  const t = useTranslations("navigation");
+
   return (
     <nav className="grid gap-1 px-2">
       {navigationItems.map((item) => {
@@ -122,7 +126,7 @@ function NavigationList({ pathname, onNavigate }: { pathname: string; onNavigate
 
         return (
           <Link
-            key={item.name}
+            key={item.translationKey}
             href={item.href}
             {...(handleClick ? { onClick: handleClick } : {})}
             className={cn(
@@ -131,7 +135,7 @@ function NavigationList({ pathname, onNavigate }: { pathname: string; onNavigate
             )}
           >
             <Icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
-            <span className="truncate">{item.name}</span>
+            <span className="truncate">{t(item.translationKey)}</span>
           </Link>
         );
       })}
@@ -145,6 +149,8 @@ interface UserMenuProps {
 
 function UserMenu({ variant = "sidebar" }: UserMenuProps) {
   const router = useRouter();
+  const t = useTranslations("auth");
+  const tNav = useTranslations("navigation");
 
   // Local auth state
   const { user: localUser, isLoading: localLoading, isAuthenticated: localAuthenticated, logout: localLogout } = useLocalAuth();
@@ -159,7 +165,7 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
 
   if (isLoading) return null;
 
-  const displayName = localUser?.username ?? "Guest";
+  const displayName = localUser?.username ?? t("guest");
   const initials = getInitials(displayName);
 
   if (!isAuthenticated) {
@@ -168,7 +174,7 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
         <Button variant="outline" className="w-full" asChild>
           <Link href="/login">
             <LogIn className="h-4 w-4" />
-            Sign in
+            {t("signIn")}
           </Link>
         </Button>
       );
@@ -178,7 +184,7 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
       <Button variant="outline" asChild>
         <Link href="/login">
           <LogIn className="h-4 w-4" />
-          Sign in
+          {t("signIn")}
         </Link>
       </Button>
     );
@@ -197,7 +203,7 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
-          <DropdownMenuLabel>Signed in as</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("signedInAs")}</DropdownMenuLabel>
           <div className="px-2 pb-2 text-sm text-muted-foreground">
             <div className="font-medium text-foreground">{displayName}</div>
           </div>
@@ -208,12 +214,12 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
             }}
           >
             <UserRound className="h-4 w-4" />
-            Profile
+            {tNav("profile")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout}>
             <LogOut className="h-4 w-4" />
-            Logout
+            {tNav("logout")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -234,7 +240,7 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-64">
-        <DropdownMenuLabel>Signed in as</DropdownMenuLabel>
+        <DropdownMenuLabel>{t("signedInAs")}</DropdownMenuLabel>
         <div className="px-2 pb-2 text-sm text-muted-foreground">
           <div className="font-medium text-foreground">{displayName}</div>
         </div>
@@ -245,7 +251,7 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
           }}
         >
           <UserRound className="h-4 w-4" />
-          Profile
+          {tNav("profile")}
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => {
@@ -253,12 +259,12 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
           }}
         >
           <Key className="h-4 w-4" />
-          API Tokens
+          {t("apiTokens")}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="h-4 w-4" />
-          Logout
+          {tNav("logout")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -267,6 +273,7 @@ function UserMenu({ variant = "sidebar" }: UserMenuProps) {
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const t = useTranslations("sidebar");
   const homeClick: MouseEventHandler<HTMLAnchorElement> | undefined = onNavigate
     ? () => {
         onNavigate();
@@ -277,14 +284,15 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     <div className="flex h-full flex-col">
       <div className="px-6 pb-4 pt-6">
         <Link href="/" {...(homeClick ? { onClick: homeClick } : {})} className="flex flex-col">
-          <span className="text-sm font-semibold uppercase text-muted-foreground">Haas Media Server</span>
-          <span className="text-lg font-bold tracking-tight text-foreground">Control Center</span>
+          <span className="text-sm font-semibold uppercase text-muted-foreground">{t("title")}</span>
+          <span className="text-lg font-bold tracking-tight text-foreground">{t("subtitle")}</span>
         </Link>
       </div>
       <ScrollArea className="flex-1">
         <NavigationList pathname={pathname} {...(onNavigate ? { onNavigate } : {})} />
       </ScrollArea>
       <div className="mt-auto space-y-4 border-t border-border px-6 py-5">
+        <LanguageSwitcher />
         <ThemeSwitch variant="dropdown" className="w-full" />
         <UserMenu variant="sidebar" />
       </div>
@@ -294,13 +302,14 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export default function Sidebar({ children }: SidebarProps) {
   const { sidebarOpen, setSidebarOpen, pageTitle } = useLayout();
+  const t = useTranslations("sidebar");
 
   return (
     <Fragment>
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetContent side="left" className="w-[18rem] border-r p-0">
           <VisuallyHidden>
-            <SheetTitle>Navigation</SheetTitle>
+            <SheetTitle>{t("navigation")}</SheetTitle>
           </VisuallyHidden>
           <SidebarContent onNavigate={() => setSidebarOpen(false)} />
         </SheetContent>
@@ -313,7 +322,13 @@ export default function Sidebar({ children }: SidebarProps) {
       <div className="flex min-h-screen flex-1 flex-col lg:pl-72">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:px-8">
           <div className="flex flex-1 items-center gap-3">
-            <Button variant="outline" size="icon" className="lg:hidden" aria-label="Open navigation" onClick={() => setSidebarOpen(true)}>
+            <Button
+              variant="outline"
+              size="icon"
+              className="lg:hidden"
+              aria-label={t("openNavigation")}
+              onClick={() => setSidebarOpen(true)}
+            >
               <Menu className="h-5 w-5" />
             </Button>
             <span className="text-lg font-semibold text-foreground">{pageTitle}</span>

@@ -132,6 +132,7 @@ When fetching file metadata from a connected node:
 ### Hash Calculation Failures
 
 If hash calculation fails during library scan:
+
 - Error is logged as warning
 - File is still added to metadata without hash
 - Download validation will be skipped for this file
@@ -139,12 +140,14 @@ If hash calculation fails during library scan:
 ### Hash Validation Failures
 
 If hash validation fails during download:
+
 - Downloaded file is deleted immediately
 - Detailed error message includes both hashes
 - Background task fails with `BackgroundTaskStatus.Failed`
 - User receives notification via SignalR
 
 Example error message:
+
 ```
 File integrity check failed. Expected MD5: abc123..., Actual MD5: def456...
 The file may be corrupted during transfer.
@@ -225,11 +228,13 @@ To test hash validation:
 **Symptoms:** Download completes but task fails with hash validation error
 
 **Possible Causes:**
+
 1. Network corruption during transfer
 2. Source file modified after metadata was fetched
 3. Different file versions on source vs. metadata
 
 **Resolution:**
+
 1. Check network stability
 2. Re-fetch metadata from source node
 3. Compare file sizes/timestamps
@@ -242,6 +247,7 @@ To test hash validation:
 **Cause:** MD5 calculation adds processing time per file
 
 **Resolution:**
+
 - Hash calculation is asynchronous and cancellable
 - Performance impact scales with file size and count
 - Expected: 10-50ms per small file, 1-5s per large file (>10GB)

@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { MoreVertical, Trash2, Star, ArrowLeft, Film, Heart, Play, Eye, Download, Server, X, HardDrive } from "lucide-react";
 
 import { useMovie, useDeleteMovieMetadata, useMoviePlaybackInfo } from "@/features/media/hooks";
@@ -48,6 +49,8 @@ interface MovieDetailsProps {
 }
 
 export default function MovieDetails({ movieId }: MovieDetailsProps) {
+  const t = useTranslations("movies");
+  const tCommon = useTranslations("common");
   const { movie, loading, error } = useMovie(movieId);
   const { files: movieFiles, loading: filesLoading, refetch: refetchFiles } = useFilesByMediaId(movieId, LibraryType.Movies);
   const { playbackInfo, loading: playbackLoading } = useMoviePlaybackInfo(movieId);
@@ -62,7 +65,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
   const router = useRouter();
   const { notify } = useNotifications();
   const { deleteMovie, loading: deletingMovie } = useDeleteMovieMetadata();
-  
+
   // Track previous download task IDs to detect newly completed downloads
   const previousCompletedTaskIds = useRef<Set<string>>(new Set());
 
@@ -86,9 +89,10 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
 
   // Track download tasks for remote files (only active ones for progress display)
   const downloadTasks = useMemo(() => {
-    return backgroundTasks.filter((task: BackgroundTaskInfo) => 
-      task.type === "NodeFileDownloadTask" && 
-      (task.status === BackgroundTaskStatus.Pending || task.status === BackgroundTaskStatus.Running)
+    return backgroundTasks.filter(
+      (task: BackgroundTaskInfo) =>
+        task.type === "NodeFileDownloadTask" &&
+        (task.status === BackgroundTaskStatus.Pending || task.status === BackgroundTaskStatus.Running),
     );
   }, [backgroundTasks]);
 
@@ -102,14 +106,14 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
     if (result.success) {
       notify({
         type: "success",
-        title: "Download Cancelled",
-        message: "The download has been cancelled.",
+        title: t("downloadCancelled"),
+        message: t("downloadCancelledMessage"),
       });
     } else {
       notify({
         type: "error",
-        title: "Cancellation Failed",
-        message: result.message || "Failed to cancel the download.",
+        title: t("cancellationFailed"),
+        message: result.message || t("cancellationFailedMessage"),
       });
     }
   };
@@ -118,12 +122,12 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
     if (!globalSettings?.movieDirectories || globalSettings.movieDirectories.length === 0) {
       notify({
         type: "error",
-        title: "Download Failed",
-        message: "No movie directories configured. Please configure movie directories in settings.",
+        title: t("deleteFailed"),
+        message: t("downloadFailedNoDirectories"),
       });
       return;
     }
-    
+
     setSelectedFileForDownload(file);
     setDownloadDialogOpen(true);
   };
@@ -145,22 +149,22 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
       if (result.success && result.taskId) {
         notify({
           type: "success",
-          title: "Download Started",
-          message: "File download has been queued. Check progress below.",
+          title: t("downloadStarted"),
+          message: t("downloadStartedMessage"),
         });
         setDownloadDialogOpen(false);
         setSelectedFileForDownload(null);
       } else {
         notify({
           type: "error",
-          title: "Download Failed",
+          title: t("deleteFailed"),
           message: result.message,
         });
       }
     } catch (error) {
       notify({
         type: "error",
-        title: "Download Failed",
+        title: t("deleteFailed"),
         message: error instanceof Error ? error.message : "An unexpected error occurred",
       });
     } finally {
@@ -173,18 +177,16 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
     const currentCompletedTaskIds = new Set<string>(
       allDownloadTasks
         .filter((task: BackgroundTaskInfo) => task.status === BackgroundTaskStatus.Completed)
-        .map((task: BackgroundTaskInfo) => task.id)
+        .map((task: BackgroundTaskInfo) => task.id),
     );
-    
+
     // Find newly completed tasks (tasks that just transitioned to completed)
-    const newlyCompletedTaskIds = Array.from(currentCompletedTaskIds).filter(
-      (id) => !previousCompletedTaskIds.current.has(id)
-    );
-    
+    const newlyCompletedTaskIds = Array.from(currentCompletedTaskIds).filter((id) => !previousCompletedTaskIds.current.has(id));
+
     if (newlyCompletedTaskIds.length > 0) {
       // Refetch files to show newly downloaded files
       refetchFiles();
-      
+
       // Update the ref with current completed task IDs
       previousCompletedTaskIds.current = currentCompletedTaskIds;
     }
@@ -247,15 +249,15 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
     if (result.success) {
       notify({
         type: "success",
-        title: "Movie Deleted",
-        message: `${movie.title} metadata was removed.`,
+        title: t("movieDeleted"),
+        message: t("movieDeletedMessage", { title: movie.title }),
       });
       router.push("/movies");
     } else {
       notify({
         type: "error",
-        title: "Delete Failed",
-        message: result.message || "Unable to delete movie metadata.",
+        title: t("deleteFailed"),
+        message: result.message || t("deleteFailedMessage"),
       });
     }
 
@@ -274,12 +276,12 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Alert variant="destructive">
-          <AlertTitle>Movie not found</AlertTitle>
-          <AlertDescription>{error || "The movie you requested could not be found."}</AlertDescription>
+          <AlertTitle>{t("movieNotFound")}</AlertTitle>
+          <AlertDescription>{error || t("movieNotFoundDescription")}</AlertDescription>
         </Alert>
         <Button asChild variant="outline" className="mt-4">
           <Link href="/movies" className="inline-flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" /> Back to Movies
+            <ArrowLeft className="h-4 w-4" /> {t("backToMovies")}
           </Link>
         </Button>
       </div>
@@ -317,7 +319,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
           <Button asChild variant="secondary" size="sm" className="bg-black/60 text-white hover:bg-black/70">
             <Link href="/movies" className="inline-flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back to Movies
+              {t("backToMovies")}
             </Link>
           </Button>
         </div>
@@ -382,7 +384,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="rounded-full">
                           <MoreVertical className="h-4 w-4" />
-                          <span className="sr-only">Open movie actions</span>
+                          <span className="sr-only">{t("openMovieActions")}</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
@@ -392,7 +394,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                             className="text-destructive focus:text-destructive"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Movie
+                            {t("deleteMovie")}
                           </DropdownMenuItem>
                         </AlertDialogTrigger>
                       </DropdownMenuContent>
@@ -400,15 +402,15 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
 
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete {movie.title}?</AlertDialogTitle>
+                        <AlertDialogTitle>{t("deleteMovieConfirm", { title: movie.title })}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This action cannot be undone. The metadata for this movie will be permanently removed.
+                          {t("deleteMovieDescription")}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel disabled={deletingMovie}>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel disabled={deletingMovie}>{tCommon("cancel")}</AlertDialogCancel>
                         <AlertDialogAction onClick={handleDelete} disabled={deletingMovie}>
-                          {deletingMovie ? "Deleting..." : "Delete"}
+                          {deletingMovie ? t("deleting") : tCommon("delete")}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -431,21 +433,21 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                     {playbackInfo.anyPlayed && (
                       <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
                         <Eye className="h-4 w-4 text-green-500" />
-                        <span>Watched</span>
+                        <span>{t("watched")}</span>
                       </Badge>
                     )}
                     {playbackInfo.totalPlayCount > 0 && (
                       <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
                         <Play className="h-4 w-4 text-blue-500" />
                         <span>
-                          {playbackInfo.totalPlayCount} play{playbackInfo.totalPlayCount !== 1 ? "s" : ""}
+                          {playbackInfo.totalPlayCount === 1 ? t("play", { count: 1 }) : t("plays", { count: playbackInfo.totalPlayCount })}
                         </span>
                       </Badge>
                     )}
                     {playbackInfo.isFavorite && (
                       <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
                         <Heart className="h-4 w-4 fill-red-500 text-red-500" />
-                        <span>Favorite</span>
+                        <span>{t("favorite")}</span>
                       </Badge>
                     )}
                   </div>
@@ -465,7 +467,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
               <CardContent className="space-y-6">
                 {movie.overview && (
                   <div className="space-y-2">
-                    <h2 className="text-lg font-semibold">Overview</h2>
+                    <h2 className="text-lg font-semibold">{t("overview")}</h2>
                     <p className="text-muted-foreground leading-relaxed">{movie.overview}</p>
                   </div>
                 )}
@@ -480,31 +482,31 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                     <div className="grid gap-4 text-sm sm:grid-cols-2">
                       {movie.releaseDate && (
                         <div className="space-y-1">
-                          <span className="font-medium text-muted-foreground">Release Date</span>
+                          <span className="font-medium text-muted-foreground">{t("releaseDate")}</span>
                           <p>{new Date(movie.releaseDate).toLocaleDateString()}</p>
                         </div>
                       )}
                       {theatricalReleaseDate && (
                         <div className="space-y-1">
-                          <span className="font-medium text-muted-foreground">Theatrical Release Date</span>
+                          <span className="font-medium text-muted-foreground">{t("theatricalReleaseDate")}</span>
                           <p>{theatricalReleaseDate.toLocaleDateString()}</p>
                         </div>
                       )}
                       {digitalReleaseDate && (
                         <div className="space-y-1">
-                          <span className="font-medium text-muted-foreground">Digital Release Date</span>
+                          <span className="font-medium text-muted-foreground">{t("digitalReleaseDate")}</span>
                           <p>{digitalReleaseDate.toLocaleDateString()}</p>
                         </div>
                       )}
                       {typeof movie.budget === "number" && movie.budget > 0 && (
                         <div className="space-y-1">
-                          <span className="font-medium text-muted-foreground">Budget</span>
+                          <span className="font-medium text-muted-foreground">{t("budget")}</span>
                           <p>{formatCurrency(movie.budget)}</p>
                         </div>
                       )}
                       {typeof movie.revenue === "number" && movie.revenue > 0 && (
                         <div className="space-y-1">
-                          <span className="font-medium text-muted-foreground">Revenue</span>
+                          <span className="font-medium text-muted-foreground">{t("revenue")}</span>
                           <p>{formatCurrency(movie.revenue)}</p>
                         </div>
                       )}
@@ -513,7 +515,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-muted-foreground">
-                          Associated Files {filesLoading && <Spinner className="inline-block ml-2 size-3" />}
+                          {t("associatedFiles")} {filesLoading && <Spinner className="inline-block ml-2 size-3" />}
                         </span>
                       </div>
 
@@ -521,7 +523,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                         <div className="space-y-2">
                           {movieFiles.map((file) => {
                             const isRemote = Boolean(file.nodeId);
-                            
+
                             // Find active download task for this file
                             const activeDownload = downloadTasks.find((task: BackgroundTaskInfo) => {
                               const payload = task.payload as Record<string, unknown>;
@@ -529,11 +531,11 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                             });
 
                             const isDownloading = Boolean(activeDownload || initiatingDownloadFileId === file.id);
-                            
+
                             let downloadProgress = 0;
                             let downloadedBytes = 0;
                             let totalBytes = 0;
-                            
+
                             if (activeDownload) {
                               const payload = activeDownload.payload as Record<string, unknown>;
                               downloadProgress = activeDownload.progress || 0;
@@ -558,14 +560,12 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                                       {!isRemote && (
                                         <Badge variant="outline" className="text-xs">
                                           <HardDrive className="mr-1 h-3 w-3" />
-                                          Local
+                                          {t("local")}
                                         </Badge>
                                       )}
-                                      <div className="font-mono text-xs text-muted-foreground break-all">
-                                        {file.filePath}
-                                      </div>
+                                      <div className="font-mono text-xs text-muted-foreground break-all">{file.filePath}</div>
                                     </div>
-                                    
+
                                     {isDownloading && activeDownload && (
                                       <div className="space-y-1 pt-1">
                                         <Progress value={downloadProgress} className="h-1.5" />
@@ -573,14 +573,14 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                                           <span>
                                             {downloadedBytes > 0
                                               ? `${(downloadedBytes / 1024 / 1024).toFixed(1)} MB / ${(totalBytes / 1024 / 1024).toFixed(1)} MB`
-                                              : "Preparing..."}
+                                              : t("preparing")}
                                           </span>
                                           <span>{downloadProgress.toFixed(0)}%</span>
                                         </div>
                                       </div>
                                     )}
                                   </div>
-                                  
+
                                   {isRemote && (
                                     <Button
                                       size="sm"
@@ -594,7 +594,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                                       }}
                                       disabled={initiatingDownloadFileId === file.id}
                                       className="shrink-0"
-                                      title={activeDownload ? "Cancel download" : "Download file"}
+                                      title={activeDownload ? t("cancelDownload") : t("downloadFile")}
                                     >
                                       {activeDownload ? (
                                         <X className="h-3.5 w-3.5" />
@@ -611,7 +611,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                           })}
                         </div>
                       ) : (
-                        <p className="text-xs italic text-muted-foreground">No files linked</p>
+                        <p className="text-xs italic text-muted-foreground">{t("noFilesLinked")}</p>
                       )}
                     </div>
                   </div>
@@ -624,8 +624,8 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                 <Card>
                   <CardHeader className="space-y-4">
                     <div>
-                      <CardTitle className="text-lg">Credits</CardTitle>
-                      <CardDescription>Browse cast and crew details</CardDescription>
+                      <CardTitle className="text-lg">{t("credits")}</CardTitle>
+                      <CardDescription>{t("creditsDescription")}</CardDescription>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -657,7 +657,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                         </Carousel>
                         {movie.cast.length > CREDIT_DISPLAY_LIMIT && (
                           <p className="text-xs text-muted-foreground">
-                            Showing {CREDIT_DISPLAY_LIMIT} of {movie.cast.length} cast members
+                            {t("showingCastMembers", { displayed: CREDIT_DISPLAY_LIMIT, total: movie.cast.length })}
                           </p>
                         )}
                       </div>
@@ -672,27 +672,27 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                               .sort((a, b) => b.weight - a.weight)
                               .slice(0, CREDIT_DISPLAY_LIMIT)
                               .map((crewMember) => (
-                              <CarouselItem
-                                key={`${crewMember.id}-${crewMember.job}`}
-                                className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
-                              >
-                                <PersonCard
-                                  name={crewMember.name}
-                                  description={crewMember.job}
-                                  {...(crewMember.department ? { meta: crewMember.department } : {})}
-                                  profilePath={crewMember.profilePath ?? null}
-                                  href={`/people/${crewMember.id}`}
-                                  className="mx-auto h-full"
-                                />
-                              </CarouselItem>
-                            ))}
+                                <CarouselItem
+                                  key={`${crewMember.id}-${crewMember.job}`}
+                                  className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                                >
+                                  <PersonCard
+                                    name={crewMember.name}
+                                    description={crewMember.job}
+                                    {...(crewMember.department ? { meta: crewMember.department } : {})}
+                                    profilePath={crewMember.profilePath ?? null}
+                                    href={`/people/${crewMember.id}`}
+                                    className="mx-auto h-full"
+                                  />
+                                </CarouselItem>
+                              ))}
                           </CarouselContent>
                           <CarouselPrevious className="hidden md:flex -left-8" />
                           <CarouselNext className="hidden md:flex -right-8" />
                         </Carousel>
                         {movie.crew.length > CREDIT_DISPLAY_LIMIT && (
                           <p className="text-xs text-muted-foreground">
-                            Showing {CREDIT_DISPLAY_LIMIT} of {movie.crew.length} crew members
+                            {t("showingCrewMembers", { displayed: CREDIT_DISPLAY_LIMIT, total: movie.crew.length })}
                           </p>
                         )}
                       </div>
@@ -709,7 +709,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
         open={downloadDialogOpen}
         onOpenChange={setDownloadDialogOpen}
         onConfirm={handleConfirmDownload}
-        defaultFileName={selectedFileForDownload ? selectedFileForDownload.filePath.split('/').pop() || '' : ''}
+        defaultFileName={selectedFileForDownload ? selectedFileForDownload.filePath.split("/").pop() || "" : ""}
         mediaType={LibraryType.Movies}
         globalSettings={globalSettings}
         isDownloading={initiatingDownloadFileId !== null}

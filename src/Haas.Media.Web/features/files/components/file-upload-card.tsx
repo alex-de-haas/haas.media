@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { FileText, Loader2, Trash2, UploadCloud } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -24,6 +25,7 @@ export interface FileUploadCardProps {
 }
 
 export function FileUploadCard({ onUpload, isUploading = false, currentPath, acceptExtensions }: FileUploadCardProps) {
+  const t = useTranslations("files");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { notify } = useNotifications();
   const { files, dragActive, handleFileChange, handleDragOver, handleDragLeave, handleDrop, clearFiles, removeFile } =
@@ -40,7 +42,7 @@ export function FileUploadCard({ onUpload, isUploading = false, currentPath, acc
   };
 
   const handleInvalidFile = (message: string) => {
-    notify({ title: "Invalid File", message, type: "warning" });
+    notify({ title: t("invalidFile"), message, type: "warning" });
   };
 
   const handleUpload = async () => {
@@ -49,7 +51,7 @@ export function FileUploadCard({ onUpload, isUploading = false, currentPath, acc
     const result = await onUpload(files);
     const hasPartialSuccess = result.uploaded > 0 && result.errors.length > 0;
     notify({
-      title: result.success ? "Upload Complete" : hasPartialSuccess ? "Upload Partial" : "Upload Failed",
+      title: result.success ? t("uploadComplete") : hasPartialSuccess ? t("uploadPartial") : t("uploadFailed"),
       message: result.message,
       type: result.success ? "success" : hasPartialSuccess ? "warning" : "error",
     });
@@ -88,9 +90,9 @@ export function FileUploadCard({ onUpload, isUploading = false, currentPath, acc
             <UploadCloud className="size-6" aria-hidden="true" />
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium">Drop your files here</p>
+            <p className="text-sm font-medium">{t("dropFilesHere")}</p>
             <p className="text-sm text-muted-foreground">
-              or
+              {t("or")}
               <Button
                 type="button"
                 variant="link"
@@ -100,10 +102,10 @@ export function FileUploadCard({ onUpload, isUploading = false, currentPath, acc
                   openFileDialog();
                 }}
               >
-                browse from your device
+                {t("browseFromDevice")}
               </Button>
             </p>
-            <p className="text-xs text-muted-foreground">Duplicates are skipped automatically.</p>
+            <p className="text-xs text-muted-foreground">{t("duplicatesSkipped")}</p>
           </div>
           <input
             ref={fileInputRef}
@@ -142,7 +144,9 @@ export function FileUploadCard({ onUpload, isUploading = false, currentPath, acc
                       disabled={isUploading}
                     >
                       <Trash2 className="size-4" aria-hidden="true" />
-                      <span className="sr-only">Remove {file.name}</span>
+                      <span className="sr-only">
+                        {t("remove")} {file.name}
+                      </span>
                     </Button>
                   </li>
                 ))}
@@ -152,7 +156,9 @@ export function FileUploadCard({ onUpload, isUploading = false, currentPath, acc
         )}
       </CardContent>
       <CardFooter className="flex flex-col gap-3 border-t border-dashed border-border/80 bg-muted/20 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-        <span>Target directory: {currentPath ? `/${currentPath}` : "/"}</span>
+        <span>
+          {t("targetDirectory")} {currentPath ? `/${currentPath}` : "/"}
+        </span>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <Button
             type="button"
@@ -161,15 +167,15 @@ export function FileUploadCard({ onUpload, isUploading = false, currentPath, acc
             onClick={() => clearFiles()}
             disabled={isUploading || files.length === 0}
           >
-            Clear
+            {t("clear")}
           </Button>
           <Button type="button" className="sm:min-w-[120px]" onClick={handleUpload} disabled={isUploading || files.length === 0}>
             {isUploading ? (
               <>
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Uploading
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" /> {t("uploading")}
               </>
             ) : (
-              "Upload"
+              t("upload")
             )}
           </Button>
         </div>

@@ -31,6 +31,7 @@ curl -X POST http://localhost:8000/api/nodes/validate \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "isValid": true,
@@ -60,11 +61,13 @@ curl -X POST http://localhost:8000/api/nodes \
 ```
 
 **What happens:**
+
 1. Validates connection to `http://192.168.1.100:8000`
 2. Calls `http://192.168.1.100:8000/api/nodes/register` to register this node
 3. Stores the remote node locally
 
 **Expected Response:**
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -88,6 +91,7 @@ curl http://localhost:8000/api/nodes \
 ```
 
 **Expected Response:**
+
 ```json
 [
   {
@@ -167,6 +171,7 @@ curl -X POST http://localhost:8000/api/nodes \
 ```
 
 **Response:** `400 Bad Request`
+
 ```json
 {
   "error": "Invalid URL format"
@@ -187,6 +192,7 @@ curl -X POST http://localhost:8000/api/nodes \
 ```
 
 **Response:** `400 Bad Request`
+
 ```json
 {
   "error": "Cannot determine current node URL. Set NODE_URL environment variable or configure public URL."
@@ -205,6 +211,7 @@ curl -X POST http://localhost:8000/api/nodes/validate \
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
   "isValid": false,
@@ -227,6 +234,7 @@ curl -X POST http://localhost:8000/api/nodes \
 ```
 
 **Response:** `400 Bad Request`
+
 ```json
 {
   "error": "A node with URL http://192.168.1.100:8000 already exists"
@@ -247,6 +255,7 @@ curl -X POST http://localhost:8000/api/nodes \
 ```
 
 **Response:** `400 Bad Request`
+
 ```json
 {
   "error": "Connected to node but failed to register: <error details>"
@@ -292,65 +301,65 @@ interface NodeValidationResult {
 }
 
 // api.ts
-const API_BASE = 'http://localhost:8000';
+const API_BASE = "http://localhost:8000";
 
 async function validateNode(url: string, apiKey?: string): Promise<NodeValidationResult> {
   const response = await fetch(`${API_BASE}/api/nodes/validate`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Authorization': `Bearer ${getToken()}`,
-      'Content-Type': 'application/json',
+      Authorization: `Bearer ${getToken()}`,
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({ url, apiKey }),
   });
-  
+
   return await response.json();
 }
 
 async function connectNode(request: ConnectNodeRequest): Promise<NodeInfo> {
   const response = await fetch(`${API_BASE}/api/nodes`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Authorization': `Bearer ${getToken()}`,
-      'Content-Type': 'application/json',
+      Authorization: `Bearer ${getToken()}`,
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(request),
   });
-  
+
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || 'Failed to connect node');
+    throw new Error(error.error || "Failed to connect node");
   }
-  
+
   return await response.json();
 }
 
 async function getNodes(): Promise<NodeInfo[]> {
   const response = await fetch(`${API_BASE}/api/nodes`, {
     headers: {
-      'Authorization': `Bearer ${getToken()}`,
+      Authorization: `Bearer ${getToken()}`,
     },
   });
-  
+
   return await response.json();
 }
 
 async function deleteNode(id: string): Promise<void> {
   const response = await fetch(`${API_BASE}/api/nodes/${id}`, {
-    method: 'DELETE',
+    method: "DELETE",
     headers: {
-      'Authorization': `Bearer ${getToken()}`,
+      Authorization: `Bearer ${getToken()}`,
     },
   });
-  
+
   if (!response.ok) {
-    throw new Error('Failed to delete node');
+    throw new Error("Failed to delete node");
   }
 }
 
 function getToken(): string {
   // Implement your token retrieval logic
-  return localStorage.getItem('token') || '';
+  return localStorage.getItem("token") || "";
 }
 ```
 
@@ -369,7 +378,7 @@ class NodesClient:
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
-    
+
     def validate_node(self, url: str, api_key: Optional[str] = None) -> Dict:
         response = requests.post(
             f"{API_BASE}/api/nodes/validate",
@@ -378,7 +387,7 @@ class NodesClient:
         )
         response.raise_for_status()
         return response.json()
-    
+
     def connect_node(self, name: str, url: str, api_key: Optional[str] = None) -> Dict:
         response = requests.post(
             f"{API_BASE}/api/nodes",
@@ -387,7 +396,7 @@ class NodesClient:
         )
         response.raise_for_status()
         return response.json()
-    
+
     def get_nodes(self) -> List[Dict]:
         response = requests.get(
             f"{API_BASE}/api/nodes",
@@ -395,7 +404,7 @@ class NodesClient:
         )
         response.raise_for_status()
         return response.json()
-    
+
     def get_node(self, node_id: str) -> Dict:
         response = requests.get(
             f"{API_BASE}/api/nodes/{node_id}",
@@ -403,7 +412,7 @@ class NodesClient:
         )
         response.raise_for_status()
         return response.json()
-    
+
     def update_node(self, node_id: str, **kwargs) -> Dict:
         response = requests.put(
             f"{API_BASE}/api/nodes/{node_id}",
@@ -412,7 +421,7 @@ class NodesClient:
         )
         response.raise_for_status()
         return response.json()
-    
+
     def delete_node(self, node_id: str) -> None:
         response = requests.delete(
             f"{API_BASE}/api/nodes/{node_id}",
@@ -432,7 +441,7 @@ if result["isValid"]:
         url="http://192.168.1.100:8000"
     )
     print(f"Connected: {node['id']}")
-    
+
     # List all
     nodes = client.get_nodes()
     print(f"Total nodes: {len(nodes)}")
@@ -445,6 +454,7 @@ if result["isValid"]:
 **Setup: Configure both nodes**
 
 Node A (192.168.1.50:8000):
+
 ```bash
 export NODE_URL=http://192.168.1.50:8000
 export NODE_NAME="Main Server"
@@ -452,6 +462,7 @@ export NODE_API_KEY="main-server-key"
 ```
 
 Node B (192.168.1.100:8000):
+
 ```bash
 export NODE_URL=http://192.168.1.100:8000
 export NODE_NAME="Living Room Server"
@@ -461,6 +472,7 @@ export NODE_API_KEY="living-room-key"
 **From Node A, connect to Node B:**
 
 1. **Validate Connection**
+
    ```bash
    curl -X POST http://localhost:8000/api/nodes/validate \
      -H "Authorization: Bearer $TOKEN" \
@@ -469,6 +481,7 @@ export NODE_API_KEY="living-room-key"
    ```
 
 2. **Connect if Valid (creates bidirectional connection)**
+
    ```bash
    # On Node A
    curl -X POST http://192.168.1.50:8000/api/nodes \
@@ -480,28 +493,30 @@ export NODE_API_KEY="living-room-key"
        "apiKey": "living-room-key"
      }'
    ```
-   
+
    This will:
    - Validate Node B is accessible
    - Register Node A on Node B (via /api/nodes/register)
    - Store Node B on Node A
-   
+
    **Result:** Both nodes now have each other in their node list!
 
 3. **List and Verify on Both Nodes**
+
    ```bash
    # On Node A
    curl http://192.168.1.50:8000/api/nodes \
      -H "Authorization: Bearer $TOKEN_A"
-   
-   # On Node B  
+
+   # On Node B
    curl http://192.168.1.100:8000/api/nodes \
      -H "Authorization: Bearer $TOKEN_B"
    ```
-   
+
    Both should show the other node in their list!
 
 4. **Update Configuration**
+
    ```bash
    curl -X PUT http://localhost:8000/api/nodes/$NODE_ID \
      -H "Authorization: Bearer $TOKEN" \
@@ -510,6 +525,7 @@ export NODE_API_KEY="living-room-key"
    ```
 
 5. **Temporarily Disable**
+
    ```bash
    curl -X PUT http://localhost:8000/api/nodes/$NODE_ID \
      -H "Authorization: Bearer $TOKEN" \
@@ -518,6 +534,7 @@ export NODE_API_KEY="living-room-key"
    ```
 
 6. **Re-enable**
+
    ```bash
    curl -X PUT http://localhost:8000/api/nodes/$NODE_ID \
      -H "Authorization: Bearer $TOKEN" \

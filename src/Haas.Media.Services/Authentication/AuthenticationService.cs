@@ -15,7 +15,8 @@ public class AuthenticationService(
 ) : IAuthenticationApi
 {
     private readonly ILiteCollection<User> _users = db.GetCollection<User>("users");
-    private readonly ILiteCollection<ExternalToken> _externalTokens = db.GetCollection<ExternalToken>("external_tokens");
+    private readonly ILiteCollection<ExternalToken> _externalTokens =
+        db.GetCollection<ExternalToken>("external_tokens");
     private readonly PasswordHasher<User> _passwordHasher = new();
 
     public AuthResponse? Register(RegisterRequest request)
@@ -125,10 +126,7 @@ public class AuthenticationService(
         return users;
     }
 
-    public AuthResponse? UpdateProfile(
-        string username,
-        UpdateProfileRequest request
-    )
+    public AuthResponse? UpdateProfile(string username, UpdateProfileRequest request)
     {
         // Profile updates are currently not supported
         // This method is kept for API compatibility but returns null
@@ -315,7 +313,7 @@ public class AuthenticationService(
         }
 
         var externalToken = _externalTokens.FindOne(t => t.Token == token);
-        
+
         if (externalToken == null)
         {
             return null;

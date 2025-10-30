@@ -37,7 +37,7 @@ Added a check before inserting file metadata to prevent duplicates:
 if (filePath != null)
 {
     var relativePath = Path.GetRelativePath(_dataPath, filePath);
-    
+
     // Check if file metadata already exists
     var existingFileMetadata = _fileMetadataCollection.FindOne(f =>
         f.FilePath == relativePath &&
@@ -109,12 +109,14 @@ Created an API endpoint to clean up existing duplicates:
 **Endpoint:** `POST /api/metadata/files/cleanup-duplicates`
 
 **Implementation:**
+
 - Groups all `FileMetadata` records by unique identifier (TmdbId, FilePath, SeasonNumber, EpisodeNumber)
 - Identifies groups with duplicates (count > 1)
 - Keeps the oldest record (by `CreatedAt`), deletes the rest
 - Returns count of deleted duplicates
 
 **Files:**
+
 - Service method: `src/Haas.Media.Services/Metadata/MetadataService.cs:586-636`
 - Interface: `src/Haas.Media.Services/Metadata/IMetadataApi.cs:31`
 - Endpoint: `src/Haas.Media.Services/Metadata/MetadataConfiguration.cs:239-248`
@@ -131,6 +133,7 @@ curl -X POST http://localhost:8000/api/metadata/files/cleanup-duplicates \
 ```
 
 **Response:**
+
 ```json
 {
   "deletedCount": 42,
@@ -141,6 +144,7 @@ curl -X POST http://localhost:8000/api/metadata/files/cleanup-duplicates \
 ### Verification
 
 After cleanup, verify in the UI:
+
 1. Navigate to a TV show details page
 2. Expand a season
 3. Check episode file paths - should see only one path per episode file
@@ -202,6 +206,7 @@ var match = Regex.Match(fileName, @"S(\d{2})E(\d{2})", RegexOptions.IgnoreCase);
 ## Future Improvements
 
 Consider:
+
 1. Adding a database index on `(TmdbId, FilePath, SeasonNumber, EpisodeNumber)` for faster duplicate checks
 2. Creating a background task to periodically scan for and clean up duplicates
 3. Adding metrics/telemetry to track when duplicates are prevented

@@ -11,7 +11,7 @@ public class JellyfinService
     private readonly string _dataDirectory;
     private readonly string _serverId;
     private const string ImageBaseUrl = "https://image.tmdb.org/t/p/";
-    
+
     // Hardcoded library IDs for Jellyfin compatibility
     private const string MoviesLibraryId = "movies";
     private const string TvShowsLibraryId = "tvshows";
@@ -239,7 +239,9 @@ public class JellyfinService
         if (JellyfinIdHelper.TryParseLibraryId(itemId, out var libraryId))
         {
             // Determine library details from hardcoded library ID
-            string name, description, collectionType;
+            string name,
+                description,
+                collectionType;
             if (libraryId == MoviesLibraryId)
             {
                 name = "Movies";

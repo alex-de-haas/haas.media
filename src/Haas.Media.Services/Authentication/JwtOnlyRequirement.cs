@@ -5,9 +5,7 @@ namespace Haas.Media.Services.Authentication;
 /// <summary>
 /// Authorization requirement that enforces JWT-only authentication (no external tokens).
 /// </summary>
-public class JwtOnlyRequirement : IAuthorizationRequirement
-{
-}
+public class JwtOnlyRequirement : IAuthorizationRequirement { }
 
 /// <summary>
 /// Handler for JwtOnlyRequirement that checks if the user authenticated with a JWT token.

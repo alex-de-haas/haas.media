@@ -34,7 +34,9 @@ internal sealed class MetadataSyncTaskExecutor
         _dataPath =
             configuration["DATA_DIRECTORY"]
             ?? throw new ArgumentException("DATA_DIRECTORY configuration is required.");
-        _globalSettingsCollection = database.GetCollection<GlobalSettings.GlobalSettings>("globalSettings");
+        _globalSettingsCollection = database.GetCollection<GlobalSettings.GlobalSettings>(
+            "globalSettings"
+        );
         _movieMetadataCollection = database.GetCollection<MovieMetadata>("movieMetadata");
         _tvShowMetadataCollection = database.GetCollection<TVShowMetadata>("tvShowMetadata");
         _fileMetadataCollection = database.GetCollection<FileMetadata>("fileMetadata");
@@ -242,7 +244,7 @@ internal sealed class MetadataSyncTaskExecutor
 
             // Process new TV shows by directory and new episodes for existing shows
             var processedTvShowDirectories = new HashSet<string>();
-            
+
             // First, identify which show directories have new files
             var showDirectoriesWithNewFiles = newFiles
                 .Where(x => x.type == LibraryType.TVShows)
@@ -797,13 +799,13 @@ internal sealed class MetadataSyncTaskExecutor
                     if (filePath != null)
                     {
                         var relativePath = Path.GetRelativePath(_dataPath, filePath);
-                        
+
                         // Check if file metadata already exists to prevent duplicates
                         var existingFileMetadata = _fileMetadataCollection.FindOne(f =>
-                            f.FilePath == relativePath &&
-                            f.TmdbId == searchResults.Id &&
-                            f.SeasonNumber == season.SeasonNumber &&
-                            f.EpisodeNumber == episode.EpisodeNumber
+                            f.FilePath == relativePath
+                            && f.TmdbId == searchResults.Id
+                            && f.SeasonNumber == season.SeasonNumber
+                            && f.EpisodeNumber == episode.EpisodeNumber
                         );
 
                         if (existingFileMetadata == null)
@@ -857,11 +859,11 @@ internal sealed class MetadataSyncTaskExecutor
         {
             // Scan the show directory for episode files
             var files = Directory.GetFiles(showDirectory, "*.*", SearchOption.AllDirectories);
-            
+
             foreach (var filePath in files)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                
+
                 // Try to extract season and episode numbers from filename
                 var fileName = Path.GetFileName(filePath);
                 var match = System.Text.RegularExpressions.Regex.Match(
@@ -877,15 +879,15 @@ internal sealed class MetadataSyncTaskExecutor
 
                 var seasonNumber = int.Parse(match.Groups[1].Value);
                 var episodeNumber = int.Parse(match.Groups[2].Value);
-                
+
                 var relativePath = Path.GetRelativePath(_dataPath, filePath);
-                
+
                 // Check if file metadata already exists
                 var existingFileMetadata = _fileMetadataCollection.FindOne(f =>
-                    f.FilePath == relativePath &&
-                    f.TmdbId == existingShow.Id &&
-                    f.SeasonNumber == seasonNumber &&
-                    f.EpisodeNumber == episodeNumber
+                    f.FilePath == relativePath
+                    && f.TmdbId == existingShow.Id
+                    && f.SeasonNumber == seasonNumber
+                    && f.EpisodeNumber == episodeNumber
                 );
 
                 if (existingFileMetadata == null)
@@ -905,7 +907,7 @@ internal sealed class MetadataSyncTaskExecutor
                         UpdatedAt = DateTime.UtcNow
                     };
                     _fileMetadataCollection.Insert(fileMetadata);
-                    
+
                     _logger.LogInformation(
                         "Added file metadata for {ShowTitle} S{Season:D2}E{Episode:D2}: {FilePath}",
                         existingShow.Title,
@@ -1112,7 +1114,10 @@ internal sealed class MetadataSyncTaskExecutor
         _tvShowMetadataCollection.Update(tvShow);
     }
 
-    private async Task SyncMissingMoviesAsync(int[] ids, GlobalSettings.GlobalSettings globalSettings)
+    private async Task SyncMissingMoviesAsync(
+        int[] ids,
+        GlobalSettings.GlobalSettings globalSettings
+    )
     {
         foreach (var tmdbId in ids)
         {
@@ -1140,7 +1145,10 @@ internal sealed class MetadataSyncTaskExecutor
         }
     }
 
-    private async Task SyncMissingTvShowsAsync(int[] ids, GlobalSettings.GlobalSettings globalSettings)
+    private async Task SyncMissingTvShowsAsync(
+        int[] ids,
+        GlobalSettings.GlobalSettings globalSettings
+    )
     {
         foreach (var tmdbId in ids)
         {

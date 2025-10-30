@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useNodes, NodeForm, NodeList } from "@/features/nodes";
 import { useNotifications } from "@/lib/notifications";
 import { usePageTitle } from "@/components/layout";
@@ -22,7 +23,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Plus, Server, AlertCircle, Loader2 } from "lucide-react";
 
 export default function NodesPage() {
-  usePageTitle("Connected Nodes");
+  const t = useTranslations("nodes");
+  const tCommon = useTranslations("common");
+  
+  usePageTitle(t("pageTitle"));
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState<NodeInfo | null>(null);
@@ -40,7 +44,7 @@ export default function NodesPage() {
     if (selectedNode?.id) {
       const result = await updateNode(selectedNode.id, data);
       notify({
-        title: result.success ? "Node Updated" : "Update Failed",
+        title: result.success ? t("nodeUpdated") : t("updateFailed"),
         message: result.message,
         type: result.success ? "success" : "error",
       });
@@ -53,7 +57,7 @@ export default function NodesPage() {
 
     const result = await connectNode(data as ConnectNodeRequest);
     notify({
-      title: result.success ? "Node Connected" : "Connection Failed",
+      title: result.success ? t("nodeConnected") : t("connectionFailed"),
       message: result.message,
       type: result.success ? "success" : "error",
     });
@@ -68,7 +72,7 @@ export default function NodesPage() {
 
     const result = await deleteNode(nodeToDelete.id);
     notify({
-      title: result.success ? "Node Deleted" : "Delete Failed",
+      title: result.success ? t("nodeDeleted") : t("deleteFailed"),
       message: result.message,
       type: result.success ? "success" : "error",
     });
@@ -85,7 +89,7 @@ export default function NodesPage() {
   const handleFetchMetadata = async (node: NodeInfo) => {
     const result = await fetchNodeMetadata(node.id);
     notify({
-      title: result.success ? "Metadata Fetched" : "Fetch Failed",
+      title: result.success ? t("metadataFetched") : t("fetchFailed"),
       message: result.message,
       type: result.success ? "success" : "error",
     });
@@ -95,19 +99,19 @@ export default function NodesPage() {
     <div className="container mx-auto p-4 md:p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Connected Nodes</h1>
-          <p className="text-muted-foreground mt-1">Manage connections to other Haas.Media server instances</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+          <p className="text-muted-foreground mt-1">{t("pageDescription")}</p>
         </div>
         <Button onClick={() => setIsFormOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Connect Node
+          {t("connectNode")}
         </Button>
       </div>
 
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>{t("error")}</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -124,11 +128,9 @@ export default function NodesPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Server className="h-5 w-5" />
-                Connected Nodes ({nodes.length})
+                {t("nodesCount", { count: nodes.length })}
               </CardTitle>
-              <CardDescription>
-                Nodes allow distributed media management across multiple Haas.Media server instances
-              </CardDescription>
+              <CardDescription>{t("nodesDescription")}</CardDescription>
             </CardHeader>
           </Card>
 
@@ -147,11 +149,9 @@ export default function NodesPage() {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{selectedNode ? "Edit Node" : "Connect to Node"}</DialogTitle>
+            <DialogTitle>{selectedNode ? t("editNode") : t("connectToNode")}</DialogTitle>
             <DialogDescription>
-              {selectedNode
-                ? "Update the configuration for this node"
-                : "Connect to another Haas.Media server instance"}
+              {selectedNode ? t("editNodeDescription") : t("connectNodeDescription")}
             </DialogDescription>
           </DialogHeader>
           <NodeForm node={selectedNode ?? undefined} onSubmit={handleFormSubmit} onCancel={closeForm} onValidate={handleValidate} />
@@ -161,14 +161,14 @@ export default function NodesPage() {
       <AlertDialog open={!!nodeToDelete} onOpenChange={(open) => !open && setNodeToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Node</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteNode")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the node &quot;{nodeToDelete?.name}&quot;? This action cannot be undone.
+              {t("deleteNodeConfirmation", { name: nodeToDelete?.name || "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteNode}>Delete</AlertDialogAction>
+            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteNode}>{tCommon("delete")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

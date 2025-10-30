@@ -67,9 +67,7 @@ export function NodeList({ nodes, onEdit, onDelete, onFetchMetadata }: NodeListP
               {node.lastValidatedAt && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Last validated:</span>
-                  <span className="text-xs">
-                    {formatDistanceToNow(new Date(node.lastValidatedAt), { addSuffix: true })}
-                  </span>
+                  <span className="text-xs">{formatDistanceToNow(new Date(node.lastValidatedAt), { addSuffix: true })}</span>
                 </div>
               )}
 

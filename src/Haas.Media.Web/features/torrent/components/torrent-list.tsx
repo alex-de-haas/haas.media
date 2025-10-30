@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { ChevronDown, Magnet, Pause, Play, Square, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ interface TorrentListProps {
 }
 
 export default function TorrentList({ torrents, onDelete, onStart, onStop, onPause, loading }: TorrentListProps) {
+  const t = useTranslations("torrents");
   const [torrentToDelete, setTorrentToDelete] = useState<TorrentInfo | null>(null);
 
   const handleDeleteClick = (torrent: TorrentInfo) => {
@@ -72,10 +74,8 @@ export default function TorrentList({ torrents, onDelete, onStart, onStop, onPau
             <Magnet className="size-7 text-muted-foreground" aria-hidden="true" />
           </div>
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold">No torrents yet</h3>
-            <p className="max-w-sm text-sm text-muted-foreground">
-              Upload a torrent file to start downloading and keep track of its progress here.
-            </p>
+            <h3 className="text-lg font-semibold">{t("noTorrentsYet")}</h3>
+            <p className="max-w-sm text-sm text-muted-foreground">{t("noTorrentsDescription")}</p>
           </div>
         </CardContent>
       </Card>
@@ -86,7 +86,7 @@ export default function TorrentList({ torrents, onDelete, onStart, onStop, onPau
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Badge variant="secondary" className="self-start px-3 py-1 text-xs font-semibold">
-          {torrents.length} active
+          {t("active", { count: torrents.length })}
         </Badge>
       </div>
 
@@ -122,11 +122,12 @@ interface TorrentCardProps {
 }
 
 function TorrentCard({ torrent, onDelete, onStart, onStop, onPause }: TorrentCardProps) {
+  const t = useTranslations("torrents");
   const [filesOpen, setFilesOpen] = useState(false);
 
   const isRunning = torrent.state === TorrentState.Downloading || torrent.state === TorrentState.Seeding;
 
-  const statusInfo = getStatusInfo(torrent.state);
+  const statusInfo = getStatusInfo(torrent.state, t);
   const showTransferRates = torrent.state === TorrentState.Downloading || torrent.state === TorrentState.Seeding;
   const hasEta = torrent.progress > 0 && torrent.estimatedTimeSeconds != null;
 
@@ -142,7 +143,9 @@ function TorrentCard({ torrent, onDelete, onStart, onStop, onPause }: TorrentCar
               {formatSize(torrent.downloaded)} / {formatSize(torrent.size)}
             </span>
             <span className="hidden text-muted-foreground sm:inline">•</span>
-            <span>{formatPercentage(torrent.progress)} complete</span>
+            <span>
+              {formatPercentage(torrent.progress)} {t("complete")}
+            </span>
             {showTransferRates && (
               <>
                 <span className="hidden text-muted-foreground sm:inline">•</span>
@@ -150,7 +153,9 @@ function TorrentCard({ torrent, onDelete, onStart, onStop, onPause }: TorrentCar
                   ↓ {formatRate(torrent.downloadRate)} ↑ {formatRate(torrent.uploadRate)}
                 </span>
                 <span className="hidden text-muted-foreground sm:inline">•</span>
-                <span>ETA {hasEta ? formatDuration(torrent.estimatedTimeSeconds!) : "—"}</span>
+                <span>
+                  {t("eta")} {hasEta ? formatDuration(torrent.estimatedTimeSeconds!) : "—"}
+                </span>
               </>
             )}
           </CardDescription>
@@ -162,9 +167,9 @@ function TorrentCard({ torrent, onDelete, onStart, onStop, onPause }: TorrentCar
 
       <CardContent className="space-y-4">
         <div className="grid gap-3 text-sm sm:grid-cols-3">
-          <Metric label="Downloaded" value={`${formatSize(torrent.downloaded)} of ${formatSize(torrent.size)}`} />
+          <Metric label={t("downloaded")} value={`${formatSize(torrent.downloaded)} of ${formatSize(torrent.size)}`} />
           <Metric
-            label="Transfer"
+            label={t("transfer")}
             value={
               showTransferRates ? (
                 <span>
@@ -175,7 +180,7 @@ function TorrentCard({ torrent, onDelete, onStart, onStop, onPause }: TorrentCar
               )
             }
           />
-          <Metric label="Files" value={`${torrent.files.length}`} />
+          <Metric label={t("files")} value={`${torrent.files.length}`} />
         </div>
 
         {torrent.files.length > 0 && (
@@ -185,7 +190,9 @@ function TorrentCard({ torrent, onDelete, onStart, onStop, onPause }: TorrentCar
               onClick={toggleFiles}
               className="flex w-full items-center justify-between gap-2 px-4 py-3 text-sm font-medium transition hover:bg-muted"
             >
-              <span>Files ({torrent.files.length})</span>
+              <span>
+                {t("files")} ({torrent.files.length})
+              </span>
               <ChevronDown
                 className={cn("size-4 text-muted-foreground transition-transform", filesOpen && "rotate-180")}
                 aria-hidden="true"
@@ -214,7 +221,7 @@ function TorrentCard({ torrent, onDelete, onStart, onStop, onPause }: TorrentCar
       <CardFooter className="flex flex-col gap-4 border-t border-border/80 bg-muted/20 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <div className="w-full space-y-2 sm:flex-1">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Progress</span>
+            <span>{t("progress")}</span>
             <span>{formatPercentage(torrent.progress)}</span>
           </div>
           <Progress value={torrent.progress} className="h-2" />
@@ -222,17 +229,38 @@ function TorrentCard({ torrent, onDelete, onStart, onStop, onPause }: TorrentCar
 
         <div className="flex items-center gap-2 self-stretch sm:self-auto">
           {isRunning && onPause && (
-            <Button type="button" variant="ghost" size="icon" onClick={onPause} aria-label={`Pause ${torrent.name}`} title="Pause torrent">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onPause}
+              aria-label={`${t("pause")} ${torrent.name}`}
+              title={t("pauseTorrent")}
+            >
               <Pause className="size-4" aria-hidden="true" />
             </Button>
           )}
           {isRunning && onStop && (
-            <Button type="button" variant="ghost" size="icon" onClick={onStop} aria-label={`Stop ${torrent.name}`} title="Stop torrent">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onStop}
+              aria-label={`${t("stop")} ${torrent.name}`}
+              title={t("stopTorrent")}
+            >
               <Square className="size-4" aria-hidden="true" />
             </Button>
           )}
           {!isRunning && torrent.state !== TorrentState.Stopping && onStart && (
-            <Button type="button" variant="ghost" size="icon" onClick={onStart} aria-label={`Start ${torrent.name}`} title="Start torrent">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onStart}
+              aria-label={`${t("start")} ${torrent.name}`}
+              title={t("startTorrent")}
+            >
               <Play className="size-4" aria-hidden="true" />
             </Button>
           )}
@@ -242,8 +270,8 @@ function TorrentCard({ torrent, onDelete, onStart, onStop, onPause }: TorrentCar
               variant="ghost"
               size="icon"
               onClick={onDelete}
-              aria-label={`Delete ${torrent.name}`}
-              title="Delete torrent"
+              aria-label={`${t("delete", { ns: "common" })} ${torrent.name}`}
+              title={t("deleteTorrent")}
             >
               <Trash2 className="size-4" aria-hidden="true" />
             </Button>
@@ -263,13 +291,13 @@ function Metric({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-function getStatusInfo(state: TorrentState): { label: string; badgeClass: string } {
+function getStatusInfo(state: TorrentState, t: (key: string) => string): { label: string; badgeClass: string } {
   switch (state) {
     case TorrentState.Downloading:
     case TorrentState.Seeding:
     case TorrentState.Starting:
       return {
-        label: "Downloading",
+        label: t("downloading"),
         badgeClass: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600",
       };
     case TorrentState.Paused:
@@ -279,18 +307,18 @@ function getStatusInfo(state: TorrentState): { label: string; badgeClass: string
     case TorrentState.Metadata:
     case TorrentState.FetchingHashes:
       return {
-        label: "Queued",
+        label: t("queued"),
         badgeClass: "border-amber-500/30 bg-amber-500/10 text-amber-600",
       };
     case TorrentState.Error:
       return {
-        label: "Error",
+        label: t("error"),
         badgeClass: "border-destructive/30 bg-destructive/20 text-destructive",
       };
     case TorrentState.Stopped:
     default:
       return {
-        label: "Stopped",
+        label: t("stopped"),
         badgeClass: "border-border bg-muted text-muted-foreground",
       };
   }

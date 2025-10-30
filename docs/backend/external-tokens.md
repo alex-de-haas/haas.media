@@ -178,11 +178,13 @@ ws://localhost:8000/hub/torrents?access_token=YOUR_TOKEN_HERE
 Previous versions used the `NODE_API_KEY` environment variable. This is now deprecated in favor of external tokens:
 
 **Before:**
+
 ```env
 NODE_API_KEY=some-secret-key
 ```
 
 **After:**
+
 1. Create an external token via the API
 2. Use that token when connecting nodes
 3. Remove `NODE_API_KEY` from environment variables
@@ -209,5 +211,6 @@ External tokens are stored in the `external_tokens` collection with fields:
 - `LastUsedAt`: Last authentication timestamp
 
 Indexes:
+
 - `UserId`: For listing user's tokens
 - `TokenHash`: For fast token validation

@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import { ArrowRight, Library, Folder } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { usePageTitle } from "@/components/layout";
 import { useAuthGuard } from "@/features/auth/use-auth-guard";
@@ -10,33 +11,34 @@ import { TorrentDashboardWidget } from "@/components/torrent";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
-const quickActions = [
-  {
-    title: "Media Libraries",
-    description: "Inspect and organize every collection in your library.",
-    href: "/libraries",
-    icon: Library,
-    cta: "Browse libraries",
-  },
-  {
-    title: "File Explorer",
-    description: "Review raw files, storage usage, and transfer history.",
-    href: "/files",
-    icon: Folder,
-    cta: "Open file view",
-  },
-];
-
 export default function HomePage() {
   const { isAuthenticated, isLoading } = useAuthGuard();
+  const t = useTranslations("dashboard");
 
-  usePageTitle("Dashboard");
+  const quickActions = [
+    {
+      title: t("quickActions.mediaLibraries.title"),
+      description: t("quickActions.mediaLibraries.description"),
+      href: "/libraries",
+      icon: Library,
+      cta: t("quickActions.mediaLibraries.cta"),
+    },
+    {
+      title: t("quickActions.fileExplorer.title"),
+      description: t("quickActions.fileExplorer.description"),
+      href: "/files",
+      icon: Folder,
+      cta: t("quickActions.fileExplorer.cta"),
+    },
+  ];
+
+  usePageTitle(t("title"));
 
   // Show loading state while checking authentication
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground">{t("loading")}</div>
       </div>
     );
   }

@@ -21,7 +21,8 @@ public class HybridAuthenticationHandler : AuthenticationHandler<JwtBearerOption
         ILoggerFactory logger,
         UrlEncoder encoder,
         IAuthenticationApi authenticationApi
-    ) : base(options, logger, encoder)
+    )
+        : base(options, logger, encoder)
     {
         _authenticationApi = authenticationApi;
         _jwtHandler = new JwtBearerHandler(options, logger, encoder);
@@ -61,16 +62,20 @@ public class HybridAuthenticationHandler : AuthenticationHandler<JwtBearerOption
         try
         {
             await _jwtHandler.InitializeAsync(
-                new AuthenticationScheme(JwtBearerDefaults.AuthenticationScheme, null, typeof(JwtBearerHandler)),
+                new AuthenticationScheme(
+                    JwtBearerDefaults.AuthenticationScheme,
+                    null,
+                    typeof(JwtBearerHandler)
+                ),
                 Context
             );
             var result = await _jwtHandler.AuthenticateAsync();
-            
+
             if (result.Succeeded)
             {
                 Logger.LogDebug("JWT token validated");
             }
-            
+
             return result;
         }
         catch (Exception ex)
@@ -84,7 +89,10 @@ public class HybridAuthenticationHandler : AuthenticationHandler<JwtBearerOption
     {
         // Check Authorization header
         var authHeader = Request.Headers.Authorization.ToString();
-        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        if (
+            !string.IsNullOrEmpty(authHeader)
+            && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+        )
         {
             return authHeader.Substring("Bearer ".Length).Trim();
         }

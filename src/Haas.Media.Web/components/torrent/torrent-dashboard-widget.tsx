@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight, CloudDownload } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { useTorrents } from "@/features/torrent/hooks";
 import type { TorrentInfo } from "@/types";
@@ -19,6 +20,7 @@ const clampProgress = (value: number): number => (Number.isFinite(value) ? Math.
 
 export function TorrentDashboardWidget() {
   const { torrents, loading } = useTorrents();
+  const t = useTranslations("dashboard.torrentWidget");
 
   const metrics = useMemo(() => computeMetrics(torrents), [torrents]);
 
@@ -35,25 +37,25 @@ export function TorrentDashboardWidget() {
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <CloudDownload className="h-4 w-4" />
               </span>
-              Torrent activity
+              {t("title")}
             </CardTitle>
-            <CardDescription>Live overview of downloading and seeding torrents.</CardDescription>
+            <CardDescription>{t("description")}</CardDescription>
           </div>
           <Badge variant={hasActive ? "secondary" : "outline"} className="px-3">
-            {showSkeleton ? <Skeleton className="h-4 w-14" /> : hasActive ? `${metrics.active} active` : "Idle"}
+            {showSkeleton ? <Skeleton className="h-4 w-14" /> : hasActive ? t("activeCount", { count: metrics.active }) : t("idle")}
           </Badge>
         </div>
         {!showSkeleton && hasTorrents && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Average progress</span>
+              <span>{t("averageProgress")}</span>
               <span>{metrics.averageProgress.toFixed(1)}%</span>
             </div>
-            <Progress value={metrics.averageProgress} aria-label="Average torrent progress" className="h-2" />
+            <Progress value={metrics.averageProgress} aria-label={t("averageProgressLabel")} className="h-2" />
             <p className="text-xs text-muted-foreground">
               {metrics.nextCompletion != null
-                ? `Next completion in ${formatDuration(metrics.nextCompletion)}`
-                : "Waiting for completion estimates"}
+                ? t("nextCompletion", { duration: formatDuration(metrics.nextCompletion) })
+                : t("waitingForEstimates")}
             </p>
           </div>
         )}
@@ -64,7 +66,7 @@ export function TorrentDashboardWidget() {
       <CardFooter className="text-xs text-muted-foreground">
         <Button variant="outline" asChild>
           <Link href="/torrent">
-            Manage torrents
+            {t("manageTorrents")}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
@@ -74,26 +76,28 @@ export function TorrentDashboardWidget() {
 }
 
 function EmptyState() {
+  const t = useTranslations("dashboard.torrentWidget");
   return (
     <div className="rounded-md border border-dashed border-muted bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
-      No torrents are currently being tracked. Upload a .torrent file to get started.
+      {t("emptyState")}
     </div>
   );
 }
 
 function StatsSummary({ metrics }: { metrics: ReturnType<typeof computeMetrics> }) {
   const { active, total, seeding, totalDownloadRate, totalUploadRate } = metrics;
+  const t = useTranslations("dashboard.torrentWidget.stats");
 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Active torrents" value={active.toString()} description={`Tracking ${total} total`} />
-        <StatTile label="Seeding" value={seeding.toString()} description="Completed downloads being shared" />
-        <StatTile label="Download rate" value={formatRate(totalDownloadRate)} description="Aggregate downstream throughput" />
-        <StatTile label="Upload rate" value={formatRate(totalUploadRate)} description="Aggregate upstream throughput" />
+        <StatTile label={t("activeTorrents")} value={active.toString()} description={t("trackingTotal", { total })} />
+        <StatTile label={t("seeding")} value={seeding.toString()} description={t("seedingDesc")} />
+        <StatTile label={t("downloadRate")} value={formatRate(totalDownloadRate)} description={t("downloadRateDesc")} />
+        <StatTile label={t("uploadRate")} value={formatRate(totalUploadRate)} description={t("uploadRateDesc")} />
       </div>
 
-      <p className="text-xs text-muted-foreground">Updates stream directly from the downloader worker over SignalR.</p>
+      <p className="text-xs text-muted-foreground">{t("liveUpdates")}</p>
     </div>
   );
 }

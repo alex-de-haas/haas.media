@@ -1,26 +1,28 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { AddToLibraryProgress, MoviesList } from "@/features/media/components";
+import { useTranslations } from "next-intl";
+import { AddToLibraryProgress, TVShowsList } from "@/features/media/components";
 import { Spinner } from "@/components/ui";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { usePageTitle } from "@/components/layout";
 import { SearchModal } from "@/components/modals";
 import { LibraryType } from "@/types/library";
-import { Card, CardContent } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
 
-export default function MoviesPage() {
+export default function TVShowsPage() {
+  const t = useTranslations("tvShows");
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
-  usePageTitle("Movies");
+  usePageTitle(t("title"));
 
   return (
     <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">
-      <AddToLibraryProgress libraryType={LibraryType.Movies} />
+      <AddToLibraryProgress libraryType={LibraryType.TVShows} />
       <Button onClick={() => setIsSearchModalOpen(true)}>
         <PlusCircle className="mr-2 h-4 w-4" />
-        Add Movie
+        {t("addShow")}
       </Button>
 
       <Suspense
@@ -32,14 +34,14 @@ export default function MoviesPage() {
           </Card>
         }
       >
-        <MoviesList />
+        <TVShowsList />
       </Suspense>
 
       <SearchModal
         isOpen={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}
-        mediaType={LibraryType.Movies}
-        title="Search Movies"
+        mediaType={LibraryType.TVShows}
+        title={t("searchShows")}
       />
     </main>
   );

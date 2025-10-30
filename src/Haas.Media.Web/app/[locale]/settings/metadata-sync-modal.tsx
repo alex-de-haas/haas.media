@@ -33,9 +33,7 @@ export default function MetadataSyncModal({ isOpen, onClose, onConfirm, isSyncin
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Metadata Sync</DialogTitle>
-          <DialogDescription>
-            Scan configured directories for new media files and refresh metadata from TMDB.
-          </DialogDescription>
+          <DialogDescription>Scan configured directories for new media files and refresh metadata from TMDB.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">

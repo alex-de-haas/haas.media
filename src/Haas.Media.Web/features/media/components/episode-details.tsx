@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { ArrowLeft, Calendar, Clock, Star, Tv } from "lucide-react";
 
 import { useTVShow } from "@/features/media/hooks";
@@ -26,6 +27,7 @@ interface EpisodeDetailsProps {
 }
 
 export default function EpisodeDetails({ tvShowId, seasonNumber, episodeNumber }: EpisodeDetailsProps) {
+  const t = useTranslations("tvShows");
   const { tvShow, loading, error } = useTVShow(tvShowId);
   const { files: showFiles } = useFilesByMediaId(tvShowId, LibraryType.TVShows);
 
@@ -65,12 +67,12 @@ export default function EpisodeDetails({ tvShowId, seasonNumber, episodeNumber }
     return (
       <div className="mx-auto max-w-4xl px-4 py-8">
         <Alert variant="destructive">
-          <AlertTitle>Episode not found</AlertTitle>
-          <AlertDescription>{error || "The episode you requested could not be found."}</AlertDescription>
+          <AlertTitle>{t("episodeNotFound")}</AlertTitle>
+          <AlertDescription>{error || t("episodeNotFoundDescription")}</AlertDescription>
         </Alert>
         <Button asChild variant="outline" className="mt-4">
           <Link href="/tvshows" className="inline-flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" /> Back to TV Shows
+            <ArrowLeft className="h-4 w-4" /> {t("backToTVShows")}
           </Link>
         </Button>
       </div>
@@ -102,7 +104,7 @@ export default function EpisodeDetails({ tvShowId, seasonNumber, episodeNumber }
           <Button asChild variant="secondary" size="sm" className="bg-black/60 text-white hover:bg-black/70">
             <Link href={`/tvshows/${tvShowId}`} className="inline-flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back to {tvShow.title}
+              {t("backToShow", { title: tvShow.title })}
             </Link>
           </Button>
         </div>
@@ -138,7 +140,7 @@ export default function EpisodeDetails({ tvShowId, seasonNumber, episodeNumber }
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <div className="text-sm text-muted-foreground">
-                          {tvShow.title} • Season {seasonNumber} • Episode {episodeNumber}
+                          {tvShow.title} • {t("season")} {seasonNumber} • {t("episode")} {episodeNumber}
                         </div>
                         <CardTitle className="text-3xl md:text-4xl">{episode.name}</CardTitle>
                       </div>
@@ -151,7 +153,7 @@ export default function EpisodeDetails({ tvShowId, seasonNumber, episodeNumber }
                             <span className="font-semibold text-foreground">{episode.voteAverage.toFixed(1)}</span>
                           </Badge>
                         )}
-                        {episode.voteCount > 0 && <span className="text-muted-foreground">{episode.voteCount.toLocaleString()} votes</span>}
+                        {episode.voteCount > 0 && <span className="text-muted-foreground">{t("voteCount", { count: episode.voteCount })}</span>}
                         {formattedAirDate && (
                           <Badge variant="outline" className="flex items-center gap-2 px-3 py-1">
                             <Calendar className="h-4 w-4" />
@@ -161,7 +163,7 @@ export default function EpisodeDetails({ tvShowId, seasonNumber, episodeNumber }
                         {episode.runtime && (
                           <Badge variant="outline" className="flex items-center gap-2 px-3 py-1">
                             <Clock className="h-4 w-4" />
-                            {episode.runtime} min
+                            {t("minutes", { count: episode.runtime })}
                           </Badge>
                         )}
                       </div>
@@ -170,7 +172,7 @@ export default function EpisodeDetails({ tvShowId, seasonNumber, episodeNumber }
                     {/* Overview */}
                     {episode.overview && (
                       <div className="space-y-2">
-                        <h2 className="text-lg font-semibold">Overview</h2>
+                        <h2 className="text-lg font-semibold">{t("overview")}</h2>
                         <p className="text-muted-foreground leading-relaxed">{episode.overview}</p>
                       </div>
                     )}
@@ -180,7 +182,7 @@ export default function EpisodeDetails({ tvShowId, seasonNumber, episodeNumber }
                       <>
                         <Separator />
                         <div className="space-y-2">
-                          <h3 className="text-sm font-semibold">Local Files</h3>
+                          <h3 className="text-sm font-semibold">{t("localFiles")}</h3>
                           <div className="space-y-1">
                             {episodeFiles.map((file) => (
                               <p key={file.id} className="break-all font-mono text-xs text-muted-foreground">
@@ -200,84 +202,84 @@ export default function EpisodeDetails({ tvShowId, seasonNumber, episodeNumber }
                 <Card className="shadow-lg">
                   <CardHeader className="space-y-4">
                     <div>
-                      <CardTitle className="text-lg">Episode Credits</CardTitle>
-                      <CardDescription>Guest stars and crew for this episode</CardDescription>
+                      <CardTitle className="text-lg">{t("credits")}</CardTitle>
+                      <CardDescription>{t("creditsDescription")}</CardDescription>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {hasCast && (
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-semibold">Guest Stars</h3>
-                    <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
-                      <CarouselContent className="-ml-2 sm:-ml-4">
-                        {episode.cast
-                          ?.slice()
-                          .sort((a, b) => a.order - b.order)
-                          .slice(0, CREDIT_DISPLAY_LIMIT)
-                          .map((castMember) => (
-                            <CarouselItem
-                              key={`${castMember.id}-${castMember.order}`}
-                              className="basis-3/4 pl-2 sm:basis-1/2 sm:pl-4 md:basis-1/3 lg:basis-1/4"
-                            >
-                              <PersonCard
-                                name={castMember.name}
-                                {...(castMember.character ? { description: castMember.character } : {})}
-                                profilePath={castMember.profilePath ?? null}
-                                href={`/people/${castMember.id}`}
-                                className="mx-auto h-full"
-                              />
-                            </CarouselItem>
-                          ))}
-                      </CarouselContent>
-                      <CarouselPrevious className="hidden md:flex -left-8" />
-                      <CarouselNext className="hidden md:flex -right-8" />
-                    </Carousel>
-                    {(episode.cast?.length ?? 0) > CREDIT_DISPLAY_LIMIT && (
-                      <p className="text-xs text-muted-foreground">
-                        Showing {CREDIT_DISPLAY_LIMIT} of {episode.cast?.length ?? 0} guest stars
-                      </p>
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-semibold">{t("cast")}</h3>
+                        <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
+                          <CarouselContent className="-ml-2 sm:-ml-4">
+                            {episode.cast
+                              ?.slice()
+                              .sort((a, b) => a.order - b.order)
+                              .slice(0, CREDIT_DISPLAY_LIMIT)
+                              .map((castMember) => (
+                                <CarouselItem
+                                  key={`${castMember.id}-${castMember.order}`}
+                                  className="basis-3/4 pl-2 sm:basis-1/2 sm:pl-4 md:basis-1/3 lg:basis-1/4"
+                                >
+                                  <PersonCard
+                                    name={castMember.name}
+                                    {...(castMember.character ? { description: castMember.character } : {})}
+                                    profilePath={castMember.profilePath ?? null}
+                                    href={`/people/${castMember.id}`}
+                                    className="mx-auto h-full"
+                                  />
+                                </CarouselItem>
+                              ))}
+                          </CarouselContent>
+                          <CarouselPrevious className="hidden md:flex -left-8" />
+                          <CarouselNext className="hidden md:flex -right-8" />
+                        </Carousel>
+                        {(episode.cast?.length ?? 0) > CREDIT_DISPLAY_LIMIT && (
+                          <p className="text-xs text-muted-foreground">
+                            {t("showingCastMembers", { displayed: CREDIT_DISPLAY_LIMIT, total: episode.cast?.length ?? 0 })}
+                          </p>
+                        )}
+                      </div>
                     )}
-                  </div>
-                )}
 
-                {hasCrew && (
-                  <>
-                    {hasCast && <Separator />}
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-semibold">Crew</h3>
-                      <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
-                        <CarouselContent className="-ml-2 sm:-ml-4">
-                          {episode.crew
-                            ?.slice()
-                            .sort((a, b) => b.weight - a.weight)
-                            .slice(0, CREDIT_DISPLAY_LIMIT)
-                            .map((crewMember) => (
-                              <CarouselItem
-                                key={`${crewMember.id}-${crewMember.job}`}
-                                className="basis-3/4 pl-2 sm:basis-1/2 sm:pl-4 md:basis-1/3 lg:basis-1/4"
-                              >
-                                <PersonCard
-                                  name={crewMember.name}
-                                  description={crewMember.job}
-                                  {...(crewMember.department ? { meta: crewMember.department } : {})}
-                                  profilePath={crewMember.profilePath ?? null}
-                                  href={`/people/${crewMember.id}`}
-                                  className="mx-auto h-full"
-                                />
-                              </CarouselItem>
-                            ))}
-                        </CarouselContent>
-                        <CarouselPrevious className="hidden md:flex -left-8" />
-                        <CarouselNext className="hidden md:flex -right-8" />
-                      </Carousel>
-                      {(episode.crew?.length ?? 0) > CREDIT_DISPLAY_LIMIT && (
-                        <p className="text-xs text-muted-foreground">
-                          Showing {CREDIT_DISPLAY_LIMIT} of {episode.crew?.length ?? 0} crew members
-                        </p>
-                      )}
-                    </div>
-                  </>
-                )}
+                    {hasCrew && (
+                      <>
+                        {hasCast && <Separator />}
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-semibold">{t("crew")}</h3>
+                          <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
+                            <CarouselContent className="-ml-2 sm:-ml-4">
+                              {episode.crew
+                                ?.slice()
+                                .sort((a, b) => b.weight - a.weight)
+                                .slice(0, CREDIT_DISPLAY_LIMIT)
+                                .map((crewMember) => (
+                                  <CarouselItem
+                                    key={`${crewMember.id}-${crewMember.job}`}
+                                    className="basis-3/4 pl-2 sm:basis-1/2 sm:pl-4 md:basis-1/3 lg:basis-1/4"
+                                  >
+                                    <PersonCard
+                                      name={crewMember.name}
+                                      description={crewMember.job}
+                                      {...(crewMember.department ? { meta: crewMember.department } : {})}
+                                      profilePath={crewMember.profilePath ?? null}
+                                      href={`/people/${crewMember.id}`}
+                                      className="mx-auto h-full"
+                                    />
+                                  </CarouselItem>
+                                ))}
+                            </CarouselContent>
+                            <CarouselPrevious className="hidden md:flex -left-8" />
+                            <CarouselNext className="hidden md:flex -right-8" />
+                          </Carousel>
+                          {(episode.crew?.length ?? 0) > CREDIT_DISPLAY_LIMIT && (
+                            <p className="text-xs text-muted-foreground">
+                              {t("showingCrewMembers", { displayed: CREDIT_DISPLAY_LIMIT, total: episode.crew?.length ?? 0 })}
+                            </p>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               )}

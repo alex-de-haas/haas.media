@@ -48,12 +48,12 @@ public sealed record ConnectNodeRequest
 {
     public required string Name { get; init; }
     public required string Url { get; init; }
-    
+
     /// <summary>
     /// API key/token from the destination node (to authenticate TO the destination) - must be provided manually
     /// </summary>
     public string? DestinationApiKey { get; init; }
-    
+
     /// <summary>
     /// ID of current node's external token (to send TO destination so it can authenticate back)
     /// </summary>

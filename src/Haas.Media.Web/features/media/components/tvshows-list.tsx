@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useTVShows } from "@/features/media/hooks";
 import type { TVShowMetadata } from "@/types/metadata";
 import { MultiSelect, type Option, Spinner } from "@/components/ui";
@@ -19,6 +20,7 @@ interface TVShowCardProps {
 }
 
 function TVShowCard({ tvShow }: TVShowCardProps) {
+  const t = useTranslations("tvShows");
   const posterUrl = getPosterUrl(tvShow.posterPath);
   const seasonCount = tvShow.seasons?.length ?? 0;
   const hasLinkedEpisode = (tvShow.seasons ?? []).some((season) => (season.episodes ?? []).some((episode) => Boolean(episode.filePath)));
@@ -44,7 +46,7 @@ function TVShowCard({ tvShow }: TVShowCardProps) {
           {hasLinkedEpisode && (
             <Badge className="absolute left-3 top-3 flex items-center gap-1 bg-emerald-500 text-white shadow">
               <HardDrive className="h-3.5 w-3.5" />
-              Local files
+              {t("localFiles")}
             </Badge>
           )}
         </div>
@@ -58,7 +60,7 @@ function TVShowCard({ tvShow }: TVShowCardProps) {
             {seasonCount > 0 && (
               <Badge variant="secondary" className="gap-1 text-xs">
                 <Layers className="h-3 w-3" />
-                {seasonCount} season{seasonCount !== 1 ? "s" : ""}
+                {t("seasonCount", { count: seasonCount, plural: seasonCount !== 1 ? "s" : "" })}
               </Badge>
             )}
             {tvShow.voteAverage > 0 && (
@@ -67,7 +69,7 @@ function TVShowCard({ tvShow }: TVShowCardProps) {
                 {tvShow.voteAverage.toFixed(1)}
               </Badge>
             )}
-            {tvShow.voteCount > 0 && <span>({tvShow.voteCount} votes)</span>}
+            {tvShow.voteCount > 0 && <span>{t("votes", { count: tvShow.voteCount })}</span>}
           </div>
         </CardContent>
       </Card>
@@ -81,6 +83,7 @@ interface TVShowsListProps {
 }
 
 export default function TVShowsList(_props: TVShowsListProps) {
+  const t = useTranslations("tvShows");
   const { tvShows, loading, error, refetch } = useTVShows();
 
   const [selectedPeople, setSelectedPeople] = useState<string[]>([]);
@@ -144,12 +147,12 @@ export default function TVShowsList(_props: TVShowsListProps) {
   if (error) {
     return (
       <Alert variant="destructive">
-        <AlertTitle>Unable to load TV shows</AlertTitle>
+        <AlertTitle>{t("unableToLoad")}</AlertTitle>
         <AlertDescription className="flex items-center justify-between gap-4">
           <span>{error}</span>
           <Button variant="outline" size="sm" onClick={refetch} className="border-destructive text-destructive hover:bg-destructive/10">
             <RefreshCw className="mr-2 h-3.5 w-3.5" />
-            Retry
+            {t("retry")}
           </Button>
         </AlertDescription>
       </Alert>
@@ -162,8 +165,8 @@ export default function TVShowsList(_props: TVShowsListProps) {
         <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center text-muted-foreground">
           <PackageOpen className="h-12 w-12 text-muted-foreground/40" />
           <div className="space-y-1">
-            <p className="text-sm font-medium">No TV shows found</p>
-            <p className="text-xs">TV shows will appear after your libraries finish scanning.</p>
+            <p className="text-sm font-medium">{t("noShows")}</p>
+            <p className="text-xs">{t("afterScanning")}</p>
           </div>
         </CardContent>
       </Card>
@@ -183,10 +186,10 @@ export default function TVShowsList(_props: TVShowsListProps) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold tracking-tight">TV Shows</h2>
+        <h2 className="text-lg font-semibold tracking-tight">{t("title")}</h2>
         <Badge variant="outline" className="gap-1 text-xs">
           <Tv className="h-3.5 w-3.5" />
-          {filteredTVShows.length} {hasActivePeopleFilter && `of ${tvShows.length}`} series
+          {t("seriesCount", { count: filteredTVShows.length, filtered: hasActivePeopleFilter ? `${t("of")} ${tvShows.length}` : "" })}
         </Badge>
       </div>
 
@@ -195,13 +198,13 @@ export default function TVShowsList(_props: TVShowsListProps) {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
           <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
             <Filter className="h-4 w-4 text-primary" />
-            Filters
+            {t("filters")}
             {filtersApplied ? (
               <Badge variant="secondary" className="gap-1 text-xs">
-                {activeFilterCount} active
+                {t("activeFilters", { count: activeFilterCount })}
               </Badge>
             ) : (
-              <span className="text-xs font-normal text-muted-foreground/80">Dial in the perfect series line-up</span>
+              <span className="text-xs font-normal text-muted-foreground/80">{t("dialInSeries")}</span>
             )}
           </div>
           {filtersApplied && (
@@ -213,7 +216,7 @@ export default function TVShowsList(_props: TVShowsListProps) {
               className="gap-2 px-3 text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               <CircleX className="h-4 w-4" />
-              Clear filters
+              {t("clearFilters")}
             </Button>
           )}
         </div>
@@ -223,16 +226,16 @@ export default function TVShowsList(_props: TVShowsListProps) {
             <div className="space-y-1">
               <span className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <Users className="h-4 w-4 text-muted-foreground" />
-                Filter by people
+                {t("filterByPeople")}
               </span>
-              <span className="text-xs text-muted-foreground">Mix cast and crew to spotlight the right shows.</span>
+              <span className="text-xs text-muted-foreground">{t("mixCastCrew")}</span>
             </div>
             <MultiSelect
               options={peopleOptions}
               selected={selectedPeople}
               onChange={setSelectedPeople}
-              placeholder="Search cast and crew..."
-              emptyMessage="No person found."
+              placeholder={t("searchCastCrew")}
+              emptyMessage={t("noPersonFound")}
               className="h-11 w-full"
             />
           </div>
@@ -244,8 +247,8 @@ export default function TVShowsList(_props: TVShowsListProps) {
           <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center text-muted-foreground">
             <PackageOpen className="h-12 w-12 text-muted-foreground/40" />
             <div className="space-y-1">
-              <p className="text-sm font-medium">No TV shows match the selected filters</p>
-              <p className="text-xs">Try adjusting your filter criteria.</p>
+              <p className="text-sm font-medium">{t("noMatchingFilters")}</p>
+              <p className="text-xs">{t("adjustFilters")}</p>
             </div>
           </CardContent>
         </Card>

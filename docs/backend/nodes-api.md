@@ -19,6 +19,7 @@ Nodes/
 ### Database
 
 Nodes are stored in the LiteDB `nodes` collection with the following indexes:
+
 - `Id` (unique)
 - `Name`
 - `Url`
@@ -28,9 +29,11 @@ Nodes are stored in the LiteDB `nodes` collection with the following indexes:
 All endpoints require authorization and are prefixed with `/api/nodes`.
 
 ### GET /api/nodes
+
 Get all connected nodes.
 
 **Response:** `200 OK`
+
 ```json
 [
   {
@@ -49,14 +52,17 @@ Get all connected nodes.
 ```
 
 ### GET /api/nodes/{id}
+
 Get a specific node by ID.
 
 **Response:** `200 OK` or `404 Not Found`
 
 ### POST /api/nodes
+
 Connect to a new node. Validates the connection and automatically registers this node with the remote node (bidirectional handshake).
 
 **Request Body:**
+
 ```json
 {
   "name": "Living Room Server",
@@ -66,6 +72,7 @@ Connect to a new node. Validates the connection and automatically registers this
 ```
 
 **Validation:**
+
 - Name is required
 - URL is required and must be valid HTTP/HTTPS
 - Connection is tested against `/health` endpoint
@@ -74,6 +81,7 @@ Connect to a new node. Validates the connection and automatically registers this
 
 **Bidirectional Connection:**
 When connecting to a remote node, this endpoint automatically:
+
 1. Validates the remote node is accessible
 2. Calls `/api/nodes/register` on the remote node to register this node
 3. Stores the remote node locally
@@ -82,16 +90,19 @@ This creates a bidirectional connection where both nodes know about each other.
 
 **Configuration:**
 Set `NODE_URL` environment variable to define this node's public URL for node-to-node communication:
+
 ```bash
 NODE_URL=http://192.168.1.50:8000
 ```
 
 Optionally set `NODE_NAME` to customize this node's display name when registering with remote nodes:
+
 ```bash
 NODE_NAME="Main Media Server"
 ```
 
 Optionally set `NODE_API_KEY` if this node requires authentication:
+
 ```bash
 NODE_API_KEY="your-api-key-for-this-node"
 ```
@@ -99,9 +110,11 @@ NODE_API_KEY="your-api-key-for-this-node"
 **Response:** `201 Created` or `400 Bad Request`
 
 ### PUT /api/nodes/{id}
+
 Update an existing node. Re-validates connection if URL changes.
 
 **Request Body:** (all fields optional)
+
 ```json
 {
   "name": "Updated Name",
@@ -114,14 +127,17 @@ Update an existing node. Re-validates connection if URL changes.
 **Response:** `200 OK`, `400 Bad Request`, or `404 Not Found`
 
 ### DELETE /api/nodes/{id}
+
 Delete a node.
 
 **Response:** `200 OK` or `404 Not Found`
 
 ### POST /api/nodes/register
+
 Register an incoming node connection. This endpoint is called automatically by remote nodes when they connect to this node.
 
 **Request Body:**
+
 ```json
 {
   "name": "Remote Server",
@@ -131,6 +147,7 @@ Register an incoming node connection. This endpoint is called automatically by r
 ```
 
 **Behavior:**
+
 - If the node URL already exists, updates the last validated time
 - If it's a new node, creates a new entry with metadata indicating it was registered via incoming connection
 - Requires authentication (same as other endpoints)
@@ -138,9 +155,11 @@ Register an incoming node connection. This endpoint is called automatically by r
 **Response:** `201 Created` or `400 Bad Request`
 
 ### POST /api/nodes/validate
+
 Validate a connection to a node without saving it. Useful for testing connectivity before adding a node.
 
 **Request Body:**
+
 ```json
 {
   "url": "http://192.168.1.100:8000",
@@ -149,6 +168,7 @@ Validate a connection to a node without saving it. Useful for testing connectivi
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
   "isValid": true,
@@ -160,6 +180,7 @@ Validate a connection to a node without saving it. Useful for testing connectivi
 ```
 
 Or on failure:
+
 ```json
 {
   "isValid": false,
@@ -181,6 +202,7 @@ When connecting to or updating a node, the service validates the connection by:
 ### Validation Errors
 
 Common validation failures:
+
 - `Connection timeout (10 seconds)` - Node is unreachable or slow
 - `Health check returned status code: 401` - Invalid API key
 - `Connection failed: No such host is known` - Invalid hostname/IP

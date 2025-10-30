@@ -58,7 +58,11 @@ static class TVShowMetadataMapper
             BackdropPath = tvShow.BackdropPath,
             LogoPath = GetBestLogo(tvShow.Images, preferredLanguage),
             Genres = MapGenres(tvShow),
-            Crew = CreditsSelector.SelectTopCrewForTv(tvShow.Credits, tvShow.CreatedBy, topCrewCount),
+            Crew = CreditsSelector.SelectTopCrewForTv(
+                tvShow.Credits,
+                tvShow.CreatedBy,
+                topCrewCount
+            ),
             Cast = CreditsSelector.SelectTopCastForTv(tvShow.Credits, topCastCount),
             Networks = MapNetworks(tvShow),
             OfficialRating = GetOfficialRating(tvShow, preferredCountryCode),
@@ -88,7 +92,11 @@ static class TVShowMetadataMapper
         target.BackdropPath = source.BackdropPath;
         target.LogoPath = GetBestLogo(source.Images, preferredLanguage);
         target.Genres = MapGenres(source);
-        target.Crew = CreditsSelector.SelectTopCrewForTv(source.Credits, source.CreatedBy, topCrewCount);
+        target.Crew = CreditsSelector.SelectTopCrewForTv(
+            source.Credits,
+            source.CreatedBy,
+            topCrewCount
+        );
         target.Cast = CreditsSelector.SelectTopCastForTv(source.Credits, topCastCount);
         target.Networks = MapNetworks(source);
         target.OfficialRating = GetOfficialRating(source, preferredCountryCode);

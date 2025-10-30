@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { FileItemType } from "@/types/file";
 import type { FileItem } from "@/types/file";
 import { formatFileSize, formatDate } from "@/lib/utils/format";
@@ -64,6 +65,7 @@ export default function FileList({
   disabledPaths,
   disabledMessage = "Already selected",
 }: FileListProps) {
+  const t = useTranslations("files");
   const pathParts = currentPath ? currentPath.split("/").filter(Boolean) : [];
   const maxHeightClass = scrollable ? (maxHeightClassName ?? "max-h-[60vh]") : undefined;
 
@@ -89,7 +91,7 @@ export default function FileList({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <Button type="button" variant="link" size="sm" className="h-7 px-0" onClick={() => onNavigate("")}>
-              Files
+              {t("title")}
             </Button>
             {pathParts.map((part, index) => {
               const pathToHere = pathParts.slice(0, index + 1).join("/");
@@ -114,7 +116,7 @@ export default function FileList({
         ) : files.length === 0 ? (
           <div className="flex h-48 flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground">
             <Folder className="h-10 w-10 text-muted-foreground/30" />
-            <span>This directory is empty</span>
+            <span>{t("emptyDirectory")}</span>
           </div>
         ) : (
           <div className="divide-y">
@@ -154,7 +156,11 @@ export default function FileList({
                       <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         {item.type === FileItemType.Directory ? (
-                          isDisabled ? <span className="text-xs italic">{disabledMessage}</span> : <></>
+                          isDisabled ? (
+                            <span className="text-xs italic">{disabledMessage}</span>
+                          ) : (
+                            <></>
+                          )
                         ) : (
                           <>
                             <span>{formatFileSize(item.size || 0)}</span>

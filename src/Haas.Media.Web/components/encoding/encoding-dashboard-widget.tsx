@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { ArrowRight, Cpu } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEncodingProcesses } from "@/features/media/hooks";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ const clampProgress = (value: number): number => (Number.isFinite(value) ? Math.
 
 export function EncodingDashboardWidget() {
   const { encodings, loading, error } = useEncodingProcesses();
+  const t = useTranslations("dashboard.encodingWidget");
 
   const metrics = useMemo(() => computeMetrics(encodings), [encodings]);
 
@@ -31,25 +33,25 @@ export function EncodingDashboardWidget() {
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Cpu className="h-4 w-4" />
               </span>
-              Encoding status
+              {t("title")}
             </CardTitle>
-            <CardDescription>Live summary of active encoders from the downloader worker.</CardDescription>
+            <CardDescription>{t("description")}</CardDescription>
           </div>
           <Badge variant={hasEncodings ? "secondary" : "outline"} className="px-3">
-            {showSkeleton ? <Skeleton className="h-4 w-10" /> : hasEncodings ? `${metrics.count} active` : "Idle"}
+            {showSkeleton ? <Skeleton className="h-4 w-10" /> : hasEncodings ? t("activeCount", { count: metrics.count }) : t("idle")}
           </Badge>
         </div>
         {!showSkeleton && hasEncodings && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Average progress</span>
+              <span>{t("averageProgress")}</span>
               <span>{metrics.averageProgress.toFixed(1)}%</span>
             </div>
-            <Progress value={metrics.averageProgress} aria-label="Average encoding progress" className="h-2" />
+            <Progress value={metrics.averageProgress} aria-label={t("averageProgressLabel")} className="h-2" />
             <p className="text-xs text-muted-foreground">
               {metrics.nextCompletion != null
-                ? `Next completion in ${formatDuration(metrics.nextCompletion)}`
-                : "Calculating completion estimate"}
+                ? t("nextCompletion", { duration: formatDuration(metrics.nextCompletion) })
+                : t("calculating")}
             </p>
           </div>
         )}
@@ -60,7 +62,7 @@ export function EncodingDashboardWidget() {
       <CardFooter className="text-xs text-muted-foreground">
         <Button variant="outline" asChild>
           <Link href="/encodings">
-            View all encodings
+            {t("viewAll")}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
@@ -70,31 +72,31 @@ export function EncodingDashboardWidget() {
 }
 
 function EmptyState({ error }: { error: string | null }) {
+  const t = useTranslations("dashboard.encodingWidget");
   return (
     <div className="rounded-md border border-dashed border-muted bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
-      {error ? error : "No active encodings running right now."}
+      {error ? error : t("emptyState")}
     </div>
   );
 }
 
 function StatsSummary({ metrics }: { metrics: ReturnType<typeof computeMetrics> }) {
   const { count, longestElapsed, averageProgress, nextCompletion } = metrics;
+  const t = useTranslations("dashboard.encodingWidget.stats");
 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatTile label="Active encodings" value={count.toString()} description="Tracked across all workers." />
-        <StatTile label="Average progress" value={`${averageProgress.toFixed(1)}%`} description="Updated with every SignalR event." />
+        <StatTile label={t("activeEncodings")} value={count.toString()} description={t("activeEncodingsDesc")} />
+        <StatTile label={t("averageProgress")} value={`${averageProgress.toFixed(1)}%`} description={t("averageProgressDesc")} />
         <StatTile
-          label="Next completion"
-          value={nextCompletion != null ? formatDuration(nextCompletion) : "Estimating…"}
-          description={longestElapsed != null ? `Longest running ${formatDuration(longestElapsed)}` : "Waiting for progress data."}
+          label={t("nextCompletion")}
+          value={nextCompletion != null ? formatDuration(nextCompletion) : t("estimating")}
+          description={longestElapsed != null ? t("longestRunning", { duration: formatDuration(longestElapsed) }) : t("waitingForData")}
         />
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Live updates arrive directly from the downloader worker. Encoders disappear as soon as jobs finish.
-      </p>
+      <p className="text-xs text-muted-foreground">{t("liveUpdates")}</p>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { usePeople } from "@/features/media/hooks";
 import type { PersonMetadata } from "@/types/metadata";
 import { Spinner } from "@/components/ui";
@@ -19,6 +20,7 @@ interface PersonCardProps {
 }
 
 function PersonCard({ person }: PersonCardProps) {
+  const t = useTranslations("people");
   const profileUrl = getProfileUrl(person.profilePath);
 
   return (
@@ -50,7 +52,7 @@ function PersonCard({ person }: PersonCardProps) {
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             {person.popularity > 0 && (
               <Badge variant="secondary" className="text-xs">
-                Popularity: {person.popularity.toFixed(1)}
+                {t("popularity", { value: person.popularity.toFixed(1) })}
               </Badge>
             )}
           </div>
@@ -61,6 +63,7 @@ function PersonCard({ person }: PersonCardProps) {
 }
 
 export default function PeopleList() {
+  const t = useTranslations("people");
   const [searchQuery, setSearchQuery] = useState("");
   const { people, totalCount, loading, loadingMore, error, hasMore, loadMore, refetch } = usePeople(searchQuery);
   const hasActiveSearch = Boolean(searchQuery.trim());
@@ -106,12 +109,12 @@ export default function PeopleList() {
     return (
       <Alert variant="destructive">
         <CircleX className="h-4 w-4" />
-        <AlertTitle>Error loading people</AlertTitle>
+        <AlertTitle>{t("errorLoading")}</AlertTitle>
         <AlertDescription className="space-y-4">
           <p>{error}</p>
           <Button variant="outline" size="sm" onClick={refetch}>
             <RefreshCw className="mr-2 h-4 w-4" />
-            Try again
+            {t("tryAgain")}
           </Button>
         </AlertDescription>
       </Alert>
@@ -123,8 +126,8 @@ export default function PeopleList() {
       <Card className="border-dashed">
         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
           <User className="mb-4 h-12 w-12 text-muted-foreground" />
-          <h3 className="mb-2 text-lg font-semibold">No people found</h3>
-          <p className="mb-4 text-sm text-muted-foreground">People will appear here after you scan your libraries.</p>
+          <h3 className="mb-2 text-lg font-semibold">{t("noPeople")}</h3>
+          <p className="mb-4 text-sm text-muted-foreground">{t("afterScanning")}</p>
         </CardContent>
       </Card>
     );
@@ -136,10 +139,10 @@ export default function PeopleList() {
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold">
             {hasActiveSearch
-              ? `${totalCount} ${totalCount === 1 ? "matching person" : "matching people"}`
-              : `${totalCount} ${totalCount === 1 ? "person" : "people"}`}
+              ? totalCount === 1 ? t("matchingPerson", { count: totalCount }) : t("matchingPeople", { count: totalCount })
+              : totalCount === 1 ? t("person", { count: totalCount }) : t("peopleCount", { count: totalCount })}
           </h2>
-          {people.length < totalCount && totalCount > 0 && <span className="text-sm text-muted-foreground">(loaded {people.length})</span>}
+          {people.length < totalCount && totalCount > 0 && <span className="text-sm text-muted-foreground">{t("loaded", { count: people.length })}</span>}
           <Button variant="ghost" size="icon" onClick={refetch} className="h-8 w-8">
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -150,7 +153,7 @@ export default function PeopleList() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search people..."
+            placeholder={t("searchPeople")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -162,8 +165,8 @@ export default function PeopleList() {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <Search className="mb-4 h-12 w-12 text-muted-foreground" />
-            <h3 className="mb-2 text-lg font-semibold">No results found</h3>
-            <p className="text-sm text-muted-foreground">Try adjusting your search query</p>
+            <h3 className="mb-2 text-lg font-semibold">{t("noResults")}</h3>
+            <p className="text-sm text-muted-foreground">{t("adjustQuery")}</p>
           </CardContent>
         </Card>
       ) : (
@@ -178,13 +181,13 @@ export default function PeopleList() {
           {shouldShowLoadMore && (
             <div ref={loadMoreRef} className="flex items-center justify-center py-8">
               <Spinner className="size-8" />
-              <span className="ml-2 text-sm text-muted-foreground">Loading more...</span>
+              <span className="ml-2 text-sm text-muted-foreground">{t("loadingMore")}</span>
             </div>
           )}
 
           {/* End message */}
           {!shouldShowLoadMore && totalCount > 0 && (
-            <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">All {totalCount} people loaded</div>
+            <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">{t("allLoaded", { count: totalCount })}</div>
           )}
         </>
       )}

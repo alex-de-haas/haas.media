@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import type { EncodingProcessInfo } from "@/types/encoding";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -13,6 +14,7 @@ interface EncodingOverviewProps {
 }
 
 export function EncodingOverview({ encodings, loading }: EncodingOverviewProps) {
+  const t = useTranslations("encodings");
   const metrics = React.useMemo(() => {
     const items = encodings ?? [];
     const count = items.length;
@@ -42,17 +44,17 @@ export function EncodingOverview({ encodings, loading }: EncodingOverviewProps) 
     <div className="grid gap-4 md:grid-cols-3">
       <Card>
         <CardHeader className="pb-2">
-          <CardDescription>Active encodings</CardDescription>
+          <CardDescription>{t("activeEncodings")}</CardDescription>
           <CardTitle className="text-3xl font-semibold tracking-tight">
             {showSkeleton ? <Skeleton className="h-7 w-16" /> : metrics.count}
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-0 text-sm text-muted-foreground">Encodings currently tracked by the downloader worker.</CardContent>
+        <CardContent className="pt-0 text-sm text-muted-foreground">{t("trackedByDownloader")}</CardContent>
       </Card>
 
       <Card>
         <CardHeader className="pb-2">
-          <CardDescription>Average progress</CardDescription>
+          <CardDescription>{t("averageProgress")}</CardDescription>
           <CardTitle className="flex items-baseline gap-2 text-3xl font-semibold">
             {showSkeleton ? (
               <Skeleton className="h-7 w-20" />
@@ -68,22 +70,22 @@ export function EncodingOverview({ encodings, loading }: EncodingOverviewProps) 
           {showSkeleton ? (
             <Skeleton className="h-2 w-full" />
           ) : (
-            <Progress value={metrics.averageProgress} aria-label="Average encoding progress" />
+            <Progress value={metrics.averageProgress} aria-label={t("averageProgress")} />
           )}
-          <p className="mt-3 text-xs text-muted-foreground">Progress across all active encodings.</p>
+          <p className="mt-3 text-xs text-muted-foreground">{t("progressAcrossAll")}</p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="pb-2">
-          <CardDescription>Next completion</CardDescription>
+          <CardDescription>{t("nextCompletion")}</CardDescription>
           <CardTitle className="text-2xl font-semibold">
             {showSkeleton ? (
               <Skeleton className="h-7 w-24" />
             ) : metrics.nextCompletion ? (
               formatDuration(metrics.nextCompletion)
             ) : (
-              <span className="text-base font-normal text-muted-foreground">Awaiting progress</span>
+              <span className="text-base font-normal text-muted-foreground">{t("awaitingProgress")}</span>
             )}
           </CardTitle>
         </CardHeader>
@@ -91,11 +93,11 @@ export function EncodingOverview({ encodings, loading }: EncodingOverviewProps) 
           {showSkeleton ? (
             <Skeleton className="h-4 w-32" />
           ) : metrics.longestElapsed != null ? (
-            <>Longest running job: {formatDuration(metrics.longestElapsed)}</>
+            <>{t("longestRunning", { duration: formatDuration(metrics.longestElapsed) })}</>
           ) : noData ? (
-            <span>No active jobs</span>
+            <span>{t("noActiveJobs")}</span>
           ) : (
-            <span>Tracking progress…</span>
+            <span>{t("trackingProgress")}</span>
           )}
         </CardContent>
       </Card>

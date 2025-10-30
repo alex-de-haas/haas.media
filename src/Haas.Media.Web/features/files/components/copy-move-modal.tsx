@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { FileItem, CopyRequest, MoveRequest } from "@/types/file";
 import { fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 import { downloaderApi } from "@/lib/api";
@@ -19,6 +20,11 @@ interface CopyMoveModalProps {
 }
 
 export default function CopyMoveModal({ isOpen, onClose, action, items, onConfirm }: CopyMoveModalProps) {
+  const tCopy = useTranslations("files.copyModal");
+  const tMove = useTranslations("files.moveModal");
+  const tCommon = useTranslations("common");
+  const t = action === "copy" ? tCopy : tMove;
+
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [currentPath, setCurrentPath] = useState("");
@@ -29,8 +35,7 @@ export default function CopyMoveModal({ isOpen, onClose, action, items, onConfir
   const [primary] = targets;
   const isBulk = targets.length > 1;
 
-  const actionTitle = useMemo(() => (action === "copy" ? "Copy" : "Move"), [action]);
-  const loadingLabel = useMemo(() => (action === "copy" ? "Copying..." : "Moving..."), [action]);
+  const loadingLabel = useMemo(() => (action === "copy" ? tCopy("copying") : tMove("moving")), [action, tCopy, tMove]);
 
   const fetchFiles = async (path?: string) => {
     setFilesLoading(true);
@@ -88,7 +93,7 @@ export default function CopyMoveModal({ isOpen, onClose, action, items, onConfir
         });
 
         if (!result?.success) {
-          failureMessage = result?.message ?? `${actionTitle} failed.`;
+          failureMessage = result?.message ?? t(action === "copy" ? "copyFailed" : "moveFailed");
           break;
         }
       }
@@ -105,7 +110,7 @@ export default function CopyMoveModal({ isOpen, onClose, action, items, onConfir
   };
 
   const summaryDestination = currentPath.trim();
-  const previewDirectory = summaryDestination || "(root)";
+  const previewDirectory = summaryDestination || t("root");
   const finalDestinationSummary = summaryDestination && primary ? `${summaryDestination}/${primary.name}` : (primary?.name ?? "");
 
   if (!primary) {
@@ -116,11 +121,13 @@ export default function CopyMoveModal({ isOpen, onClose, action, items, onConfir
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle>{isBulk ? `${actionTitle} ${targets.length} items` : `${actionTitle} ${primary.name}`}</DialogTitle>
+          <DialogTitle>
+            {isBulk ? t("titleBulk", { count: targets.length }) : t("title", { name: primary.name })}
+          </DialogTitle>
           <DialogDescription>
             {isBulk ? (
               <div className="space-y-1 text-xs text-muted-foreground">
-                <p className="text-sm text-foreground">Current selection:</p>
+                <p className="text-sm text-foreground">{t("currentSelection")}</p>
                 <ul className="space-y-1">
                   {targets.slice(0, 5).map((target: FileItem) => (
                     <li key={target.relativePath} className="flex items-center gap-2">
@@ -130,14 +137,14 @@ export default function CopyMoveModal({ isOpen, onClose, action, items, onConfir
                   ))}
                   {targets.length > 5 ? (
                     <li className="text-muted-foreground/80">
-                      +{targets.length - 5} more item{targets.length - 5 === 1 ? "" : "s"}
+                      {t(targets.length - 5 === 1 ? "moreItems" : "moreItemsPlural", { count: targets.length - 5 })}
                     </li>
                   ) : null}
                 </ul>
               </div>
             ) : (
               <span>
-                Current location: <span className="font-medium text-foreground">{primary.relativePath}</span>
+                {t("currentLocation")} <span className="font-medium text-foreground">{primary.relativePath}</span>
               </span>
             )}
           </DialogDescription>
@@ -146,14 +153,12 @@ export default function CopyMoveModal({ isOpen, onClose, action, items, onConfir
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">Choose destination</p>
-              <p className="text-xs text-muted-foreground">
-                Navigate to the desired directory. The current view will be used as the destination.
-              </p>
+              <p className="text-sm font-medium text-foreground">{t("chooseDestination")}</p>
+              <p className="text-xs text-muted-foreground">{t("navigateInstructions")}</p>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={() => fetchFiles(currentPath)} disabled={filesLoading}>
               <RefreshCw className={filesLoading ? "mr-2 h-3.5 w-3.5 animate-spin" : "mr-2 h-3.5 w-3.5"} />
-              Refresh
+              {tCommon("refresh")}
             </Button>
           </div>
 
@@ -170,19 +175,19 @@ export default function CopyMoveModal({ isOpen, onClose, action, items, onConfir
 
           <div className="rounded-md border bg-background p-3 text-sm">
             <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
-              <Badge variant="outline">Destination</Badge>
+              <Badge variant="outline">{t("destination")}</Badge>
               <span className="font-mono text-xs text-foreground">{previewDirectory}</span>
             </div>
             {isBulk ? (
-              <p className="mt-2 text-xs text-muted-foreground">Each selected item will be placed in this directory.</p>
+              <p className="mt-2 text-xs text-muted-foreground">{t("bulkDestinationNote")}</p>
             ) : (
               <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                Final path: <span className="font-mono text-foreground">{finalDestinationSummary}</span>
+                {t("finalPath")} <span className="font-mono text-foreground">{finalDestinationSummary}</span>
               </p>
             )}
             {action === "move" && (
               <p className="mt-2 flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
-                Moving will remove the source after completion.
+                {tMove("moveWarning")}
               </p>
             )}
           </div>
@@ -191,10 +196,10 @@ export default function CopyMoveModal({ isOpen, onClose, action, items, onConfir
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={loading}>
-              Cancel
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" disabled={loading || filesLoading}>
-              {loading ? loadingLabel : actionTitle}
+              {loading ? loadingLabel : (action === "copy" ? tCopy("title", { name: "" }).split(" ")[0] : tMove("title", { name: "" }).split(" ")[0])}
             </Button>
           </DialogFooter>
         </form>

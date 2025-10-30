@@ -65,12 +65,12 @@ internal sealed class NodeFileDownloadTaskExecutor
 
         // Build the local destination path
         var destinationPath = Path.Combine(dataDirectory, task.DestinationDirectory);
-        
+
         // Use custom file name if provided, otherwise use original file name
-        var fileName = !string.IsNullOrWhiteSpace(task.CustomFileName) 
-            ? task.CustomFileName 
+        var fileName = !string.IsNullOrWhiteSpace(task.CustomFileName)
+            ? task.CustomFileName
             : Path.GetFileName(task.RemoteFilePath);
-        
+
         var localFilePath = Path.Combine(destinationPath, fileName);
 
         // Ensure the destination directory exists
@@ -160,8 +160,14 @@ internal sealed class NodeFileDownloadTaskExecutor
             int bytesRead;
 
             while (
-                (bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken))
-                > 0
+                (
+                    bytesRead = await contentStream.ReadAsync(
+                        buffer,
+                        0,
+                        buffer.Length,
+                        cancellationToken
+                    )
+                ) > 0
             )
             {
                 await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
@@ -176,10 +182,7 @@ internal sealed class NodeFileDownloadTaskExecutor
                     var progressPercentage =
                         totalBytes > 0 ? (totalDownloaded * 100.0) / totalBytes : 0;
 
-                    var updatedInfo = initialInfo with
-                    {
-                        DownloadedBytes = totalDownloaded,
-                    };
+                    var updatedInfo = initialInfo with { DownloadedBytes = totalDownloaded, };
 
                     context.SetPayload(updatedInfo);
                     context.ReportProgress(progressPercentage);
@@ -229,7 +232,10 @@ internal sealed class NodeFileDownloadTaskExecutor
                     try
                     {
                         File.Delete(localFilePath);
-                        _logger.LogInformation("Deleted corrupted file: {LocalFilePath}", localFilePath);
+                        _logger.LogInformation(
+                            "Deleted corrupted file: {LocalFilePath}",
+                            localFilePath
+                        );
                     }
                     catch (Exception deleteEx)
                     {
@@ -241,8 +247,8 @@ internal sealed class NodeFileDownloadTaskExecutor
                     }
 
                     throw new InvalidOperationException(
-                        $"File integrity check failed. Expected MD5: {expectedMd5Hash}, " +
-                        $"Actual MD5: {actualMd5Hash}. The file may be corrupted during transfer."
+                        $"File integrity check failed. Expected MD5: {expectedMd5Hash}, "
+                            + $"Actual MD5: {actualMd5Hash}. The file may be corrupted during transfer."
                     );
                 }
             }
@@ -314,7 +320,10 @@ internal sealed class NodeFileDownloadTaskExecutor
         }
         catch (OperationCanceledException)
         {
-            _logger.LogWarning("File download was cancelled for {RemoteFilePath}", task.RemoteFilePath);
+            _logger.LogWarning(
+                "File download was cancelled for {RemoteFilePath}",
+                task.RemoteFilePath
+            );
 
             // Clean up partial file if it exists
             if (File.Exists(localFilePath))
@@ -338,7 +347,11 @@ internal sealed class NodeFileDownloadTaskExecutor
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error downloading file from node {NodeName}", node.Name);
+            _logger.LogError(
+                ex,
+                "Unexpected error downloading file from node {NodeName}",
+                node.Name
+            );
 
             // Clean up partial file if it exists
             if (File.Exists(localFilePath))
@@ -387,8 +400,8 @@ internal sealed class NodeFileDownloadTaskExecutor
             if (matchingMetadata.Count == 0)
             {
                 _logger.LogWarning(
-                    "No file metadata found for NodeId={NodeId}, FilePath={FilePath}. " +
-                    "The metadata may need to be created manually or will be discovered in the next metadata scan.",
+                    "No file metadata found for NodeId={NodeId}, FilePath={FilePath}. "
+                        + "The metadata may need to be created manually or will be discovered in the next metadata scan.",
                     nodeId,
                     remoteFilePath
                 );
@@ -418,9 +431,9 @@ internal sealed class NodeFileDownloadTaskExecutor
                 if (created != null)
                 {
                     _logger.LogInformation(
-                        "Created new local file metadata ID={Id} based on node metadata ID={NodeMetadataId} " +
-                        "(NodeId={NodeId}, RemoteFilePath={RemoteFilePath}) " +
-                        "→ (LocalFilePath={LocalFilePath})",
+                        "Created new local file metadata ID={Id} based on node metadata ID={NodeMetadataId} "
+                            + "(NodeId={NodeId}, RemoteFilePath={RemoteFilePath}) "
+                            + "→ (LocalFilePath={LocalFilePath})",
                         created.Id,
                         nodeMetadata.Id,
                         nodeId,
@@ -442,8 +455,8 @@ internal sealed class NodeFileDownloadTaskExecutor
             // Log the error but don't fail the download task
             _logger.LogError(
                 ex,
-                "Error creating local file metadata for NodeId={NodeId}, FilePath={FilePath}. " +
-                "The file was downloaded successfully, but metadata creation failed.",
+                "Error creating local file metadata for NodeId={NodeId}, FilePath={FilePath}. "
+                    + "The file was downloaded successfully, but metadata creation failed.",
                 nodeId,
                 remoteFilePath
             );

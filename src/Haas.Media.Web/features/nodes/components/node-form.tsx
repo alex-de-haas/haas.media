@@ -23,13 +23,13 @@ interface NodeFormProps {
 export function NodeForm({ node, onSubmit, onCancel, onValidate }: NodeFormProps) {
   const [name, setName] = useState(node?.name || "");
   const [url, setUrl] = useState(node?.url || "");
-  
+
   // Destination node authentication (to authenticate TO destination) - manual only
   const [destApiKey, setDestApiKey] = useState("");
-  
+
   // Current node authentication (to send TO destination)
   const [selectedCurrentTokenId, setSelectedCurrentTokenId] = useState<string>("");
-  
+
   const [tokens, setTokens] = useState<ExternalTokenInfo[]>([]);
   const [loadingTokens, setLoadingTokens] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -102,14 +102,7 @@ export function NodeForm({ node, onSubmit, onCancel, onValidate }: NodeFormProps
 
       <div className="space-y-2">
         <Label htmlFor="url">URL</Label>
-        <Input
-          id="url"
-          type="url"
-          placeholder="http://192.168.1.100:8000"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          required
-        />
+        <Input id="url" type="url" placeholder="http://192.168.1.100:8000" value={url} onChange={(e) => setUrl(e.target.value)} required />
       </div>
 
       {!node && (
@@ -183,25 +176,12 @@ export function NodeForm({ node, onSubmit, onCancel, onValidate }: NodeFormProps
       {node && (
         <div className="space-y-2">
           <Label htmlFor="apiKey">API Key (Optional)</Label>
-          <Input
-            id="apiKey"
-            type="password"
-            placeholder="Optional API key"
-            value={node.apiKey || ""}
-            onChange={() => {}}
-            disabled
-          />
+          <Input id="apiKey" type="password" placeholder="Optional API key" value={node.apiKey || ""} onChange={() => {}} disabled />
         </div>
       )}
 
       {onValidate && (
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={handleValidate} 
-          disabled={isValidating || !canValidate} 
-          className="w-full"
-        >
+        <Button type="button" variant="outline" onClick={handleValidate} disabled={isValidating || !canValidate} className="w-full">
           {isValidating ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -216,11 +196,7 @@ export function NodeForm({ node, onSubmit, onCancel, onValidate }: NodeFormProps
       {validationResult && (
         <Alert variant={validationResult.isValid ? "default" : "destructive"}>
           <div className="flex items-start gap-2">
-            {validationResult.isValid ? (
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            ) : (
-              <XCircle className="h-4 w-4 text-red-600" />
-            )}
+            {validationResult.isValid ? <CheckCircle className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-red-600" />}
             <AlertDescription>
               {validationResult.isValid ? "Connection successful!" : validationResult.errorMessage || "Validation failed"}
               {validationResult.systemInfo && (

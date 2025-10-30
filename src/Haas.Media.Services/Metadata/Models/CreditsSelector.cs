@@ -10,39 +10,42 @@ namespace Haas.Media.Services.Metadata;
 /// </summary>
 internal static class CreditsSelector
 {
-    private static readonly Dictionary<string, int> JobWeights = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["Director"] = 100,
-        ["Writer"] = 90,
-        ["Screenplay"] = 90,
-        ["Teleplay"] = 90,
-        ["Story"] = 90,
-        ["Executive Producer"] = 85, // For TV: showrunner heuristic
-        ["Producer"] = 80,
-        ["Director of Photography"] = 75,
-        ["Cinematographer"] = 75,
-        ["Cinematography"] = 75,
-        ["Editor"] = 70,
-        ["Film Editor"] = 70,
-        ["Production Designer"] = 65,
-        ["Original Music Composer"] = 60,
-        ["Theme Music Composer"] = 60,
-        ["Music"] = 60,
-        ["Casting Director"] = 55,
-        ["Costume Designer"] = 50,
-        ["VFX Supervisor"] = 45,
-        ["Special Effects Supervisor"] = 45,
-        ["Sound Designer"] = 40,
-        ["Supervising Sound Editor"] = 40
-    };
+    private static readonly Dictionary<string, int> JobWeights =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Director"] = 100,
+            ["Writer"] = 90,
+            ["Screenplay"] = 90,
+            ["Teleplay"] = 90,
+            ["Story"] = 90,
+            ["Executive Producer"] = 85, // For TV: showrunner heuristic
+            ["Producer"] = 80,
+            ["Director of Photography"] = 75,
+            ["Cinematographer"] = 75,
+            ["Cinematography"] = 75,
+            ["Editor"] = 70,
+            ["Film Editor"] = 70,
+            ["Production Designer"] = 65,
+            ["Original Music Composer"] = 60,
+            ["Theme Music Composer"] = 60,
+            ["Music"] = 60,
+            ["Casting Director"] = 55,
+            ["Costume Designer"] = 50,
+            ["VFX Supervisor"] = 45,
+            ["Special Effects Supervisor"] = 45,
+            ["Sound Designer"] = 40,
+            ["Supervising Sound Editor"] = 40
+        };
 
     /// <summary>
     /// Normalizes job titles to canonical forms for consistent weighting
     /// </summary>
     private static string NormalizeJob(string job)
     {
-        if (string.Equals(job, "Cinematography", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(job, "Cinematographer", StringComparison.OrdinalIgnoreCase))
+        if (
+            string.Equals(job, "Cinematography", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(job, "Cinematographer", StringComparison.OrdinalIgnoreCase)
+        )
         {
             return "Director of Photography";
         }
@@ -52,8 +55,10 @@ internal static class CreditsSelector
             return "Editor";
         }
 
-        if (string.Equals(job, "Music", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(job, "Theme Music Composer", StringComparison.OrdinalIgnoreCase))
+        if (
+            string.Equals(job, "Music", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(job, "Theme Music Composer", StringComparison.OrdinalIgnoreCase)
+        )
         {
             return "Original Music Composer";
         }
@@ -80,8 +85,8 @@ internal static class CreditsSelector
             return [];
         }
 
-        return credits.Cast
-            .GroupBy(c => c.Id) // Deduplicate by person ID
+        return credits
+            .Cast.GroupBy(c => c.Id) // Deduplicate by person ID
             .Select(g =>
             {
                 var first = g.First();
@@ -89,15 +94,12 @@ internal static class CreditsSelector
                 var popularity = first.Popularity;
 
                 // Score: order (lower is better) + profile boost + popularity
-                var score = -first.Order // Negative because lower order is better
-                          + (hasProfile ? 5 : 0)
-                          + Math.Min(popularity, 50) * 0.1; // Cap and scale popularity
+                var score =
+                    -first.Order // Negative because lower order is better
+                    + (hasProfile ? 5 : 0)
+                    + Math.Min(popularity, 50) * 0.1; // Cap and scale popularity
 
-                return new
-                {
-                    Cast = first,
-                    Score = score
-                };
+                return new { Cast = first, Score = score };
             })
             .OrderByDescending(x => x.Score)
             .Take(topCount)
@@ -115,8 +117,8 @@ internal static class CreditsSelector
             return [];
         }
 
-        return credits.Cast
-            .GroupBy(c => c.Id) // Deduplicate by person ID
+        return credits
+            .Cast.GroupBy(c => c.Id) // Deduplicate by person ID
             .Select(g =>
             {
                 var first = g.First();
@@ -124,15 +126,12 @@ internal static class CreditsSelector
                 var popularity = first.Popularity;
 
                 // Score: order (lower is better) + profile boost + popularity
-                var score = -first.Order // Negative because lower order is better
-                          + (hasProfile ? 5 : 0)
-                          + Math.Min(popularity, 50) * 0.1; // Cap and scale popularity
+                var score =
+                    -first.Order // Negative because lower order is better
+                    + (hasProfile ? 5 : 0)
+                    + Math.Min(popularity, 50) * 0.1; // Cap and scale popularity
 
-                return new
-                {
-                    Cast = first,
-                    Score = score
-                };
+                return new { Cast = first, Score = score };
             })
             .OrderByDescending(x => x.Score)
             .Take(topCount)
@@ -150,30 +149,28 @@ internal static class CreditsSelector
             return [];
         }
 
-        return credits.Crew
-            .GroupBy(c => c.Id) // Deduplicate by person ID
+        return credits
+            .Crew.GroupBy(c => c.Id) // Deduplicate by person ID
             .Select(g =>
             {
                 var person = g.First();
-                
+
                 // Choose the best job instance for scoring
                 var bestJob = g.Select(c => new
-                {
-                    Job = NormalizeJob(c.Job),
-                    RawJob = c.Job,
-                    Weight = GetJobWeight(c.Job),
-                    Department = c.Department
-                })
-                .OrderByDescending(x => x.Weight)
-                .First();
+                    {
+                        Job = NormalizeJob(c.Job),
+                        RawJob = c.Job,
+                        Weight = GetJobWeight(c.Job),
+                        Department = c.Department
+                    })
+                    .OrderByDescending(x => x.Weight)
+                    .First();
 
                 var hasProfile = !string.IsNullOrEmpty(person.ProfilePath);
                 var popularity = person.Popularity;
                 var popularityScaled = Math.Min(popularity, 50); // Cap to avoid outliers
 
-                var score = bestJob.Weight
-                          + (hasProfile ? 5 : 0)
-                          + popularityScaled;
+                var score = bestJob.Weight + (hasProfile ? 5 : 0) + popularityScaled;
 
                 return new
                 {
@@ -205,7 +202,8 @@ internal static class CreditsSelector
     public static CrewMember[] SelectTopCrewForTv(
         TvCredits credits,
         List<CreatedBy>? creators,
-        int topCount)
+        int topCount
+    )
     {
         if (credits?.Crew == null || credits.Crew.Count == 0)
         {
@@ -214,22 +212,22 @@ internal static class CreditsSelector
 
         var creatorIds = new HashSet<int>(creators?.Select(c => c.Id) ?? []);
 
-        return credits.Crew
-            .GroupBy(c => c.Id) // Deduplicate by person ID
+        return credits
+            .Crew.GroupBy(c => c.Id) // Deduplicate by person ID
             .Select(g =>
             {
                 var person = g.First();
-                
+
                 // Choose the best job instance for scoring
                 var bestJob = g.Select(c => new
-                {
-                    Job = NormalizeJob(c.Job),
-                    RawJob = c.Job,
-                    Weight = GetJobWeight(c.Job),
-                    Department = c.Department
-                })
-                .OrderByDescending(x => x.Weight)
-                .First();
+                    {
+                        Job = NormalizeJob(c.Job),
+                        RawJob = c.Job,
+                        Weight = GetJobWeight(c.Job),
+                        Department = c.Department
+                    })
+                    .OrderByDescending(x => x.Weight)
+                    .First();
 
                 var hasProfile = !string.IsNullOrEmpty(person.ProfilePath);
                 var popularity = person.Popularity;
@@ -237,10 +235,7 @@ internal static class CreditsSelector
                 var isCreator = creatorIds.Contains(person.Id);
                 var creatorBoost = isCreator ? 40 : 0;
 
-                var score = bestJob.Weight
-                          + (hasProfile ? 5 : 0)
-                          + popularityScaled
-                          + creatorBoost;
+                var score = bestJob.Weight + (hasProfile ? 5 : 0) + popularityScaled + creatorBoost;
 
                 return new
                 {
@@ -285,15 +280,12 @@ internal static class CreditsSelector
                 var popularity = first.Popularity;
 
                 // Score: order (lower is better) + profile boost + popularity
-                var score = -first.Order // Negative because lower order is better
-                          + (hasProfile ? 5 : 0)
-                          + Math.Min(popularity, 50) * 0.1; // Cap and scale popularity
+                var score =
+                    -first.Order // Negative because lower order is better
+                    + (hasProfile ? 5 : 0)
+                    + Math.Min(popularity, 50) * 0.1; // Cap and scale popularity
 
-                return new
-                {
-                    Cast = first,
-                    Score = score
-                };
+                return new { Cast = first, Score = score };
             })
             .OrderByDescending(x => x.Score)
             .Take(topCount)
@@ -311,30 +303,27 @@ internal static class CreditsSelector
             return [];
         }
 
-        return crew
-            .GroupBy(c => c.Id) // Deduplicate by person ID
+        return crew.GroupBy(c => c.Id) // Deduplicate by person ID
             .Select(g =>
             {
                 var person = g.First();
-                
+
                 // Choose the best job instance for scoring
                 var bestJob = g.Select(c => new
-                {
-                    Job = NormalizeJob(c.Job),
-                    RawJob = c.Job,
-                    Weight = GetJobWeight(c.Job),
-                    Department = c.Department
-                })
-                .OrderByDescending(x => x.Weight)
-                .First();
+                    {
+                        Job = NormalizeJob(c.Job),
+                        RawJob = c.Job,
+                        Weight = GetJobWeight(c.Job),
+                        Department = c.Department
+                    })
+                    .OrderByDescending(x => x.Weight)
+                    .First();
 
                 var hasProfile = !string.IsNullOrEmpty(person.ProfilePath);
                 var popularity = person.Popularity;
                 var popularityScaled = Math.Min(popularity, 50); // Cap to avoid outliers
 
-                var score = bestJob.Weight
-                          + (hasProfile ? 5 : 0)
-                          + popularityScaled;
+                var score = bestJob.Weight + (hasProfile ? 5 : 0) + popularityScaled;
 
                 return new
                 {

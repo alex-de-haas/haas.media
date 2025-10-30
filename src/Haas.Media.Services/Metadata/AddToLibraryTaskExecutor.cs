@@ -27,7 +27,9 @@ internal sealed class AddToLibraryTaskExecutor
         ITmdbCountryProvider countryProvider
     )
     {
-        _globalSettingsCollection = database.GetCollection<GlobalSettings.GlobalSettings>("globalSettings");
+        _globalSettingsCollection = database.GetCollection<GlobalSettings.GlobalSettings>(
+            "globalSettings"
+        );
         _movieMetadataCollection = database.GetCollection<MovieMetadata>("movieMetadata");
         _tvShowMetadataCollection = database.GetCollection<TVShowMetadata>("tvShowMetadata");
         _personMetadataCollection = database.GetCollection<PersonMetadata>("personMetadata");

@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import ClientLayout from "../components/layout/client-layout";
-import "./globals.css";
 import { PublicEnvScript } from "next-runtime-env";
 
 export const metadata: Metadata = {
@@ -10,11 +8,16 @@ export const metadata: Metadata = {
 
 interface RootLayoutProps {
   children: React.ReactNode;
+  params: { locale?: string };
 }
 
-export default function RootLayout({ children }: RootLayoutProps) {
+export default async function RootLayout({ children, params }: RootLayoutProps) {
+  // Get locale from params, default to 'en' if not available
+  const { locale } = await params;
+  const lang = locale || "en";
+
   return (
-    <html lang="en" suppressHydrationWarning className="light">
+    <html lang={lang} suppressHydrationWarning className="light">
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -39,9 +42,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         />
         <PublicEnvScript />
       </head>
-      <body className="min-h-screen">
-        <ClientLayout>{children}</ClientLayout>
-      </body>
+      <body className="min-h-screen">{children}</body>
     </html>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +15,7 @@ interface TorrentOverviewProps {
 }
 
 export function TorrentOverview({ torrents, loading }: TorrentOverviewProps) {
+  const t = useTranslations("torrents");
   const metrics = React.useMemo(() => {
     const items = torrents ?? [];
     const total = items.length;
@@ -48,7 +50,7 @@ export function TorrentOverview({ torrents, loading }: TorrentOverviewProps) {
     <div className="grid gap-4 md:grid-cols-3">
       <Card>
         <CardHeader className="pb-2">
-          <CardDescription>Active torrents</CardDescription>
+          <CardDescription>{t("activeTorrents")}</CardDescription>
           <CardTitle className="text-3xl font-semibold tracking-tight">
             {showSkeleton ? <Skeleton className="h-7 w-16" /> : metrics.active}
           </CardTitle>
@@ -57,18 +59,16 @@ export function TorrentOverview({ torrents, loading }: TorrentOverviewProps) {
           {showSkeleton ? (
             <Skeleton className="h-4 w-32" />
           ) : metrics.total > 0 ? (
-            <>
-              Tracking {metrics.total} torrent{metrics.total === 1 ? "" : "s"} in total.
-            </>
+            <>{t("trackingTotal", { count: metrics.total, plural: metrics.total === 1 ? "" : "s" })}</>
           ) : (
-            <>No torrents are currently being tracked.</>
+            <>{t("noTorrentsTracked")}</>
           )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="pb-2">
-          <CardDescription>Average progress</CardDescription>
+          <CardDescription>{t("averageProgress")}</CardDescription>
           <CardTitle className="flex items-baseline gap-2 text-3xl font-semibold">
             {showSkeleton ? (
               <Skeleton className="h-7 w-20" />
@@ -84,24 +84,24 @@ export function TorrentOverview({ torrents, loading }: TorrentOverviewProps) {
           {showSkeleton ? (
             <Skeleton className="h-2 w-full" />
           ) : (
-            <Progress value={metrics.averageProgress} aria-label="Average torrent progress" />
+            <Progress value={metrics.averageProgress} aria-label={t("averageProgress")} />
           )}
-          <p className="mt-3 text-xs text-muted-foreground">Progress across all tracked torrents.</p>
+          <p className="mt-3 text-xs text-muted-foreground">{t("progressAcrossAll")}</p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="pb-2">
-          <CardDescription>Next completion</CardDescription>
+          <CardDescription>{t("nextCompletion")}</CardDescription>
           <CardTitle className="text-2xl font-semibold">
             {showSkeleton ? (
               <Skeleton className="h-7 w-24" />
             ) : metrics.nextCompletion ? (
               formatDuration(metrics.nextCompletion)
             ) : noTorrents ? (
-              <span className="text-base font-normal text-muted-foreground">No torrents queued</span>
+              <span className="text-base font-normal text-muted-foreground">{t("noTorrentsQueued")}</span>
             ) : (
-              <span className="text-base font-normal text-muted-foreground">Awaiting progress</span>
+              <span className="text-base font-normal text-muted-foreground">{t("awaitingProgress")}</span>
             )}
           </CardTitle>
         </CardHeader>
@@ -111,16 +111,16 @@ export function TorrentOverview({ torrents, loading }: TorrentOverviewProps) {
           ) : metrics.totalDownloadRate > 0 || metrics.totalUploadRate > 0 ? (
             <>
               <p>
-                Total download: <span className="font-medium text-foreground">{formatRate(metrics.totalDownloadRate)}</span>
+                {t("totalDownload")}: <span className="font-medium text-foreground">{formatRate(metrics.totalDownloadRate)}</span>
               </p>
               <p>
-                Total upload: <span className="font-medium text-foreground">{formatRate(metrics.totalUploadRate)}</span>
+                {t("totalUpload")}: <span className="font-medium text-foreground">{formatRate(metrics.totalUploadRate)}</span>
               </p>
             </>
           ) : noTorrents ? (
-            <span>No active transfers</span>
+            <span>{t("noActiveTransfers")}</span>
           ) : (
-            <span>Monitoring torrent activity…</span>
+            <span>{t("monitoringActivity")}</span>
           )}
         </CardContent>
       </Card>

@@ -12,14 +12,7 @@ import { fetchJsonWithAuth, fetchWithAuth } from "@/lib/auth/fetch-with-auth";
 import { getApiUrl } from "@/lib/api";
 import type { ExternalTokenInfo, ExternalTokenResponse } from "@/types/auth";
 import { Trash2, Copy, Plus, Key, AlertCircle } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -144,9 +137,7 @@ export default function TokensPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">API Tokens</h1>
-          <p className="mt-1 text-muted-foreground">
-            Manage external tokens for API access and node connections
-          </p>
+          <p className="mt-1 text-muted-foreground">Manage external tokens for API access and node connections</p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="h-4 w-4" />
@@ -157,17 +148,15 @@ export default function TokensPage() {
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          External tokens do not expire and are used for node-to-node communication and API integrations.
-          Keep them secure and revoke tokens that are no longer needed.
+          External tokens do not expire and are used for node-to-node communication and API integrations. Keep them secure and revoke tokens
+          that are no longer needed.
         </AlertDescription>
       </Alert>
 
       <Card>
         <CardHeader>
           <CardTitle>Your Tokens</CardTitle>
-          <CardDescription>
-            These tokens can be used to authenticate API requests without expiration
-          </CardDescription>
+          <CardDescription>These tokens can be used to authenticate API requests without expiration</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -183,10 +172,7 @@ export default function TokensPage() {
           ) : (
             <div className="space-y-3">
               {tokens.map((token) => (
-                <div
-                  key={token.id}
-                  className="flex flex-col gap-3 rounded-lg border border-border bg-muted/50 p-4"
-                >
+                <div key={token.id} className="flex flex-col gap-3 rounded-lg border border-border bg-muted/50 p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
@@ -195,9 +181,7 @@ export default function TokensPage() {
                       </div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         Created: {formatDate(token.createdAt)}
-                        {token.lastUsedAt && (
-                          <span className="ml-4">Last used: {formatDate(token.lastUsedAt)}</span>
-                        )}
+                        {token.lastUsedAt && <span className="ml-4">Last used: {formatDate(token.lastUsedAt)}</span>}
                       </div>
                     </div>
                     <Button
@@ -213,11 +197,7 @@ export default function TokensPage() {
                     <div className="flex-1 overflow-hidden rounded-md border bg-background px-3 py-2 font-mono text-xs">
                       <div className="overflow-x-auto">{token.token}</div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => copyToClipboard(token.token)}
-                    >
+                    <Button variant="outline" size="icon" onClick={() => copyToClipboard(token.token)}>
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
@@ -233,9 +213,7 @@ export default function TokensPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create External Token</DialogTitle>
-            <DialogDescription>
-              Create a new token for API access or node connections.
-            </DialogDescription>
+            <DialogDescription>Create a new token for API access or node connections.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -247,9 +225,7 @@ export default function TokensPage() {
                 onChange={(e) => setNewTokenName(e.target.value)}
                 disabled={actionLoading}
               />
-              <p className="text-xs text-muted-foreground">
-                Choose a descriptive name to help you remember what this token is for
-              </p>
+              <p className="text-xs text-muted-foreground">Choose a descriptive name to help you remember what this token is for</p>
             </div>
           </div>
           <DialogFooter>
@@ -268,17 +244,13 @@ export default function TokensPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Token Created Successfully</DialogTitle>
-            <DialogDescription>
-              Your token has been created. You can view and copy it anytime from the tokens list.
-            </DialogDescription>
+            <DialogDescription>Your token has been created. You can view and copy it anytime from the tokens list.</DialogDescription>
           </DialogHeader>
           {createdToken && (
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Token Name</Label>
-                <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">
-                  {createdToken.name}
-                </div>
+                <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">{createdToken.name}</div>
               </div>
               <div className="space-y-2">
                 <Label>Token Value</Label>
@@ -286,19 +258,13 @@ export default function TokensPage() {
                   <div className="flex-1 overflow-hidden rounded-md border bg-muted px-3 py-2 font-mono text-sm">
                     <div className="overflow-x-auto">{createdToken.token}</div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => copyToClipboard(createdToken.token)}
-                  >
+                  <Button variant="outline" size="icon" onClick={() => copyToClipboard(createdToken.token)}>
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
                 <Alert className="mt-4">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Keep your token secure. You can view it anytime from the tokens list.
-                  </AlertDescription>
+                  <AlertDescription>Keep your token secure. You can view it anytime from the tokens list.</AlertDescription>
                 </Alert>
               </div>
             </div>
@@ -315,8 +281,8 @@ export default function TokensPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Revoke Token?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently revoke the token. Any services using this token will lose access
-              immediately. This action cannot be undone.
+              This will permanently revoke the token. Any services using this token will lose access immediately. This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

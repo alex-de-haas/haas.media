@@ -24,9 +24,10 @@ static class TVEpisodeMetadataMapper
     private const int DefaultTopCrewCount = 12;
 
     public static TVEpisodeMetadata Create(
-        this TvEpisode tvEpisode, 
+        this TvEpisode tvEpisode,
         int topGuestStarsCount = DefaultTopGuestStarsCount,
-        int topCrewCount = DefaultTopCrewCount)
+        int topCrewCount = DefaultTopCrewCount
+    )
     {
         return new TVEpisodeMetadata
         {

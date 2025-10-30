@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useFiles } from "@/features/files";
 import { useNotifications } from "@/lib/notifications";
 import FileList from "@/features/files/components/file-list";
@@ -35,6 +36,7 @@ interface FileActionsProps {
 }
 
 function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorrent, onPlayVideo, onEncode }: FileActionsProps) {
+  const t = useTranslations("files");
   const isTorrent = item.extension?.toLowerCase() === ".torrent";
   const isVideo =
     item.extension &&
@@ -45,7 +47,7 @@ function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorre
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="File actions">
+        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={t("actions")}>
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -54,7 +56,7 @@ function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorre
           <>
             <DropdownMenuItem onSelect={onPlayVideo} className="cursor-pointer">
               <Play className="h-4 w-4" />
-              Play video
+              {t("playVideo")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
@@ -63,7 +65,7 @@ function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorre
           <>
             <DropdownMenuItem onSelect={onEncode} className="cursor-pointer">
               <Settings className="h-4 w-4" />
-              Encode
+              {t("encode")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
@@ -72,27 +74,27 @@ function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorre
           <>
             <DropdownMenuItem onSelect={onDownloadTorrent} className="cursor-pointer">
               <Download className="h-4 w-4" />
-              Download torrent
+              {t("downloadTorrent")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
         )}
         <DropdownMenuItem onSelect={onCopy} className="cursor-pointer">
           <Copy className="h-4 w-4" />
-          Copy
+          {t("copy")}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onMove} className="cursor-pointer">
           <MoveRight className="h-4 w-4" />
-          Move
+          {t("move")}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onRename} className="cursor-pointer">
           <Pencil className="h-4 w-4" />
-          Rename
+          {t("rename")}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onDelete} className="cursor-pointer text-destructive focus:text-destructive">
           <Trash2 className="h-4 w-4" />
-          Delete
+          {t("delete", { ns: "common" })}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -100,6 +102,7 @@ function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorre
 }
 
 export default function FilesPage() {
+  const t = useTranslations("files");
   const { isOpen, videoPath, videoTitle, openVideo, setIsOpen, transcode, quality, showStreamInfo } = useVideoPlayer();
 
   const {
@@ -294,16 +297,16 @@ export default function FilesPage() {
     async (path: string, name: string) => {
       const result = await downloadTorrentFromFile(path);
       notify({
-        title: result.success ? "Torrent download started" : "Torrent start failed",
+        title: result.success ? t("torrentStarted") : t("torrentFailed"),
         message: result.success ? `${name} — ${result.message}` : `${name}: ${result.message}`,
         type: result.success ? "success" : "error",
       });
       return result;
     },
-    [downloadTorrentFromFile, notify],
+    [downloadTorrentFromFile, notify, t],
   );
 
-  usePageTitle("Files");
+  usePageTitle(t("title"));
 
   const singleItemActions = useMemo(
     () =>
@@ -335,7 +338,7 @@ export default function FilesPage() {
       {/* Error state */}
       {error && (
         <Alert variant="destructive">
-          <AlertTitle>Error loading files</AlertTitle>
+          <AlertTitle>{t("errorLoading")}</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -358,11 +361,11 @@ export default function FilesPage() {
               onClick={toggleSelectionMode}
             >
               {selectionMode ? <X className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
-              {selectionMode ? "Done" : "Select"}
+              {selectionMode ? t("done") : t("select")}
             </Button>
             <Button onClick={() => openModal("create-directory")} size="sm" className="flex items-center gap-2">
               <FolderPlus className="h-4 w-4" />
-              Create directory
+              {t("createDirectory")}
             </Button>
           </div>
         }
@@ -376,7 +379,7 @@ export default function FilesPage() {
         <section className="rounded-md border border-dashed border-primary/30 bg-primary/5 px-4 py-3">
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm font-medium text-foreground">
-              {selectedItems.length} item{selectedItems.length === 1 ? "" : "s"} selected
+              {t("itemsSelected", { count: selectedItems.length, plural: selectedItems.length === 1 ? "" : "s" })}
             </span>
             <div className="flex flex-wrap items-center gap-2">
               <Button
@@ -388,7 +391,7 @@ export default function FilesPage() {
                 onClick={() => openModal("copy", selectedItems)}
               >
                 <Copy className="h-4 w-4" />
-                Copy
+                {t("copy")}
               </Button>
               <Button
                 type="button"
@@ -399,7 +402,7 @@ export default function FilesPage() {
                 onClick={() => openModal("move", selectedItems)}
               >
                 <MoveRight className="h-4 w-4" />
-                Move
+                {t("move")}
               </Button>
               <Button
                 type="button"
@@ -410,11 +413,11 @@ export default function FilesPage() {
                 onClick={() => openModal("delete", selectedItems)}
               >
                 <Trash2 className="h-4 w-4" />
-                Delete
+                {t("delete", { ns: "common" })}
               </Button>
             </div>
             <Button type="button" variant="ghost" size="sm" onClick={clearSelection} disabled={selectedItems.length === 0}>
-              Clear selection
+              {t("clearSelection")}
             </Button>
           </div>
         </section>

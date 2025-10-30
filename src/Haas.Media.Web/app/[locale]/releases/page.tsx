@@ -1,13 +1,16 @@
 "use client";
 
 import { Suspense } from "react";
+import { useTranslations } from "next-intl";
 import { ReleaseCalendar } from "@/features/media/components";
 import { usePageTitle } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui";
 
 export default function DigitalReleasesPage() {
-  usePageTitle("Releases Calendar");
+  const t = useTranslations("releases");
+  
+  usePageTitle(t("pageTitle"));
 
   return (
     <main className="space-y-8 px-4 py-8 sm:px-6 lg:px-10">

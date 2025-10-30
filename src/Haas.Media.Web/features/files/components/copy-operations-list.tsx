@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { useBackgroundTasks } from "@/features/background-tasks/hooks/useBackgroundTasks";
 import { cn, formatDuration, formatSize } from "@/lib/utils";
 import type { CopyOperationInfo } from "@/types/file";
@@ -54,26 +55,29 @@ const statusIcon = (status: BackgroundTaskStatus) => {
   }
 };
 
-const statusTitle = (status: BackgroundTaskStatus, operation: CopyOperationInfo, isActive: boolean) => {
-  if (isActive) {
-    return operation.isDirectory ? "Copying directory" : "Copying files";
-  }
-
-  switch (status) {
-    case BackgroundTaskStatus.Completed:
-      return "Copy completed";
-    case BackgroundTaskStatus.Failed:
-      return "Copy failed";
-    case BackgroundTaskStatus.Cancelled:
-      return "Copy cancelled";
-    default:
-      return "Copy status";
-  }
-};
-
 export default function CopyOperationsList({ operations, onCancel }: CopyOperationsListProps) {
+  const t = useTranslations("files.copyOperations");
+  const tCommon = useTranslations("common");
+
   const { tasks: backgroundTasks } = useBackgroundTasks({ enabled: operations.length > 0 });
   const tasksById = useMemo(() => new Map(backgroundTasks.map((task) => [task.id, task])), [backgroundTasks]);
+
+  const statusTitle = (status: BackgroundTaskStatus, operation: CopyOperationInfo, isActive: boolean) => {
+    if (isActive) {
+      return operation.isDirectory ? t("copyingDirectory") : t("copyingFiles");
+    }
+
+    switch (status) {
+      case BackgroundTaskStatus.Completed:
+        return t("copyCompleted");
+      case BackgroundTaskStatus.Failed:
+        return t("copyFailed");
+      case BackgroundTaskStatus.Cancelled:
+        return t("copyCancelled");
+      default:
+        return t("copyStatus");
+    }
+  };
 
   const visibleOperations = useMemo(() => {
     return operations.filter((operation) => {
@@ -91,7 +95,7 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold tracking-tight">File transfers</h2>
+        <h2 className="text-lg font-semibold tracking-tight">{t("fileTransfers")}</h2>
         <span className="text-sm text-muted-foreground">{visibleOperations.length}</span>
       </div>
       <div className="space-y-4">
@@ -122,9 +126,9 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
             : null;
 
           const completedSummary = [
-            `Copied ${formatSize(operation.totalBytes)}`,
-            operation.isDirectory && operation.totalFiles ? `${operation.totalFiles} files` : null,
-            completionDurationSeconds ? `Finished in ${formatDuration(completionDurationSeconds)}` : null,
+            t("copiedSize", { size: formatSize(operation.totalBytes) }),
+            operation.isDirectory && operation.totalFiles ? t("copiedFiles", { count: operation.totalFiles }) : null,
+            completionDurationSeconds ? t("finishedIn", { duration: formatDuration(completionDurationSeconds) }) : null,
           ]
             .filter(Boolean)
             .join(" • ");
@@ -137,10 +141,10 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
           const alertVariant = status === BackgroundTaskStatus.Failed ? "destructive" : "default";
           const alertDescription = (() => {
             if (status === BackgroundTaskStatus.Failed) {
-              return errorMessage ?? statusMessage ?? "The transfer encountered an unexpected error.";
+              return errorMessage ?? statusMessage ?? t("transferError");
             }
             if (status === BackgroundTaskStatus.Cancelled) {
-              return statusMessage ?? "Operation was cancelled.";
+              return statusMessage ?? t("operationCancelled");
             }
             return statusMessage;
           })();
@@ -150,11 +154,11 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
           const alertTitleText = (() => {
             switch (status) {
               case BackgroundTaskStatus.Failed:
-                return "Transfer failed";
+                return t("transferFailed");
               case BackgroundTaskStatus.Cancelled:
-                return "Transfer cancelled";
+                return t("transferCancelled");
               default:
-                return "Current file";
+                return t("currentFile");
             }
           })();
 
@@ -176,7 +180,7 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
                         void onCancel(operation.id);
                       }}
                     >
-                      Cancel
+                      {tCommon("cancel")}
                     </Button>
                   )}
                 </div>
@@ -186,16 +190,16 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
                 <div className="space-y-2 text-xs text-muted-foreground">
                   <div className="flex flex-wrap items-center gap-2">
                     <Clock className="h-3.5 w-3.5" />
-                    <span>Started {startedAt}</span>
-                    {completedAt && <span>• Finished {completedAt}</span>}
+                    <span>{t("started", { time: startedAt })}</span>
+                    {completedAt && <span>• {t("finished", { time: completedAt })}</span>}
                   </div>
                   <div className="grid gap-3 rounded-md border border-border/60 bg-background/80 p-3 sm:grid-cols-2">
                     <div>
-                      <div className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground">Source</div>
+                      <div className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground">{t("source")}</div>
                       <div className="mt-1 break-words font-mono text-[11px] text-foreground sm:text-xs">{operation.sourcePath}</div>
                     </div>
                     <div>
-                      <div className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground">Destination</div>
+                      <div className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground">{t("destination")}</div>
                       <div className="mt-1 break-words font-mono text-[11px] text-foreground sm:text-xs">{operation.destinationPath}</div>
                     </div>
                   </div>

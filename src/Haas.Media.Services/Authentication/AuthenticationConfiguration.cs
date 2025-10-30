@@ -162,11 +162,7 @@ public static class AuthenticationConfiguration
         group
             .MapDelete(
                 "/tokens/{tokenId}",
-                (
-                    string tokenId,
-                    HttpContext context,
-                    IAuthenticationApi authService
-                ) =>
+                (string tokenId, HttpContext context, IAuthenticationApi authService) =>
                 {
                     var username = context.User.Identity?.Name;
                     if (string.IsNullOrEmpty(username))

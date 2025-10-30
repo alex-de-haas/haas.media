@@ -355,9 +355,9 @@ public class MetadataService : IMetadataApi
         var associatedTvShows = _tvShowMetadataCollection
             .FindAll()
             .Where(show =>
-                show.Cast.Any(member => member.Id == id) 
+                show.Cast.Any(member => member.Id == id)
                 || show.Crew.Any(member => member.Id == id)
-                || show.Seasons.Any(season => 
+                || show.Seasons.Any(season =>
                     season.Episodes.Any(episode =>
                         episode.Cast.Any(member => member.Id == id)
                         || episode.Crew.Any(member => member.Id == id)
@@ -417,14 +417,9 @@ public class MetadataService : IMetadataApi
         );
     }
 
-    public Task<string> StartMetadataSyncAsync(
-        bool refreshExistingData = true
-    )
+    public Task<string> StartMetadataSyncAsync(bool refreshExistingData = true)
     {
-        var task = new MetadataSyncTask
-        {
-            RefreshExistingData = refreshExistingData
-        };
+        var task = new MetadataSyncTask { RefreshExistingData = refreshExistingData };
         var operationId = task.Id.ToString();
 
         _logger.LogInformation(
@@ -554,9 +549,7 @@ public class MetadataService : IMetadataApi
 
     public Task<int> DeleteFileMetadataByPathAsync(string filePath)
     {
-        var fileMetadataList = _fileMetadataCollection
-            .Find(f => f.FilePath == filePath)
-            .ToList();
+        var fileMetadataList = _fileMetadataCollection.Find(f => f.FilePath == filePath).ToList();
 
         var deletedCount = 0;
         foreach (var fileMetadata in fileMetadataList)
@@ -586,10 +579,10 @@ public class MetadataService : IMetadataApi
     public Task<int> CleanupDuplicateFileMetadataAsync()
     {
         _logger.LogInformation("Starting duplicate file metadata cleanup");
-        
+
         // Get all file metadata records
         var allFiles = _fileMetadataCollection.FindAll().ToList();
-        
+
         // Group by unique identifier (TmdbId, FilePath, SeasonNumber, EpisodeNumber)
         var groups = allFiles
             .GroupBy(f => new
@@ -601,17 +594,14 @@ public class MetadataService : IMetadataApi
             })
             .Where(g => g.Count() > 1) // Only duplicates
             .ToList();
-        
+
         var deletedCount = 0;
-        
+
         foreach (var group in groups)
         {
             // Keep the oldest record (by CreatedAt), delete the rest
-            var toDelete = group
-                .OrderBy(f => f.CreatedAt)
-                .Skip(1)
-                .ToList();
-            
+            var toDelete = group.OrderBy(f => f.CreatedAt).Skip(1).ToList();
+
             foreach (var duplicate in toDelete)
             {
                 if (_fileMetadataCollection.Delete(new BsonValue(duplicate.Id)))
@@ -628,13 +618,13 @@ public class MetadataService : IMetadataApi
                 }
             }
         }
-        
+
         _logger.LogInformation(
             "Duplicate cleanup complete. Removed {Count} duplicate(s) from {GroupCount} group(s)",
             deletedCount,
             groups.Count
         );
-        
+
         return Task.FromResult(deletedCount);
     }
 

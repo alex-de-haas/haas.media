@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format, isAfter, startOfDay } from "date-fns";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 import {
   CalendarBody,
@@ -33,47 +34,34 @@ import { cn } from "@/lib/utils";
 
 type MovieFeature = Feature<{ movie: MovieMetadata; releaseType: ReleaseDateType; countryCode?: string | null | undefined }>;
 
-const STATUSES: Record<"upcoming" | "released", Status> = {
-  upcoming: {
-    id: "upcoming",
-    name: "Upcoming",
-    color: "hsl(var(--primary))",
-  },
-  released: {
-    id: "released",
-    name: "Released",
-    color: "hsl(var(--muted-foreground))",
-  },
-};
-
-const RELEASE_TYPE_CONFIG: Record<ReleaseDateType, { label: string; color: string; bgColor: string }> = {
+const RELEASE_TYPE_CONFIG: Record<ReleaseDateType, { key: string; color: string; bgColor: string }> = {
   [ReleaseDateType.Theatrical]: {
-    label: "Theatrical",
+    key: "theatrical",
     color: "text-blue-700 dark:text-blue-300",
     bgColor: "bg-blue-500/10",
   },
   [ReleaseDateType.TheatricalLimited]: {
-    label: "Limited Theatrical",
+    key: "theatricalLimited",
     color: "text-cyan-700 dark:text-cyan-300",
     bgColor: "bg-cyan-500/10",
   },
   [ReleaseDateType.Digital]: {
-    label: "Digital",
+    key: "digital",
     color: "text-purple-700 dark:text-purple-300",
     bgColor: "bg-purple-500/10",
   },
   [ReleaseDateType.Physical]: {
-    label: "Physical",
+    key: "physical",
     color: "text-green-700 dark:text-green-300",
     bgColor: "bg-green-500/10",
   },
   [ReleaseDateType.Tv]: {
-    label: "TV",
+    key: "tv",
     color: "text-orange-700 dark:text-orange-300",
     bgColor: "bg-orange-500/10",
   },
   [ReleaseDateType.Premiere]: {
-    label: "Premiere",
+    key: "premiere",
     color: "text-pink-700 dark:text-pink-300",
     bgColor: "bg-pink-500/10",
   },
@@ -157,10 +145,26 @@ function CalendarSync({ selectedDate, onSelectDate }: { selectedDate: Date | und
 }
 
 export default function ReleaseCalendar() {
+  const t = useTranslations("releases");
+  const tMovies = useTranslations("movies");
   const { user } = useLocalAuth();
   const { movies, loading, error, refetch } = useMovies();
 
-  const preferredCountry = useMemo(() => (user?.countryCode ?? "US").toUpperCase(), [user?.countryCode]);
+  const preferredCountry = useMemo(() => "US", []);
+
+  // Create status objects with translations
+  const STATUSES = useMemo<Record<"upcoming" | "released", Status>>(() => ({
+    upcoming: {
+      id: "upcoming",
+      name: t("upcoming"),
+      color: "hsl(var(--primary))",
+    },
+    released: {
+      id: "released",
+      name: t("released"),
+      color: "hsl(var(--muted-foreground))",
+    },
+  }), [t]);
 
   useEffect(() => {
     if (!user) {
@@ -319,7 +323,7 @@ export default function ReleaseCalendar() {
   if (error) {
     return (
       <Alert variant="destructive">
-        <AlertTitle>Unable to load releases</AlertTitle>
+        <AlertTitle>{t("unableToLoad")}</AlertTitle>
         <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
@@ -330,16 +334,16 @@ export default function ReleaseCalendar() {
     if (selectedReleaseTypes.size === 0) {
       return (
         <Alert>
-          <AlertTitle>No release types selected</AlertTitle>
-          <AlertDescription>Select at least one release type from the filter to view the calendar.</AlertDescription>
+          <AlertTitle>{t("noReleaseTypesSelected")}</AlertTitle>
+          <AlertDescription>{t("selectAtLeastOne")}</AlertDescription>
         </Alert>
       );
     }
 
     return (
       <Alert>
-        <AlertTitle>No releases found</AlertTitle>
-        <AlertDescription>Add movies with release dates to see them appear here.</AlertDescription>
+        <AlertTitle>{t("noReleases")}</AlertTitle>
+        <AlertDescription>{t("addMovies")}</AlertDescription>
       </Alert>
     );
   }
@@ -348,12 +352,12 @@ export default function ReleaseCalendar() {
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr),minmax(280px,0.9fr)]">
       <Card>
         <CardHeader>
-          <CardTitle>Release Calendar</CardTitle>
+          <CardTitle>{t("calendarTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           {/* Release Type Filter */}
           <div className="mb-6 rounded-lg border border-border/60 bg-muted/40 p-4">
-            <h3 className="mb-3 text-sm font-semibold text-foreground">Filter by Release Type</h3>
+            <h3 className="mb-3 text-sm font-semibold text-foreground">{t("filterByType")}</h3>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {Object.entries(RELEASE_TYPE_CONFIG).map(([typeKey, config]) => {
                 const type = Number(typeKey) as ReleaseDateType;
@@ -374,7 +378,7 @@ export default function ReleaseCalendar() {
                           type === ReleaseDateType.Premiere && "bg-pink-500",
                         )}
                       />
-                      {config.label}
+                      {t(config.key)}
                     </Label>
                   </div>
                 );
@@ -420,7 +424,7 @@ export default function ReleaseCalendar() {
                         releaseType === ReleaseDateType.Tv && "bg-orange-500",
                         releaseType === ReleaseDateType.Premiere && "bg-pink-500",
                       )}
-                      title={config.label}
+                      title={t(config.key)}
                     />
                     <span className="truncate">{feature.name}</span>
                   </div>
@@ -430,33 +434,32 @@ export default function ReleaseCalendar() {
           </CalendarProvider>
           <div className="mt-4 space-y-2">
             <p className="text-sm text-muted-foreground">
-              Dates with color accents indicate movie releases. Pick a day to explore all release types. Today&apos;s date is highlighted in
-              blue.
+              {t("calendarHelpText")}
             </p>
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-blue-500" />
-                <span>Theatrical</span>
+                <span>{t("theatrical")}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-cyan-500" />
-                <span>Limited</span>
+                <span>{t("limited")}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-purple-500" />
-                <span>Digital</span>
+                <span>{t("digital")}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-green-500" />
-                <span>Physical</span>
+                <span>{t("physical")}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-orange-500" />
-                <span>TV</span>
+                <span>{t("tv")}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-pink-500" />
-                <span>Premiere</span>
+                <span>{t("premiere")}</span>
               </div>
             </div>
           </div>
@@ -466,14 +469,17 @@ export default function ReleaseCalendar() {
       <div className="space-y-4">
         <div>
           <h2 className="text-2xl font-semibold text-foreground">
-            {selectedDate ? format(selectedDate, "EEEE, MMMM d, yyyy") : "Select a date"}
+            {selectedDate ? format(selectedDate, "EEEE, MMMM d, yyyy") : t("selectDate")}
           </h2>
           <p className="text-sm text-muted-foreground">
             {selectedDate
               ? selectedFeatures.length > 0
-                ? `${selectedFeatures.length} ${selectedFeatures.length === 1 ? "release" : "releases"} scheduled`
-                : "No releases scheduled for this day"
-              : "Choose a highlighted date to view scheduled releases."}
+                ? t("releasesScheduled", { 
+                    count: selectedFeatures.length, 
+                    plural: selectedFeatures.length === 1 ? t("release") : t("releases_plural") 
+                  })
+                : t("noReleasesForDay")
+              : t("chooseDate")}
           </p>
         </div>
 
@@ -502,7 +508,7 @@ export default function ReleaseCalendar() {
                       </CardTitle>
                       <Badge variant={isUpcoming ? "outline" : "secondary"}>{feature.status.name}</Badge>
                       <Badge variant="secondary" className={cn(config.bgColor, config.color)}>
-                        {config.label}
+                        {t(config.key)}
                       </Badge>
                       {countryCode && (
                         <Badge variant="outline" className="text-xs">
@@ -512,18 +518,18 @@ export default function ReleaseCalendar() {
                     </div>
                     {movie.originalTitle && movie.originalTitle !== feature.name && (
                       <span className="text-sm text-muted-foreground">
-                        Original title: <span className="font-medium text-foreground">{movie.originalTitle}</span>
+                        {t("originalTitle", { title: movie.originalTitle })}
                       </span>
                     )}
                     <span className="text-sm text-muted-foreground">
-                      {config.label} release: {format(feature.endAt, "MMMM d, yyyy")}
+                      {t("releaseOn", { type: t(config.key), date: format(feature.endAt, "MMMM d, yyyy") })}
                     </span>
                   </CardHeader>
                   <CardContent className="space-y-3 text-sm text-muted-foreground">
                     <div className="flex flex-wrap gap-3">
                       {movie.genres?.length > 0 && (
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-foreground">Genres</span>
+                          <span className="font-medium text-foreground">{tMovies("genres")}</span>
                           <div className="flex flex-wrap gap-2">
                             {movie.genres.map((genre) => (
                               <Badge key={`${feature.id}-${genre}`} variant="outline">
@@ -535,7 +541,7 @@ export default function ReleaseCalendar() {
                       )}
                       {typeof movie.voteAverage === "number" && movie.voteAverage > 0 && (
                         <span>
-                          <span className="font-medium text-foreground">TMDB:</span> {movie.voteAverage.toFixed(1)} / 10
+                          {t("tmdbRating", { rating: movie.voteAverage.toFixed(1) })}
                         </span>
                       )}
                     </div>
@@ -552,8 +558,8 @@ export default function ReleaseCalendar() {
           </div>
         ) : (
           <Alert>
-            <AlertTitle>No releases selected</AlertTitle>
-            <AlertDescription>Select a highlighted date to view release details.</AlertDescription>
+            <AlertTitle>{t("noReleasesSelected")}</AlertTitle>
+            <AlertDescription>{t("selectHighlightedDate")}</AlertDescription>
           </Alert>
         )}
       </div>

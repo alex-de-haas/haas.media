@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ArrowLeft, MoreVertical, Trash2, Tv, Star, Heart, Play, CheckCircle2 } from "lucide-react";
 
 import { useTVShow, useDeleteTVShowMetadata, useTVShowPlaybackInfo } from "@/features/media/hooks";
@@ -45,6 +46,8 @@ interface EpisodeCardProps {
 }
 
 function EpisodeCard({ tvShowId, episode, episodeFiles }: EpisodeCardProps) {
+  const t = useTranslations("tvShows");
+  
   return (
     <Link
       href={`/tvshows/${tvShowId}/episodes/${episode.seasonNumber}/${episode.episodeNumber}`}
@@ -55,7 +58,7 @@ function EpisodeCard({ tvShowId, episode, episodeFiles }: EpisodeCardProps) {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm font-semibold">
-                Episode {episode.episodeNumber}: {episode.name}
+                {t("episode")} {episode.episodeNumber}: {episode.name}
               </p>
             </div>
             {episode.voteAverage > 0 && (
@@ -75,7 +78,7 @@ function EpisodeCard({ tvShowId, episode, episodeFiles }: EpisodeCardProps) {
               ))}
             </div>
           ) : (
-            <p className="font-mono text-xs text-muted-foreground italic">No local file linked</p>
+            <p className="font-mono text-xs text-muted-foreground italic">{t("noLocalFile")}</p>
           )}
         </CardContent>
       </Card>
@@ -84,6 +87,8 @@ function EpisodeCard({ tvShowId, episode, episodeFiles }: EpisodeCardProps) {
 }
 
 export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
+  const t = useTranslations("tvShows");
+  const tCommon = useTranslations("common");
   const { tvShow, loading, error } = useTVShow(tvShowId);
   const { files: showFiles } = useFilesByMediaId(tvShowId, LibraryType.TVShows);
   const { playbackInfo, loading: playbackLoading } = useTVShowPlaybackInfo(tvShowId);
@@ -123,15 +128,15 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
     if (result.success) {
       notify({
         type: "success",
-        title: "TV Show Deleted",
-        message: `${tvShow.title} metadata was removed.`,
+        title: t("showDeleted"),
+        message: t("showDeletedMessage", { title: tvShow.title }),
       });
       router.push("/tvshows");
     } else {
       notify({
         type: "error",
-        title: "Delete Failed",
-        message: result.message || "Unable to delete TV show metadata.",
+        title: t("deleteFailed"),
+        message: result.message || t("deleteFailedMessage"),
       });
     }
 
@@ -159,21 +164,27 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
 
   // Merge show credits with episode cast and crew
   const mergedCredits = useMemo(() => {
-    const castMap = new Map<number, { 
-      person: CastMember; 
-      isMainCast: boolean; 
-      order: number;
-      character?: string;
-      episodeAppearances?: number;
-    }>();
-    const crewMap = new Map<number, { 
-      person: CrewMember; 
-      isMainCrew: boolean; 
-      weight: number;
-      job: string;
-      department?: string;
-      episodeAppearances?: number;
-    }>();
+    const castMap = new Map<
+      number,
+      {
+        person: CastMember;
+        isMainCast: boolean;
+        order: number;
+        character?: string;
+        episodeAppearances?: number;
+      }
+    >();
+    const crewMap = new Map<
+      number,
+      {
+        person: CrewMember;
+        isMainCrew: boolean;
+        weight: number;
+        job: string;
+        department?: string;
+        episodeAppearances?: number;
+      }
+    >();
 
     // Add main show cast
     tvShow?.cast?.forEach((castMember) => {
@@ -254,11 +265,9 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
     });
 
     // Convert to arrays and sort
-    const cast = Array.from(castMap.values())
-      .sort((a, b) => a.order - b.order);
+    const cast = Array.from(castMap.values()).sort((a, b) => a.order - b.order);
 
-    const crew = Array.from(crewMap.values())
-      .sort((a, b) => b.weight - a.weight);
+    const crew = Array.from(crewMap.values()).sort((a, b) => b.weight - a.weight);
 
     return { cast, crew };
   }, [tvShow?.cast, tvShow?.crew, tvShow?.seasons]);
@@ -275,12 +284,12 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Alert variant="destructive">
-          <AlertTitle>TV show not found</AlertTitle>
-          <AlertDescription>{error || "The TV show you requested could not be found."}</AlertDescription>
+          <AlertTitle>{t("tvShowNotFound")}</AlertTitle>
+          <AlertDescription>{error || t("tvShowNotFoundDescription")}</AlertDescription>
         </Alert>
         <Button asChild variant="outline" className="mt-4">
           <Link href="/tvshows" className="inline-flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" /> Back to TV Shows
+            <ArrowLeft className="h-4 w-4" /> {t("backToTVShows")}
           </Link>
         </Button>
       </div>
@@ -320,7 +329,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
           <Button asChild variant="secondary" size="sm" className="bg-black/60 text-white hover:bg-black/70">
             <Link href="/tvshows" className="inline-flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back to TV Shows
+              {t("backToTVShows")}
             </Link>
           </Button>
         </div>
@@ -378,13 +387,12 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                       {tvShow.originalLanguage && <span className="uppercase">{tvShow.originalLanguage}</span>}
                       {seasonCount > 0 && (
                         <span>
-                          {seasonCount} season{seasonCount === 1 ? "" : "s"}
+                          {t("seasonCount", { count: seasonCount, plural: seasonCount === 1 ? "" : "s" })}
                         </span>
                       )}
                       {totalEpisodes > 0 && (
                         <span>
-                          {totalEpisodes} episode
-                          {totalEpisodes === 1 ? "" : "s"}
+                          {t("totalEpisodes", { count: totalEpisodes })}
                         </span>
                       )}
                     </div>
@@ -395,7 +403,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="rounded-full">
                           <MoreVertical className="h-4 w-4" />
-                          <span className="sr-only">Open TV show actions</span>
+                          <span className="sr-only">{t("openShowActions")}</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-52">
@@ -405,7 +413,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                             className="text-destructive focus:text-destructive"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Delete TV Show
+                            {t("deleteShow")}
                           </DropdownMenuItem>
                         </AlertDialogTrigger>
                       </DropdownMenuContent>
@@ -413,15 +421,15 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
 
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete {tvShow.title}?</AlertDialogTitle>
+                        <AlertDialogTitle>{t("deleteShowConfirm", { title: tvShow.title })}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This action cannot be undone. The metadata for this TV show will be permanently removed.
+                          {t("deleteShowDescription")}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel disabled={deletingTVShow}>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel disabled={deletingTVShow}>{tCommon("cancel")}</AlertDialogCancel>
                         <AlertDialogAction onClick={handleDelete} disabled={deletingTVShow}>
-                          {deletingTVShow ? "Deleting..." : "Delete"}
+                          {deletingTVShow ? t("deleting") : tCommon("delete")}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -439,28 +447,26 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                 )}
 
                 {/* Playback Info */}
-                {!playbackLoading && playbackInfo && showPlaybackBadges && (
+                                {!playbackLoading && playbackInfo && showPlaybackBadges && (
                   <div className="flex flex-wrap items-center gap-3 text-sm">
                     {playbackInfo.watchedEpisodes > 0 && (
                       <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
                         <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        <span>
-                          {playbackInfo.watchedEpisodes} / {playbackInfo.totalEpisodes} watched
-                        </span>
+                        <span>{t("watchedEpisodes", { count: playbackInfo.watchedEpisodes })}</span>
                       </Badge>
                     )}
                     {playbackInfo.totalPlayCount > 0 && (
                       <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
                         <Play className="h-4 w-4 text-blue-500" />
                         <span>
-                          {playbackInfo.totalPlayCount} play{playbackInfo.totalPlayCount !== 1 ? "s" : ""}
+                          {t("totalPlayCount", { count: playbackInfo.totalPlayCount })}
                         </span>
                       </Badge>
                     )}
                     {playbackInfo.isFavorite && (
                       <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
                         <Heart className="h-4 w-4 fill-red-500 text-red-500" />
-                        <span>Favorite</span>
+                        <span>{t("favorite")}</span>
                       </Badge>
                     )}
                   </div>
@@ -480,7 +486,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
               <CardContent className="space-y-6">
                 {tvShow.overview && (
                   <div className="space-y-2">
-                    <h2 className="text-lg font-semibold">Overview</h2>
+                    <h2 className="text-lg font-semibold">{t("overview")}</h2>
                     <p className="text-muted-foreground leading-relaxed">{tvShow.overview}</p>
                   </div>
                 )}
@@ -511,44 +517,42 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                 <Card>
                   <CardHeader className="space-y-4">
                     <div>
-                      <CardTitle className="text-lg">Credits</CardTitle>
-                      <CardDescription>Cast and crew from show and episodes</CardDescription>
+                      <CardTitle className="text-lg">{t("credits")}</CardTitle>
+                      <CardDescription>{t("creditsDescription")}</CardDescription>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {hasMergedCast && (
                       <div className="space-y-2">
-                        <h3 className="text-sm font-semibold">Cast</h3>
+                        <h3 className="text-sm font-semibold">{t("cast")}</h3>
                         <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
                           <CarouselContent className="-ml-2 sm:-ml-4">
-                            {mergedCredits.cast
-                              .slice(0, CREDIT_DISPLAY_LIMIT)
-                              .map((item) => (
-                                <CarouselItem
-                                  key={`cast-${item.person.id}`}
-                                  className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
-                                >
-                                  <PersonCard
-                                    name={item.person.name}
-                                    {...(item.character ? { description: item.character } : {})}
-                                    {...(item.episodeAppearances 
-                                      ? { meta: `${item.episodeAppearances} episode${item.episodeAppearances > 1 ? 's' : ''}` } 
-                                      : item.isMainCast 
-                                      ? { meta: 'Main cast' } 
+                            {mergedCredits.cast.slice(0, CREDIT_DISPLAY_LIMIT).map((item) => (
+                              <CarouselItem
+                                key={`cast-${item.person.id}`}
+                                className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                              >
+                                <PersonCard
+                                  name={item.person.name}
+                                  {...(item.character ? { description: item.character } : {})}
+                                  {...(item.episodeAppearances
+                                    ? { meta: `${item.episodeAppearances} episode${item.episodeAppearances > 1 ? "s" : ""}` }
+                                    : item.isMainCast
+                                      ? { meta: "Main cast" }
                                       : {})}
-                                    profilePath={item.person.profilePath ?? null}
-                                    href={`/people/${item.person.id}`}
-                                    className="mx-auto h-full"
-                                  />
-                                </CarouselItem>
-                              ))}
+                                  profilePath={item.person.profilePath ?? null}
+                                  href={`/people/${item.person.id}`}
+                                  className="mx-auto h-full"
+                                />
+                              </CarouselItem>
+                            ))}
                           </CarouselContent>
                           <CarouselPrevious className="hidden md:flex -left-8" />
                           <CarouselNext className="hidden md:flex -right-8" />
                         </Carousel>
                         {mergedCredits.cast.length > CREDIT_DISPLAY_LIMIT && (
                           <p className="text-xs text-muted-foreground">
-                            Showing {CREDIT_DISPLAY_LIMIT} of {mergedCredits.cast.length} cast members
+                            {t("showingCastMembers", { displayed: CREDIT_DISPLAY_LIMIT, total: mergedCredits.cast.length })}
                           </p>
                         )}
                       </div>
@@ -558,37 +562,35 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                       <>
                         {hasMergedCast && <Separator />}
                         <div className="space-y-2">
-                          <h3 className="text-sm font-semibold">Crew</h3>
+                          <h3 className="text-sm font-semibold">{t("crew")}</h3>
                           <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
                             <CarouselContent className="-ml-2 sm:-ml-4">
-                              {mergedCredits.crew
-                                .slice(0, CREDIT_DISPLAY_LIMIT)
-                                .map((item) => (
-                                  <CarouselItem
-                                    key={`crew-${item.person.id}-${item.job}`}
-                                    className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
-                                  >
-                                    <PersonCard
-                                      name={item.person.name}
-                                      description={item.job}
-                                      {...(item.episodeAppearances 
-                                        ? { meta: `${item.episodeAppearances} episode${item.episodeAppearances > 1 ? 's' : ''}` }
-                                        : item.department 
+                              {mergedCredits.crew.slice(0, CREDIT_DISPLAY_LIMIT).map((item) => (
+                                <CarouselItem
+                                  key={`crew-${item.person.id}-${item.job}`}
+                                  className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                                >
+                                  <PersonCard
+                                    name={item.person.name}
+                                    description={item.job}
+                                    {...(item.episodeAppearances
+                                      ? { meta: `${item.episodeAppearances} episode${item.episodeAppearances > 1 ? "s" : ""}` }
+                                      : item.department
                                         ? { meta: item.department }
                                         : {})}
-                                      profilePath={item.person.profilePath ?? null}
-                                      href={`/people/${item.person.id}`}
-                                      className="mx-auto h-full"
-                                    />
-                                  </CarouselItem>
-                                ))}
+                                    profilePath={item.person.profilePath ?? null}
+                                    href={`/people/${item.person.id}`}
+                                    className="mx-auto h-full"
+                                  />
+                                </CarouselItem>
+                              ))}
                             </CarouselContent>
                             <CarouselPrevious className="hidden md:flex -left-8" />
                             <CarouselNext className="hidden md:flex -right-8" />
                           </Carousel>
                           {mergedCredits.crew.length > CREDIT_DISPLAY_LIMIT && (
                             <p className="text-xs text-muted-foreground">
-                              Showing {CREDIT_DISPLAY_LIMIT} of {mergedCredits.crew.length} crew members
+                              {t("showingCrewMembers", { displayed: CREDIT_DISPLAY_LIMIT, total: mergedCredits.crew.length })}
                             </p>
                           )}
                         </div>
@@ -602,7 +604,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
             <Card>
               <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
-                  <CardTitle className="text-lg">Seasons</CardTitle>
+                  <CardTitle className="text-lg">{t("seasons")}</CardTitle>
                   <CardDescription>Browse episodes and linked files</CardDescription>
                 </div>
                 <div className="flex gap-2">
@@ -612,10 +614,10 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                     onClick={expandAllSeasons}
                     disabled={seasonValues.length === 0 || expandedSeasons.length === seasonValues.length}
                   >
-                    Expand all
+                    {t("expandAll")}
                   </Button>
                   <Button variant="ghost" size="sm" onClick={collapseAllSeasons} disabled={expandedSeasons.length === 0}>
-                    Collapse all
+                    {t("collapseAll")}
                   </Button>
                 </div>
               </CardHeader>
@@ -631,7 +633,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                           <AccordionTrigger className="px-4 py-3">
                             <div className="flex flex-col gap-2 text-left">
                               <div className="flex flex-wrap items-center gap-3">
-                                <span className="text-base font-semibold">Season {season.seasonNumber}</span>
+                                <span className="text-base font-semibold">{t("seasonNumber", { number: season.seasonNumber })}</span>
                                 {season.voteAverage > 0 && (
                                   <Badge variant="secondary" className="flex items-center gap-1 px-2 py-1">
                                     <Star className="h-3 w-3 text-yellow-500" />
@@ -640,8 +642,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                                 )}
                               </div>
                               <div className="text-sm text-muted-foreground">
-                                {episodeCount} episode
-                                {episodeCount === 1 ? "" : "s"}
+                                {t("episodeCount", { count: episodeCount })}
                               </div>
                             </div>
                           </AccordionTrigger>

@@ -66,9 +66,7 @@ export function DownloadFileDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Download File from Node</DialogTitle>
-          <DialogDescription>
-            Choose a destination directory and confirm the file name for download.
-          </DialogDescription>
+          <DialogDescription>Choose a destination directory and confirm the file name for download.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">

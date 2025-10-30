@@ -13,12 +13,15 @@ Haas.Media uses authorization policies to provide fine-grained control over whic
 Three authorization policies are available:
 
 ### 1. `AuthorizationPolicies.Authenticated`
+
 Requires any authenticated user (JWT or external token). This is the default policy for most endpoints.
 
 ### 2. `AuthorizationPolicies.JwtOnly`
+
 Only allows JWT token authentication. External tokens will be rejected even if valid.
 
 ### 3. `AuthorizationPolicies.AllowExternalToken`
+
 Explicitly allows external token authentication (and JWT tokens). Use this for endpoints that need to support long-lived external tokens.
 
 ## Configuration
@@ -73,6 +76,7 @@ api.MapGet("/files", async (IFilesApi api) =>
 ## Default Configuration
 
 By default:
+
 - **`/api/nodes/register`** uses `AllowExternalToken` policy (explicitly allows external tokens for node-to-node registration)
 - **Most other endpoints** use the default `Authenticated` policy (allows both JWT and external tokens)
 - **No endpoints** currently use `JwtOnly` (but you can add this for sensitive operations)
@@ -82,6 +86,7 @@ By default:
 ### Node-to-Node Communication
 
 The `/api/nodes/register` endpoint uses `AllowExternalToken` policy because:
+
 - It's called by remote Haas.Media nodes during bidirectional connection setup
 - External tokens don't expire, making them ideal for long-lived node connections
 - Each node uses its own external token for authentication
@@ -242,6 +247,7 @@ Authorization failures will also be logged by ASP.NET Core when a policy require
 To restrict an endpoint to JWT-only authentication:
 
 1. **Apply the Policy** in your endpoint configuration:
+
    ```csharp
    api.MapDelete("/users/{id}", async (string id, IUserApi userApi) =>
    {
@@ -259,6 +265,7 @@ To restrict an endpoint to JWT-only authentication:
 ### When to Use `JwtOnly`
 
 Use `JwtOnly` policy for:
+
 - User management endpoints (create, delete, update users)
 - Sensitive configuration changes
 - Operations that should only be performed by interactive users
@@ -267,6 +274,7 @@ Use `JwtOnly` policy for:
 ### When to Use `AllowExternalToken`
 
 Use `AllowExternalToken` policy for:
+
 - Node-to-node communication endpoints
 - API integrations with trusted external systems
 - Monitoring and health check endpoints
@@ -275,6 +283,7 @@ Use `AllowExternalToken` policy for:
 ### When to Use Default `Authenticated`
 
 Use default `Authenticated` (or `AllowExternalToken`) for:
+
 - Most API endpoints
 - Data retrieval operations
 - File operations
@@ -304,7 +313,7 @@ api.MapPost("/register", handler)
 ```csharp
 // In Program.cs
 builder.Services.AddAuthorizationBuilder()
-    .AddPolicy(AuthorizationPolicies.AllowExternalToken, policy => 
+    .AddPolicy(AuthorizationPolicies.AllowExternalToken, policy =>
         policy.RequireAuthenticatedUser());
 
 // Explicitly declare policy on endpoint

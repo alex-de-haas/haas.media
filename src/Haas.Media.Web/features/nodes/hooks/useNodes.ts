@@ -3,13 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchWithAuth, fetchJsonWithAuth } from "@/lib/auth/fetch-with-auth";
 import { downloaderApi } from "@/lib/api";
-import type {
-  NodeInfo,
-  ConnectNodeRequest,
-  UpdateNodeRequest,
-  NodeValidationResult,
-  ValidateNodeRequest,
-} from "@/types/node";
+import type { NodeInfo, ConnectNodeRequest, UpdateNodeRequest, NodeValidationResult, ValidateNodeRequest } from "@/types/node";
 
 export function useNodes() {
   const [nodes, setNodes] = useState<NodeInfo[]>([]);
@@ -156,10 +150,10 @@ export function useNodes() {
         const result = await response.json();
         // New response format: { totalFetched, savedCount, skippedCount }
         const { totalFetched = 0, savedCount = 0, skippedCount = 0 } = result;
-        return { 
-          success: true, 
+        return {
+          success: true,
           message: `Fetched ${totalFetched} files (${savedCount} saved, ${skippedCount} skipped)`,
-          count: savedCount
+          count: savedCount,
         };
       } else {
         const errorText = await response.text();

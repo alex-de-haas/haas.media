@@ -141,9 +141,7 @@ public class JellyfinAuthService
             return null;
         }
 
-        var authResponse = _authenticationApi.Login(
-            new LoginRequest(request.Username, password)
-        );
+        var authResponse = _authenticationApi.Login(new LoginRequest(request.Username, password));
 
         if (authResponse is null)
         {
