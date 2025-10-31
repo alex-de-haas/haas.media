@@ -10,11 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 export default function RegisterPage() {
   const router = useRouter();
   const { register } = useLocalAuth();
   const { isAuthenticated, isLoading: authLoading } = useGuestGuard();
+  const t = useTranslations("auth");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -25,7 +27,7 @@ export default function RegisterPage() {
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground">{t("loading")}</div>
       </div>
     );
   }
@@ -41,17 +43,17 @@ export default function RegisterPage() {
 
     // Validation
     if (username.length < 3) {
-      setError("Username must be at least 3 characters");
+      setError(t("usernameMinLength"));
       return;
     }
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setError(t("passwordMinLength"));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("passwordsDoNotMatch"));
       return;
     }
 
@@ -62,10 +64,10 @@ export default function RegisterPage() {
       if (success) {
         router.push("/");
       } else {
-        setError("Registration failed. Username may already be in use.");
+        setError(t("registrationFailed"));
       }
     } catch {
-      setError("An error occurred. Please try again.");
+      setError(t("errorOccurred"));
     } finally {
       setIsLoading(false);
     }
@@ -75,8 +77,8 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Create an account</CardTitle>
-          <CardDescription>Enter your details to register for Haas Media Server</CardDescription>
+          <CardTitle>{t("createAccountTitle")}</CardTitle>
+          <CardDescription>{t("createAccountDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -87,7 +89,7 @@ export default function RegisterPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">{t("username")}</Label>
               <Input
                 id="username"
                 type="text"
@@ -96,12 +98,12 @@ export default function RegisterPage() {
                 required
                 disabled={isLoading}
                 autoComplete="username"
-                placeholder="At least 3 characters"
+                placeholder={t("usernamePlaceholder")}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("password")}</Label>
               <Input
                 id="password"
                 type="password"
@@ -110,12 +112,12 @@ export default function RegisterPage() {
                 required
                 disabled={isLoading}
                 autoComplete="new-password"
-                placeholder="At least 8 characters"
+                placeholder={t("passwordPlaceholder")}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">{t("confirmPassword")}</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -128,14 +130,14 @@ export default function RegisterPage() {
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating account..." : "Create account"}
+              {isLoading ? t("creatingAccount") : t("createAccount")}
             </Button>
           </form>
 
           <div className="mt-4 text-center text-sm">
-            Already have an account?{" "}
+            {t("alreadyHaveAccount")}{" "}
             <Link href="/login" className="text-blue-600 hover:underline">
-              Sign in
+              {t("signInTitle")}
             </Link>
           </div>
         </CardContent>

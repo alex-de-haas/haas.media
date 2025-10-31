@@ -10,11 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useLocalAuth();
   const { isAuthenticated, isLoading: authLoading } = useGuestGuard();
+  const t = useTranslations("auth");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -24,7 +26,7 @@ export default function LoginPage() {
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground">{t("loading")}</div>
       </div>
     );
   }
@@ -44,10 +46,10 @@ export default function LoginPage() {
       if (success) {
         router.push("/");
       } else {
-        setError("Invalid username or password");
+        setError(t("invalidCredentials"));
       }
     } catch {
-      setError("An error occurred. Please try again.");
+      setError(t("errorOccurred"));
     } finally {
       setIsLoading(false);
     }
@@ -57,8 +59,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Sign in</CardTitle>
-          <CardDescription>Sign in to Haas Media Server</CardDescription>
+          <CardTitle>{t("signInTitle")}</CardTitle>
+          <CardDescription>{t("signInDescription")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -69,7 +71,7 @@ export default function LoginPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">{t("username")}</Label>
               <Input
                 id="username"
                 type="text"
@@ -82,7 +84,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("password")}</Label>
               <Input
                 id="password"
                 type="password"
@@ -95,14 +97,14 @@ export default function LoginPage() {
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign in"}
+              {isLoading ? t("signingIn") : t("signInTitle")}
             </Button>
           </form>
 
           <div className="text-center text-sm">
-            Don&apos;t have an account?{" "}
+            {t("dontHaveAccount")}{" "}
             <Link href="/register" className="text-blue-600 hover:underline">
-              Register
+              {t("register")}
             </Link>
           </div>
         </CardContent>
