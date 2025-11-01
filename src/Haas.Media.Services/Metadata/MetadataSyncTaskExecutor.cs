@@ -190,6 +190,7 @@ internal sealed class MetadataSyncTaskExecutor
 
             // Step 4: Process new files and create metadata (no MD5 hash calculation)
             var newTvShows = new List<TVShowMetadata>();
+            var tvShowsCache = new Dictionary<string, TVShowMetadata>();
             var processedNewFiles = 0;
 
             foreach (var (type, filePath, relativePath) in newFiles)
@@ -230,8 +231,24 @@ internal sealed class MetadataSyncTaskExecutor
                     }
                     else if (type == LibraryType.TVShows)
                     {
-                        // For TV shows, we process by directory (show level)
-                        // Skip individual episode processing here
+                        var fileMetadata = await ProcessNewTVShowFileAsync(
+                            tvShowsCache,
+                            filePath,
+                            relativePath,
+                            globalSettings,
+                            context.CancellationToken
+                        );
+                        if (fileMetadata != null)
+                        {
+                            existingFileMetadata[relativePath] = fileMetadata;
+                        }
+                        else
+                        {
+                            _logger.LogWarning(
+                                "Could not extract TV show metadata from file: {FilePath}",
+                                relativePath
+                            );
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -240,107 +257,6 @@ internal sealed class MetadataSyncTaskExecutor
                 }
 
                 processedNewFiles++;
-            }
-
-            // Process new TV shows by directory and new episodes for existing shows
-            var processedTvShowDirectories = new HashSet<string>();
-
-            // First, identify which show directories have new files
-            var showDirectoriesWithNewFiles = newFiles
-                .Where(x => x.type == LibraryType.TVShows)
-                .Select(x =>
-                {
-                    var fullPath = Path.Combine(_dataPath, x.relativePath);
-                    var fileInfo = new FileInfo(fullPath);
-                    // Navigate up to the show directory (e.g., from "Shows/Show Name/Season 01/episode.mkv" to "Shows/Show Name")
-                    var showDir = fileInfo.Directory?.Parent?.Parent?.FullName;
-                    if (showDir != null && showDir.StartsWith(Path.Combine(_dataPath, "Shows")))
-                    {
-                        return fileInfo.Directory?.Parent?.FullName; // Return the show directory
-                    }
-                    return null;
-                })
-                .Where(x => x != null)
-                .Distinct()
-                .ToHashSet();
-
-            foreach (var directory in tvShowDirectories)
-            {
-                context.ThrowIfCancellationRequested();
-
-                var fullDirectoryPath = Path.Combine(_dataPath, directory);
-                if (!Directory.Exists(fullDirectoryPath))
-                {
-                    continue;
-                }
-
-                var showDirectories = Directory.GetDirectories(
-                    fullDirectoryPath,
-                    "*",
-                    SearchOption.TopDirectoryOnly
-                );
-
-                foreach (var showDirectory in showDirectories)
-                {
-                    context.ThrowIfCancellationRequested();
-
-                    if (processedTvShowDirectories.Contains(showDirectory))
-                    {
-                        continue;
-                    }
-                    processedTvShowDirectories.Add(showDirectory);
-
-                    var directoryInfo = new DirectoryInfo(showDirectory);
-                    var showTitle = MetadataHelper.ExtractTVShowTitleFromDirectoryName(
-                        directoryInfo.Name
-                    );
-
-                    if (string.IsNullOrEmpty(showTitle))
-                    {
-                        continue;
-                    }
-
-                    // Check if show already exists
-                    var existingShow = _tvShowMetadataCollection.FindOne(tv =>
-                        tv.Title == showTitle
-                    );
-
-                    if (existingShow == null)
-                    {
-                        payload = payload with
-                        {
-                            Stage = "Processing new TV show",
-                            CurrentItem = showTitle
-                        };
-                        context.SetPayload(payload);
-
-                        var tvShowMetadata = await ProcessNewTvShowDirectoryAsync(
-                            showDirectory,
-                            globalSettings,
-                            context.CancellationToken
-                        );
-                        if (tvShowMetadata != null)
-                        {
-                            newTvShows.Add(tvShowMetadata);
-                        }
-                    }
-                    else if (showDirectoriesWithNewFiles.Contains(showDirectory))
-                    {
-                        // Existing show with new episode files - add file metadata only
-                        payload = payload with
-                        {
-                            Stage = "Processing new episodes for existing TV show",
-                            CurrentItem = showTitle
-                        };
-                        context.SetPayload(payload);
-
-                        await ProcessNewEpisodeFilesForExistingShowAsync(
-                            showDirectory,
-                            existingShow,
-                            context.CancellationToken
-                        );
-                    }
-                }
             }
 
             // Step 5: Collect all movies and TV shows to refresh
@@ -698,6 +614,170 @@ internal sealed class MetadataSyncTaskExecutor
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to process movie file: {FilePath}", relativePath);
+        }
+
+        return null;
+    }
+
+    private async Task<FileMetadata?> ProcessNewTVShowFileAsync(
+        Dictionary<string, TVShowMetadata> cache,
+        string filePath,
+        string relativePath,
+        GlobalSettings.GlobalSettings globalSettings,
+        CancellationToken cancellationToken
+    )
+    {
+        var fileName = Path.GetFileNameWithoutExtension(filePath);
+
+        // Extract season and episode numbers from filename using regex
+        // Pattern: S##E##
+        var match = System.Text.RegularExpressions.Regex.Match(
+            fileName,
+            @"S(\d{2})E(\d{2})",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase
+        );
+
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        var seasonNumber = int.Parse(match.Groups[1].Value);
+        var episodeNumber = int.Parse(match.Groups[2].Value);
+
+        // Extract show title from filename (everything before S##E##)
+        // Example: "Slow.Horses.S01.E05.720p" -> "Slow.Horses"
+        var showTitlePart = fileName.Substring(0, match.Index).Trim('.');
+
+        if (string.IsNullOrWhiteSpace(showTitlePart))
+        {
+            return null;
+        }
+
+        try
+        {
+            // Try to get existing show from cache
+            var tvShowMetadata = cache.GetValueOrDefault(showTitlePart);
+            if (tvShowMetadata == null)
+            {
+                // Search TMDb for the show using the title part from filename
+                var showYear = MetadataHelper.ExtractYearFromString(showTitlePart);
+                var searchResults = await SearchTMDbForTVShow(
+                    showTitlePart,
+                    showYear,
+                    cancellationToken
+                );
+
+                if (searchResults == null)
+                {
+                    return null;
+                }
+
+                var tmdbId = searchResults.Id;
+
+                // Check if we already have metadata for this TV show by TMDb ID
+                tvShowMetadata = _tvShowMetadataCollection.FindById(tmdbId);
+
+                // If not, fetch from TMDb and create metadata
+                if (tvShowMetadata == null)
+                {
+                    // Fetch and store TV show metadata
+                    var tvShowDetails = await _tmdbClient.GetTvShowAsync(
+                        tmdbId,
+                        extraMethods: TvShowMethods.Credits | TvShowMethods.Images,
+                        cancellationToken: cancellationToken
+                    );
+
+                    if (tvShowDetails == null)
+                    {
+                        return null;
+                    }
+
+                    var preferredCountry = _countryProvider.GetPreferredCountryCode();
+                    var preferredLanguage = _languageProvider.GetPreferredLanguage();
+                    tvShowMetadata = tvShowDetails.Create(
+                        globalSettings.TopCastCount,
+                        globalSettings.TopCrewCount,
+                        preferredCountry,
+                        preferredLanguage
+                    );
+
+                    // Fetch all seasons and episodes metadata
+                    var seasons = new List<TVSeasonMetadata>();
+                    foreach (var season in tvShowDetails.Seasons.Where(s => s.SeasonNumber > 0))
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        var seasonDetails = await _tmdbClient.GetTvSeasonAsync(
+                            tmdbId,
+                            season.SeasonNumber,
+                            cancellationToken: cancellationToken
+                        );
+
+                        if (seasonDetails == null)
+                        {
+                            continue;
+                        }
+
+                        var seasonMetadata = seasonDetails.Create();
+                        var episodes = new List<TVEpisodeMetadata>();
+
+                        foreach (
+                            var episode in seasonDetails.Episodes
+                                ?? Enumerable.Empty<TvSeasonEpisode>()
+                        )
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+
+                            var episodeDetails = await _tmdbClient.GetTvEpisodeAsync(
+                                tmdbId,
+                                season.SeasonNumber,
+                                episode.EpisodeNumber,
+                                cancellationToken: cancellationToken
+                            );
+
+                            if (episodeDetails == null)
+                            {
+                                continue;
+                            }
+
+                            var episodeMetadata = episodeDetails.Create();
+                            episodes.Add(episodeMetadata);
+                        }
+
+                        seasonMetadata.Episodes = episodes.ToArray();
+                        seasons.Add(seasonMetadata);
+                    }
+
+                    tvShowMetadata.Seasons = seasons.ToArray();
+                    _tvShowMetadataCollection.Insert(tvShowMetadata);
+                }
+
+                // Cache the TV show metadata for future use
+                cache[showTitlePart] = tvShowMetadata!;
+            }
+
+            // Create file metadata for this episode
+            var fileMetadata = new FileMetadata
+            {
+                Id = Guid.CreateVersion7().ToString(),
+                LibraryId = null,
+                TmdbId = tvShowMetadata.Id,
+                LibraryType = LibraryType.TVShows,
+                FilePath = relativePath,
+                Md5Hash = null,
+                SeasonNumber = seasonNumber,
+                EpisodeNumber = episodeNumber,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _fileMetadataCollection.Insert(fileMetadata);
+
+            return fileMetadata;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to process TV show file: {FilePath}", relativePath);
         }
 
         return null;
