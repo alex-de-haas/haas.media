@@ -288,6 +288,7 @@
     "fileSize": "文件大小",
     "modified": "修改时间",
     "actions": "操作",
+    "delete": "删除",
     "download": "下载",
     "stream": "流媒体",
     "encode": "编码",

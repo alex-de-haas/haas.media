@@ -288,6 +288,7 @@
     "fileSize": "Taille du fichier",
     "modified": "Modifié",
     "actions": "Actions",
+    "delete": "Supprimer",
     "download": "Télécharger",
     "stream": "Diffuser",
     "encode": "Encoder",

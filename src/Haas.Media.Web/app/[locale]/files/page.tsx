@@ -94,7 +94,7 @@ function FileActions({ item, onDelete, onCopy, onMove, onRename, onDownloadTorre
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onDelete} className="cursor-pointer text-destructive focus:text-destructive">
           <Trash2 className="h-4 w-4" />
-          {t("delete", { ns: "common" })}
+          {t("delete")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -413,7 +413,7 @@ export default function FilesPage() {
                 onClick={() => openModal("delete", selectedItems)}
               >
                 <Trash2 className="h-4 w-4" />
-                {t("delete", { ns: "common" })}
+                {t("delete")}
               </Button>
             </div>
             <Button type="button" variant="ghost" size="sm" onClick={clearSelection} disabled={selectedItems.length === 0}>

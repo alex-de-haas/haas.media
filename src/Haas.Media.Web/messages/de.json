@@ -288,6 +288,7 @@
     "fileSize": "Dateigröße",
     "modified": "Geändert",
     "actions": "Aktionen",
+    "delete": "Löschen",
     "download": "Herunterladen",
     "stream": "Streamen",
     "encode": "Kodieren",
