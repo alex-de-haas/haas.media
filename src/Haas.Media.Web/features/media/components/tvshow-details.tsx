@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,7 @@ import { useBackgroundTasks } from "@/features/background-tasks/hooks";
 import { LibraryType } from "@/types/library";
 import type { BackgroundTaskInfo } from "@/types";
 import type { GlobalSettings } from "@/types/global-settings";
+import { BackgroundTaskStatus } from "@/types";
 import { Spinner } from "@/components/ui";
 import { getPosterUrl, getBackdropUrl, getLogoUrl } from "@/lib/tmdb";
 import type { TVEpisodeMetadata, FileMetadata, CastMember, CrewMember } from "@/types/metadata";
@@ -209,6 +210,9 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
   const { notify } = useNotifications();
   const { deleteTVShow, loading: deletingTVShow } = useDeleteTVShowMetadata();
 
+  // Track previous download task IDs to detect newly completed downloads
+  const previousCompletedTaskIds = useRef<Set<string>>(new Set());
+
   // Fetch global settings for TV show directories
   useEffect(() => {
     const fetchSettings = async () => {
@@ -225,10 +229,39 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
     void fetchSettings();
   }, []);
 
-  // Filter download tasks for this TV show
+  // Track download tasks for remote files (only active ones for progress display)
   const downloadTasks = useMemo(() => {
-    return backgroundTasks.filter((task) => task.type === "node-file-download");
+    return backgroundTasks.filter(
+      (task: BackgroundTaskInfo) =>
+        task.type === "NodeFileDownloadTask" &&
+        (task.status === BackgroundTaskStatus.Pending || task.status === BackgroundTaskStatus.Running),
+    );
   }, [backgroundTasks]);
+
+  // Track all download tasks (including completed) for completion detection
+  const allDownloadTasks = useMemo(() => {
+    return backgroundTasks.filter((task: BackgroundTaskInfo) => task.type === "NodeFileDownloadTask");
+  }, [backgroundTasks]);
+
+  // Refresh files when download tasks complete
+  useEffect(() => {
+    const currentCompletedTaskIds = new Set<string>(
+      allDownloadTasks
+        .filter((task: BackgroundTaskInfo) => task.status === BackgroundTaskStatus.Completed)
+        .map((task: BackgroundTaskInfo) => task.id),
+    );
+
+    // Find newly completed tasks (tasks that just transitioned to completed)
+    const newlyCompletedTaskIds = Array.from(currentCompletedTaskIds).filter((id) => !previousCompletedTaskIds.current.has(id));
+
+    if (newlyCompletedTaskIds.length > 0) {
+      // Refetch files to show newly downloaded files
+      refetchFiles();
+
+      // Update the ref with current completed task IDs
+      previousCompletedTaskIds.current = currentCompletedTaskIds;
+    }
+  }, [allDownloadTasks, refetchFiles]);
 
   useEffect(() => {
     setExpandedSeasons([]);
