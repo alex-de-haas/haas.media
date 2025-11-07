@@ -286,7 +286,18 @@
     "airDate": "Air Date",
     "runtime": "Runtime",
     "minutes": "{count} min",
-    "backToShow": "Back to {title}"
+    "backToShow": "Back to {title}",
+    "local": "Local",
+    "remote": "Remote",
+    "cancelDownload": "Cancel download",
+    "downloadFile": "Download file",
+    "preparing": "Preparing...",
+    "downloadCancelled": "Download Cancelled",
+    "downloadCancelledMessage": "The download has been cancelled.",
+    "cancelFailed": "Cancellation Failed",
+    "downloadStarted": "Download Started",
+    "downloadFailed": "Download Failed",
+    "downloadFailedNoDirectories": "No TV show directories configured. Please configure TV show directories in settings."
   },
   "files": {
     "title": "Files",

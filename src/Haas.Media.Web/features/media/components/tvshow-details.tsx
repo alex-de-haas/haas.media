@@ -5,19 +5,27 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ArrowLeft, MoreVertical, Trash2, Tv, Star, Heart, Play, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, MoreVertical, Trash2, Tv, Star, Heart, Play, CheckCircle2, Server, HardDrive, Download, X } from "lucide-react";
 
 import { useTVShow, useDeleteTVShowMetadata, useTVShowPlaybackInfo } from "@/features/media/hooks";
 import { useFilesByMediaId } from "@/features/media/hooks/useFileMetadata";
+import { useNodeFileDownload } from "@/features/nodes/hooks";
+import { DownloadFileDialog } from "@/features/nodes/components";
+import { useBackgroundTasks } from "@/features/background-tasks/hooks";
 import { LibraryType } from "@/types/library";
+import type { BackgroundTaskInfo } from "@/types";
+import type { GlobalSettings } from "@/types/global-settings";
 import { Spinner } from "@/components/ui";
 import { getPosterUrl, getBackdropUrl, getLogoUrl } from "@/lib/tmdb";
 import type { TVEpisodeMetadata, FileMetadata, CastMember, CrewMember } from "@/types/metadata";
 import { useNotifications } from "@/lib/notifications";
+import { fetchWithAuth } from "@/lib/auth/fetch-with-auth";
+import { downloaderApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Progress } from "@/components/ui/progress";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,46 +51,145 @@ interface EpisodeCardProps {
   tvShowId: number;
   episode: TVEpisodeMetadata;
   episodeFiles: FileMetadata[];
+  downloadTasks: BackgroundTaskInfo[];
+  initiatingDownloadFileId: string | null;
+  onOpenDownloadDialog: (file: FileMetadata) => void;
+  onCancelDownload: (taskId: string) => Promise<void>;
 }
 
-function EpisodeCard({ tvShowId, episode, episodeFiles }: EpisodeCardProps) {
+function EpisodeCard({ 
+  tvShowId, 
+  episode, 
+  episodeFiles,
+  downloadTasks,
+  initiatingDownloadFileId,
+  onOpenDownloadDialog,
+  onCancelDownload
+}: EpisodeCardProps) {
   const t = useTranslations("tvShows");
 
   return (
-    <Link
-      href={`/tvshows/${tvShowId}/episodes/${episode.seasonNumber}/${episode.episodeNumber}`}
-      className="block transition hover:scale-[1.02]"
-    >
-      <Card className="cursor-pointer transition hover:border-primary/60 hover:shadow-md">
-        <CardContent className="space-y-2 p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold">
-                {t("episode")} {episode.episodeNumber}: {episode.name}
-              </p>
-            </div>
-            {episode.voteAverage > 0 && (
-              <Badge variant="secondary" className="flex items-center gap-1 px-2 py-1">
-                <Star className="h-3 w-3 text-yellow-500" />
-                {episode.voteAverage.toFixed(1)}
-              </Badge>
-            )}
-          </div>
-          {episode.overview && <p className="text-sm text-muted-foreground line-clamp-2">{episode.overview}</p>}
-          {episodeFiles.length > 0 ? (
-            <div className="space-y-1">
-              {episodeFiles.map((file) => (
-                <p key={file.id} className="font-mono text-xs text-muted-foreground break-all">
-                  {file.filePath}
+    <div className="space-y-2">
+      <Link
+        href={`/tvshows/${tvShowId}/episodes/${episode.seasonNumber}/${episode.episodeNumber}`}
+        className="block transition hover:scale-[1.02]"
+      >
+        <Card className="cursor-pointer transition hover:border-primary/60 hover:shadow-md">
+          <CardContent className="space-y-2 p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold">
+                  {t("episode")} {episode.episodeNumber}: {episode.name}
                 </p>
-              ))}
+              </div>
+              {episode.voteAverage > 0 && (
+                <Badge variant="secondary" className="flex items-center gap-1 px-2 py-1">
+                  <Star className="h-3 w-3 text-yellow-500" />
+                  {episode.voteAverage.toFixed(1)}
+                </Badge>
+              )}
             </div>
-          ) : (
-            <p className="font-mono text-xs text-muted-foreground italic">{t("noLocalFile")}</p>
-          )}
-        </CardContent>
-      </Card>
-    </Link>
+            {episode.overview && <p className="text-sm text-muted-foreground line-clamp-2">{episode.overview}</p>}
+          </CardContent>
+        </Card>
+      </Link>
+      
+      {episodeFiles.length > 0 ? (
+        <div className="space-y-2 pl-2">
+          {episodeFiles.map((file) => {
+            const isRemote = Boolean(file.nodeId);
+
+            // Find active download task for this file
+            const activeDownload = downloadTasks.find((task: BackgroundTaskInfo) => {
+              const payload = task.payload as Record<string, unknown>;
+              return (payload?.remoteFilePath as string) === file.filePath;
+            });
+
+            const isDownloading = Boolean(activeDownload || initiatingDownloadFileId === file.id);
+
+            let downloadProgress = 0;
+            let downloadedBytes = 0;
+            let totalBytes = 0;
+
+            if (activeDownload) {
+              const payload = activeDownload.payload as Record<string, unknown>;
+              downloadProgress = activeDownload.progress || 0;
+              downloadedBytes = (payload?.downloadedBytes as number) || 0;
+              totalBytes = (payload?.totalBytes as number) || 0;
+            }
+
+            return (
+              <div
+                key={file.id}
+                className="rounded-md border bg-muted/30 px-3 py-2 space-y-2 min-h-[60px] flex flex-col justify-center"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {isRemote && file.nodeName && (
+                        <Badge variant="outline" className="text-xs">
+                          <Server className="mr-1 h-3 w-3" />
+                          {file.nodeName}
+                        </Badge>
+                      )}
+                      {!isRemote && (
+                        <Badge variant="outline" className="text-xs">
+                          <HardDrive className="mr-1 h-3 w-3" />
+                          {t("local")}
+                        </Badge>
+                      )}
+                      <div className="font-mono text-xs text-muted-foreground break-all">{file.filePath}</div>
+                    </div>
+
+                    {isDownloading && activeDownload && (
+                      <div className="space-y-1 pt-1">
+                        <Progress value={downloadProgress} className="h-1.5" />
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>
+                            {downloadedBytes > 0
+                              ? `${(downloadedBytes / 1024 / 1024).toFixed(1)} MB / ${(totalBytes / 1024 / 1024).toFixed(1)} MB`
+                              : t("preparing")}
+                          </span>
+                          <span>{downloadProgress.toFixed(0)}%</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {isRemote && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (activeDownload) {
+                          void onCancelDownload(activeDownload.id);
+                        } else {
+                          onOpenDownloadDialog(file);
+                        }
+                      }}
+                      disabled={initiatingDownloadFileId === file.id}
+                      className="shrink-0"
+                      title={activeDownload ? t("cancelDownload") : t("downloadFile")}
+                    >
+                      {activeDownload ? (
+                        <X className="h-3.5 w-3.5" />
+                      ) : initiatingDownloadFileId === file.id ? (
+                        <Spinner className="h-3.5 w-3.5" />
+                      ) : (
+                        <Download className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="font-mono text-xs text-muted-foreground italic pl-2">{t("noLocalFile")}</p>
+      )}
+    </div>
   );
 }
 
@@ -90,14 +197,41 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
   const t = useTranslations("tvShows");
   const tCommon = useTranslations("common");
   const { tvShow, loading, error } = useTVShow(tvShowId);
-  const { files: showFiles } = useFilesByMediaId(tvShowId, LibraryType.TVShows);
+  const { files: showFiles, refetch: refetchFiles } = useFilesByMediaId(tvShowId, LibraryType.TVShows);
   const { playbackInfo, loading: playbackLoading } = useTVShowPlaybackInfo(tvShowId);
+  const { downloadFile } = useNodeFileDownload();
+  const { tasks: backgroundTasks, cancelTask } = useBackgroundTasks();
   const [imageError, setImageError] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expandedSeasons, setExpandedSeasons] = useState<string[]>([]);
+  const [initiatingDownloadFileId, setInitiatingDownloadFileId] = useState<string | null>(null);
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const [selectedFileForDownload, setSelectedFileForDownload] = useState<FileMetadata | null>(null);
+  const [globalSettings, setGlobalSettings] = useState<GlobalSettings | null>(null);
   const router = useRouter();
   const { notify } = useNotifications();
   const { deleteTVShow, loading: deletingTVShow } = useDeleteTVShowMetadata();
+
+  // Fetch global settings for TV show directories
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetchWithAuth(`${downloaderApi}/api/global-settings`);
+        if (response.ok) {
+          const settings = await response.json();
+          setGlobalSettings(settings);
+        }
+      } catch (error) {
+        console.error("Failed to fetch global settings:", error);
+      }
+    };
+    void fetchSettings();
+  }, []);
+
+  // Filter download tasks for this TV show
+  const downloadTasks = useMemo(() => {
+    return backgroundTasks.filter((task) => task.type === "node-file-download");
+  }, [backgroundTasks]);
 
   useEffect(() => {
     setExpandedSeasons([]);
@@ -116,6 +250,60 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
   // Helper function to get files for a specific episode
   const getEpisodeFiles = (seasonNumber: number, episodeNumber: number): FileMetadata[] => {
     return showFiles.filter((file) => file.seasonNumber === seasonNumber && file.episodeNumber === episodeNumber);
+  };
+
+  const handleOpenDownloadDialog = (file: FileMetadata) => {
+    if (!globalSettings?.tvShowDirectories || globalSettings.tvShowDirectories.length === 0) {
+      notify({
+        type: "error",
+        title: t("downloadFailed"),
+        message: t("downloadFailedNoDirectories"),
+      });
+      return;
+    }
+
+    setSelectedFileForDownload(file);
+    setDownloadDialogOpen(true);
+  };
+
+  const handleDownloadConfirm = async (libraryId: string, customFileName: string) => {
+    if (!selectedFileForDownload) return;
+
+    setInitiatingDownloadFileId(selectedFileForDownload.id ?? null);
+    setDownloadDialogOpen(false);
+
+    const result = await downloadFile({
+      nodeId: selectedFileForDownload.nodeId!,
+      remoteFilePath: selectedFileForDownload.filePath,
+      destinationDirectory: libraryId,
+      ...(customFileName ? { customFileName } : {}),
+    });
+
+    setInitiatingDownloadFileId(null);
+
+    notify({
+      type: result.success ? "success" : "error",
+      title: result.success ? t("downloadStarted") : t("downloadFailed"),
+      message: result.message,
+    });
+
+    if (result.success) {
+      // Refetch files after a short delay to allow the task to start
+      setTimeout(() => {
+        void refetchFiles();
+      }, 1000);
+    }
+
+    setSelectedFileForDownload(null);
+  };
+
+  const handleCancelDownload = async (taskId: string) => {
+    const result = await cancelTask(taskId);
+    notify({
+      type: result.success ? "success" : "error",
+      title: result.success ? t("downloadCancelled") : t("cancelFailed"),
+      message: result.message || "",
+    });
   };
 
   const handleDelete = async () => {
@@ -645,6 +833,10 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                                     tvShowId={tvShowId}
                                     episode={episode}
                                     episodeFiles={getEpisodeFiles(episode.seasonNumber, episode.episodeNumber)}
+                                    downloadTasks={downloadTasks}
+                                    initiatingDownloadFileId={initiatingDownloadFileId}
+                                    onOpenDownloadDialog={handleOpenDownloadDialog}
+                                    onCancelDownload={handleCancelDownload}
                                   />
                                 ))}
                               </div>
@@ -664,6 +856,16 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
           </div>
         </div>
       </div>
+
+      <DownloadFileDialog
+        open={downloadDialogOpen}
+        onOpenChange={setDownloadDialogOpen}
+        onConfirm={handleDownloadConfirm}
+        defaultFileName={selectedFileForDownload?.filePath.split("/").pop() || ""}
+        mediaType={LibraryType.TVShows}
+        globalSettings={globalSettings}
+        isDownloading={initiatingDownloadFileId !== null}
+      />
     </div>
   );
 }
