@@ -148,11 +148,17 @@ export function useNodes() {
 
       if (response.ok) {
         const result = await response.json();
-        // New response format: { totalFetched, savedCount, skippedCount }
-        const { totalFetched = 0, savedCount = 0, skippedCount = 0 } = result;
+        // Response format: { totalFetched, savedCount, skippedCount, deletedCount }
+        const { totalFetched = 0, savedCount = 0, skippedCount = 0, deletedCount = 0 } = result;
+        
+        let message = `Fetched ${totalFetched} files (${savedCount} saved, ${skippedCount} skipped)`;
+        if (deletedCount > 0) {
+          message += `, ${deletedCount} deleted`;
+        }
+        
         return {
           success: true,
-          message: `Fetched ${totalFetched} files (${savedCount} saved, ${skippedCount} skipped)`,
+          message,
           count: savedCount,
         };
       } else {

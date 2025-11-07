@@ -302,6 +302,31 @@ public static class NodesConfiguration
                     {
                         var filesMetadata = await nodesApi.FetchFilesMetadataFromNodeAsync(id);
 
+                        // Get all existing file metadata for this node from local database
+                        var allExistingFiles = await metadataApi.GetFileMetadataAsync();
+                        var existingNodeFiles = allExistingFiles
+                            .Where(f => f.NodeId == id)
+                            .ToList();
+
+                        // Create a set of fetched file paths for efficient lookup
+                        var fetchedFilePaths = new HashSet<string>(
+                            filesMetadata.Select(f => f.FilePath)
+                        );
+
+                        // Identify and remove stale metadata (files that no longer exist on the node)
+                        var deletedCount = 0;
+                        foreach (var existingFile in existingNodeFiles)
+                        {
+                            if (!fetchedFilePaths.Contains(existingFile.FilePath))
+                            {
+                                // File no longer exists on the node, remove the metadata
+                                if (await metadataApi.DeleteFileMetadataAsync(existingFile.Id))
+                                {
+                                    deletedCount++;
+                                }
+                            }
+                        }
+
                         // Save fetched metadata to local database
                         var savedCount = 0;
                         foreach (var fileMetadata in filesMetadata)
@@ -327,7 +352,8 @@ public static class NodesConfiguration
                             {
                                 totalFetched = filesMetadata.Count(),
                                 savedCount,
-                                skippedCount = filesMetadata.Count() - savedCount
+                                skippedCount = filesMetadata.Count() - savedCount,
+                                deletedCount
                             }
                         );
                     }
