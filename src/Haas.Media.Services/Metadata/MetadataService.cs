@@ -576,6 +576,35 @@ public class MetadataService : IMetadataApi
         return Task.FromResult(deletedCount);
     }
 
+    public Task<int> DeleteFileMetadataByNodeIdAsync(string nodeId)
+    {
+        var fileMetadataList = _fileMetadataCollection.Find(f => f.NodeId == nodeId).ToList();
+
+        var deletedCount = 0;
+        foreach (var fileMetadata in fileMetadataList)
+        {
+            if (_fileMetadataCollection.Delete(new BsonValue(fileMetadata.Id)))
+            {
+                deletedCount++;
+            }
+        }
+
+        if (deletedCount > 0)
+        {
+            _logger.LogInformation(
+                "Deleted {Count} file metadata record(s) for node: {NodeId}",
+                deletedCount,
+                nodeId
+            );
+        }
+        else
+        {
+            _logger.LogDebug("No file metadata found for node: {NodeId}", nodeId);
+        }
+
+        return Task.FromResult(deletedCount);
+    }
+
     public Task<int> CleanupDuplicateFileMetadataAsync()
     {
         _logger.LogInformation("Starting duplicate file metadata cleanup");

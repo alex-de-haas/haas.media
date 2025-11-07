@@ -229,8 +229,20 @@ public sealed class NodesService : INodesApi
         return node;
     }
 
-    public Task<bool> DeleteNodeAsync(string id)
+    public async Task<bool> DeleteNodeAsync(string id)
     {
+        // First delete all file metadata associated with this node
+        var deletedMetadataCount = await _metadataApi.DeleteFileMetadataByNodeIdAsync(id);
+        if (deletedMetadataCount > 0)
+        {
+            _logger.LogInformation(
+                "Deleted {Count} file metadata record(s) for node: {Id}",
+                deletedMetadataCount,
+                id
+            );
+        }
+
+        // Then delete the node itself
         var deleted = _nodesCollection.Delete(id);
         if (deleted)
         {
@@ -240,7 +252,7 @@ public sealed class NodesService : INodesApi
         {
             _logger.LogWarning("Node not found for deletion: {Id}", id);
         }
-        return Task.FromResult(deleted);
+        return deleted;
     }
 
     public async Task<NodeValidationResult> ValidateNodeAsync(string url, string? apiKey = null)
