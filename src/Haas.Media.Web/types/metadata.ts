@@ -213,6 +213,7 @@ export interface MetadataSyncOperationInfo {
   currentItem?: string | null;
   totalNewFiles: number;
   processedNewFiles: number;
+  deletedOrphanedFiles: number;
   totalMovies: number;
   processedMovies: number;
   totalTvShows: number;

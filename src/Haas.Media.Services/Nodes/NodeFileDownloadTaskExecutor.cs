@@ -66,6 +66,23 @@ internal sealed class NodeFileDownloadTaskExecutor
         // Build the local destination path
         var destinationPath = Path.Combine(dataDirectory, task.DestinationDirectory);
 
+        // For TV show episodes, create directory structure: /Shows/{Show Title}/Season ##/
+        if (
+            !string.IsNullOrWhiteSpace(task.TvShowTitle)
+            && task.SeasonNumber.HasValue
+            && task.SeasonNumber.Value > 0
+        )
+        {
+            var showDirectory = task.TvShowTitle.Replace("/", "_").Replace("\\", "_"); // Sanitize
+            var seasonDirectory = $"Season {task.SeasonNumber.Value:D2}"; // Zero-padded format
+            destinationPath = Path.Combine(destinationPath, showDirectory, seasonDirectory);
+
+            _logger.LogInformation(
+                "Creating TV show directory structure: {DestinationPath}",
+                destinationPath
+            );
+        }
+
         // Use custom file name if provided, otherwise use original file name
         var fileName = !string.IsNullOrWhiteSpace(task.CustomFileName)
             ? task.CustomFileName

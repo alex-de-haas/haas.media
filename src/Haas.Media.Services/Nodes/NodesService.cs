@@ -470,22 +470,28 @@ public sealed class NodesService : INodesApi
         string nodeId,
         string remoteFilePath,
         string destinationDirectory,
-        string? customFileName = null
+        string? customFileName = null,
+        string? tvShowTitle = null,
+        int? seasonNumber = null
     )
     {
         _logger.LogInformation(
-            "Starting file download from node {NodeId}: {RemoteFilePath} to directory {DestinationDirectory} with custom file name {CustomFileName}",
+            "Starting file download from node {NodeId}: {RemoteFilePath} to directory {DestinationDirectory} with custom file name {CustomFileName}, TV show {TvShowTitle}, Season {SeasonNumber}",
             nodeId,
             remoteFilePath,
             destinationDirectory,
-            customFileName ?? "(original)"
+            customFileName ?? "(original)",
+            tvShowTitle ?? "(none)",
+            seasonNumber?.ToString() ?? "(none)"
         );
 
         var task = new NodeFileDownloadTask(
             nodeId,
             remoteFilePath,
             destinationDirectory,
-            customFileName
+            customFileName,
+            tvShowTitle,
+            seasonNumber
         );
         var taskId = _backgroundTaskManager.RunTask<NodeFileDownloadTask, NodeFileDownloadInfo>(
             task

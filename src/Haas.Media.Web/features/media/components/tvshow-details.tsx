@@ -277,6 +277,8 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
       remoteFilePath: selectedFileForDownload.filePath,
       destinationDirectory: libraryId,
       ...(customFileName ? { customFileName } : {}),
+      ...(tvShow?.title ? { tvShowTitle: tvShow.title } : {}),
+      ...(selectedFileForDownload.seasonNumber ? { seasonNumber: selectedFileForDownload.seasonNumber } : {}),
     });
 
     setInitiatingDownloadFileId(null);
@@ -304,6 +306,76 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
       title: result.success ? t("downloadCancelled") : t("cancelFailed"),
       message: result.message || "",
     });
+  };
+
+  const handleDownloadAllEpisodes = async (seasonNumber: number) => {
+    if (!globalSettings?.tvShowDirectories || globalSettings.tvShowDirectories.length === 0) {
+      notify({
+        type: "error",
+        title: t("downloadFailed"),
+        message: t("downloadFailedNoDirectories"),
+      });
+      return;
+    }
+
+    // Get all remote episode files for this season
+    const seasonEpisodes = tvShow?.seasons
+      ?.find((s) => s.seasonNumber === seasonNumber)
+      ?.episodes ?? [];
+    
+    const remoteEpisodeFiles = seasonEpisodes
+      .flatMap((episode) => {
+        const files = getEpisodeFiles(episode.seasonNumber, episode.episodeNumber);
+        return files.filter((file) => file.nodeId);
+      });
+
+    if (remoteEpisodeFiles.length === 0) {
+      notify({
+        type: "info",
+        title: t("downloadFailed"),
+        message: "No remote episode files found for this season.",
+      });
+      return;
+    }
+
+    // Use the first TV show directory as destination
+    const libraryId = globalSettings.tvShowDirectories[0];
+    if (!libraryId) {
+      return;
+    }
+
+    // Download all remote episode files
+    let successCount = 0;
+    for (const file of remoteEpisodeFiles) {
+      const result = await downloadFile({
+        nodeId: file.nodeId!,
+        remoteFilePath: file.filePath,
+        destinationDirectory: libraryId,
+        ...(tvShow?.title ? { tvShowTitle: tvShow.title } : {}),
+        ...(file.seasonNumber ? { seasonNumber: file.seasonNumber } : {}),
+      });
+
+      if (result.success) {
+        successCount++;
+      }
+    }
+
+    notify({
+      type: successCount > 0 ? "success" : "error",
+      title: successCount > 0 ? t("seasonDownloadStarted") : t("downloadFailed"),
+      message: t("seasonDownloadStartedMessage", {
+        count: successCount,
+        plural: successCount !== 1 ? "s" : "",
+        season: seasonNumber,
+      }),
+    });
+
+    if (successCount > 0) {
+      // Refetch files after a short delay
+      setTimeout(() => {
+        void refetchFiles();
+      }, 1000);
+    }
   };
 
   const handleDelete = async () => {
@@ -804,22 +876,41 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                       const episodeCount = season.episodes?.length || 0;
                       const value = season.seasonNumber.toString();
 
+                      // Count remote episode files for this season
+                      const remoteEpisodeCount = season.episodes?.reduce((count, episode) => {
+                        const files = getEpisodeFiles(episode.seasonNumber, episode.episodeNumber);
+                        return count + files.filter((file) => file.nodeId).length;
+                      }, 0) ?? 0;
+
                       return (
                         <AccordionItem key={value} value={value} className="rounded-lg border">
-                          <AccordionTrigger className="px-4 py-3">
-                            <div className="flex flex-col gap-2 text-left">
-                              <div className="flex flex-wrap items-center gap-3">
-                                <span className="text-base font-semibold">{t("seasonNumber", { number: season.seasonNumber })}</span>
-                                {season.voteAverage > 0 && (
-                                  <Badge variant="secondary" className="flex items-center gap-1 px-2 py-1">
-                                    <Star className="h-3 w-3 text-yellow-500" />
-                                    {season.voteAverage.toFixed(1)}
-                                  </Badge>
-                                )}
+                          <div className="flex items-center gap-2 px-4 py-3">
+                            <AccordionTrigger className="flex-1 py-0">
+                              <div className="flex flex-col gap-2 text-left w-full">
+                                <div className="flex flex-wrap items-center gap-3">
+                                  <span className="text-base font-semibold">{t("seasonNumber", { number: season.seasonNumber })}</span>
+                                  {season.voteAverage > 0 && (
+                                    <Badge variant="secondary" className="flex items-center gap-1 px-2 py-1">
+                                      <Star className="h-3 w-3 text-yellow-500" />
+                                      {season.voteAverage.toFixed(1)}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="text-sm text-muted-foreground">{t("episodeCount", { count: episodeCount })}</div>
                               </div>
-                              <div className="text-sm text-muted-foreground">{t("episodeCount", { count: episodeCount })}</div>
-                            </div>
-                          </AccordionTrigger>
+                            </AccordionTrigger>
+                            {remoteEpisodeCount > 0 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-2 shrink-0"
+                                onClick={() => void handleDownloadAllEpisodes(season.seasonNumber)}
+                              >
+                                <Download className="h-4 w-4" />
+                                <span className="hidden sm:inline">{t("downloadAllEpisodes")}</span> ({remoteEpisodeCount})
+                              </Button>
+                            )}
+                          </div>
                           <AccordionContent className="space-y-4 px-4">
                             {season.overview && <p className="text-sm text-muted-foreground">{season.overview}</p>}
                             {season.directoryPath && (

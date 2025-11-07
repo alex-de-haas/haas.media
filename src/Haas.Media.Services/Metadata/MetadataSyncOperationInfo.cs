@@ -7,6 +7,7 @@ public record MetadataSyncOperationInfo(
     string? CurrentItem = null,
     int TotalNewFiles = 0,
     int ProcessedNewFiles = 0,
+    int DeletedOrphanedFiles = 0,
     int TotalMovies = 0,
     int ProcessedMovies = 0,
     int TotalTvShows = 0,

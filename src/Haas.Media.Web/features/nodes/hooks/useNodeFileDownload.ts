@@ -9,6 +9,8 @@ export interface DownloadFileFromNodeRequest {
   remoteFilePath: string;
   destinationDirectory: string;
   customFileName?: string;
+  tvShowTitle?: string;
+  seasonNumber?: number;
 }
 
 export function useNodeFileDownload() {
@@ -25,6 +27,8 @@ export function useNodeFileDownload() {
             remoteFilePath: request.remoteFilePath,
             libraryId: request.destinationDirectory,
             customFileName: request.customFileName,
+            tvShowTitle: request.tvShowTitle,
+            seasonNumber: request.seasonNumber,
           }),
         });
 

@@ -361,7 +361,9 @@ public static class NodesConfiguration
                             nodeId,
                             request.RemoteFilePath,
                             request.LibraryId,
-                            request.CustomFileName
+                            request.CustomFileName,
+                            request.TvShowTitle,
+                            request.SeasonNumber
                         );
                         return Results.Ok(new { taskId });
                     }
@@ -426,4 +428,6 @@ public sealed record DownloadFileRequest
     public required string RemoteFilePath { get; init; }
     public required string LibraryId { get; init; }
     public string? CustomFileName { get; init; }
+    public string? TvShowTitle { get; init; }
+    public int? SeasonNumber { get; init; }
 }

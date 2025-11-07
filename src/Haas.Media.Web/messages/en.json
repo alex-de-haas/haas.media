@@ -297,7 +297,11 @@
     "cancelFailed": "Cancellation Failed",
     "downloadStarted": "Download Started",
     "downloadFailed": "Download Failed",
-    "downloadFailedNoDirectories": "No TV show directories configured. Please configure TV show directories in settings."
+    "downloadFailedNoDirectories": "No TV show directories configured. Please configure TV show directories in settings.",
+    "downloadAllEpisodes": "Download all episodes",
+    "downloadingEpisodes": "Downloading {count} episodes...",
+    "seasonDownloadStarted": "Season Download Started",
+    "seasonDownloadStartedMessage": "Downloading {count} episode{plural} from Season {season}."
   },
   "files": {
     "title": "Files",

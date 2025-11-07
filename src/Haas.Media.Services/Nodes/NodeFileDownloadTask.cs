@@ -8,7 +8,9 @@ public sealed class NodeFileDownloadTask : BackgroundTaskBase
         string nodeId,
         string remoteFilePath,
         string destinationDirectory,
-        string? customFileName = null
+        string? customFileName = null,
+        string? tvShowTitle = null,
+        int? seasonNumber = null
     )
         : base()
     {
@@ -16,6 +18,8 @@ public sealed class NodeFileDownloadTask : BackgroundTaskBase
         RemoteFilePath = remoteFilePath;
         DestinationDirectory = destinationDirectory;
         CustomFileName = customFileName;
+        TvShowTitle = tvShowTitle;
+        SeasonNumber = seasonNumber;
     }
 
     public override string Name => "Node file download";
@@ -24,4 +28,6 @@ public sealed class NodeFileDownloadTask : BackgroundTaskBase
     public string RemoteFilePath { get; }
     public string DestinationDirectory { get; }
     public string? CustomFileName { get; }
+    public string? TvShowTitle { get; }
+    public int? SeasonNumber { get; }
 }

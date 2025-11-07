@@ -119,6 +119,73 @@ internal sealed class MetadataSyncTaskExecutor
                 existingFileMetadata[file.FilePath] = file;
             }
 
+            // Step 2.5: Delete metadata for files that no longer exist on disk
+            payload = payload with
+            {
+                Stage = "Cleaning up orphaned file metadata"
+            };
+            context.SetPayload(payload);
+
+            var deletedOrphanedFiles = 0;
+            var orphanedMetadata = new List<FileMetadata>();
+
+            foreach (var (filePath, metadata) in existingFileMetadata)
+            {
+                context.ThrowIfCancellationRequested();
+
+                var fullPath = Path.Combine(_dataPath, filePath);
+                if (!File.Exists(fullPath))
+                {
+                    orphanedMetadata.Add(metadata);
+                    _logger.LogInformation(
+                        "File no longer exists, marking metadata for deletion: {FilePath}",
+                        filePath
+                    );
+                }
+            }
+
+            // Delete orphaned metadata records
+            if (orphanedMetadata.Count > 0)
+            {
+                _logger.LogInformation(
+                    "Deleting {Count} orphaned file metadata record(s)",
+                    orphanedMetadata.Count
+                );
+
+                foreach (var metadata in orphanedMetadata)
+                {
+                    if (_fileMetadataCollection.Delete(new BsonValue(metadata.Id)))
+                    {
+                        deletedOrphanedFiles++;
+                        existingFileMetadata.Remove(metadata.FilePath);
+                        _logger.LogDebug(
+                            "Deleted orphaned file metadata: ID={Id}, FilePath={FilePath}",
+                            metadata.Id,
+                            metadata.FilePath
+                        );
+                    }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "Failed to delete orphaned file metadata: ID={Id}, FilePath={FilePath}",
+                            metadata.Id,
+                            metadata.FilePath
+                        );
+                    }
+                }
+
+                payload = payload with
+                {
+                    DeletedOrphanedFiles = deletedOrphanedFiles
+                };
+                context.SetPayload(payload);
+
+                _logger.LogInformation(
+                    "Deleted {DeletedCount} orphaned file metadata record(s)",
+                    deletedOrphanedFiles
+                );
+            }
+
             // Step 3: Scan for new files and detect changes
             payload = payload with
             {
