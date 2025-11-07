@@ -298,10 +298,10 @@
     "downloadStarted": "Download Started",
     "downloadFailed": "Download Failed",
     "downloadFailedNoDirectories": "No TV show directories configured. Please configure TV show directories in settings.",
-    "downloadAllEpisodes": "Download all episodes",
+    "downloadSeason": "Download Season",
     "downloadingEpisodes": "Downloading {count} episodes...",
     "seasonDownloadStarted": "Season Download Started",
-    "seasonDownloadStartedMessage": "Downloading {count} episode{plural} from Season {season}."
+    "seasonDownloadStartedMessage": "Downloading {count} episode{plural} from Season {season} from {nodeName}."
   },
   "files": {
     "title": "Files",

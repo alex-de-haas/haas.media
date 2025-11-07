@@ -57,14 +57,14 @@ interface EpisodeCardProps {
   onCancelDownload: (taskId: string) => Promise<void>;
 }
 
-function EpisodeCard({ 
-  tvShowId, 
-  episode, 
+function EpisodeCard({
+  tvShowId,
+  episode,
   episodeFiles,
   downloadTasks,
   initiatingDownloadFileId,
   onOpenDownloadDialog,
-  onCancelDownload
+  onCancelDownload,
 }: EpisodeCardProps) {
   const t = useTranslations("tvShows");
 
@@ -93,7 +93,7 @@ function EpisodeCard({
           </CardContent>
         </Card>
       </Link>
-      
+
       {episodeFiles.length > 0 ? (
         <div className="space-y-2 pl-2">
           {episodeFiles.map((file) => {
@@ -119,10 +119,7 @@ function EpisodeCard({
             }
 
             return (
-              <div
-                key={file.id}
-                className="rounded-md border bg-muted/30 px-3 py-2 space-y-2 min-h-[60px] flex flex-col justify-center"
-              >
+              <div key={file.id} className="rounded-md border bg-muted/30 px-3 py-2 space-y-2 min-h-[60px] flex flex-col justify-center">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex-1 space-y-1.5">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -277,7 +274,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
       remoteFilePath: selectedFileForDownload.filePath,
       destinationDirectory: libraryId,
       ...(customFileName ? { customFileName } : {}),
-      ...(tvShow?.title ? { tvShowTitle: tvShow.title } : {}),
+      ...(tvShow?.originalTitle ? { tvShowTitle: tvShow.originalTitle } : {}),
       ...(selectedFileForDownload.seasonNumber ? { seasonNumber: selectedFileForDownload.seasonNumber } : {}),
     });
 
@@ -308,7 +305,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
     });
   };
 
-  const handleDownloadAllEpisodes = async (seasonNumber: number) => {
+  const handleDownloadSeason = async (seasonNumber: number, nodeId: string, nodeName: string) => {
     if (!globalSettings?.tvShowDirectories || globalSettings.tvShowDirectories.length === 0) {
       notify({
         type: "error",
@@ -318,22 +315,19 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
       return;
     }
 
-    // Get all remote episode files for this season
-    const seasonEpisodes = tvShow?.seasons
-      ?.find((s) => s.seasonNumber === seasonNumber)
-      ?.episodes ?? [];
-    
-    const remoteEpisodeFiles = seasonEpisodes
-      .flatMap((episode) => {
-        const files = getEpisodeFiles(episode.seasonNumber, episode.episodeNumber);
-        return files.filter((file) => file.nodeId);
-      });
+    // Get all remote episode files for this season from the specific node
+    const seasonEpisodes = tvShow?.seasons?.find((s) => s.seasonNumber === seasonNumber)?.episodes ?? [];
+
+    const remoteEpisodeFiles = seasonEpisodes.flatMap((episode) => {
+      const files = getEpisodeFiles(episode.seasonNumber, episode.episodeNumber);
+      return files.filter((file) => file.nodeId === nodeId);
+    });
 
     if (remoteEpisodeFiles.length === 0) {
       notify({
         type: "info",
         title: t("downloadFailed"),
-        message: "No remote episode files found for this season.",
+        message: "No remote episode files found for this season on this node.",
       });
       return;
     }
@@ -351,7 +345,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
         nodeId: file.nodeId!,
         remoteFilePath: file.filePath,
         destinationDirectory: libraryId,
-        ...(tvShow?.title ? { tvShowTitle: tvShow.title } : {}),
+        ...(tvShow?.originalTitle ? { tvShowTitle: tvShow.originalTitle } : {}),
         ...(file.seasonNumber ? { seasonNumber: file.seasonNumber } : {}),
       });
 
@@ -367,6 +361,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
         count: successCount,
         plural: successCount !== 1 ? "s" : "",
         season: seasonNumber,
+        nodeName: nodeName,
       }),
     });
 
@@ -876,11 +871,29 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                       const episodeCount = season.episodes?.length || 0;
                       const value = season.seasonNumber.toString();
 
-                      // Count remote episode files for this season
-                      const remoteEpisodeCount = season.episodes?.reduce((count, episode) => {
+                      // Group remote episode files by node for this season
+                      const nodeEpisodeMap = new Map<string, { nodeId: string; nodeName: string; count: number }>();
+
+                      season.episodes?.forEach((episode) => {
                         const files = getEpisodeFiles(episode.seasonNumber, episode.episodeNumber);
-                        return count + files.filter((file) => file.nodeId).length;
-                      }, 0) ?? 0;
+                        files
+                          .filter((file) => file.nodeId)
+                          .forEach((file) => {
+                            const key = file.nodeId!;
+                            const existing = nodeEpisodeMap.get(key);
+                            if (existing) {
+                              existing.count++;
+                            } else {
+                              nodeEpisodeMap.set(key, {
+                                nodeId: file.nodeId!,
+                                nodeName: file.nodeName || "Unknown Node",
+                                count: 1,
+                              });
+                            }
+                          });
+                      });
+
+                      const nodeDownloads = Array.from(nodeEpisodeMap.values());
 
                       return (
                         <AccordionItem key={value} value={value} className="rounded-lg border">
@@ -899,16 +912,26 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                                 <div className="text-sm text-muted-foreground">{t("episodeCount", { count: episodeCount })}</div>
                               </div>
                             </AccordionTrigger>
-                            {remoteEpisodeCount > 0 && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-2 shrink-0"
-                                onClick={() => void handleDownloadAllEpisodes(season.seasonNumber)}
-                              >
-                                <Download className="h-4 w-4" />
-                                <span className="hidden sm:inline">{t("downloadAllEpisodes")}</span> ({remoteEpisodeCount})
-                              </Button>
+                            {nodeDownloads.length > 0 && (
+                              <div className="flex flex-wrap gap-2 shrink-0">
+                                {nodeDownloads.map((node) => (
+                                  <Button
+                                    key={node.nodeId}
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2"
+                                    onClick={() => void handleDownloadSeason(season.seasonNumber, node.nodeId, node.nodeName)}
+                                    title={`Download season from ${node.nodeName}`}
+                                  >
+                                    <Download className="h-4 w-4" />
+                                    <span className="hidden sm:inline">{t("downloadSeason")}</span>
+                                    <Badge variant="secondary" className="ml-1">
+                                      {node.nodeName}
+                                    </Badge>
+                                    <span className="text-xs">({node.count})</span>
+                                  </Button>
+                                ))}
+                              </div>
                             )}
                           </div>
                           <AccordionContent className="space-y-4 px-4">
