@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAuthGuard } from "@/features/auth/use-auth-guard";
 import { usePageTitle } from "@/components/layout/layout-provider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default function TokensPage() {
   const { isAuthenticated, isLoading } = useAuthGuard();
   const { notify } = useNotifications();
+  const t = useTranslations("tokens");
+  const tCommon = useTranslations("common");
   const [tokens, setTokens] = useState<ExternalTokenInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -36,7 +39,7 @@ export default function TokensPage() {
   const [deleteTokenId, setDeleteTokenId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  usePageTitle("API Tokens");
+  usePageTitle(t("pageTitle"));
 
   const loadTokens = useCallback(async () => {
     try {
@@ -45,12 +48,12 @@ export default function TokensPage() {
       const data = await fetchJsonWithAuth<ExternalTokenInfo[]>(`${apiUrl}/api/auth/tokens`);
       setTokens(data);
     } catch (error) {
-      notify({ type: "error", message: "Failed to load tokens" });
+      notify({ type: "error", message: t("failedToLoad") });
       console.error("Failed to load tokens:", error);
     } finally {
       setLoading(false);
     }
-  }, [notify]);
+  }, [notify, t]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -60,7 +63,7 @@ export default function TokensPage() {
 
   const handleCreateToken = async () => {
     if (!newTokenName.trim()) {
-      notify({ type: "error", message: "Token name is required" });
+      notify({ type: "error", message: t("tokenNameRequired") });
       return;
     }
 
@@ -75,7 +78,7 @@ export default function TokensPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to create token");
+        throw new Error(error.error || t("failedToCreate"));
       }
 
       const data: ExternalTokenResponse = await response.json();
@@ -83,9 +86,9 @@ export default function TokensPage() {
       setNewTokenName("");
       setCreateDialogOpen(false);
       loadTokens();
-      notify({ type: "success", message: "Token created successfully" });
+      notify({ type: "success", message: t("tokenCreated") });
     } catch (error) {
-      notify({ type: "error", message: error instanceof Error ? error.message : "Failed to create token" });
+      notify({ type: "error", message: error instanceof Error ? error.message : t("failedToCreate") });
       console.error("Failed to create token:", error);
     } finally {
       setActionLoading(false);
@@ -101,14 +104,14 @@ export default function TokensPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to delete token");
+        throw new Error(t("failedToRevoke"));
       }
 
       setDeleteTokenId(null);
       loadTokens();
-      notify({ type: "success", message: "Token revoked successfully" });
+      notify({ type: "success", message: t("tokenRevoked") });
     } catch (error) {
-      notify({ type: "error", message: "Failed to revoke token" });
+      notify({ type: "error", message: t("failedToRevoke") });
       console.error("Failed to delete token:", error);
     } finally {
       setActionLoading(false);
@@ -117,7 +120,7 @@ export default function TokensPage() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    notify({ type: "success", message: "Copied to clipboard" });
+    notify({ type: "success", message: t("copiedToClipboard") });
   };
 
   const formatDate = (date: string) => {
@@ -125,7 +128,7 @@ export default function TokensPage() {
   };
 
   if (isLoading) {
-    return <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">Loading...</div>;
+    return <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">{t("loading")}</div>;
   }
 
   if (!isAuthenticated) {
@@ -136,37 +139,34 @@ export default function TokensPage() {
     <div className="container mx-auto max-w-6xl space-y-6 px-4 py-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">API Tokens</h1>
-          <p className="mt-1 text-muted-foreground">Manage external tokens for API access and node connections</p>
+          <h1 className="text-3xl font-bold">{t("pageTitle")}</h1>
+          <p className="mt-1 text-muted-foreground">{t("pageDescription")}</p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="h-4 w-4" />
-          Create Token
+          {t("createToken")}
         </Button>
       </div>
 
       <Alert>
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          External tokens do not expire and are used for node-to-node communication and API integrations. Keep them secure and revoke tokens
-          that are no longer needed.
-        </AlertDescription>
+        <AlertDescription>{t("alertDescription")}</AlertDescription>
       </Alert>
 
       <Card>
         <CardHeader>
-          <CardTitle>Your Tokens</CardTitle>
-          <CardDescription>These tokens can be used to authenticate API requests without expiration</CardDescription>
+          <CardTitle>{t("yourTokens")}</CardTitle>
+          <CardDescription>{t("yourTokensDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="py-8 text-center text-muted-foreground">Loading tokens...</div>
+            <div className="py-8 text-center text-muted-foreground">{t("loadingTokens")}</div>
           ) : tokens.length === 0 ? (
             <div className="py-8 text-center">
               <Key className="mx-auto h-12 w-12 text-muted-foreground/50" />
-              <p className="mt-4 text-sm text-muted-foreground">No tokens created yet</p>
+              <p className="mt-4 text-sm text-muted-foreground">{t("noTokens")}</p>
               <Button className="mt-4" variant="outline" onClick={() => setCreateDialogOpen(true)}>
-                Create your first token
+                {t("createFirstToken")}
               </Button>
             </div>
           ) : (
@@ -180,8 +180,12 @@ export default function TokensPage() {
                         <span className="font-medium">{token.name}</span>
                       </div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        Created: {formatDate(token.createdAt)}
-                        {token.lastUsedAt && <span className="ml-4">Last used: {formatDate(token.lastUsedAt)}</span>}
+                        {t("created")}: {formatDate(token.createdAt)}
+                        {token.lastUsedAt && (
+                          <span className="ml-4">
+                            {t("lastUsed")}: {formatDate(token.lastUsedAt)}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <Button
@@ -212,28 +216,28 @@ export default function TokensPage() {
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create External Token</DialogTitle>
-            <DialogDescription>Create a new token for API access or node connections.</DialogDescription>
+            <DialogTitle>{t("createTokenDialogTitle")}</DialogTitle>
+            <DialogDescription>{t("createTokenDialogDescription")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="token-name">Token Name</Label>
+              <Label htmlFor="token-name">{t("tokenName")}</Label>
               <Input
                 id="token-name"
-                placeholder="e.g., Node Connection, API Integration"
+                placeholder={t("tokenNamePlaceholder")}
                 value={newTokenName}
                 onChange={(e) => setNewTokenName(e.target.value)}
                 disabled={actionLoading}
               />
-              <p className="text-xs text-muted-foreground">Choose a descriptive name to help you remember what this token is for</p>
+              <p className="text-xs text-muted-foreground">{t("tokenNameHelp")}</p>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)} disabled={actionLoading}>
-              Cancel
+              {tCommon("cancel")}
             </Button>
             <Button onClick={handleCreateToken} disabled={actionLoading}>
-              {actionLoading ? "Creating..." : "Create Token"}
+              {actionLoading ? t("creating") : t("createToken")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -243,17 +247,17 @@ export default function TokensPage() {
       <Dialog open={!!createdToken} onOpenChange={() => setCreatedToken(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Token Created Successfully</DialogTitle>
-            <DialogDescription>Your token has been created. You can view and copy it anytime from the tokens list.</DialogDescription>
+            <DialogTitle>{t("tokenCreatedTitle")}</DialogTitle>
+            <DialogDescription>{t("tokenCreatedDescription")}</DialogDescription>
           </DialogHeader>
           {createdToken && (
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Token Name</Label>
+                <Label>{t("tokenName")}</Label>
                 <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">{createdToken.name}</div>
               </div>
               <div className="space-y-2">
-                <Label>Token Value</Label>
+                <Label>{t("tokenValue")}</Label>
                 <div className="flex gap-2">
                   <div className="flex-1 overflow-hidden rounded-md border bg-muted px-3 py-2 font-mono text-sm">
                     <div className="overflow-x-auto">{createdToken.token}</div>
@@ -264,13 +268,13 @@ export default function TokensPage() {
                 </div>
                 <Alert className="mt-4">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>Keep your token secure. You can view it anytime from the tokens list.</AlertDescription>
+                  <AlertDescription>{t("keepSecure")}</AlertDescription>
                 </Alert>
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button onClick={() => setCreatedToken(null)}>Done</Button>
+            <Button onClick={() => setCreatedToken(null)}>{t("done")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -279,20 +283,17 @@ export default function TokensPage() {
       <AlertDialog open={!!deleteTokenId} onOpenChange={() => setDeleteTokenId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Revoke Token?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently revoke the token. Any services using this token will lose access immediately. This action cannot be
-              undone.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("revokeTokenTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("revokeTokenDescription")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={actionLoading}>{tCommon("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteTokenId && handleDeleteToken(deleteTokenId)}
               disabled={actionLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {actionLoading ? "Revoking..." : "Revoke Token"}
+              {actionLoading ? t("revoking") : t("revokeToken")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

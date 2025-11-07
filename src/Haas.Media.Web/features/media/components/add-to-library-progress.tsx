@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { useBackgroundTasks } from "@/features/background-tasks/hooks/useBackgroundTasks";
-import { BackgroundTaskStatus, backgroundTaskStatusLabel } from "@/types";
+import { BackgroundTaskStatus } from "@/types";
 import type { AddToLibraryOperationInfo } from "@/types/metadata";
 import { LibraryType } from "@/types/library";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +49,7 @@ const mediaTypeIcon = (type: LibraryType) => (type === LibraryType.Movies ? <Fil
 
 export default function AddToLibraryProgress({ libraryType }: AddToLibraryProgressProps) {
   const { tasks } = useBackgroundTasks({ enabled: true });
+  const t = useTranslations("backgroundTasks");
 
   const activeOperations = useMemo(() => {
     return tasks
@@ -88,7 +90,22 @@ export default function AddToLibraryProgress({ libraryType }: AddToLibraryProgre
           const progressValue = clampProgress(task.progress);
           const progressPercentage = Math.round(progressValue);
           const stageLabel = payload.stage || "Processing";
-          const statusLabel = backgroundTaskStatusLabel(task.status);
+          const statusLabel = (() => {
+            switch (task.status) {
+              case BackgroundTaskStatus.Pending:
+                return t("pending");
+              case BackgroundTaskStatus.Running:
+                return t("running");
+              case BackgroundTaskStatus.Completed:
+                return t("completed");
+              case BackgroundTaskStatus.Failed:
+                return t("failed");
+              case BackgroundTaskStatus.Cancelled:
+                return t("cancelled");
+              default:
+                return t("unknown");
+            }
+          })();
           const statusMessage = task.statusMessage ?? null;
           const infoBadges: string[] = [];
 

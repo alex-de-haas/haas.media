@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { cn, formatDuration } from "@/lib/utils";
 import type { BackgroundTaskInfo } from "@/types";
-import { BackgroundTaskStatus, backgroundTaskStatusLabel, isActiveBackgroundTask } from "@/types";
+import { BackgroundTaskStatus, isActiveBackgroundTask } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -57,12 +58,30 @@ const statusIcon = (status: BackgroundTaskStatus) => {
 };
 
 export function BackgroundTaskCard({ task, onCancel, showTimestamps = true }: BackgroundTaskCardProps) {
+  const t = useTranslations("backgroundTasks");
+  
   const style = statusStyles[task.status] ?? statusStyles[BackgroundTaskStatus.Running];
   const isActive = isActiveBackgroundTask(task);
   const canCancel = isActive && !!onCancel;
   const progressValue = clampProgress(task.progress);
   const progressPercentage = Math.round(progressValue);
-  const statusLabel = backgroundTaskStatusLabel(task.status);
+  
+  const statusLabel = useMemo(() => {
+    switch (task.status) {
+      case BackgroundTaskStatus.Pending:
+        return t("pending");
+      case BackgroundTaskStatus.Running:
+        return t("running");
+      case BackgroundTaskStatus.Completed:
+        return t("completed");
+      case BackgroundTaskStatus.Failed:
+        return t("failed");
+      case BackgroundTaskStatus.Cancelled:
+        return t("cancelled");
+      default:
+        return t("unknown");
+    }
+  }, [task.status, t]);
 
   const duration = useMemo(() => {
     if (!task.startedAt) return null;
@@ -78,26 +97,26 @@ export function BackgroundTaskCard({ task, onCancel, showTimestamps = true }: Ba
   const alertVariant = task.status === BackgroundTaskStatus.Failed ? "destructive" : "default";
   const showAlert = task.status === BackgroundTaskStatus.Failed || task.status === BackgroundTaskStatus.Cancelled || task.statusMessage;
 
-  const alertTitleText = (() => {
+  const alertTitleText = useMemo(() => {
     switch (task.status) {
       case BackgroundTaskStatus.Failed:
-        return "Task failed";
+        return t("taskFailed");
       case BackgroundTaskStatus.Cancelled:
-        return "Task cancelled";
+        return t("taskCancelled");
       default:
-        return "Status";
+        return t("statusLabel");
     }
-  })();
+  }, [task.status, t]);
 
-  const alertDescription = (() => {
+  const alertDescription = useMemo(() => {
     if (task.status === BackgroundTaskStatus.Failed) {
-      return task.errorMessage ?? task.statusMessage ?? "The task encountered an unexpected error.";
+      return task.errorMessage ?? task.statusMessage ?? t("taskError");
     }
     if (task.status === BackgroundTaskStatus.Cancelled) {
-      return task.statusMessage ?? "Task was cancelled.";
+      return task.statusMessage ?? t("taskCancelledMessage");
     }
     return task.statusMessage;
-  })();
+  }, [task.status, task.errorMessage, task.statusMessage, t]);
 
   return (
     <Card className={cn("overflow-hidden border shadow-sm transition-colors", style.card)}>
@@ -117,7 +136,7 @@ export function BackgroundTaskCard({ task, onCancel, showTimestamps = true }: Ba
                 void onCancel(task.id);
               }}
             >
-              Cancel
+              {t("cancelButton")}
             </Button>
           )}
         </div>
@@ -138,8 +157,8 @@ export function BackgroundTaskCard({ task, onCancel, showTimestamps = true }: Ba
           <div className="space-y-2 text-xs text-muted-foreground">
             <div className="flex flex-wrap items-center gap-2">
               <Clock className="h-3.5 w-3.5" />
-              {startedAt && <span>Started {startedAt}</span>}
-              {completedAt && <span>• Finished {completedAt}</span>}
+              {startedAt && <span>{t("startedAt", { time: startedAt })}</span>}
+              {completedAt && <span>• {t("finishedAt", { time: completedAt })}</span>}
             </div>
           </div>
         )}

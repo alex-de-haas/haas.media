@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useBackgroundTasks } from "@/features/background-tasks/hooks/useBackgroundTasks";
 import { cn, formatDuration, formatSize } from "@/lib/utils";
 import type { CopyOperationInfo } from "@/types/file";
-import { BackgroundTaskStatus, backgroundTaskStatusLabel, isActiveBackgroundTask } from "@/types";
+import { BackgroundTaskStatus, isActiveBackgroundTask } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -58,6 +58,7 @@ const statusIcon = (status: BackgroundTaskStatus) => {
 export default function CopyOperationsList({ operations, onCancel }: CopyOperationsListProps) {
   const t = useTranslations("files.copyOperations");
   const tCommon = useTranslations("common");
+  const tTasks = useTranslations("backgroundTasks");
 
   const { tasks: backgroundTasks } = useBackgroundTasks({ enabled: operations.length > 0 });
   const tasksById = useMemo(() => new Map(backgroundTasks.map((task) => [task.id, task])), [backgroundTasks]);
@@ -103,7 +104,22 @@ export default function CopyOperationsList({ operations, onCancel }: CopyOperati
           const task = tasksById.get(operation.id);
           const inferredStatus = operation.completedTime ? BackgroundTaskStatus.Completed : BackgroundTaskStatus.Running;
           const status = task?.status ?? inferredStatus;
-          const statusLabel = backgroundTaskStatusLabel(status);
+          const statusLabel = (() => {
+            switch (status) {
+              case BackgroundTaskStatus.Pending:
+                return tTasks("pending");
+              case BackgroundTaskStatus.Running:
+                return tTasks("running");
+              case BackgroundTaskStatus.Completed:
+                return tTasks("completed");
+              case BackgroundTaskStatus.Failed:
+                return tTasks("failed");
+              case BackgroundTaskStatus.Cancelled:
+                return tTasks("cancelled");
+              default:
+                return tTasks("unknown");
+            }
+          })();
           const canCancel = task ? isActiveBackgroundTask(task) : false;
           const style = statusStyles[status] ?? statusStyles[BackgroundTaskStatus.Running];
           const isActive = canCancel || (!operation.completedTime && status !== BackgroundTaskStatus.Cancelled);

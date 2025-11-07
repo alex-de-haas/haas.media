@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RefreshCw } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface MetadataSyncModalProps {
   isOpen: boolean;
@@ -16,6 +17,8 @@ interface MetadataSyncModalProps {
 
 export default function MetadataSyncModal({ isOpen, onClose, onConfirm, isSyncing }: MetadataSyncModalProps) {
   const [refreshExistingData, setRefreshExistingData] = useState(true);
+  const t = useTranslations("settings");
+  const tCommon = useTranslations("common");
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -32,14 +35,14 @@ export default function MetadataSyncModal({ isOpen, onClose, onConfirm, isSyncin
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Metadata Sync</DialogTitle>
-          <DialogDescription>Scan configured directories for new media files and refresh metadata from TMDB.</DialogDescription>
+          <DialogTitle>{t("metadataSyncModalTitle")}</DialogTitle>
+          <DialogDescription>{t("metadataSyncModalDescription")}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              This will scan all configured movie and TV show directories for new files and update metadata.
+              {t("metadataSyncModalInfo")}
             </p>
 
             <div className="flex items-start space-x-3 rounded-md border p-4">
@@ -54,10 +57,10 @@ export default function MetadataSyncModal({ isOpen, onClose, onConfirm, isSyncin
                   htmlFor="refreshExistingData"
                   className="cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  Refresh existing data
+                  {t("refreshExistingData")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Re-fetch metadata from TMDB for existing movies, TV shows, and people. Uncheck to only add new items.
+                  {t("refreshExistingDataDescription")}
                 </p>
               </div>
             </div>
@@ -65,18 +68,18 @@ export default function MetadataSyncModal({ isOpen, onClose, onConfirm, isSyncin
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose} disabled={isSyncing}>
-              Cancel
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" disabled={isSyncing}>
               {isSyncing ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Starting...
+                  {t("startingSyncButton")}
                 </>
               ) : (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  Start Sync
+                  {t("startSyncButton")}
                 </>
               )}
             </Button>
