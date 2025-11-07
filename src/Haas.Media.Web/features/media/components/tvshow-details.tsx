@@ -10,7 +10,7 @@ import { ArrowLeft, MoreVertical, Trash2, Tv, Star, Heart, Play, CheckCircle2, S
 import { useTVShow, useDeleteTVShowMetadata, useTVShowPlaybackInfo } from "@/features/media/hooks";
 import { useFilesByMediaId } from "@/features/media/hooks/useFileMetadata";
 import { useNodeFileDownload } from "@/features/nodes/hooks";
-import { DownloadFileDialog } from "@/features/nodes/components";
+import { DownloadFileDialog, DownloadSeasonDialog } from "@/features/nodes/components";
 import { useBackgroundTasks } from "@/features/background-tasks/hooks";
 import { LibraryType } from "@/types/library";
 import type { BackgroundTaskInfo } from "@/types";
@@ -204,7 +204,12 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
   const [expandedSeasons, setExpandedSeasons] = useState<string[]>([]);
   const [initiatingDownloadFileId, setInitiatingDownloadFileId] = useState<string | null>(null);
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const [downloadSeasonDialogOpen, setDownloadSeasonDialogOpen] = useState(false);
   const [selectedFileForDownload, setSelectedFileForDownload] = useState<FileMetadata | null>(null);
+  const [selectedSeasonForDownload, setSelectedSeasonForDownload] = useState<{
+    seasonNumber: number;
+    availableNodes: { nodeId: string; nodeName: string; count: number }[];
+  } | null>(null);
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings | null>(null);
   const router = useRouter();
   const { notify } = useNotifications();
@@ -338,7 +343,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
     });
   };
 
-  const handleDownloadSeason = async (seasonNumber: number, nodeId: string, nodeName: string) => {
+  const handleOpenDownloadSeasonDialog = (seasonNumber: number, availableNodes: { nodeId: string; nodeName: string; count: number }[]) => {
     if (!globalSettings?.tvShowDirectories || globalSettings.tvShowDirectories.length === 0) {
       notify({
         type: "error",
@@ -347,6 +352,15 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
       });
       return;
     }
+
+    setSelectedSeasonForDownload({ seasonNumber, availableNodes });
+    setDownloadSeasonDialogOpen(true);
+  };
+
+  const handleDownloadSeasonConfirm = async (destinationDirectory: string, nodeId: string, nodeName: string) => {
+    if (!selectedSeasonForDownload) return;
+
+    const { seasonNumber } = selectedSeasonForDownload;
 
     // Get all remote episode files for this season from the specific node
     const seasonEpisodes = tvShow?.seasons?.find((s) => s.seasonNumber === seasonNumber)?.episodes ?? [];
@@ -362,12 +376,8 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
         title: t("downloadFailed"),
         message: "No remote episode files found for this season on this node.",
       });
-      return;
-    }
-
-    // Use the first TV show directory as destination
-    const libraryId = globalSettings.tvShowDirectories[0];
-    if (!libraryId) {
+      setDownloadSeasonDialogOpen(false);
+      setSelectedSeasonForDownload(null);
       return;
     }
 
@@ -377,7 +387,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
       const result = await downloadFile({
         nodeId: file.nodeId!,
         remoteFilePath: file.filePath,
-        destinationDirectory: libraryId,
+        destinationDirectory: destinationDirectory,
         ...(tvShow?.originalTitle ? { tvShowTitle: tvShow.originalTitle } : {}),
         ...(file.seasonNumber ? { seasonNumber: file.seasonNumber } : {}),
       });
@@ -404,6 +414,10 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
         void refetchFiles();
       }, 1000);
     }
+
+    // Close the dialog and reset state
+    setDownloadSeasonDialogOpen(false);
+    setSelectedSeasonForDownload(null);
   };
 
   const handleDelete = async () => {
@@ -946,25 +960,19 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                               </div>
                             </AccordionTrigger>
                             {nodeDownloads.length > 0 && (
-                              <div className="flex flex-wrap gap-2 shrink-0">
-                                {nodeDownloads.map((node) => (
-                                  <Button
-                                    key={node.nodeId}
-                                    variant="outline"
-                                    size="sm"
-                                    className="gap-2"
-                                    onClick={() => void handleDownloadSeason(season.seasonNumber, node.nodeId, node.nodeName)}
-                                    title={`Download season from ${node.nodeName}`}
-                                  >
-                                    <Download className="h-4 w-4" />
-                                    <span className="hidden sm:inline">{t("downloadSeason")}</span>
-                                    <Badge variant="secondary" className="ml-1">
-                                      {node.nodeName}
-                                    </Badge>
-                                    <span className="text-xs">({node.count})</span>
-                                  </Button>
-                                ))}
-                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-2 shrink-0"
+                                onClick={() => handleOpenDownloadSeasonDialog(season.seasonNumber, nodeDownloads)}
+                                title="Download all episodes from this season"
+                              >
+                                <Download className="h-4 w-4" />
+                                <span className="hidden sm:inline">{t("downloadSeason")}</span>
+                                <Badge variant="secondary" className="ml-1">
+                                  {nodeDownloads.length}
+                                </Badge>
+                              </Button>
                             )}
                           </div>
                           <AccordionContent className="space-y-4 px-4">
@@ -1012,6 +1020,16 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
         mediaType={LibraryType.TVShows}
         globalSettings={globalSettings}
         isDownloading={initiatingDownloadFileId !== null}
+      />
+
+      <DownloadSeasonDialog
+        open={downloadSeasonDialogOpen}
+        onOpenChange={setDownloadSeasonDialogOpen}
+        onConfirm={handleDownloadSeasonConfirm}
+        seasonNumber={selectedSeasonForDownload?.seasonNumber || 0}
+        availableNodes={selectedSeasonForDownload?.availableNodes || []}
+        globalSettings={globalSettings}
+        isDownloading={false}
       />
     </div>
   );
