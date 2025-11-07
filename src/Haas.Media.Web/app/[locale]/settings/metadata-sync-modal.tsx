@@ -41,9 +41,7 @@ export default function MetadataSyncModal({ isOpen, onClose, onConfirm, isSyncin
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              {t("metadataSyncModalInfo")}
-            </p>
+            <p className="text-sm text-muted-foreground">{t("metadataSyncModalInfo")}</p>
 
             <div className="flex items-start space-x-3 rounded-md border p-4">
               <Checkbox
@@ -59,9 +57,7 @@ export default function MetadataSyncModal({ isOpen, onClose, onConfirm, isSyncin
                 >
                   {t("refreshExistingData")}
                 </Label>
-                <p className="text-sm text-muted-foreground">
-                  {t("refreshExistingDataDescription")}
-                </p>
+                <p className="text-sm text-muted-foreground">{t("refreshExistingDataDescription")}</p>
               </div>
             </div>
           </div>

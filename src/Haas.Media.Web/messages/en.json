@@ -687,6 +687,26 @@
     "tokenRevoked": "Token revoked successfully",
     "failedToRevoke": "Failed to revoke token"
   },
+  "profile": {
+    "pageTitle": "Profile",
+    "title": "Profile",
+    "description": "View your account information. Configure metadata preferences per library in the Libraries page.",
+    "username": "Username",
+    "metadataPreferencesNote": "To change metadata language and country preferences, configure them individually for each library in the Libraries page.",
+    "changePassword": "Change Password",
+    "changePasswordDescription": "Choose a strong password to keep your account secure.",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
+    "newPasswordPlaceholder": "At least 8 characters",
+    "updatePassword": "Update password",
+    "updating": "Updating...",
+    "loading": "Loading...",
+    "passwordTooShort": "New password must be at least 8 characters",
+    "passwordsDoNotMatch": "New password and confirmation do not match",
+    "passwordUpdated": "Password updated",
+    "passwordUpdateFailed": "Unable to update password"
+  },
   "errors": {
     "notFound": "Not Found",
     "unauthorized": "Unauthorized",

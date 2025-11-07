@@ -403,9 +403,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>{t("deleteMovieConfirm", { title: movie.title })}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {t("deleteMovieDescription")}
-                        </AlertDialogDescription>
+                        <AlertDialogDescription>{t("deleteMovieDescription")}</AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel disabled={deletingMovie}>{tCommon("cancel")}</AlertDialogCancel>

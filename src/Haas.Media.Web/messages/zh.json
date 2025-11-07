@@ -676,6 +676,26 @@
     "tokenRevoked": "令牌撤销成功",
     "failedToRevoke": "撤销令牌失败"
   },
+  "profile": {
+    "pageTitle": "个人资料",
+    "title": "个人资料",
+    "description": "查看您的账户信息。在资料库页面中为每个资料库配置元数据首选项。",
+    "username": "用户名",
+    "metadataPreferencesNote": "要更改元数据语言和国家/地区首选项，请在资料库页面中为每个资料库单独配置。",
+    "changePassword": "更改密码",
+    "changePasswordDescription": "选择强密码以保护您的账户安全。",
+    "currentPassword": "当前密码",
+    "newPassword": "新密码",
+    "confirmNewPassword": "确认新密码",
+    "newPasswordPlaceholder": "至少 8 个字符",
+    "updatePassword": "更新密码",
+    "updating": "更新中...",
+    "loading": "加载中...",
+    "passwordTooShort": "新密码必须至少包含 8 个字符",
+    "passwordsDoNotMatch": "新密码和确认密码不匹配",
+    "passwordUpdated": "密码已更新",
+    "passwordUpdateFailed": "无法更新密码"
+  },
   "errors": {
     "notFound": "未找到",
     "unauthorized": "未授权",

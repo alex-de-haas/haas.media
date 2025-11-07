@@ -676,6 +676,26 @@
     "tokenRevoked": "Token revocado con éxito",
     "failedToRevoke": "Error al revocar token"
   },
+  "profile": {
+    "pageTitle": "Perfil",
+    "title": "Perfil",
+    "description": "Vea la información de su cuenta. Configure las preferencias de metadatos por biblioteca en la página de Bibliotecas.",
+    "username": "Nombre de usuario",
+    "metadataPreferencesNote": "Para cambiar el idioma y las preferencias de país de los metadatos, configúrelos individualmente para cada biblioteca en la página de Bibliotecas.",
+    "changePassword": "Cambiar contraseña",
+    "changePasswordDescription": "Elija una contraseña segura para mantener su cuenta protegida.",
+    "currentPassword": "Contraseña actual",
+    "newPassword": "Nueva contraseña",
+    "confirmNewPassword": "Confirmar nueva contraseña",
+    "newPasswordPlaceholder": "Al menos 8 caracteres",
+    "updatePassword": "Actualizar contraseña",
+    "updating": "Actualizando...",
+    "loading": "Cargando...",
+    "passwordTooShort": "La nueva contraseña debe tener al menos 8 caracteres",
+    "passwordsDoNotMatch": "La nueva contraseña y la confirmación no coinciden",
+    "passwordUpdated": "Contraseña actualizada",
+    "passwordUpdateFailed": "No se pudo actualizar la contraseña"
+  },
   "errors": {
     "notFound": "No encontrado",
     "unauthorized": "No autorizado",

@@ -47,7 +47,7 @@ interface EpisodeCardProps {
 
 function EpisodeCard({ tvShowId, episode, episodeFiles }: EpisodeCardProps) {
   const t = useTranslations("tvShows");
-  
+
   return (
     <Link
       href={`/tvshows/${tvShowId}/episodes/${episode.seasonNumber}/${episode.episodeNumber}`}
@@ -385,16 +385,8 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                         </Badge>
                       )}
                       {tvShow.originalLanguage && <span className="uppercase">{tvShow.originalLanguage}</span>}
-                      {seasonCount > 0 && (
-                        <span>
-                          {t("seasonCount", { count: seasonCount, plural: seasonCount === 1 ? "" : "s" })}
-                        </span>
-                      )}
-                      {totalEpisodes > 0 && (
-                        <span>
-                          {t("totalEpisodes", { count: totalEpisodes })}
-                        </span>
-                      )}
+                      {seasonCount > 0 && <span>{t("seasonCount", { count: seasonCount, plural: seasonCount === 1 ? "" : "s" })}</span>}
+                      {totalEpisodes > 0 && <span>{t("totalEpisodes", { count: totalEpisodes })}</span>}
                     </div>
                   </div>
 
@@ -422,9 +414,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>{t("deleteShowConfirm", { title: tvShow.title })}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {t("deleteShowDescription")}
-                        </AlertDialogDescription>
+                        <AlertDialogDescription>{t("deleteShowDescription")}</AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel disabled={deletingTVShow}>{tCommon("cancel")}</AlertDialogCancel>
@@ -447,7 +437,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                 )}
 
                 {/* Playback Info */}
-                                {!playbackLoading && playbackInfo && showPlaybackBadges && (
+                {!playbackLoading && playbackInfo && showPlaybackBadges && (
                   <div className="flex flex-wrap items-center gap-3 text-sm">
                     {playbackInfo.watchedEpisodes > 0 && (
                       <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
@@ -458,9 +448,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                     {playbackInfo.totalPlayCount > 0 && (
                       <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
                         <Play className="h-4 w-4 text-blue-500" />
-                        <span>
-                          {t("totalPlayCount", { count: playbackInfo.totalPlayCount })}
-                        </span>
+                        <span>{t("totalPlayCount", { count: playbackInfo.totalPlayCount })}</span>
                       </Badge>
                     )}
                     {playbackInfo.isFavorite && (
@@ -641,9 +629,7 @@ export default function TVShowDetails({ tvShowId }: TVShowDetailsProps) {
                                   </Badge>
                                 )}
                               </div>
-                              <div className="text-sm text-muted-foreground">
-                                {t("episodeCount", { count: episodeCount })}
-                              </div>
+                              <div className="text-sm text-muted-foreground">{t("episodeCount", { count: episodeCount })}</div>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent className="space-y-4 px-4">

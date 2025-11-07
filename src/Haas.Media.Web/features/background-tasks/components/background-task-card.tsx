@@ -59,13 +59,13 @@ const statusIcon = (status: BackgroundTaskStatus) => {
 
 export function BackgroundTaskCard({ task, onCancel, showTimestamps = true }: BackgroundTaskCardProps) {
   const t = useTranslations("backgroundTasks");
-  
+
   const style = statusStyles[task.status] ?? statusStyles[BackgroundTaskStatus.Running];
   const isActive = isActiveBackgroundTask(task);
   const canCancel = isActive && !!onCancel;
   const progressValue = clampProgress(task.progress);
   const progressPercentage = Math.round(progressValue);
-  
+
   const statusLabel = useMemo(() => {
     switch (task.status) {
       case BackgroundTaskStatus.Pending:

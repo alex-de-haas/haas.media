@@ -687,6 +687,26 @@
     "tokenRevoked": "Token succesvol ingetrokken",
     "failedToRevoke": "Token intrekken mislukt"
   },
+  "profile": {
+    "pageTitle": "Profiel",
+    "title": "Profiel",
+    "description": "Bekijk uw accountinformatie. Configureer metadatavoorkeuren per bibliotheek op de Bibliotheken-pagina.",
+    "username": "Gebruikersnaam",
+    "metadataPreferencesNote": "Om metadatataal en landvoorkeuren te wijzigen, configureer deze individueel voor elke bibliotheek op de Bibliotheken-pagina.",
+    "changePassword": "Wachtwoord wijzigen",
+    "changePasswordDescription": "Kies een sterk wachtwoord om uw account veilig te houden.",
+    "currentPassword": "Huidig wachtwoord",
+    "newPassword": "Nieuw wachtwoord",
+    "confirmNewPassword": "Bevestig nieuw wachtwoord",
+    "newPasswordPlaceholder": "Minimaal 8 tekens",
+    "updatePassword": "Wachtwoord bijwerken",
+    "updating": "Bijwerken...",
+    "loading": "Laden...",
+    "passwordTooShort": "Het nieuwe wachtwoord moet minimaal 8 tekens bevatten",
+    "passwordsDoNotMatch": "Nieuw wachtwoord en bevestiging komen niet overeen",
+    "passwordUpdated": "Wachtwoord bijgewerkt",
+    "passwordUpdateFailed": "Kon wachtwoord niet bijwerken"
+  },
   "errors": {
     "notFound": "Niet gevonden",
     "unauthorized": "Ongeautoriseerd",

@@ -676,6 +676,26 @@
     "tokenRevoked": "Jeton révoqué avec succès",
     "failedToRevoke": "Échec de la révocation du jeton"
   },
+  "profile": {
+    "pageTitle": "Profil",
+    "title": "Profil",
+    "description": "Consultez vos informations de compte. Configurez les préférences de métadonnées par bibliothèque dans la page Bibliothèques.",
+    "username": "Nom d'utilisateur",
+    "metadataPreferencesNote": "Pour modifier la langue et les préférences de pays des métadonnées, configurez-les individuellement pour chaque bibliothèque dans la page Bibliothèques.",
+    "changePassword": "Changer le mot de passe",
+    "changePasswordDescription": "Choisissez un mot de passe fort pour protéger votre compte.",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "confirmNewPassword": "Confirmer le nouveau mot de passe",
+    "newPasswordPlaceholder": "Au moins 8 caractères",
+    "updatePassword": "Mettre à jour le mot de passe",
+    "updating": "Mise à jour...",
+    "loading": "Chargement...",
+    "passwordTooShort": "Le nouveau mot de passe doit contenir au moins 8 caractères",
+    "passwordsDoNotMatch": "Le nouveau mot de passe et la confirmation ne correspondent pas",
+    "passwordUpdated": "Mot de passe mis à jour",
+    "passwordUpdateFailed": "Impossible de mettre à jour le mot de passe"
+  },
   "errors": {
     "notFound": "Non trouvé",
     "unauthorized": "Non autorisé",

@@ -153,18 +153,21 @@ export default function ReleaseCalendar() {
   const preferredCountry = useMemo(() => "US", []);
 
   // Create status objects with translations
-  const STATUSES = useMemo<Record<"upcoming" | "released", Status>>(() => ({
-    upcoming: {
-      id: "upcoming",
-      name: t("upcoming"),
-      color: "hsl(var(--primary))",
-    },
-    released: {
-      id: "released",
-      name: t("released"),
-      color: "hsl(var(--muted-foreground))",
-    },
-  }), [t]);
+  const STATUSES = useMemo<Record<"upcoming" | "released", Status>>(
+    () => ({
+      upcoming: {
+        id: "upcoming",
+        name: t("upcoming"),
+        color: "hsl(var(--primary))",
+      },
+      released: {
+        id: "released",
+        name: t("released"),
+        color: "hsl(var(--muted-foreground))",
+      },
+    }),
+    [t],
+  );
 
   useEffect(() => {
     if (!user) {
@@ -433,9 +436,7 @@ export default function ReleaseCalendar() {
             </CalendarBody>
           </CalendarProvider>
           <div className="mt-4 space-y-2">
-            <p className="text-sm text-muted-foreground">
-              {t("calendarHelpText")}
-            </p>
+            <p className="text-sm text-muted-foreground">{t("calendarHelpText")}</p>
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-blue-500" />
@@ -474,9 +475,9 @@ export default function ReleaseCalendar() {
           <p className="text-sm text-muted-foreground">
             {selectedDate
               ? selectedFeatures.length > 0
-                ? t("releasesScheduled", { 
-                    count: selectedFeatures.length, 
-                    plural: selectedFeatures.length === 1 ? t("release") : t("releases_plural") 
+                ? t("releasesScheduled", {
+                    count: selectedFeatures.length,
+                    plural: selectedFeatures.length === 1 ? t("release") : t("releases_plural"),
                   })
                 : t("noReleasesForDay")
               : t("chooseDate")}
@@ -517,9 +518,7 @@ export default function ReleaseCalendar() {
                       )}
                     </div>
                     {movie.originalTitle && movie.originalTitle !== feature.name && (
-                      <span className="text-sm text-muted-foreground">
-                        {t("originalTitle", { title: movie.originalTitle })}
-                      </span>
+                      <span className="text-sm text-muted-foreground">{t("originalTitle", { title: movie.originalTitle })}</span>
                     )}
                     <span className="text-sm text-muted-foreground">
                       {t("releaseOn", { type: t(config.key), date: format(feature.endAt, "MMMM d, yyyy") })}
@@ -540,9 +539,7 @@ export default function ReleaseCalendar() {
                         </div>
                       )}
                       {typeof movie.voteAverage === "number" && movie.voteAverage > 0 && (
-                        <span>
-                          {t("tmdbRating", { rating: movie.voteAverage.toFixed(1) })}
-                        </span>
+                        <span>{t("tmdbRating", { rating: movie.voteAverage.toFixed(1) })}</span>
                       )}
                     </div>
                     {movie.overview && (

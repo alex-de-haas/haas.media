@@ -5,6 +5,7 @@ This document describes the new translation keys added for movie details, TV sho
 ## Overview
 
 All translations were added to the `messages/*.json` files in the following sections:
+
 - `movies` - Movie-related translations
 - `tvShows` - TV show and episode-related translations
 
@@ -188,7 +189,7 @@ import { useTranslations } from "next-intl";
 function MovieDetails() {
   const t = useTranslations("movies");
   const tCommon = useTranslations("common");
-  
+
   return (
     <div>
       <h1>{t("movieDetails")}</h1>

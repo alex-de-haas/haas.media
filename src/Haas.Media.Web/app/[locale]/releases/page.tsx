@@ -9,7 +9,7 @@ import { Spinner } from "@/components/ui";
 
 export default function DigitalReleasesPage() {
   const t = useTranslations("releases");
-  
+
   usePageTitle(t("pageTitle"));
 
   return (

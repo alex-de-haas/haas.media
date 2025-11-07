@@ -153,7 +153,9 @@ export default function EpisodeDetails({ tvShowId, seasonNumber, episodeNumber }
                             <span className="font-semibold text-foreground">{episode.voteAverage.toFixed(1)}</span>
                           </Badge>
                         )}
-                        {episode.voteCount > 0 && <span className="text-muted-foreground">{t("voteCount", { count: episode.voteCount })}</span>}
+                        {episode.voteCount > 0 && (
+                          <span className="text-muted-foreground">{t("voteCount", { count: episode.voteCount })}</span>
+                        )}
                         {formattedAirDate && (
                           <Badge variant="outline" className="flex items-center gap-2 px-3 py-1">
                             <Calendar className="h-4 w-4" />

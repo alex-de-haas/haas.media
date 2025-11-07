@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export default function PeoplePage() {
   const t = useTranslations("people");
-  
+
   usePageTitle(t("title"));
 
   return (

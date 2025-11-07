@@ -139,10 +139,16 @@ export default function PeopleList() {
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold">
             {hasActiveSearch
-              ? totalCount === 1 ? t("matchingPerson", { count: totalCount }) : t("matchingPeople", { count: totalCount })
-              : totalCount === 1 ? t("person", { count: totalCount }) : t("peopleCount", { count: totalCount })}
+              ? totalCount === 1
+                ? t("matchingPerson", { count: totalCount })
+                : t("matchingPeople", { count: totalCount })
+              : totalCount === 1
+                ? t("person", { count: totalCount })
+                : t("peopleCount", { count: totalCount })}
           </h2>
-          {people.length < totalCount && totalCount > 0 && <span className="text-sm text-muted-foreground">{t("loaded", { count: people.length })}</span>}
+          {people.length < totalCount && totalCount > 0 && (
+            <span className="text-sm text-muted-foreground">{t("loaded", { count: people.length })}</span>
+          )}
           <Button variant="ghost" size="icon" onClick={refetch} className="h-8 w-8">
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -187,7 +193,9 @@ export default function PeopleList() {
 
           {/* End message */}
           {!shouldShowLoadMore && totalCount > 0 && (
-            <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">{t("allLoaded", { count: totalCount })}</div>
+            <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+              {t("allLoaded", { count: totalCount })}
+            </div>
           )}
         </>
       )}

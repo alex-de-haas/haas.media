@@ -121,9 +121,7 @@ export default function CopyMoveModal({ isOpen, onClose, action, items, onConfir
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle>
-            {isBulk ? t("titleBulk", { count: targets.length }) : t("title", { name: primary.name })}
-          </DialogTitle>
+          <DialogTitle>{isBulk ? t("titleBulk", { count: targets.length }) : t("title", { name: primary.name })}</DialogTitle>
           <DialogDescription>
             {isBulk ? (
               <div className="space-y-1 text-xs text-muted-foreground">
@@ -186,9 +184,7 @@ export default function CopyMoveModal({ isOpen, onClose, action, items, onConfir
               </p>
             )}
             {action === "move" && (
-              <p className="mt-2 flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
-                {tMove("moveWarning")}
-              </p>
+              <p className="mt-2 flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">{tMove("moveWarning")}</p>
             )}
           </div>
 
@@ -199,7 +195,11 @@ export default function CopyMoveModal({ isOpen, onClose, action, items, onConfir
               {tCommon("cancel")}
             </Button>
             <Button type="submit" disabled={loading || filesLoading}>
-              {loading ? loadingLabel : (action === "copy" ? tCopy("title", { name: "" }).split(" ")[0] : tMove("title", { name: "" }).split(" ")[0])}
+              {loading
+                ? loadingLabel
+                : action === "copy"
+                  ? tCopy("title", { name: "" }).split(" ")[0]
+                  : tMove("title", { name: "" }).split(" ")[0]}
             </Button>
           </DialogFooter>
         </form>

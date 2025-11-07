@@ -25,7 +25,7 @@ import { Plus, Server, AlertCircle, Loader2 } from "lucide-react";
 export default function NodesPage() {
   const t = useTranslations("nodes");
   const tCommon = useTranslations("common");
-  
+
   usePageTitle(t("pageTitle"));
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -150,9 +150,7 @@ export default function NodesPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{selectedNode ? t("editNode") : t("connectToNode")}</DialogTitle>
-            <DialogDescription>
-              {selectedNode ? t("editNodeDescription") : t("connectNodeDescription")}
-            </DialogDescription>
+            <DialogDescription>{selectedNode ? t("editNodeDescription") : t("connectNodeDescription")}</DialogDescription>
           </DialogHeader>
           <NodeForm node={selectedNode ?? undefined} onSubmit={handleFormSubmit} onCancel={closeForm} onValidate={handleValidate} />
         </DialogContent>
@@ -162,9 +160,7 @@ export default function NodesPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t("deleteNode")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("deleteNodeConfirmation", { name: nodeToDelete?.name || "" })}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t("deleteNodeConfirmation", { name: nodeToDelete?.name || "" })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
