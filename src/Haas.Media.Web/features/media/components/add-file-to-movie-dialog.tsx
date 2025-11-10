@@ -51,7 +51,7 @@ export default function AddFileToMovieDialog({
         // Only show files from the current node (nodeId = null or undefined)
         !file.nodeId &&
         // Only show movie-type files
-        file.mediaType === LibraryType.Movies
+        file.libraryType === LibraryType.Movies
     );
 
     console.log("✅ Filtered files:", filtered.length, filtered);

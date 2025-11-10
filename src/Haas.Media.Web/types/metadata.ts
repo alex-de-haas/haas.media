@@ -52,7 +52,7 @@ export interface FileMetadata {
   id?: string;
   libraryId: string;
   mediaId: string;
-  mediaType: LibraryType;
+  libraryType: LibraryType;
   filePath: string;
   md5Hash?: string | null;
   seasonNumber?: number | null;
