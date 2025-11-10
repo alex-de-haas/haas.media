@@ -17,3 +17,5 @@ export {
   useSearch,
 } from "./useMetadata";
 export { useMoviePlaybackInfo, useTVShowPlaybackInfo } from "./usePlaybackInfo";
+export { useMapFileToMovie } from "./useMapFileToMovie";
+export { useFilesByMediaId } from "./useFileMetadata";

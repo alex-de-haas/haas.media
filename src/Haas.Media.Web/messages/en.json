@@ -17,6 +17,8 @@
     "previous": "Previous",
     "refresh": "Refresh",
     "select": "Select",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
     "browse": "Browse"
   },
   "navigation": {
@@ -204,6 +206,13 @@
     "revenue": "Revenue",
     "associatedFiles": "Associated Files",
     "noFilesLinked": "No files linked",
+    "addFile": "Add File",
+    "addFilesToMovie": "Add Files to Movie",
+    "addFilesToMovieDescription": "Select file metadata records to associate with \"{title}\"",
+    "noAvailableFilesToAdd": "No available files to add",
+    "filesAvailable": "{count, plural, =1 {1 file available} other {# files available}}",
+    "addFiles": "{count, plural, =1 {Add 1 File} other {Add # Files}}",
+    "filesAddedSuccessfully": "Files added successfully",
     "local": "Local",
     "remote": "Remote",
     "cancelDownload": "Cancel download",

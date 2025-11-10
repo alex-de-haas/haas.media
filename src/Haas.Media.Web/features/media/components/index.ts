@@ -8,3 +8,4 @@ export { default as PeopleList } from "./people-list";
 export { default as PersonDetails } from "./person-details";
 export { default as AddToLibraryProgress } from "./add-to-library-progress";
 export { default as ReleaseCalendar } from "./release-calendar";
+export { default as AddFileToMovieDialog } from "./add-file-to-movie-dialog";

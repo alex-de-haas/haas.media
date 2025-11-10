@@ -5,12 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { MoreVertical, Trash2, Star, ArrowLeft, Film, Heart, Play, Eye, Download, Server, X, HardDrive } from "lucide-react";
+import { MoreVertical, Trash2, Star, ArrowLeft, Film, Heart, Play, Eye, Download, Server, X, HardDrive, Plus } from "lucide-react";
 
 import { useMovie, useDeleteMovieMetadata, useMoviePlaybackInfo } from "@/features/media/hooks";
 import { useFilesByMediaId } from "@/features/media/hooks/useFileMetadata";
 import { useNodeFileDownload } from "@/features/nodes/hooks";
 import { DownloadFileDialog } from "@/features/nodes/components";
+import { AddFileToMovieDialog } from "@/features/media/components";
 import { useBackgroundTasks } from "@/features/background-tasks/hooks";
 import { LibraryType } from "@/types/library";
 import type { BackgroundTaskInfo } from "@/types";
@@ -61,6 +62,7 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
   const [initiatingDownloadFileId, setInitiatingDownloadFileId] = useState<string | null>(null);
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [selectedFileForDownload, setSelectedFileForDownload] = useState<FileMetadata | null>(null);
+  const [addFileDialogOpen, setAddFileDialogOpen] = useState(false);
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings | null>(null);
   const router = useRouter();
   const { notify } = useNotifications();
@@ -515,6 +517,10 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                         <span className="text-sm font-medium text-muted-foreground">
                           {t("associatedFiles")} {filesLoading && <Spinner className="inline-block ml-2 size-3" />}
                         </span>
+                        <Button variant="outline" size="sm" onClick={() => setAddFileDialogOpen(true)}>
+                          <Plus className="mr-2 h-4 w-4" />
+                          {t("addFile")}
+                        </Button>
                       </div>
 
                       {movieFiles.length > 0 ? (
@@ -711,6 +717,22 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
         mediaType={LibraryType.Movies}
         globalSettings={globalSettings}
         isDownloading={initiatingDownloadFileId !== null}
+      />
+
+      <AddFileToMovieDialog
+        open={addFileDialogOpen}
+        onOpenChange={setAddFileDialogOpen}
+        movieId={movieId}
+        movieTitle={movie?.title || ""}
+        existingFileIds={new Set(movieFiles.map((f) => f.id).filter((id): id is string => id !== undefined))}
+        onSuccess={() => {
+          void refetchFiles();
+          notify({
+            title: tCommon("success"),
+            message: t("filesAddedSuccessfully"),
+            type: "success",
+          });
+        }}
       />
     </div>
   );
