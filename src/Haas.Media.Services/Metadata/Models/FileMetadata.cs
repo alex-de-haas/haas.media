@@ -15,13 +15,6 @@ public class FileMetadata
     public required string Id { get; set; }
 
     /// <summary>
-    /// The library that owns this media file.
-    /// Null for files from connected nodes (not yet downloaded locally).
-    /// Set when the file is downloaded to a local library.
-    /// </summary>
-    public string? LibraryId { get; set; }
-
-    /// <summary>
     /// Optional: The ID of the node where this file is located (null if local).
     /// </summary>
     public string? NodeId { get; set; }

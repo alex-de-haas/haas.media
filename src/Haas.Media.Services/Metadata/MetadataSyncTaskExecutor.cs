@@ -665,7 +665,6 @@ internal sealed class MetadataSyncTaskExecutor
                 var fileMetadata = new FileMetadata
                 {
                     Id = Guid.CreateVersion7().ToString(),
-                    LibraryId = null, // No library concept anymore
                     TmdbId = movieResult.Id,
                     LibraryType = LibraryType.Movies,
                     FilePath = relativePath,
@@ -828,7 +827,6 @@ internal sealed class MetadataSyncTaskExecutor
             var fileMetadata = new FileMetadata
             {
                 Id = Guid.CreateVersion7().ToString(),
-                LibraryId = null,
                 TmdbId = tvShowMetadata.Id,
                 LibraryType = LibraryType.TVShows,
                 FilePath = relativePath,
@@ -960,7 +958,6 @@ internal sealed class MetadataSyncTaskExecutor
                             var fileMetadata = new FileMetadata
                             {
                                 Id = Guid.CreateVersion7().ToString(),
-                                LibraryId = null, // No library concept anymore
                                 TmdbId = searchResults.Id,
                                 LibraryType = LibraryType.TVShows,
                                 FilePath = relativePath,
@@ -1043,7 +1040,6 @@ internal sealed class MetadataSyncTaskExecutor
                     var fileMetadata = new FileMetadata
                     {
                         Id = Guid.CreateVersion7().ToString(),
-                        LibraryId = null,
                         TmdbId = existingShow.Id,
                         LibraryType = LibraryType.TVShows,
                         FilePath = relativePath,

@@ -433,7 +433,6 @@ internal sealed class NodeFileDownloadTaskExecutor
                 {
                     Id = Guid.NewGuid().ToString(), // New ID for the local file
                     NodeId = null, // No longer associated with a node
-                    LibraryId = null, // Not associated with a library (will be set during next metadata scan if needed)
                     FilePath = localFilePath,
                     TmdbId = nodeMetadata.TmdbId,
                     LibraryType = nodeMetadata.LibraryType,

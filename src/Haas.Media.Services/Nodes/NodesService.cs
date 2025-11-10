@@ -432,7 +432,6 @@ public sealed class NodesService : INodesApi
             foreach (var fileMetadata in filesMetadata)
             {
                 fileMetadata.NodeId = nodeId;
-                fileMetadata.LibraryId = null;
             }
 
             _logger.LogInformation(

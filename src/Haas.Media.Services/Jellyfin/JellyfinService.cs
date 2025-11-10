@@ -27,34 +27,21 @@ public class JellyfinService
     private async Task<FileMetadata?> GetEpisodeFileAsync(
         int tvShowId,
         int seasonNumber,
-        int episodeNumber,
-        string? libraryId = null
+        int episodeNumber
     )
     {
         var files = (
             await _metadataApi.GetFilesByMediaIdAsync(tvShowId, LibraryType.TVShows)
         ).ToList();
-        if (!string.IsNullOrWhiteSpace(libraryId))
-        {
-            files = files.Where(f => f.LibraryId == libraryId).ToList();
-        }
         return files.FirstOrDefault(f =>
             f.SeasonNumber == seasonNumber && f.EpisodeNumber == episodeNumber
         );
     }
 
     // Helper method to check if a season has any episode files
-    private async Task<bool> SeasonHasFilesAsync(
-        int tvShowId,
-        int seasonNumber,
-        string? libraryId = null
-    )
+    private async Task<bool> SeasonHasFilesAsync(int tvShowId, int seasonNumber)
     {
         var files = await _metadataApi.GetFilesByMediaIdAsync(tvShowId, LibraryType.TVShows);
-        if (!string.IsNullOrWhiteSpace(libraryId))
-        {
-            files = files.Where(f => f.LibraryId == libraryId);
-        }
         return files.Any(f => f.SeasonNumber == seasonNumber);
     }
 
@@ -187,11 +174,11 @@ public class JellyfinService
             // Determine library type from hardcoded library ID
             if (libraryId == MoviesLibraryId)
             {
-                return await BuildLibraryItemsAsync(libraryId, LibraryType.Movies, query, userId);
+                return await BuildLibraryItemsAsync(LibraryType.Movies, query, userId);
             }
             else if (libraryId == TvShowsLibraryId)
             {
-                return await BuildLibraryItemsAsync(libraryId, LibraryType.TVShows, query, userId);
+                return await BuildLibraryItemsAsync(LibraryType.TVShows, query, userId);
             }
             else
             {
@@ -286,7 +273,7 @@ public class JellyfinService
                 return null;
             }
 
-            return await MapMovieAsync(movie, null, userId);
+            return await MapMovieAsync(movie, userId);
         }
 
         if (JellyfinIdHelper.TryParseSeriesId(itemId, out var seriesId))
@@ -297,7 +284,7 @@ public class JellyfinService
                 return null;
             }
 
-            return await MapSeriesAsync(show, null, userId);
+            return await MapSeriesAsync(show, userId);
         }
 
         if (
@@ -487,7 +474,6 @@ public class JellyfinService
     }
 
     private async Task<JellyfinItemsEnvelope> BuildLibraryItemsAsync(
-        string libraryId,
         LibraryType libraryType,
         JellyfinItemsQuery query,
         string? userId = null
@@ -498,7 +484,7 @@ public class JellyfinService
             var movies = (await _metadataApi.GetMovieMetadataAsync()).ToList();
             var filtered = FilterByName(movies, query.SearchTerm, movie => movie.Title);
             var mappingTasks = filtered.Select(async movie =>
-                await MapMovieAsync(movie, libraryId, userId)
+                await MapMovieAsync(movie, userId)
             );
             var allItems = await Task.WhenAll(mappingTasks);
             var items = allItems.Where(item => MatchesType(item, query)).ToArray();
@@ -515,7 +501,7 @@ public class JellyfinService
             var shows = (await _metadataApi.GetTVShowMetadataAsync()).ToList();
             var filtered = FilterByName(shows, query.SearchTerm, show => show.Title);
             var mappingTasks = filtered.Select(async show =>
-                await MapSeriesAsync(show, libraryId, userId)
+                await MapSeriesAsync(show, userId)
             );
             var allItems = await Task.WhenAll(mappingTasks);
             var items = allItems.Where(item => MatchesType(item, query)).ToList();
@@ -525,7 +511,7 @@ public class JellyfinService
                 var additional = new List<JellyfinItem>();
                 foreach (var show in filtered)
                 {
-                    additional.AddRange(await MapAllEpisodesAsync(show, query, libraryId, userId));
+                    additional.AddRange(await MapAllEpisodesAsync(show, query, userId));
                 }
                 items.AddRange(additional);
             }
@@ -634,7 +620,6 @@ public class JellyfinService
     private async Task<IEnumerable<JellyfinItem>> MapAllEpisodesAsync(
         TVShowMetadata show,
         JellyfinItemsQuery query,
-        string? libraryId = null,
         string? userId = null
     )
     {
@@ -643,7 +628,7 @@ public class JellyfinService
         foreach (var season in show.Seasons)
         {
             // Only include seasons that have at least one episode file
-            var hasFiles = await SeasonHasFilesAsync(show.Id, season.SeasonNumber, libraryId);
+            var hasFiles = await SeasonHasFilesAsync(show.Id, season.SeasonNumber);
             if (!hasFiles)
             {
                 continue; // Skip seasons without files
@@ -651,7 +636,7 @@ public class JellyfinService
 
             if (MatchesType("Season", query.IncludeItemTypes))
             {
-                items.Add(await MapSeasonAsync(show, season.SeasonNumber, libraryId, userId));
+                items.Add(await MapSeasonAsync(show, season.SeasonNumber, userId));
             }
 
             foreach (var episode in season.Episodes)
@@ -660,15 +645,14 @@ public class JellyfinService
                 var episodeFile = await GetEpisodeFileAsync(
                     show.Id,
                     episode.SeasonNumber,
-                    episode.EpisodeNumber,
-                    libraryId
+                    episode.EpisodeNumber
                 );
                 if (episodeFile is null)
                 {
                     continue; // Skip episodes without files
                 }
 
-                var mapped = await MapEpisodeAsync(show, episode, libraryId, userId);
+                var mapped = await MapEpisodeAsync(show, episode, userId);
                 if (MatchesType(mapped, query))
                 {
                     items.Add(mapped);
@@ -703,43 +687,20 @@ public class JellyfinService
         };
     }
 
-    private async Task<JellyfinItem> MapMovieAsync(
-        MovieMetadata metadata,
-        string? libraryId = null,
-        string? userId = null
-    )
+    private async Task<JellyfinItem> MapMovieAsync(MovieMetadata metadata, string? userId = null)
     {
         // Get all files linked to this movie
         var allFiles = (
             await _metadataApi.GetFilesByMediaIdAsync(metadata.Id, LibraryType.Movies)
         ).ToList();
 
-        // Filter files to the requested library (if provided)
-        var filteredFiles = !string.IsNullOrWhiteSpace(libraryId)
-            ? allFiles.Where(f => f.LibraryId == libraryId).ToList()
-            : allFiles;
-
-        if (filteredFiles.Count == 0)
-        {
-            filteredFiles = allFiles;
-        }
-
-        var resolvedLibraryId =
-            libraryId
-            ?? filteredFiles.FirstOrDefault()?.LibraryId
-            ?? allFiles.FirstOrDefault()?.LibraryId;
-
-        var parentId = resolvedLibraryId is null
-            ? null
-            : JellyfinIdHelper.CreateLibraryId(resolvedLibraryId);
-
         // Create media sources for the filtered files
         var mediaSources = new List<JellyfinMediaSource>();
         var movieIdString = JellyfinIdHelper.CreateMovieId(metadata.Id);
 
-        for (var i = 0; i < filteredFiles.Count; i++)
+        for (var i = 0; i < allFiles.Count; i++)
         {
-            var file = filteredFiles[i];
+            var file = allFiles[i];
             var sourceId = i == 0 ? movieIdString : $"{movieIdString}-{i}";
             var mediaSource = TryCreateMediaSource(sourceId, file.FilePath);
             if (mediaSource is not null)
@@ -757,8 +718,8 @@ public class JellyfinService
 
         // Get user playback data if userId is provided
         var userData =
-            filteredFiles.Count > 0 && !string.IsNullOrWhiteSpace(userId)
-                ? await GetUserDataForFileAsync(userId, filteredFiles[0].Id)
+            allFiles.Count > 0 && !string.IsNullOrWhiteSpace(userId)
+                ? await GetUserDataForFileAsync(userId, allFiles[0].Id)
                 : null;
 
         return new JellyfinItem
@@ -771,7 +732,7 @@ public class JellyfinService
             DisplayPreferencesId = movieIdString,
             CollectionType = "movies",
             MediaType = "Video",
-            ParentId = parentId,
+            ParentId = MoviesLibraryId,
             IsFolder = false,
             Overview = metadata.Overview,
             Tagline = null,
@@ -801,50 +762,28 @@ public class JellyfinService
         };
     }
 
-    private async Task<JellyfinItem> MapSeriesAsync(
-        TVShowMetadata metadata,
-        string? libraryId = null,
-        string? userId = null
-    )
+    private async Task<JellyfinItem> MapSeriesAsync(TVShowMetadata metadata, string? userId = null)
     {
         var allFiles = (
             await _metadataApi.GetFilesByMediaIdAsync(metadata.Id, LibraryType.TVShows)
         ).ToList();
 
-        var filteredFiles = !string.IsNullOrWhiteSpace(libraryId)
-            ? allFiles.Where(f => f.LibraryId == libraryId).ToList()
-            : allFiles;
-
-        if (filteredFiles.Count == 0)
-        {
-            filteredFiles = allFiles;
-        }
-
-        var resolvedLibraryId =
-            libraryId
-            ?? filteredFiles.FirstOrDefault()?.LibraryId
-            ?? allFiles.FirstOrDefault()?.LibraryId;
-
-        var parentId = resolvedLibraryId is null
-            ? null
-            : JellyfinIdHelper.CreateLibraryId(resolvedLibraryId);
-
         var posterTags = BuildImageTags(metadata.PosterPath, metadata.LogoPath);
         var backdropTags = BuildBackdropImageTag(metadata.BackdropPath);
         var people = MapPeople(metadata.Cast, metadata.Crew);
 
-        var seasonsWithFiles = filteredFiles
+        var seasonsWithFiles = allFiles
             .Select(f => f.SeasonNumber)
             .Where(s => s.HasValue)
             .Distinct()
             .Count();
-        var episodesWithFiles = filteredFiles.Count;
+        var episodesWithFiles = allFiles.Count;
 
         // Build provider IDs
         var providerIds = new Dictionary<string, string> { ["Tmdb"] = metadata.Id.ToString(), };
 
         // Calculate user data for the series if userId is provided
-        var userData = await CalculateSeriesUserDataAsync(userId, filteredFiles);
+        var userData = await CalculateSeriesUserDataAsync(userId, allFiles);
 
         return new JellyfinItem
         {
@@ -856,7 +795,7 @@ public class JellyfinService
             DisplayPreferencesId = JellyfinIdHelper.CreateSeriesId(metadata.Id),
             CollectionType = "tvshows",
             MediaType = "Video",
-            ParentId = parentId,
+            ParentId = TvShowsLibraryId,
             IsFolder = true,
             Overview = metadata.Overview,
             Tagline = null,
@@ -903,12 +842,7 @@ public class JellyfinService
 
         // Get files for this specific season
         var allFiles = await _metadataApi.GetFilesByMediaIdAsync(metadata.Id, LibraryType.TVShows);
-        var seasonFiles = allFiles
-            .Where(f =>
-                f.SeasonNumber == seasonNumber
-                && (string.IsNullOrWhiteSpace(libraryId) || f.LibraryId == libraryId)
-            )
-            .ToList();
+        var seasonFiles = allFiles.Where(f => f.SeasonNumber == seasonNumber).ToList();
 
         var episodeCount = seasonFiles.Count;
 
@@ -981,8 +915,7 @@ public class JellyfinService
         var fileMetadata = await GetEpisodeFileAsync(
             show.Id,
             episode.SeasonNumber,
-            episode.EpisodeNumber,
-            libraryId
+            episode.EpisodeNumber
         );
         var mediaSource = TryCreateMediaSource(
             JellyfinIdHelper.CreateEpisodeId(show.Id, episode.SeasonNumber, episode.EpisodeNumber),
