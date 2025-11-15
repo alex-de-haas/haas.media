@@ -1,5 +1,6 @@
 using Haas.Media.Core.BackgroundTasks;
 using LiteDB;
+using System.Linq;
 using TMDbLib.Client;
 using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.Search;
@@ -142,22 +143,54 @@ internal sealed class AddToLibraryTaskExecutor
         context.ReportProgress(35);
 
         var existingMovie = _movieMetadataCollection.FindById(new BsonValue(tmdbId.ToString()));
+        var preferredCountry = _countryProvider.GetPreferredCountryCode();
+        var preferredLanguage = _languageProvider.GetPreferredLanguage();
 
-        var totalPeople = 0;
+        MovieMetadata movieMetadata;
+        if (existingMovie is not null)
+        {
+            movieDetails.Update(
+                existingMovie,
+                globalSettings.TopCastCount,
+                globalSettings.TopCrewCount,
+                preferredCountry,
+                preferredLanguage
+            );
+            movieMetadata = existingMovie;
+        }
+        else
+        {
+            movieMetadata = movieDetails.Create(
+                globalSettings.TopCastCount,
+                globalSettings.TopCrewCount,
+                preferredCountry,
+                preferredLanguage
+            );
+        }
+
+        var associatedPersonIds = CollectPersonIds(movieMetadata);
+        var totalPeople = associatedPersonIds.Length;
         var syncedPeople = 0;
         var failedPeople = 0;
+
+        payload = payload with
+        {
+            Stage = "Syncing movie credits",
+            TotalPeople = totalPeople,
+            SyncedPeople = 0,
+            FailedPeople = 0,
+        };
+        context.SetPayload(payload);
 
         await PersonMetadataSynchronizer.SyncAsync(
             _tmdbClient,
             _personMetadataCollection,
             _logger,
-            PersonMetadataCollector.FromCredits(movieDetails.Credits),
+            associatedPersonIds,
             refreshExisting: existingMovie is not null,
             cancellationToken: cancellationToken,
             reportProgress: progress =>
             {
-                totalPeople++;
-
                 if (progress.Outcome == PersonSyncOutcome.Failed)
                 {
                     failedPeople++;
@@ -178,19 +211,8 @@ internal sealed class AddToLibraryTaskExecutor
             }
         );
 
-        var preferredCountry = _countryProvider.GetPreferredCountryCode();
-        var preferredLanguage = _languageProvider.GetPreferredLanguage();
-        MovieMetadata movieMetadata;
         if (existingMovie is not null)
         {
-            movieDetails.Update(
-                existingMovie,
-                globalSettings.TopCastCount,
-                globalSettings.TopCrewCount,
-                preferredCountry,
-                preferredLanguage
-            );
-
             if (!_movieMetadataCollection.Update(existingMovie))
             {
                 _movieMetadataCollection.Upsert(existingMovie);
@@ -216,12 +238,6 @@ internal sealed class AddToLibraryTaskExecutor
         }
         else
         {
-            movieMetadata = movieDetails.Create(
-                globalSettings.TopCastCount,
-                globalSettings.TopCrewCount,
-                preferredCountry,
-                preferredLanguage
-            );
             _movieMetadataCollection.Insert(movieMetadata);
 
             _logger.LogInformation(
@@ -271,12 +287,6 @@ internal sealed class AddToLibraryTaskExecutor
             throw new ArgumentException($"TV show with TMDB ID {tmdbId} not found on TMDB.");
         }
 
-        var associatedPersonIds = new HashSet<int>();
-        associatedPersonIds.UnionWith(PersonMetadataCollector.FromCredits(tvShowDetails.Credits));
-        associatedPersonIds.UnionWith(
-            PersonMetadataCollector.FromCreators(tvShowDetails.CreatedBy)
-        );
-
         payload = payload with { Stage = "Fetching TV show credits" };
         context.SetPayload(payload);
         context.ReportProgress(20);
@@ -319,10 +329,6 @@ internal sealed class AddToLibraryTaskExecutor
             var seasonMetadata = seasonDetails.Create();
             var episodes = new List<TVEpisodeMetadata>();
 
-            associatedPersonIds.UnionWith(
-                PersonMetadataCollector.FromCredits(seasonDetails.Credits)
-            );
-
             totalEpisodes += seasonDetails.Episodes.Count;
 
             foreach (var episode in seasonDetails.Episodes)
@@ -339,16 +345,6 @@ internal sealed class AddToLibraryTaskExecutor
                 var episodeMetadata = episodeDetails.Create();
                 episodes.Add(episodeMetadata);
                 processedEpisodes++;
-
-                associatedPersonIds.UnionWith(
-                    PersonMetadataCollector.FromCredits(episodeDetails.Credits)
-                );
-                associatedPersonIds.UnionWith(
-                    PersonMetadataCollector.FromCrew(episodeDetails.Crew)
-                );
-                associatedPersonIds.UnionWith(
-                    PersonMetadataCollector.FromCast(episodeDetails.GuestStars)
-                );
 
                 var episodeProgress =
                     totalEpisodes > 0
@@ -381,9 +377,46 @@ internal sealed class AddToLibraryTaskExecutor
             context.ReportProgress(Math.Min(99, seasonProgress));
         }
 
-        var totalPeople = 0;
+        var seasonArray = seasons.ToArray();
+        var preferredCountry = _countryProvider.GetPreferredCountryCode();
+        var preferredLanguage = _languageProvider.GetPreferredLanguage();
+        TVShowMetadata tvShowMetadata;
+        if (existingTVShow is not null)
+        {
+            tvShowDetails.Update(
+                existingTVShow,
+                globalSettings.TopCastCount,
+                globalSettings.TopCrewCount,
+                preferredCountry,
+                preferredLanguage
+            );
+            existingTVShow.Seasons = seasonArray;
+            tvShowMetadata = existingTVShow;
+        }
+        else
+        {
+            tvShowMetadata = tvShowDetails.Create(
+                globalSettings.TopCastCount,
+                globalSettings.TopCrewCount,
+                preferredCountry,
+                preferredLanguage
+            );
+            tvShowMetadata.Seasons = seasonArray;
+        }
+
+        var associatedPersonIds = CollectPersonIds(tvShowMetadata);
+        var totalPeople = associatedPersonIds.Length;
         var syncedPeople = 0;
         var failedPeople = 0;
+
+        payload = payload with
+        {
+            Stage = "Syncing TV show credits",
+            TotalPeople = totalPeople,
+            SyncedPeople = 0,
+            FailedPeople = 0,
+        };
+        context.SetPayload(payload);
 
         await PersonMetadataSynchronizer.SyncAsync(
             _tmdbClient,
@@ -394,8 +427,6 @@ internal sealed class AddToLibraryTaskExecutor
             cancellationToken: cancellationToken,
             reportProgress: progress =>
             {
-                totalPeople++;
-
                 if (progress.Outcome == PersonSyncOutcome.Failed)
                 {
                     failedPeople++;
@@ -416,20 +447,8 @@ internal sealed class AddToLibraryTaskExecutor
             }
         );
 
-        var preferredCountry = _countryProvider.GetPreferredCountryCode();
-        var preferredLanguage = _languageProvider.GetPreferredLanguage();
-        TVShowMetadata tvShowMetadata;
         if (existingTVShow is not null)
         {
-            tvShowDetails.Update(
-                existingTVShow,
-                globalSettings.TopCastCount,
-                globalSettings.TopCrewCount,
-                preferredCountry,
-                preferredLanguage
-            );
-            existingTVShow.Seasons = seasons.ToArray();
-
             if (!_tvShowMetadataCollection.Update(existingTVShow))
             {
                 _tvShowMetadataCollection.Upsert(existingTVShow);
@@ -454,18 +473,9 @@ internal sealed class AddToLibraryTaskExecutor
                 SyncedPeople = syncedPeople,
                 FailedPeople = failedPeople
             };
-
-            tvShowMetadata = existingTVShow;
         }
         else
         {
-            tvShowMetadata = tvShowDetails.Create(
-                globalSettings.TopCastCount,
-                globalSettings.TopCrewCount,
-                preferredCountry,
-                preferredLanguage
-            );
-            tvShowMetadata.Seasons = seasons.ToArray();
             _tvShowMetadataCollection.Insert(tvShowMetadata);
 
             _logger.LogInformation(
@@ -493,6 +503,41 @@ internal sealed class AddToLibraryTaskExecutor
         context.ReportProgress(95);
 
         return payload;
+    }
+
+    private static int[] CollectPersonIds(MovieMetadata movieMetadata)
+    {
+        var castIds = movieMetadata.Cast?.Select(c => c.Id) ?? Enumerable.Empty<int>();
+        var crewIds = movieMetadata.Crew?.Select(c => c.Id) ?? Enumerable.Empty<int>();
+
+        return castIds.Concat(crewIds).Distinct().ToArray();
+    }
+
+    private static int[] CollectPersonIds(TVShowMetadata tvShowMetadata)
+    {
+        var personIds = new HashSet<int>();
+
+        void AddRange(IEnumerable<int> ids)
+        {
+            foreach (var id in ids)
+            {
+                personIds.Add(id);
+            }
+        }
+
+        AddRange(tvShowMetadata.Cast?.Select(c => c.Id) ?? Enumerable.Empty<int>());
+        AddRange(tvShowMetadata.Crew?.Select(c => c.Id) ?? Enumerable.Empty<int>());
+
+        foreach (var season in tvShowMetadata.Seasons ?? Array.Empty<TVSeasonMetadata>())
+        {
+            foreach (var episode in season.Episodes ?? Array.Empty<TVEpisodeMetadata>())
+            {
+                AddRange(episode.Cast?.Select(c => c.Id) ?? Enumerable.Empty<int>());
+                AddRange(episode.Crew?.Select(c => c.Id) ?? Enumerable.Empty<int>());
+            }
+        }
+
+        return personIds.ToArray();
     }
 
     private void ApplyPreferredLanguage()
