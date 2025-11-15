@@ -18,8 +18,9 @@ import type { BackgroundTaskInfo } from "@/types";
 import type { GlobalSettings } from "@/types/global-settings";
 import type { FileMetadata } from "@/types/metadata";
 import { Spinner } from "@/components/ui";
+import { VideoPlayerDialog } from "@/components/ui/video-player-dialog";
 import { getPosterUrl, getBackdropUrl, getLogoUrl } from "@/lib/tmdb";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { useNotifications } from "@/lib/notifications";
 import { downloaderApi } from "@/lib/api";
 import { fetchWithAuth } from "@/lib/auth/fetch-with-auth";
@@ -42,6 +43,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import { useVideoPlayer } from "@/features/files/hooks/use-video-player";
 import { PersonCard } from "@/features/media/components/person-card";
 import { ReleaseDateType, BackgroundTaskStatus } from "@/types";
 
@@ -67,11 +69,53 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
   const router = useRouter();
   const { notify } = useNotifications();
   const { deleteMovie, loading: deletingMovie } = useDeleteMovieMetadata();
+  const {
+    isOpen: isVideoPlayerOpen,
+    setIsOpen: setVideoPlayerOpen,
+    openVideo,
+    videoPath,
+    transcode: videoShouldTranscode,
+    quality: videoQuality,
+    showStreamInfo: videoShowStreamInfo,
+  } = useVideoPlayer({ quality: "high", showStreamInfo: true });
 
   // Track previous download task IDs to detect newly completed downloads
   const previousCompletedTaskIds = useRef<Set<string>>(new Set());
 
   const CREDIT_DISPLAY_LIMIT = 20;
+
+  const primaryPlayableFile = useMemo<FileMetadata | null>(() => {
+    if (!movieFiles || movieFiles.length === 0) {
+      return null;
+    }
+
+    const localFile = movieFiles.find((file) => !file.nodeId);
+    return localFile ?? null;
+  }, [movieFiles]);
+
+  const heroPrimaryCtaLabel = playbackInfo?.anyPlayed ? t("resumeMovieCta") : t("playMovieCta");
+
+  const heroCtaDescription = useMemo(() => {
+    if (primaryPlayableFile) {
+      return null;
+    }
+
+    if (!movieFiles || movieFiles.length === 0) {
+      return t("playbackUnavailable");
+    }
+
+    return t("remotePlaybackUnavailable");
+  }, [movieFiles, primaryPlayableFile, t]);
+
+  const heroPlayDisabled = !primaryPlayableFile;
+
+  const handleHeroPlay = () => {
+    if (!primaryPlayableFile) {
+      return;
+    }
+
+    openVideo(primaryPlayableFile.filePath, movie?.title ?? primaryPlayableFile.filePath);
+  };
 
   // Fetch global settings for movie directories
   useEffect(() => {
@@ -297,207 +341,243 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
   const hasCrew = Boolean(movie.crew && movie.crew.length > 0);
 
   return (
-    <div>
-      <div className="relative h-96 md:h-[500px] bg-gradient-to-b from-background/80 to-background">
+    <div className="flex flex-col gap-8 pb-16">
+      <section className="relative isolate min-h-[560px] w-full overflow-hidden rounded-b-[36px] border border-border/30 bg-background">
         {backdropUrl && !imageError ? (
-          <div className="relative h-full w-full">
-            <Image
-              src={backdropUrl}
-              alt={`${movie.title} backdrop`}
-              fill
-              className="object-cover"
-              priority
-              onError={() => setImageError(true)}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-          </div>
+          <Image
+            src={backdropUrl}
+            alt={`${movie.title} backdrop`}
+            fill
+            className="object-cover"
+            priority
+            onError={() => setImageError(true)}
+          />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-muted/40">
             <Film className="h-24 w-24 text-muted-foreground" />
           </div>
         )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/60 to-background dark:from-black/80 dark:via-black/70 dark:to-background" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
 
-        <div className="absolute left-6 top-6">
-          <Button asChild variant="secondary" size="sm" className="bg-black/60 text-white hover:bg-black/70">
-            <Link href="/movies" className="inline-flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              {t("backToMovies")}
-            </Link>
-          </Button>
-        </div>
-      </div>
+        <div className="relative z-10 mx-auto flex w-full max-w-screen-xl flex-col gap-8 px-4 pb-12 pt-8 lg:gap-12">
+          <div className="flex items-center justify-between text-white">
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="rounded-full border border-white/30 bg-white/10 px-4 text-white hover:bg-white/20"
+            >
+              <Link href="/movies" className="inline-flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                {t("backToMovies")}
+              </Link>
+            </Button>
 
-      <div className="relative z-10 -mt-32 px-4 py-8">
-        <div className="mx-auto flex w-full max-w-screen-xl flex-col gap-8 lg:flex-row">
-          <div className="flex-shrink-0">
-            <Card className="w-64 overflow-hidden shadow-2xl">
-              {posterUrl ? (
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20"
+                  >
+                    <MoreVertical className="h-5 w-5" />
+                    <span className="sr-only">{t("openMovieActions")}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem
+                      onSelect={(event) => event.preventDefault()}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {t("deleteMovie")}
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t("deleteMovieConfirm", { title: movie.title })}</AlertDialogTitle>
+                  <AlertDialogDescription>{t("deleteMovieDescription")}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deletingMovie}>{tCommon("cancel")}</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} disabled={deletingMovie}>
+                    {deletingMovie ? t("deleting") : tCommon("delete")}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:gap-12">
+            <div className="order-2 flex flex-1 flex-col gap-5 text-white lg:order-1">
+              {logoUrl ? (
                 <Image
-                  src={posterUrl}
-                  alt={`${movie.title} poster`}
-                  width={256}
-                  height={384}
-                  className="h-full w-full object-cover"
+                  src={logoUrl}
+                  alt={`${movie.title} logo`}
+                  width={360}
+                  height={140}
+                  className="max-w-[360px] object-contain drop-shadow-[0_15px_45px_rgba(0,0,0,0.45)]"
                   priority
                 />
               ) : (
-                <div className="flex h-96 items-center justify-center bg-muted">
-                  <Film className="h-16 w-16 text-muted-foreground" />
+                <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">{movie.title}</h1>
+              )}
+
+              {movie.originalTitle && movie.originalTitle !== movie.title && (
+                <p className="text-base text-white/70">{movie.originalTitle}</p>
+              )}
+
+              <div className="flex flex-wrap items-center gap-3 text-sm text-white/80">
+                {releaseYear && <span>{releaseYear}</span>}
+                {movie.officialRating && (
+                  <span className="rounded-full border border-white/40 px-2 py-0.5 text-xs font-semibold uppercase">
+                    {movie.officialRating}
+                  </span>
+                )}
+                {movie.originalLanguage && <span className="uppercase">{movie.originalLanguage}</span>}
+                {movie.voteAverage > 0 && (
+                  <span className="inline-flex items-center gap-1 font-semibold">
+                    <Star className="h-4 w-4 text-yellow-400" />
+                    {movie.voteAverage.toFixed(1)}
+                  </span>
+                )}
+                {movie.voteCount > 0 && <span>{t("voteCount", { count: movie.voteCount })}</span>}
+              </div>
+
+              {movie.genres && movie.genres.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {movie.genres.slice(0, 4).map((genre) => (
+                    <Badge key={genre} variant="secondary" className="bg-white/10 text-white hover:bg-white/20">
+                      {genre}
+                    </Badge>
+                  ))}
                 </div>
               )}
-            </Card>
-          </div>
 
-          <div className="flex-1 space-y-6 w-full lg:max-w-4xl">
-            <Card className="shadow-lg">
-              <CardHeader className="space-y-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-2">
-                    {logoUrl ? (
-                      <div className="mb-2">
-                        <Image
-                          src={logoUrl}
-                          alt={`${movie.title} logo`}
-                          width={300}
-                          height={100}
-                          className="max-w-[300px] h-auto object-contain"
-                          priority
-                        />
-                      </div>
-                    ) : (
-                      <CardTitle className="text-3xl md:text-4xl">{movie.title}</CardTitle>
-                    )}
-                    {movie.originalTitle && movie.originalTitle !== movie.title && (
-                      <CardDescription className="text-base">{movie.originalTitle}</CardDescription>
-                    )}
-                    <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                      {releaseYear && <span>{releaseYear}</span>}
-                      {movie.officialRating && (
-                        <Badge variant="outline" className="font-semibold">
-                          {movie.officialRating}
-                        </Badge>
-                      )}
-                      {movie.originalLanguage && <span className="uppercase">{movie.originalLanguage}</span>}
+              {movie.overview && <p className="max-w-3xl text-base text-white/80 md:text-lg">{movie.overview}</p>}
+
+              {!playbackLoading && playbackInfo && showPlaybackBadges && (
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  {playbackInfo.anyPlayed && (
+                    <Badge className="bg-white/15 text-white hover:bg-white/20">
+                      <Eye className="mr-1 h-4 w-4" />
+                      {t("watched")}
+                    </Badge>
+                  )}
+                  {playbackInfo.totalPlayCount > 0 && (
+                    <Badge className="bg-white/15 text-white hover:bg-white/20">
+                      <Play className="mr-1 h-4 w-4" />
+                      {playbackInfo.totalPlayCount === 1
+                        ? t("play", { count: 1 })
+                        : t("plays", { count: playbackInfo.totalPlayCount })}
+                    </Badge>
+                  )}
+                  {playbackInfo.isFavorite && (
+                    <Badge className="bg-white/15 text-white hover:bg-white/20">
+                      <Heart className="mr-1 h-4 w-4 fill-red-400 text-red-400" />
+                      {t("favorite")}
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  size="lg"
+                  onClick={handleHeroPlay}
+                  disabled={heroPlayDisabled}
+                  className={cn(
+                    "h-14 rounded-full px-8 text-base font-semibold shadow-2xl shadow-primary/40",
+                    heroPlayDisabled ? "bg-white/20 text-white/70" : "bg-white text-black hover:bg-white/90",
+                  )}
+                >
+                  <Play className="h-5 w-5" />
+                  <span className="ml-2">{heroPrimaryCtaLabel}</span>
+                </Button>
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  onClick={() => setAddFileDialogOpen(true)}
+                  className="h-14 rounded-full border border-white/30 bg-white/10 px-6 text-white hover:bg-white/20"
+                >
+                  <Plus className="mr-2 h-5 w-5" />
+                  {t("addFile")}
+                </Button>
+              </div>
+
+              {heroCtaDescription && <p className="text-sm text-white/80">{heroCtaDescription}</p>}
+              {!heroPlayDisabled && primaryPlayableFile && (
+                <p className="text-xs uppercase tracking-wide text-white/70">
+                  {t("local")} • {primaryPlayableFile.filePath}
+                </p>
+              )}
+            </div>
+
+            <div className="order-1 flex justify-center lg:order-2">
+              <div className="relative w-full max-w-[260px] sm:max-w-[320px]">
+                <div className="rounded-[32px] border border-white/20 bg-white/5 p-1 shadow-2xl shadow-black/40 backdrop-blur">
+                  {posterUrl ? (
+                    <Image
+                      src={posterUrl}
+                      alt={`${movie.title} poster`}
+                      width={320}
+                      height={480}
+                      className="aspect-[2/3] w-full rounded-[28px] object-cover"
+                      priority
+                    />
+                  ) : (
+                    <div className="flex aspect-[2/3] items-center justify-center rounded-[28px] bg-black/30">
+                      <Film className="h-16 w-16 text-white/40" />
                     </div>
-                  </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-                  <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="rounded-full">
-                          <MoreVertical className="h-4 w-4" />
-                          <span className="sr-only">{t("openMovieActions")}</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <AlertDialogTrigger asChild>
-                          <DropdownMenuItem
-                            onSelect={(event) => event.preventDefault()}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            {t("deleteMovie")}
-                          </DropdownMenuItem>
-                        </AlertDialogTrigger>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+      <section className="px-4">
+        <div className="mx-auto flex w-full max-w-screen-xl flex-col gap-6">
+          <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
+            <Card className="border-border/60 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-xl">{t("overview")}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {movie.overview && <p className="text-base leading-relaxed text-muted-foreground">{movie.overview}</p>}
 
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t("deleteMovieConfirm", { title: movie.title })}</AlertDialogTitle>
-                        <AlertDialogDescription>{t("deleteMovieDescription")}</AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel disabled={deletingMovie}>{tCommon("cancel")}</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} disabled={deletingMovie}>
-                          {deletingMovie ? t("deleting") : tCommon("delete")}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                <div className="grid gap-4 text-sm sm:grid-cols-2">
+                  {movie.releaseDate && (
+                    <div className="space-y-1">
+                      <span className="font-medium text-muted-foreground">{t("releaseDate")}</span>
+                      <p>{new Date(movie.releaseDate).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                  {theatricalReleaseDate && (
+                    <div className="space-y-1">
+                      <span className="font-medium text-muted-foreground">{t("theatricalReleaseDate")}</span>
+                      <p>{theatricalReleaseDate.toLocaleDateString()}</p>
+                    </div>
+                  )}
+                  {digitalReleaseDate && (
+                    <div className="space-y-1">
+                      <span className="font-medium text-muted-foreground">{t("digitalReleaseDate")}</span>
+                      <p>{digitalReleaseDate.toLocaleDateString()}</p>
+                    </div>
+                  )}
                 </div>
 
-                {movie.voteAverage > 0 && (
-                  <div className="flex flex-wrap items-center gap-4 text-sm">
-                    <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1">
-                      <Star className="h-4 w-4 text-yellow-500" />
-                      <span className="font-semibold text-foreground">{movie.voteAverage.toFixed(1)}</span>
-                    </Badge>
-                    {movie.voteCount > 0 && <span className="text-muted-foreground">{movie.voteCount.toLocaleString()} votes</span>}
-                  </div>
-                )}
-
-                {/* Playback Info */}
-                {!playbackLoading && playbackInfo && showPlaybackBadges && (
-                  <div className="flex flex-wrap items-center gap-3 text-sm">
-                    {playbackInfo.anyPlayed && (
-                      <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
-                        <Eye className="h-4 w-4 text-green-500" />
-                        <span>{t("watched")}</span>
-                      </Badge>
-                    )}
-                    {playbackInfo.totalPlayCount > 0 && (
-                      <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
-                        <Play className="h-4 w-4 text-blue-500" />
-                        <span>
-                          {playbackInfo.totalPlayCount === 1 ? t("play", { count: 1 }) : t("plays", { count: playbackInfo.totalPlayCount })}
-                        </span>
-                      </Badge>
-                    )}
-                    {playbackInfo.isFavorite && (
-                      <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
-                        <Heart className="h-4 w-4 fill-red-500 text-red-500" />
-                        <span>{t("favorite")}</span>
-                      </Badge>
-                    )}
-                  </div>
-                )}
-
-                {movie.genres && movie.genres.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {movie.genres.map((genre) => (
-                      <Badge key={genre} variant="outline">
-                        {genre}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </CardHeader>
-
-              <CardContent className="space-y-6">
-                {movie.overview && (
-                  <div className="space-y-2">
-                    <h2 className="text-lg font-semibold">{t("overview")}</h2>
-                    <p className="text-muted-foreground leading-relaxed">{movie.overview}</p>
-                  </div>
-                )}
-
-                {(movie.releaseDate ||
-                  theatricalReleaseDate ||
-                  digitalReleaseDate ||
-                  movie.budget ||
-                  movie.revenue ||
-                  movieFiles.length > 0) && (
-                  <div className="space-y-4">
+                {(typeof movie.budget === "number" && movie.budget > 0) || (typeof movie.revenue === "number" && movie.revenue > 0) ? (
+                  <>
+                    <Separator />
                     <div className="grid gap-4 text-sm sm:grid-cols-2">
-                      {movie.releaseDate && (
-                        <div className="space-y-1">
-                          <span className="font-medium text-muted-foreground">{t("releaseDate")}</span>
-                          <p>{new Date(movie.releaseDate).toLocaleDateString()}</p>
-                        </div>
-                      )}
-                      {theatricalReleaseDate && (
-                        <div className="space-y-1">
-                          <span className="font-medium text-muted-foreground">{t("theatricalReleaseDate")}</span>
-                          <p>{theatricalReleaseDate.toLocaleDateString()}</p>
-                        </div>
-                      )}
-                      {digitalReleaseDate && (
-                        <div className="space-y-1">
-                          <span className="font-medium text-muted-foreground">{t("digitalReleaseDate")}</span>
-                          <p>{digitalReleaseDate.toLocaleDateString()}</p>
-                        </div>
-                      )}
                       {typeof movie.budget === "number" && movie.budget > 0 && (
                         <div className="space-y-1">
                           <span className="font-medium text-muted-foreground">{t("budget")}</span>
@@ -511,203 +591,217 @@ export default function MovieDetails({ movieId }: MovieDetailsProps) {
                         </div>
                       )}
                     </div>
-                    <Separator />
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-muted-foreground">
-                          {t("associatedFiles")} {filesLoading && <Spinner className="inline-block ml-2 size-3" />}
-                        </span>
-                        <Button variant="outline" size="sm" onClick={() => setAddFileDialogOpen(true)}>
-                          <Plus className="mr-2 h-4 w-4" />
-                          {t("addFile")}
-                        </Button>
-                      </div>
+                  </>
+                ) : null}
+              </CardContent>
+            </Card>
 
-                      {movieFiles.length > 0 ? (
-                        <div className="space-y-2">
-                          {movieFiles.map((file) => {
-                            const isRemote = Boolean(file.nodeId);
+            <Card className="border-border/60 shadow-lg">
+              <CardHeader>
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-xl">{t("associatedFiles")}</CardTitle>
+                    <CardDescription>
+                      {filesLoading ? t("preparing") : t("filesAvailable", { count: movieFiles.length })}
+                    </CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setAddFileDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    {t("addFile")}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {movieFiles.length > 0 ? (
+                  <div className="space-y-3">
+                    {movieFiles.map((file) => {
+                      const isRemote = Boolean(file.nodeId);
 
-                            // Find active download task for this file
-                            const activeDownload = downloadTasks.find((task: BackgroundTaskInfo) => {
-                              const payload = task.payload as Record<string, unknown>;
-                              return (payload?.remoteFilePath as string) === file.filePath;
-                            });
+                      const activeDownload = downloadTasks.find((task: BackgroundTaskInfo) => {
+                        const payload = task.payload as Record<string, unknown>;
+                        return (payload?.remoteFilePath as string) === file.filePath;
+                      });
 
-                            const isDownloading = Boolean(activeDownload || initiatingDownloadFileId === file.id);
+                      const isDownloading = Boolean(activeDownload || initiatingDownloadFileId === file.id);
 
-                            let downloadProgress = 0;
-                            let downloadedBytes = 0;
-                            let totalBytes = 0;
+                      let downloadProgress = 0;
+                      let downloadedBytes = 0;
+                      let totalBytes = 0;
 
-                            if (activeDownload) {
-                              const payload = activeDownload.payload as Record<string, unknown>;
-                              downloadProgress = activeDownload.progress || 0;
-                              downloadedBytes = (payload?.downloadedBytes as number) || 0;
-                              totalBytes = (payload?.totalBytes as number) || 0;
-                            }
+                      if (activeDownload) {
+                        const payload = activeDownload.payload as Record<string, unknown>;
+                        downloadProgress = activeDownload.progress || 0;
+                        downloadedBytes = (payload?.downloadedBytes as number) || 0;
+                        totalBytes = (payload?.totalBytes as number) || 0;
+                      }
 
-                            return (
-                              <div
-                                key={file.id}
-                                className="rounded-md border bg-muted/30 px-3 py-2 space-y-2 min-h-[60px] flex flex-col justify-center"
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="flex-1 space-y-1.5">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      {isRemote && file.nodeName && (
-                                        <Badge variant="outline" className="text-xs">
-                                          <Server className="mr-1 h-3 w-3" />
-                                          {file.nodeName}
-                                        </Badge>
-                                      )}
-                                      {!isRemote && (
-                                        <Badge variant="outline" className="text-xs">
-                                          <HardDrive className="mr-1 h-3 w-3" />
-                                          {t("local")}
-                                        </Badge>
-                                      )}
-                                      <div className="font-mono text-xs text-muted-foreground break-all">{file.filePath}</div>
-                                    </div>
-
-                                    {isDownloading && activeDownload && (
-                                      <div className="space-y-1 pt-1">
-                                        <Progress value={downloadProgress} className="h-1.5" />
-                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                          <span>
-                                            {downloadedBytes > 0
-                                              ? `${(downloadedBytes / 1024 / 1024).toFixed(1)} MB / ${(totalBytes / 1024 / 1024).toFixed(1)} MB`
-                                              : t("preparing")}
-                                          </span>
-                                          <span>{downloadProgress.toFixed(0)}%</span>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {isRemote && (
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => {
-                                        if (activeDownload) {
-                                          void handleCancelDownload(activeDownload.id);
-                                        } else {
-                                          handleOpenDownloadDialog(file);
-                                        }
-                                      }}
-                                      disabled={initiatingDownloadFileId === file.id}
-                                      className="shrink-0"
-                                      title={activeDownload ? t("cancelDownload") : t("downloadFile")}
-                                    >
-                                      {activeDownload ? (
-                                        <X className="h-3.5 w-3.5" />
-                                      ) : initiatingDownloadFileId === file.id ? (
-                                        <Spinner className="h-3.5 w-3.5" />
-                                      ) : (
-                                        <Download className="h-3.5 w-3.5" />
-                                      )}
-                                    </Button>
-                                  )}
-                                </div>
+                      return (
+                        <div
+                          key={file.id}
+                          className="flex flex-col justify-center space-y-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex-1 space-y-1.5">
+                              <div className="flex flex-wrap items-center gap-2">
+                                {isRemote && file.nodeName && (
+                                  <Badge variant="outline" className="text-xs">
+                                    <Server className="mr-1 h-3 w-3" />
+                                    {file.nodeName}
+                                  </Badge>
+                                )}
+                                {!isRemote && (
+                                  <Badge variant="outline" className="text-xs">
+                                    <HardDrive className="mr-1 h-3 w-3" />
+                                    {t("local")}
+                                  </Badge>
+                                )}
+                                <div className="break-all font-mono text-xs text-muted-foreground">{file.filePath}</div>
                               </div>
-                            );
-                          })}
+
+                              {isDownloading && activeDownload && (
+                                <div className="space-y-1 pt-1">
+                                  <Progress value={downloadProgress} className="h-1.5" />
+                                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                    <span>
+                                      {downloadedBytes > 0
+                                        ? `${(downloadedBytes / 1024 / 1024).toFixed(1)} MB / ${(totalBytes / 1024 / 1024).toFixed(1)} MB`
+                                        : t("preparing")}
+                                    </span>
+                                    <span>{downloadProgress.toFixed(0)}%</span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {isRemote && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  if (activeDownload) {
+                                    void handleCancelDownload(activeDownload.id);
+                                  } else {
+                                    handleOpenDownloadDialog(file);
+                                  }
+                                }}
+                                disabled={initiatingDownloadFileId === file.id}
+                                className="shrink-0"
+                                title={activeDownload ? t("cancelDownload") : t("downloadFile")}
+                              >
+                                {activeDownload ? (
+                                  <X className="h-3.5 w-3.5" />
+                                ) : initiatingDownloadFileId === file.id ? (
+                                  <Spinner className="h-3.5 w-3.5" />
+                                ) : (
+                                  <Download className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                      ) : (
-                        <p className="text-xs italic text-muted-foreground">{t("noFilesLinked")}</p>
-                      )}
-                    </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm italic text-muted-foreground">{t("noFilesLinked")}</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {(hasCast || hasCrew) && (
+            <Card>
+              <CardHeader className="space-y-4">
+                <div>
+                  <CardTitle className="text-lg">{t("credits")}</CardTitle>
+                  <CardDescription>{t("creditsDescription")}</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {hasCast && (
+                  <div className="space-y-2">
+                    <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
+                      <CarouselContent className="-ml-2 sm:-ml-4">
+                        {movie.cast
+                          .slice()
+                          .sort((a, b) => a.order - b.order)
+                          .slice(0, CREDIT_DISPLAY_LIMIT)
+                          .map((castMember) => (
+                            <CarouselItem
+                              key={`${castMember.id}-${castMember.order}`}
+                              className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                            >
+                              <PersonCard
+                                name={castMember.name}
+                                {...(castMember.character ? { description: castMember.character } : {})}
+                                profilePath={castMember.profilePath ?? null}
+                                href={`/people/${castMember.id}`}
+                                className="mx-auto h-full"
+                              />
+                            </CarouselItem>
+                          ))}
+                      </CarouselContent>
+                      <CarouselPrevious className="hidden md:flex -left-8" />
+                      <CarouselNext className="hidden md:flex -right-8" />
+                    </Carousel>
+                    {movie.cast.length > CREDIT_DISPLAY_LIMIT && (
+                      <p className="text-xs text-muted-foreground">
+                        {t("showingCastMembers", { displayed: CREDIT_DISPLAY_LIMIT, total: movie.cast.length })}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {hasCrew && (
+                  <div className="space-y-2">
+                    <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
+                      <CarouselContent className="-ml-2 sm:-ml-4">
+                        {movie.crew
+                          .slice()
+                          .sort((a, b) => b.weight - a.weight)
+                          .slice(0, CREDIT_DISPLAY_LIMIT)
+                          .map((crewMember) => (
+                            <CarouselItem
+                              key={`${crewMember.id}-${crewMember.job}`}
+                              className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                            >
+                              <PersonCard
+                                name={crewMember.name}
+                                description={crewMember.job}
+                                {...(crewMember.department ? { meta: crewMember.department } : {})}
+                                profilePath={crewMember.profilePath ?? null}
+                                href={`/people/${crewMember.id}`}
+                                className="mx-auto h-full"
+                              />
+                            </CarouselItem>
+                          ))}
+                      </CarouselContent>
+                      <CarouselPrevious className="hidden md:flex -left-8" />
+                      <CarouselNext className="hidden md:flex -right-8" />
+                    </Carousel>
+                    {movie.crew.length > CREDIT_DISPLAY_LIMIT && (
+                      <p className="text-xs text-muted-foreground">
+                        {t("showingCrewMembers", { displayed: CREDIT_DISPLAY_LIMIT, total: movie.crew.length })}
+                      </p>
+                    )}
                   </div>
                 )}
               </CardContent>
             </Card>
-
-            <div className="space-y-6">
-              {(hasCast || hasCrew) && (
-                <Card>
-                  <CardHeader className="space-y-4">
-                    <div>
-                      <CardTitle className="text-lg">{t("credits")}</CardTitle>
-                      <CardDescription>{t("creditsDescription")}</CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {hasCast && (
-                      <div className="space-y-2">
-                        <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
-                          <CarouselContent className="-ml-2 sm:-ml-4">
-                            {movie.cast
-                              .slice()
-                              .sort((a, b) => a.order - b.order)
-                              .slice(0, CREDIT_DISPLAY_LIMIT)
-                              .map((castMember) => (
-                                <CarouselItem
-                                  key={`${castMember.id}-${castMember.order}`}
-                                  className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
-                                >
-                                  <PersonCard
-                                    name={castMember.name}
-                                    {...(castMember.character ? { description: castMember.character } : {})}
-                                    profilePath={castMember.profilePath ?? null}
-                                    href={`/people/${castMember.id}`}
-                                    className="mx-auto h-full"
-                                  />
-                                </CarouselItem>
-                              ))}
-                          </CarouselContent>
-                          <CarouselPrevious className="hidden md:flex -left-8" />
-                          <CarouselNext className="hidden md:flex -right-8" />
-                        </Carousel>
-                        {movie.cast.length > CREDIT_DISPLAY_LIMIT && (
-                          <p className="text-xs text-muted-foreground">
-                            {t("showingCastMembers", { displayed: CREDIT_DISPLAY_LIMIT, total: movie.cast.length })}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {hasCrew && (
-                      <div className="space-y-2">
-                        <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} className="w-full">
-                          <CarouselContent className="-ml-2 sm:-ml-4">
-                            {movie.crew
-                              .slice()
-                              .sort((a, b) => b.weight - a.weight)
-                              .slice(0, CREDIT_DISPLAY_LIMIT)
-                              .map((crewMember) => (
-                                <CarouselItem
-                                  key={`${crewMember.id}-${crewMember.job}`}
-                                  className="pl-2 sm:pl-4 basis-3/4 sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
-                                >
-                                  <PersonCard
-                                    name={crewMember.name}
-                                    description={crewMember.job}
-                                    {...(crewMember.department ? { meta: crewMember.department } : {})}
-                                    profilePath={crewMember.profilePath ?? null}
-                                    href={`/people/${crewMember.id}`}
-                                    className="mx-auto h-full"
-                                  />
-                                </CarouselItem>
-                              ))}
-                          </CarouselContent>
-                          <CarouselPrevious className="hidden md:flex -left-8" />
-                          <CarouselNext className="hidden md:flex -right-8" />
-                        </Carousel>
-                        {movie.crew.length > CREDIT_DISPLAY_LIMIT && (
-                          <p className="text-xs text-muted-foreground">
-                            {t("showingCrewMembers", { displayed: CREDIT_DISPLAY_LIMIT, total: movie.crew.length })}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </div>
+          )}
         </div>
-      </div>
+      </section>
+
+      <VideoPlayerDialog
+        open={isVideoPlayerOpen}
+        onOpenChange={setVideoPlayerOpen}
+        videoPath={videoPath}
+        title={movie.title}
+        transcode={videoShouldTranscode ?? false}
+        quality={videoQuality ?? "medium"}
+        showStreamInfo={videoShowStreamInfo ?? false}
+        className="rounded-2xl"
+      />
 
       <DownloadFileDialog
         open={downloadDialogOpen}
