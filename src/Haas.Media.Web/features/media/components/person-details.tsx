@@ -137,7 +137,7 @@ export default function PersonDetails({ personId }: PersonDetailsProps) {
         </Button>
       </div>
 
-      <div className="flex flex-col gap-8 lg:flex-row">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,320px),minmax(0,1fr)]">
         <div className="mx-auto w-full max-w-xs lg:mx-0">
           <Card className="overflow-hidden border-border/60 shadow-lg">
             <div className="relative aspect-[2/3] bg-muted">
@@ -152,7 +152,7 @@ export default function PersonDetails({ personId }: PersonDetailsProps) {
           </Card>
         </div>
 
-        <div className="flex-1 space-y-6">
+        <div className="space-y-6">
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight">{person.name}</h1>
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -188,7 +188,9 @@ export default function PersonDetails({ personId }: PersonDetailsProps) {
               ) : null}
             </div>
           </div>
+        </div>
 
+        <div className="space-y-6 lg:col-span-2">
           {biographyParagraphs.length > 0 ? (
             <Card className="border-border/60 bg-card/70">
               <CardHeader className="pb-3">
