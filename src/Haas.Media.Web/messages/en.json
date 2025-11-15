@@ -314,7 +314,15 @@
     "downloadSeason": "Download Season",
     "downloadingEpisodes": "Downloading {count} episodes...",
     "seasonDownloadStarted": "Season Download Started",
-    "seasonDownloadStartedMessage": "Downloading {count} episode{plural} from Season {season} from {nodeName}."
+    "seasonDownloadStartedMessage": "Downloading {count} episode{plural} from Season {season} from {nodeName}.",
+    "playShowCta": "Play",
+    "resumeShowCta": "Resume",
+    "playEpisodeCta": "Play episode",
+    "playEpisodeFallbackCta": "Play when available",
+    "heroEpisodeLabel": "Season {season}, Episode {episode}",
+    "nextEpisodeHint": "Up next",
+    "playbackUnavailable": "Playback unavailable. Link a local file to start watching instantly.",
+    "remotePlaybackUnavailable": "Remote files must be downloaded before playback becomes available."
   },
   "files": {
     "title": "Files",
