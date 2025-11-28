@@ -333,20 +333,40 @@ internal sealed class MetadataSyncTaskExecutor
             };
             context.SetPayload(payload);
 
+            // Get TMDb IDs from newly processed files (need to sync these regardless of RefreshExistingData)
+            var newlyAddedFilePaths = newFiles.Select(x => x.relativePath).ToHashSet();
+            var newMovieIds = existingFileMetadata
+                .Where(x =>
+                    x.Value.LibraryType == LibraryType.Movies
+                    && newlyAddedFilePaths.Contains(x.Key)
+                )
+                .Select(x => x.Value.TmdbId)
+                .Distinct()
+                .ToArray();
+            var newTvShowIds = existingFileMetadata
+                .Where(x =>
+                    x.Value.LibraryType == LibraryType.TVShows
+                    && newlyAddedFilePaths.Contains(x.Key)
+                )
+                .Select(x => x.Value.TmdbId)
+                .Distinct()
+                .ToArray();
+
+            // When refreshing existing data, include all files; otherwise only include newly added files
             var allMovieIds = task.RefreshExistingData
                 ? existingFileMetadata
                     .Where(x => x.Value.LibraryType == LibraryType.Movies)
                     .Select(x => x.Value.TmdbId)
                     .Distinct()
                     .ToArray()
-                : [];
+                : newMovieIds;
             var allTvShowIds = task.RefreshExistingData
                 ? existingFileMetadata
                     .Where(x => x.Value.LibraryType == LibraryType.TVShows)
                     .Select(x => x.Value.TmdbId)
                     .Distinct()
                     .ToArray()
-                : [];
+                : newTvShowIds;
 
             var existingMovieIds = _movieMetadataCollection
                 .Find(x => allMovieIds.Contains(x.Id))
