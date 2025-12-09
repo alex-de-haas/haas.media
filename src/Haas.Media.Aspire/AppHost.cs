@@ -67,10 +67,10 @@ var downloaderApi = builder
     });
 
 var web = builder
-    .AddNpmApp(
+    .AddJavaScriptApp(
         "web",
         "../Haas.Media.Web",
-        scriptName: builder.ExecutionContext.IsPublishMode ? "start" : "dev"
+        runScriptName: builder.ExecutionContext.IsPublishMode ? "start" : "dev"
     )
     .WithHttpEndpoint(port: 3000, targetPort: 3000, isProxied: false)
     .WithEnvironment("API_BASE_URL", apiBaseUrl)
