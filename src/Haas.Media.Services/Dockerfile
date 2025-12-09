@@ -17,7 +17,7 @@ COPY /Haas.Media.Services/ Haas.Media.Services/
 RUN dotnet publish "Haas.Media.Services/Haas.Media.Services.csproj" -c Release -o /app/publish --no-restore
 
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
 # Install ffmpeg and VA-API dependencies required for AMD GPUs under WSL2
