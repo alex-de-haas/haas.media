@@ -3,7 +3,13 @@ using DotNetEnv;
 var env = Env.TraversePath().Load().ToDictionary();
 
 var builder = DistributedApplication.CreateBuilder(args);
-builder.AddDockerComposeEnvironment("haas-media");
+var compose = builder
+    .AddDockerComposeEnvironment("haas-media")
+    .WithDashboard(dashboard =>
+    {
+        // Optional: expose the Aspire dashboard externally
+        dashboard.WithHostPort(8080).WithForwardedHeaders(enabled: true);
+    });
 
 // Helper to safely get env values
 string GetEnvOrEmpty(string key) => env.TryGetValue(key, out var value) ? value : string.Empty;
@@ -59,6 +65,14 @@ var downloaderApi = builder
     .WithEnvironment("ALLOWED_CORS_ORIGINS", webBaseUrl)
     .WithExternalHttpEndpoints()
     .WithOtlpExporter()
+    .PublishAsDockerComposeService(
+        (resource, service) =>
+        {
+            service.Name = "services"; // Service name in docker-compose.yml
+            // you can also tweak restart policy, etc.
+            // service.Restart = "unless-stopped";
+        }
+    )
     .PublishAsDockerFile(config =>
     {
         config.WithDockerfile("..", dockerfilePath: "Haas.Media.Services/Dockerfile");
@@ -77,6 +91,14 @@ var web = builder
     .WithEnvironment("NEXT_PUBLIC_API_BASE_URL", apiBaseUrl)
     .WithEnvironment("INTERNAL_API_BASE_URL", internalApiBaseUrl)
     .WithExternalHttpEndpoints()
+    .PublishAsDockerComposeService(
+        (resource, service) =>
+        {
+            service.Name = "web"; // Service name in docker-compose.yml
+            // you can also tweak restart policy, etc.
+            // service.Restart = "unless-stopped";
+        }
+    )
     .PublishAsDockerFile();
 
 builder.Build().Run();
